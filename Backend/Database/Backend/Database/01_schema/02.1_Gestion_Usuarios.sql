@@ -1,0 +1,13 @@
+CREATE DATABASE IF NOT EXISTS Unistock_01;
+USE Unistock_01;
+
+CREATE TABLE Usuarios (
+    id_Usuarios INT AUTO_INCREMENT PRIMARY KEY,
+    Tipo_de_documento VARCHAR(50) NOT NULL,
+    Documento BIGINT NOT NULL UNIQUE,
+    Nombre VARCHAR(50) NOT NULL,
+    id_Rol INT NOT NULL,
+    id_Sede INT NOT NULL,
+    Contrasena VARCHAR(255) NOT NULL,
+    Estado BOOLEAN NOT NULL DEFAULT TRUE
+);
