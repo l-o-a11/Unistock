@@ -1,0 +1,1 @@
+Datos iniciales (INSERT)
