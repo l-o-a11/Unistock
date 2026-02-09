@@ -66,6 +66,49 @@ CREATE TABLE Material_Ficha_Técnica (
 );
 
 
+CREATE TABLE Categoría (
+    id_Categoría INT AUTO_INCREMENT PRIMARY KEY,   
+    Nombre VARCHAR(50) NOT NULL,
+    Descripción VARCHAR(250),
+    Cantidad_Producto INT NOT NULL,
+    Productos_Disponibles INT NOT NULL,
+    Estado BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE Producto (
+    id_Producto INT AUTO_INCREMENT PRIMARY KEY,
+    id_Categoría INT NOT NULL, 
+    Imagenes_URL VARCHAR(200),  
+    Referencia VARCHAR(10) NOT NULL,
+    Nombre VARCHAR(50) NOT NULL
+    Precio INT NOT NULL,
+    Stock INT NOT NULL,
+    Estado BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (id_Categoría) REFERENCES Categoría(id_Categoría)
+);
+
+CREATE TABLE Ficha_Técnica (
+    id_Ficha_Técnica INT AUTO_INCREMENT PRIMARY KEY,
+    id_Producto INT NOT NULL,
+    Responsable VARCHAR(50),  
+    Fecha_Inicio DATE,
+    Fecha_Fin DATE,   
+    Versiones VARCHAR(10),
+    Descripciones TEXT,
+    FOREIGN KEY (id_Producto) REFERENCES Producto(id_Producto)
+);
+
+CREATE TABLE Material_Ficha_Técnica (
+    id_Material_Ficha_Técnica INT AUTO_INCREMENT PRIMARY KEY,
+    id_Insumo INT NOT NULL,
+    id_Ficha_Técnica INT NOT NULL,
+    Cantidad INT NOT NULL,
+    id_Medida INT NOT NULL,
+    FOREIGN KEY (id_Insumo) REFERENCES Insumo(id_Insumo),
+    FOREIGN KEY (id_Ficha_Técnica) REFERENCES Ficha_Técnica(id_Ficha_Técnica),
+    FOREIGN KEY (id_Medida) REFERENCES Medida(id_Medida)
+);
+
 create table Tercero (
 id_Tercero INT auto_increment primary key,
 Nombre varchar(100),
