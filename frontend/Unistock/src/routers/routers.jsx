@@ -1,15 +1,17 @@
-import { Route, Routes } from "react-router-dom";
-import AppLayout from "../components/layout/AppLayout";
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
+import AppLayout from "../feature/routers/Layout/AppLayout.jsx";
 
-export const RouterApp = () => {
+export function RouterApp() {
   return (
     <Routes>
       <Route path="/" element={<AppLayout />}>
-        <Route
-          index
-          element={<h1 style={{ padding: 20 }}>Contenido</h1>}
-        />
+        <Route index element={<ProductionDashboard />} />
+        <Route index path="dashboard" element={<ProductionDashboard />} />
       </Route>
     </Routes>
   );
-};
+}
+
+export default RouterApp;
