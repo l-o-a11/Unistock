@@ -1,190 +1,272 @@
 CREATE DATABASE IF NOT EXISTS Unistock_01;
+
 USE Unistock_01;
 
-CREATE TABLE Usuarios (
-    id_Usuarios INT AUTO_INCREMENT PRIMARY KEY,
-    Tipo_de_documento VARCHAR(50) NOT NULL,
-    Documento BIGINT NOT NULL UNIQUE,
-    Nombre VARCHAR(50) NOT NULL,
-    id_Rol INT NOT NULL,
-    id_Sede INT NOT NULL,
-    Contrasena VARCHAR(255) NOT NULL,
-    Estado BOOLEAN NOT NULL DEFAULT TRUE
-);
-CREATE TABLE Proveedor (
-    id_Proveedores INT AUTO_INCREMENT PRIMARY KEY,
-    Nit INT,
-    Nombre_de_la_empresa VARCHAR(50),
-    Nombre_de_contacto varchar(60),
-    Direccion varchar(60),
-    Telefono int,
-    Correo varchar(100),
-    Sitio_web varchar(150),
-    Activo bit
-);
-CREATE TABLE Categoría (
-    id_Categoría INT AUTO_INCREMENT PRIMARY KEY,   
-    Nombre VARCHAR(50) NOT NULL,
-    Descripción VARCHAR(250),
-    Cantidad_Producto INT NOT NULL,
-    Productos_Disponibles INT NOT NULL,
-    Estado BOOLEAN NOT NULL DEFAULT TRUE
+-- =========================
+-- TABLAS BASE
+-- =========================
+
+CREATE TABLE roles (
+    id_rol INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(255),
+    estado BIT DEFAULT b'1'
 );
 
-CREATE TABLE Producto (
-    id_Producto INT AUTO_INCREMENT PRIMARY KEY,
-    id_Categoría INT NOT NULL, 
-    Imagenes_URL VARCHAR(200),  
-    Referencia VARCHAR(10) NOT NULL,
-    Nombre VARCHAR(50) NOT NULL
-    Precio INT NOT NULL,
-    Stock INT NOT NULL,
-    Estado BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (id_Categoría) REFERENCES Categoría(id_Categoría)
+CREATE TABLE privilegios (
+    id_privilegio INT AUTO_INCREMENT PRIMARY KEY,
+    descripcion VARCHAR(50) NOT NULL,
+    estado BIT DEFAULT b'1'
 );
 
-CREATE TABLE Ficha_Técnica (
-    id_Ficha_Técnica INT AUTO_INCREMENT PRIMARY KEY,
-    id_Producto INT NOT NULL,
-    Responsable VARCHAR(50),  
-    Fecha_Inicio DATE,
-    Fecha_Fin DATE,   
-    Versiones VARCHAR(10),
-    Descripciones TEXT,
-    FOREIGN KEY (id_Producto) REFERENCES Producto(id_Producto)
+CREATE TABLE modulos (
+    id_modulo INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    estado BIT DEFAULT b'1'
 );
 
-CREATE TABLE Material_Ficha_Técnica (
-    id_Material_Ficha_Técnica INT AUTO_INCREMENT PRIMARY KEY,
-    id_Insumo INT NOT NULL,
-    id_Ficha_Técnica INT NOT NULL,
-    Cantidad INT NOT NULL,
-    id_Medida INT NOT NULL,
-    FOREIGN KEY (id_Insumo) REFERENCES Insumo(id_Insumo),
-    FOREIGN KEY (id_Ficha_Técnica) REFERENCES Ficha_Técnica(id_Ficha_Técnica),
-    FOREIGN KEY (id_Medida) REFERENCES Medida(id_Medida)
+CREATE TABLE sedes (
+    id_sede INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    ciudad VARCHAR(50) NOT NULL,
+    barrio VARCHAR(100) NOT NULL,
+    direccion VARCHAR(150) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    estado BIT DEFAULT b'1'
 );
 
-
-CREATE TABLE Categoría (
-    id_Categoría INT AUTO_INCREMENT PRIMARY KEY,   
-    Nombre VARCHAR(50) NOT NULL,
-    Descripción VARCHAR(250),
-    Cantidad_Producto INT NOT NULL,
-    Productos_Disponibles INT NOT NULL,
-    Estado BOOLEAN NOT NULL DEFAULT TRUE
+CREATE TABLE estados_produccion (
+    id_estado INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_estado VARCHAR(50),
+    orden INT
 );
 
-CREATE TABLE Producto (
-    id_Producto INT AUTO_INCREMENT PRIMARY KEY,
-    id_Categoría INT NOT NULL, 
-    Imagenes_URL VARCHAR(200),  
-    Referencia VARCHAR(10) NOT NULL,
-    Nombre VARCHAR(50) NOT NULL
-    Precio INT NOT NULL,
-    Stock INT NOT NULL,
-    Estado BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (id_Categoría) REFERENCES Categoría(id_Categoría)
+CREATE TABLE categoria_insumo (
+    id_categoria INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE Ficha_Técnica (
-    id_Ficha_Técnica INT AUTO_INCREMENT PRIMARY KEY,
-    id_Producto INT NOT NULL,
-    Responsable VARCHAR(50),  
-    Fecha_Inicio DATE,
-    Fecha_Fin DATE,   
-    Versiones VARCHAR(10),
-    Descripciones TEXT,
-    FOREIGN KEY (id_Producto) REFERENCES Producto(id_Producto)
+CREATE TABLE medidas (
+    id_medida INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE Material_Ficha_Técnica (
-    id_Material_Ficha_Técnica INT AUTO_INCREMENT PRIMARY KEY,
-    id_Insumo INT NOT NULL,
-    id_Ficha_Técnica INT NOT NULL,
-    Cantidad INT NOT NULL,
-    id_Medida INT NOT NULL,
-    FOREIGN KEY (id_Insumo) REFERENCES Insumo(id_Insumo),
-    FOREIGN KEY (id_Ficha_Técnica) REFERENCES Ficha_Técnica(id_Ficha_Técnica),
-    FOREIGN KEY (id_Medida) REFERENCES Medida(id_Medida)
+CREATE TABLE propiedad (
+    id_propiedad INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
 );
 
-create table Tercero (
-id_Tercero INT auto_increment primary key,
-Nombre varchar(100),
-Contacto varchar(100),
-Barrio varchar(100),
-Direccion varchar(100),
-Telefono int,
-Estado bit
+-- =========================
+-- USUARIOS Y PERMISOS
+-- =========================
+
+CREATE TABLE usuarios (
+    id_usuarios INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_documento VARCHAR(50) NOT NULL,
+    documento BIGINT NOT NULL UNIQUE,
+    nombre VARCHAR(50) NOT NULL,
+    id_rol INT NOT NULL,
+    id_sede INT NOT NULL,
+    contrasena VARCHAR(255) NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (id_rol) REFERENCES roles(id_rol),
+    FOREIGN KEY (id_sede) REFERENCES sedes(id_sede)
 );
 
-create table Asignacion_Terceros(
-id_Asignacion int auto_increment primary key,
-id_Orden int,
-id_Tercero int,
-Cantidad int,
-Fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-FOREIGN KEY id_Orden REFERENCES Orden(id_Orden),
-FOREIGN KEY id_Terceros REFERENCES Tercero(id_Tercero)
+CREATE TABLE permisos (
+    id_permiso INT AUTO_INCREMENT PRIMARY KEY,
+    id_rol INT NOT NULL,
+    id_modulo INT NOT NULL,
+    id_privilegio INT NOT NULL,
+    estado BIT DEFAULT b'1',
+    FOREIGN KEY (id_rol) REFERENCES roles(id_rol),
+    FOREIGN KEY (id_modulo) REFERENCES modulos(id_modulo),
+    FOREIGN KEY (id_privilegio) REFERENCES privilegios(id_privilegio)
 );
 
-create table Historial_Cambios(
-id_historial int auto_increment primary key,
-id_Orden int,
-id_Estado int,
-Fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-id_usuarios int,
-FOREIGN KEY id_Orden REFERENCES Orden(id_Orden),
-FOREIGN KEY id_Estado REFERENCES Estado(id_Estado),
-Foreign key id_Usuarios REferences Usuarios(id_Usuarios)
+-- =========================
+-- PROVEEDORES
+-- =========================
+
+CREATE TABLE proveedores (
+    id_proveedor INT AUTO_INCREMENT PRIMARY KEY,
+    nit BIGINT,
+    nombre_empresa VARCHAR(100),
+    nombre_contacto VARCHAR(60),
+    direccion VARCHAR(60),
+    telefono VARCHAR(20),
+    correo VARCHAR(100),
+    sitio_web VARCHAR(150),
+    activo BIT DEFAULT b'1'
 );
 
-create table Estados_Produccion(
-id_Estado int auto_increment primary key,
-Nombre_estado varchar(50),
-Orden int
+-- =========================
+-- INSUMOS
+-- =========================
+
+CREATE TABLE insumos (
+    id_insumo INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    id_categoria INT NOT NULL,
+    stock INT NOT NULL,
+    valor_medida DECIMAL(10,2) NOT NULL,
+    id_medida INT NOT NULL,
+    imagen VARCHAR(255),
+    estado BIT DEFAULT b'1',
+    FOREIGN KEY (id_categoria) REFERENCES categoria_insumo(id_categoria),
+    FOREIGN KEY (id_medida) REFERENCES medidas(id_medida)
 );
 
-create table Orden_Produccion(
-id_Orden int auto_increment primary key,
-Fecha_Creacion TIME,
-Fecha_Entrega Time,
-Cliente varchar (100),
-id_usuarios int,
-Foreign key id_Usuarios REferences Usuarios(id_Usuarios)
+CREATE TABLE insumo_propiedad (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_insumo INT NOT NULL,
+    id_propiedad INT NOT NULL,
+    valor VARCHAR(50) NOT NULL,
+    FOREIGN KEY (id_insumo) REFERENCES insumos(id_insumo),
+    FOREIGN KEY (id_propiedad) REFERENCES propiedad(id_propiedad)
 );
 
-create table Orden_Detalle(
-id_Detalle int auto_increment primary key,
-id_Orden int,
-id_Producto int,
-Cantidad int,
-Color varchar (30),
-Estado bit,
-Foreign key id_Orden REferences Orden_Produccion(id_Orden),
-Foreign key id_Producto REferences Producto(id_Producto)
+-- =========================
+-- PRODUCTOS
+-- =========================
+
+CREATE TABLE categoria_producto (
+    id_categoria INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(250),
+    cantidad_producto INT NOT NULL,
+    productos_disponibles INT NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-create table Procesos_Orden_Produccion(
-id_Proceso int auto_increment primary key,
-id_Detalle int,
-id_Estado int,
-Fecha time,
-id_usuarios int,
-Foreign key id_Usuarios REferences Usuarios(id_Usuarios),
-Foreign key id_Detalle REferences Orden_Detalle(id_Detalle),
-Foreign key id_Estado REferences Estados_Produccion(id_Estado)
+CREATE TABLE producto (
+    id_producto INT AUTO_INCREMENT PRIMARY KEY,
+    id_categoria INT NOT NULL,
+    imagenes_url VARCHAR(200),
+    referencia VARCHAR(20) NOT NULL,
+    nombre VARCHAR(50) NOT NULL,
+    precio INT NOT NULL,
+    stock INT NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (id_categoria) REFERENCES categoria_producto(id_categoria)
 );
 
-create table Traslado_Sede(
-id_Asignacion_Sede int auto_increment primary key,
-id_Orden int,
-id_Sede_Origen int,
-id_Sede_Destino int,
-Cantidad int,
-Fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-Foreign key id_Orden REferences Orden_Produccion(id_Orden),
-Foreign key id_Sede_Origen REferences Sedes(id_Sede),
-Foreign key id_Sede_Destino REferences Sedes(id_Sede)
+-- =========================
+-- FICHA TECNICA
+-- =========================
+
+CREATE TABLE ficha_tecnica (
+    id_ficha_tecnica INT AUTO_INCREMENT PRIMARY KEY,
+    id_producto INT NOT NULL,
+    responsable VARCHAR(50),
+    fecha_inicio DATE,
+    fecha_fin DATE,
+    versiones VARCHAR(10),
+    descripciones TEXT,
+    FOREIGN KEY (id_producto) REFERENCES producto(id_producto)
+);
+
+CREATE TABLE material_ficha_tecnica (
+    id_material INT AUTO_INCREMENT PRIMARY KEY,
+    id_insumo INT NOT NULL,
+    id_ficha_tecnica INT NOT NULL,
+    cantidad INT NOT NULL,
+    id_medida INT NOT NULL,
+    FOREIGN KEY (id_insumo) REFERENCES insumos(id_insumo),
+    FOREIGN KEY (id_ficha_tecnica) REFERENCES ficha_tecnica(id_ficha_tecnica),
+    FOREIGN KEY (id_medida) REFERENCES medidas(id_medida)
+);
+
+-- =========================
+-- ORDENES DE PRODUCCION
+-- =========================
+
+CREATE TABLE orden_produccion (
+    id_orden INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_creacion DATETIME,
+    fecha_entrega DATETIME,
+    cliente VARCHAR(100),
+    id_usuarios INT,
+    FOREIGN KEY (id_usuarios) REFERENCES usuarios(id_usuarios)
+);
+
+CREATE TABLE orden_detalle (
+    id_detalle INT AUTO_INCREMENT PRIMARY KEY,
+    id_orden INT,
+    id_producto INT,
+    cantidad INT,
+    color VARCHAR(30),
+    estado BIT,
+    FOREIGN KEY (id_orden) REFERENCES orden_produccion(id_orden),
+    FOREIGN KEY (id_producto) REFERENCES producto(id_producto)
+);
+
+CREATE TABLE procesos_orden_produccion (
+    id_proceso INT AUTO_INCREMENT PRIMARY KEY,
+    id_detalle INT,
+    id_estado INT,
+    fecha DATETIME,
+    id_usuarios INT,
+    FOREIGN KEY (id_usuarios) REFERENCES usuarios(id_usuarios),
+    FOREIGN KEY (id_detalle) REFERENCES orden_detalle(id_detalle),
+    FOREIGN KEY (id_estado) REFERENCES estados_produccion(id_estado)
+);
+
+CREATE TABLE historial_cambios (
+    id_historial INT AUTO_INCREMENT PRIMARY KEY,
+    id_orden INT,
+    id_estado INT,
+    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id_usuarios INT,
+    FOREIGN KEY (id_orden) REFERENCES orden_produccion(id_orden),
+    FOREIGN KEY (id_estado) REFERENCES estados_produccion(id_estado),
+    FOREIGN KEY (id_usuarios) REFERENCES usuarios(id_usuarios)
+);
+
+-- =========================
+-- COMPRAS
+-- =========================
+
+CREATE TABLE compras (
+    id_compra INT AUTO_INCREMENT PRIMARY KEY,
+    fecha DATE NOT NULL,
+    id_proveedor INT NOT NULL,
+    observaciones VARCHAR(255),
+    costo_total INT NOT NULL,
+    estado BIT DEFAULT b'1',
+    FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor)
+);
+
+CREATE TABLE detalle_compras (
+    id_detalle INT AUTO_INCREMENT PRIMARY KEY,
+    id_compra INT NOT NULL,
+    id_insumo INT NOT NULL,
+    medida VARCHAR(50),
+    costo INT NOT NULL,
+    cantidad INT NOT NULL,
+    costo_unitario INT NOT NULL,
+    subtotal INT NOT NULL,
+    FOREIGN KEY (id_compra) REFERENCES compras(id_compra),
+    FOREIGN KEY (id_insumo) REFERENCES insumos(id_insumo)
+);
+-- =========================
+-- Terceros
+-- =========================
+CREATE TABLE tercero (
+    id_tercero INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100),
+    contacto VARCHAR(100),
+    barrio VARCHAR(100),
+    direccion VARCHAR(100),
+    telefono VARCHAR(20),
+    estado BIT DEFAULT b'1'
+);
+CREATE TABLE asignacion_terceros (
+    id_asignacion INT AUTO_INCREMENT PRIMARY KEY,
+    id_orden INT,
+    id_tercero INT,
+    cantidad INT,
+    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_orden) REFERENCES orden_produccion(id_orden),
+    FOREIGN KEY (id_tercero) REFERENCES tercero(id_tercero)
 );

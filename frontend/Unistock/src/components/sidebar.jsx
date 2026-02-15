@@ -11,11 +11,20 @@ const menuItems = [
   { id: 'usuarios',   name: 'Usuarios',   icon: UsuariosIcon,  hasSubmenu: false },
   {
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
-    submenu: ['Insumos', 'Categorías', 'Proveedores', 'Compras'],
+    submenu: [
+      { name: 'Insumos', path: '/compras/insumos' },
+      { name: 'Categorías', path: '/compras/categorias' },
+      { name: 'Proveedores', path: '/compras/proveedores' },
+      { name: 'Compras', path: '/compras' },
+    ],
   },
   {
     id: 'produccion', name: 'Producción', icon: ProduccionIcon, hasSubmenu: true,
-    submenu: ['Categorías', 'Producción', 'Productos'],
+    submenu: [
+      { name: 'Categorías', path: '/produccion/categorias' },
+      { name: 'Producción', path: '/produccion' },
+      { name: 'Productos', path: '/productos' },
+    ],
   },
 ];
 
@@ -35,6 +44,10 @@ export default function Sidebar() {
     }
     setActiveMenu(prev => prev === item.id ? null : item.id);
     setActiveSubItem(null);
+  };
+
+  const handleSubitemClick = (subitem) => {
+    navigate(subitem.path);
   };
 
   const activeItem  = menuItems.find(m => m.id === activeMenu);
@@ -103,7 +116,7 @@ export default function Sidebar() {
 
             {/* Items del submenú */}
             <div className="flex flex-col flex-1 py-3 px-3 space-y-2 overflow-y-auto">
-              {activeItem.submenu.map((name, i) => {
+              {activeItem.submenu.map((subitem, i) => {
                 const key      = `${activeItem.id}-${i}`;
                 const isActive = activeSubItem === key;
                 const isHov    = hoveredSub === key;
@@ -111,7 +124,10 @@ export default function Sidebar() {
                 return (
                   <button
                     key={i}
-                    onClick={() => setActiveSubItem(key)}
+                    onClick={() => {
+                      setActiveSubItem(key);
+                      handleSubitemClick(subitem);
+                    }}
                     onMouseEnter={() => setHoveredSub(key)}
                     onMouseLeave={() => setHoveredSub(null)}
                     className={`
@@ -139,7 +155,7 @@ export default function Sidebar() {
                     )}
 
                     {/* Texto */}
-                    <span className="flex-1">{name}</span>
+                    <span className="flex-1">{subitem.name}</span>
 
                     {/* Indicador derecho */}
                     {isActive && (

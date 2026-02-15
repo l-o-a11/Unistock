@@ -184,7 +184,7 @@ export default function ProductionDashboard() {
 
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">Último mes</span>
+              <span className="text-sm text-gray-600">Último mes</span>
 
               <button onClick={() => setViewMode('Todas')}
                 className={`px-3 py-0.5 rounded-full text-sm font-medium border transition-colors ${viewMode === 'Todas' ? 'bg-fuchsia-500 text-white border-fuchsia-500' : 'bg-white text-gray-600 border-gray-200'}`}>
@@ -259,12 +259,12 @@ export default function ProductionDashboard() {
             <div className="flex items-end justify-around h-48">
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xl font-bold">2</span>
-                <div className="w-14 h-12 rounded-xl bg-pink-200"/>
+                <div className="w-10 h-2 rounded-lg bg-pink-200"/>
                 <p className="text-xs text-center text-gray-700 font-medium mt-1">Producciones<br/>con retraso</p>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xl font-bold">45</span>
-                <div className="w-14 h-36 rounded-xl bg-green-400"/>
+                <div className="w-10 h-30 rounded-lg bg-green-400"/>
                 <p className="text-xs text-center text-gray-700 font-medium mt-1">Todo en<br/>orden</p>
               </div>
             </div>
@@ -327,8 +327,6 @@ export default function ProductionDashboard() {
         </div>
       </div>
 
-
-
       {/* Fila 3: barras */}
       <Card>
         <div className="flex items-center justify-between mb-3">
@@ -358,7 +356,7 @@ export default function ProductionDashboard() {
         </div>
 
         {/* Fila de íconos sobre el gráfico */}
-        <div className="flex mb-2 pl-10 pr-2">
+        <div className="flex mb-4 pl-14 pr-2">
           {barIconKeys.map((name) => (
             <div key={name} className="flex-1 flex justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
@@ -377,7 +375,7 @@ export default function ProductionDashboard() {
             <Tooltip formatter={(v) => [v, 'Cantidad']} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, color: '#111827' }} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]} label={{ position: 'top', fontSize: 11, fill: '#374151', fontWeight: 600 }}>
               {barData.map((entry, i) => (
-                <Cell key={i} fill={entry.value > 25 ? '#E8B4E8' : '#7BE87B'} />
+                <Cell key={i} fill={entry.value > 24 ? '#E8B4E8' : '#7BE87B'} />
               ))}
             </Bar>
           </BarChart>

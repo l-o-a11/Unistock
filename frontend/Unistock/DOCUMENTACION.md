@@ -429,4 +429,3 @@ App
 - **Recharts** - Gráficas
 - **Lucide React** - Iconos
 - **Vite** - Build tool
-
