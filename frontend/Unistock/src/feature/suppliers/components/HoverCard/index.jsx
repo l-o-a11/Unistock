@@ -26,7 +26,7 @@ const HoverCard = ({ children, content, position = 'right' }) => {
           style={{
             position: 'absolute',
             zIndex: 9999,
-            width: '320px',
+            width: '220px',
             ...positionStyles[position],
           }}
         >
@@ -71,24 +71,7 @@ const HoverCard = ({ children, content, position = 'right' }) => {
               {content}
             </div>
 
-            {/* Footer */}
-            <div
-              style={{
-                backgroundColor: '#fafafa',
-                padding: '8px 16px',
-                borderTop: '1px solid #f0f0f0',
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '11px',
-                  color: '#999999',
-                }}
-              >
-                Versión actual • {new Date().toLocaleDateString('es-CO')}
-              </p>
-            </div>
+            
           </div>
         </div>
       )}

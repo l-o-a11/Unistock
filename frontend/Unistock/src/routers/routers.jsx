@@ -8,7 +8,10 @@ import EditProductPage from '../feature/products/pages/EditProductPage';
 import TechnicalSheetPage from '../feature/products/pages/TechnicalSheetPage';
 import SuppliersPage from '../feature/suppliers/pages/SuppliersPage';
 import CreateSupplierPage from '../feature/suppliers/pages/CreateSupplierPage';
-import EditSupplierPage from '../feature/suppliers/pages/EditSupplierPage';
+import EditSupplierPage from '../feature/suppliers/pages/EditSupplierPage.jsx';
+import Third_partiesPage from '../feature/third_parties/pages/Third_partiesPage.jsx';
+import CreateThird_partiePage from '../feature/third_parties/pages/CreateThird_partiesPage.jsx';
+import EditThird_partiePage from '../feature/third_parties/pages/EditThird_partiesPage.jsx';
 
 export function RouterApp() {
   return (
@@ -30,7 +33,13 @@ export function RouterApp() {
         <Route path="/proveedores" element={<SuppliersPage />} />
         <Route path="/proveedores/crear" element={<CreateSupplierPage />} />
         <Route path="/proveedores/editar/:id" element={<EditSupplierPage />} />
+
+         {/* Módulo de terceros */}
+        <Route path="/terceros" element={<Third_partiesPage />} />
+        <Route path="/terceros/crear" element={<CreateThird_partiePage />} />
+        <Route path="/terceros/editar/:id" element={<EditThird_partiePage />} />
       </Route>
+      
       
       {/* Ruta 404 - Redirige al dashboard */}
       <Route path="*" element={<Navigate to="/" replace />} />
