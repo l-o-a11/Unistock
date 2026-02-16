@@ -14,7 +14,7 @@ const menuItems = [
     submenu: [
       { name: 'Insumos', path: '/compras/insumos' },
       { name: 'Categorías', path: '/compras/categorias' },
-      { name: 'Proveedores', path: '/compras/proveedores' },
+      { name: 'Proveedores', path: '/proveedores' },
       { name: 'Compras', path: '/compras' },
     ],
   },
@@ -23,6 +23,7 @@ const menuItems = [
     submenu: [
       { name: 'Categorías', path: '/produccion/categorias' },
       { name: 'Producción', path: '/produccion' },
+      { name: 'Terceros', path: '/terceros' },
       { name: 'Productos', path: '/productos' },
     ],
   },
