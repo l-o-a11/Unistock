@@ -8,7 +8,12 @@ import logo from '../assets/transparent-Photoroom.png';
 
 const menuItems = [
   { id: 'dashboard',  name: 'Dashboard',  icon: DashboardIcon, hasSubmenu: false },
-  { id: 'usuarios',   name: 'Usuarios',   icon: UsuariosIcon,  hasSubmenu: false },
+
+  { id: 'usuarios',   name: 'Usuarios',   icon: UsuariosIcon,  hasSubmenu: false, hasSubmenu: true,
+    submenu: [
+      { name: 'Roles', path: 'roles' },
+    ], 
+  },
   {
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
     submenu: [
