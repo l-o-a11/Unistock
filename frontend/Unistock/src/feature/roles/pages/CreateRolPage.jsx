@@ -1,25 +1,20 @@
 import React from "react";
-import { useRoles } from "../hooks/useRoles";
 import RolesForm from "../components/RolForm";
 
-const CreateRolPage = ({ onClose }) => {
-  const { createRol } = useRoles();
 
+
+const CreateRolPage = ({ onClose, createRol }) => {
   const handleSubmit = async (rolData) => {
-    try {
-      await createRol(rolData);
-      onClose(); // cerrar modal
-    } catch (error) {
-      console.error("Error al crear el rol:", error);
-    }
+    await createRol(rolData); // esto actualiza el mismo estado que la tabla
+    onClose();
   };
 
-  return (
-    <RolesForm
-      onSubmit={handleSubmit}
-      onCancel={onClose}
-    />
-  );
+  return <RolesForm
+   onSubmit={handleSubmit} 
+   onCancel={onClose} />;
 };
 
+
 export default CreateRolPage;
+
+

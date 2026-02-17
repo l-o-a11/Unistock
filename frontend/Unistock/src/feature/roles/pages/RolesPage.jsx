@@ -10,7 +10,7 @@ import CreateRolPage from "./CreateRolPage";
 import EditRolPage from "./EditRolPage";
 
 const RolesPage = () => {
-  const { roles, deleteRol } = useRoles();
+  const { roles, createRol, updateRol, deleteRol } = useRoles();
   const { searchTerm, handleSearch } = useRolSearch();
   const { selectedRol, isOpen, openDetail, closeDetail } = useRolDetail();
 
@@ -173,21 +173,26 @@ const RolesPage = () => {
               boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
             }}
           >
+            
             {modalType === "create" && (
               <CreateRolPage
+                createRol={createRol}  // PASAMOS LA FUNCIÓN desde el mismo hook
                 onClose={() => setModalType(null)}
               />
             )}
 
+
             {modalType === "edit" && (
               <EditRolPage
                 rolId={editingRolId}
+                updateRol={updateRol}  // PASAMOS LA FUNCIÓN DESDE EL HOOK
                 onClose={() => {
                   setModalType(null);
                   setEditingRolId(null);
                 }}
               />
-            )}
+            )}  
+
           </div>
         </div>
       )}

@@ -7,18 +7,16 @@ const EditRolPage = ({ rolId, onClose }) => {
   const [rol, setRol] = useState(null);
 
   useEffect(() => {
-    const found = roles.find((r) => r.id === rolId);
+    const found = roles.find((rol) => rol.id === rolId);
     setRol(found || null);
   }, [rolId, roles]);
 
   const handleSubmit = async (rolData) => {
-    try {
-      await updateRol(rolId, rolData);
-      onClose();
-    } catch (error) {
-      console.error("Error al actualizar rol:", error);
-    }
-  };
+  // combinamos los cambios con el rol original
+  const updatedRol = { ...rol, ...rolData };
+  await updateRol(rolId, updatedRol);
+  onClose();
+};
 
   if (!rol) return null;
 
@@ -30,5 +28,10 @@ const EditRolPage = ({ rolId, onClose }) => {
     />
   );
 };
+
+
+ 
+
+
 
 export default EditRolPage;

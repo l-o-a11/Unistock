@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 
-// Datos de ejemplo para módulos y privilegios
+// Datos para módulos y privilegios
 const MODULOS_PREDETERMINADOS = [
   { id: 1, nombre: 'Usuarios' },
   { id: 2, nombre: 'Productos' },
   { id: 3, nombre: 'Insumos' },
   { id: 4, nombre: 'Compras' },
   { id: 5, nombre: 'Proveedores' },
-  { id: 6, nombre: 'Ventas' },
-  { id: 7, nombre: 'Reportes' },
-  { id: 8, nombre: 'Configuración' }
+  { id: 6, nombre: 'Terceros' },
+  { id: 8, nombre: 'Producción' }
 ];
 
 const PRIVILEGIOS_PREDETERMINADOS = [
@@ -19,7 +18,7 @@ const PRIVILEGIOS_PREDETERMINADOS = [
   { id: 4, nombre: 'Eliminar', key: 'eliminar' }
 ];
 
-const RolForm = ({ rol, onSave, onCancel }) => {
+const RolForm = ({ rol, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     nombre: rol?.nombre || '',
     descripcion: rol?.descripcion || '',
@@ -31,9 +30,10 @@ const RolForm = ({ rol, onSave, onCancel }) => {
 
   // Handlers
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: type === 'checkbox' ? checked : e.target.value
     });
   };
 
@@ -115,9 +115,11 @@ const RolForm = ({ rol, onSave, onCancel }) => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-  };
+  e.preventDefault();
+  if (onSubmit) {
+    onSubmit(formData);
+  }
+};
 
   // Obtener nombre del módulo por ID
   const getModuloNombre = (moduloId) => {

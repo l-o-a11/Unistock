@@ -75,6 +75,14 @@ const INITIAL_ROLES = [
       { moduloId: 2, privilegios: [1] }, // Productos: Leer
       { moduloId: 6, privilegios: [1, 2] } // Ventas: Leer, Crear
     ]
+  },
+   { 
+    id: 6, 
+    nombre: 'Contador', 
+    descripcion: 'Accede a la información de dashboard. No tiene acceso a configuración.',
+    modulos: [
+      { moduloId: 2, privilegios: [1] }, // Productos: Leer
+    ]
   }
 ];
 
@@ -117,12 +125,13 @@ export const useRoles = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const newRol = {
-        id: roles.length > 0 ? Math.max(...roles.map(r => r.id)) + 1 : 1,
+        id: roles.length > 0 ? Math.max(...roles.map(rol => rol.id)) + 1 : 1,
         ...rolData
       };
       
       setRoles(prevRoles => [...prevRoles, newRol]);
       return newRol;
+
     } catch (err) {
       setError('Error al crear el rol');
       console.error(err);
@@ -196,7 +205,7 @@ export const useRoles = () => {
 
   // Verificar si un rol tiene un permiso específico
   const tienePermiso = (rolId, moduloId, privilegioId) => {
-    const rol = roles.find(r => r.id === parseInt(rolId));
+    const rol = roles.find(rol => rol.id === parseInt(rolId));
     if (!rol) return false;
     
     const modulo = rol.modulos.find(m => m.moduloId === moduloId);
@@ -207,7 +216,7 @@ export const useRoles = () => {
 
   // Obtener todos los permisos de un rol para un módulo
   const getPermisosModulo = (rolId, moduloId) => {
-    const rol = roles.find(r => r.id === parseInt(rolId));
+    const rol = roles.find(rol => rol.id === parseInt(rolId));
     if (!rol) return [];
     
     const modulo = rol.modulos.find(m => m.moduloId === moduloId);
