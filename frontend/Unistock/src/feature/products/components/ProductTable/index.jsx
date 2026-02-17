@@ -175,47 +175,32 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                         </svg>
                       </button>
 
-                      {/* ⚪ Toggle switch - GRIS cuando desactivado */}
+                      {/* SWITCH ACTIVO */}
                       <button
-                        onClick={() => onToggle?.(product.id)}
-                        title={isActive ? "Desactivar" : "Activar"}
+                        onClick={() => onToggle?.(t.id)}
                         style={{
                           position: "relative",
-                          display: "inline-flex",
-                          alignItems: "center",
                           width: "44px",
                           height: "24px",
-                          borderRadius: "12px",
-                          backgroundColor: isActive ? "#22c55e" : "#9ca3af",
+                          borderRadius: "20px",
                           border: "none",
+                          backgroundColor: isActive ? "#22c55e" : "#d1d5db",
                           cursor: "pointer",
-                          padding: 0,
-                          flexShrink: 0,
-                          transition: "background-color 0.2s",
                         }}
                       >
-                        {/* Knob */}
-                        <span style={{
-                          position: "absolute",
-                          left: isActive ? "22px" : "2px",
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          backgroundColor: "#fff",
-                          boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-                          transition: "left 0.2s",
-                        }} />
-                        {/* Checkmark — only when active */}
-                        {isActive && (
-                          <svg
-                            style={{ position: "absolute", left: "5px", width: "11px", height: "11px", color: "#fff", pointerEvents: "none" }}
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            left: isActive ? "22px" : "2px",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            backgroundColor: "#fff",
+                            transition: "0.2s",
+                          }}
+                        />
                       </button>
-
                     </div>
                   </td>
                 </tr>
