@@ -42,7 +42,7 @@ const HoverCard = ({ children, content, position = 'right' }) => {
             {/* Header */}
             <div
               style={{
-                background: 'linear-gradient(90deg, #E91E8C, #c2187a)',
+                background: 'linear-gradient(90deg, #ff4fd6, #ff4fd6)',
                 padding: '8px 16px',
               }}
             >

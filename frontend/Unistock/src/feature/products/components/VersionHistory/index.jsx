@@ -42,7 +42,7 @@ const VersionHistory = ({ versions = [], currentVersion = 1, onViewVersion, onDe
               fontSize: "13px",
               fontWeight: isActive ? "600" : "400",
               color: isActive ? "#fff" : "#333",
-              backgroundColor: isActive ? "#E91E8C" : "#fff",
+              backgroundColor: isActive ? "#ff4fd6" : "#fff",
               border: "none",
               borderBottom: "1px solid #f0f0f0",
               cursor: "pointer",
@@ -51,7 +51,7 @@ const VersionHistory = ({ versions = [], currentVersion = 1, onViewVersion, onDe
             onMouseEnter={(e) => {
               if (!isActive) {
                 e.currentTarget.style.backgroundColor = "#fdf0f7";
-                e.currentTarget.style.color = "#E91E8C";
+                e.currentTarget.style.color = "#ff4fd6";
               }
             }}
             onMouseLeave={(e) => {
