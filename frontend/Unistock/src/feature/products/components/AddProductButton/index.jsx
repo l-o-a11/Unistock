@@ -9,7 +9,7 @@ function AddProductButton({ onClick, label = "Agregar nuevo producto" }) {
         alignItems: 'center',
         gap: '8px',
         padding: '10px 20px',
-        backgroundColor: '#E91E8C',
+        backgroundColor: '#FF4FD6',
         color: '#ffffff',
         fontSize: '14px',
         fontWeight: '500',

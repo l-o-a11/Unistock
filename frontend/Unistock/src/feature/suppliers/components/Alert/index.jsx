@@ -11,30 +11,30 @@ const Alert = ({
   if (!isOpen) return null;
 
   // 🎨 estilos según tipo
-  const config = {
-    success: {
-      color: "#16a34a",
-      title: title || "Éxito",
-      confirmText: "Aceptar",
-    },
-    error: {
-      color: "#dc2626",
-      title: title || "Error",
-      confirmText: "Cerrar",
-    },
-    warning: {
-      color: "#f59e0b",
-      title: title || "Advertencia",
-      confirmText: "Aceptar",
-    },
-    confirm: {
-      color: "#E91E8C",
-      title: title || "Confirmar acción",
-      confirmText: "Sí, eliminar",
-    },
-  };
+  // const config = {
+  //   success: {
+  //     color: "#16a34a",
+  //     title: title || "Éxito",
+  //     confirmText: "Aceptar",
+  //   },
+  //   error: {
+  //     color: "#dc2626",
+  //     title: title || "Error",
+  //     confirmText: "Cerrar",
+  //   },
+  //   warning: {
+  //     color: "#f59e0b",
+  //     title: title || "Advertencia",
+  //     confirmText: "Aceptar",
+  //   },
+  //   confirm: {
+  //     color: "#E91E8C",
+  //     title: title || "Confirmar acción",
+  //     confirmText: "Sí, eliminar",
+  //   },
+  // };
 
-  const current = config[type];
+  // const current = config[type];
 
   return (
     <div style={overlayStyle}>

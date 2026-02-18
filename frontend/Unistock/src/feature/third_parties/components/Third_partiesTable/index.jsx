@@ -4,8 +4,6 @@ import HoverCard from "../HoverCard";
 const Third_partieTable = ({
   Third_parties = [],
   onView,
-  onEdit,
-  onDelete,
   onToggle,
 }) => {
   const thStyle = {

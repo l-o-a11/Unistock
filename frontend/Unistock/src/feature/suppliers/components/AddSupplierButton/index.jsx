@@ -19,7 +19,7 @@ function AddSuppliersButton({ onClick, label = "Agregar nuevo proveedor" }) {
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#FF4FD6A'}
+      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#C9187A'}
       onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FF4FD6'}
     >
       
@@ -42,4 +42,4 @@ function AddSuppliersButton({ onClick, label = "Agregar nuevo proveedor" }) {
   );
 }
 
-export default AddSuppliersButton;
+export default AddSuppliersButton; 
