@@ -1,6 +1,6 @@
 import React from 'react';
 
-function AddProductButton({ onClick, label = "Agregar nuevo producto" }) {
+function AddRolButton({ onClick, label = "Agregar nuevo rol" }) {
   return (
     <button
       onClick={onClick}
@@ -19,8 +19,7 @@ function AddProductButton({ onClick, label = "Agregar nuevo producto" }) {
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#C9187A'}
-      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#E91E8C'}
+      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff4fd6'}
     >
       {/* Circle plus icon matching the ⊕ style in the screenshot */}
       <svg
@@ -42,4 +41,4 @@ function AddProductButton({ onClick, label = "Agregar nuevo producto" }) {
   );
 }
 
-export default AddProductButton;
+export default AddRolButton;

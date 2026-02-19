@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export const useProductSearch = () => {
+export const useRolSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleSearch = useCallback((term) => {
@@ -18,4 +18,4 @@ export const useProductSearch = () => {
   };
 };
 
-export default useProductSearch;
+export default useRolSearch;

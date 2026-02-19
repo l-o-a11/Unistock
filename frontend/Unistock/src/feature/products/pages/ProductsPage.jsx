@@ -117,7 +117,7 @@ const ProductsPage = () => {
             alignItems: 'center',
             padding: '4px',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#ff4fd6')}
           onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
         >
           <svg
@@ -212,7 +212,7 @@ const ProductsPage = () => {
                   borderRadius: '50%',
                   fontSize: '13px',
                   fontWeight: currentPage === page ? '700' : '400',
-                  backgroundColor: currentPage === page ? '#E91E8C' : 'transparent',
+                  backgroundColor: currentPage === page ? '#ff4fd6' : 'transparent',
                   color: currentPage === page ? '#fff' : '#555',
                   cursor: 'pointer',
                   transition: 'background-color 0.15s',

@@ -32,7 +32,7 @@ const Alert = ({ isOpen, message, onConfirm, onCancel }) => {
             margin: '0 0 12px 0',
             fontSize: '16px',
             fontWeight: '600',
-            color: '#E91E8C',
+            color: '#ff4fd6',
           }}
         >
           Alerta
@@ -61,11 +61,11 @@ const Alert = ({ isOpen, message, onConfirm, onCancel }) => {
               padding: 0,
               fontSize: '15px',
               fontWeight: '600',
-              color: '#E91E8C',
+              color: '#ff4fd6',
               cursor: 'pointer',
             }}
-            onMouseEnter={e => e.currentTarget.style.color = '#C9187A'}
-            onMouseLeave={e => e.currentTarget.style.color = '#E91E8C'}
+            onMouseEnter={e => e.currentTarget.style.color = '#ff4fd6'}
+            onMouseLeave={e => e.currentTarget.style.color = '#ff4fd6'}
           >
             Aceptar
           </button>
@@ -78,11 +78,11 @@ const Alert = ({ isOpen, message, onConfirm, onCancel }) => {
               padding: 0,
               fontSize: '15px',
               fontWeight: '600',
-              color: '#E91E8C',
+              color: '#ff4fd6',
               cursor: 'pointer',
             }}
-            onMouseEnter={e => e.currentTarget.style.color = '#C9187A'}
-            onMouseLeave={e => e.currentTarget.style.color = '#E91E8C'}
+            onMouseEnter={e => e.currentTarget.style.color = '#ff4fd6'}
+            onMouseLeave={e => e.currentTarget.style.color = '#ff4fd6'}
           >
             Denegar
           </button>

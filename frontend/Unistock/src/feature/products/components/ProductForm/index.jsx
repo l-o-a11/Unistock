@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react"; // ✅ Agregamos useRef y useEffect
+import React, { useState, useEffect, useRef } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { Categories } from "../../types/constants";
 
@@ -40,7 +40,6 @@ const CategoryDropdown = ({ value, onChange }) => {
       {/* Dropdown list */}
       {open && (
         <>
-          {/* Click-outside overlay */}
           <div
             style={{ position: "fixed", inset: 0, zIndex: 10 }}
             onClick={() => setOpen(false)}
@@ -59,12 +58,11 @@ const CategoryDropdown = ({ value, onChange }) => {
               overflow: "hidden",
             }}
           >
-            {/* "Seleccionar categoría" header — pink background */}
             <div
               style={{
                 padding: "10px 14px",
                 fontSize: "14px",
-                backgroundColor: "#E91E8C",
+                backgroundColor: "#ff4fd6",
                 color: "#fff",
                 fontWeight: "500",
                 cursor: "pointer",
@@ -74,7 +72,6 @@ const CategoryDropdown = ({ value, onChange }) => {
               Seleccionar categoría
             </div>
 
-            {/* Category options */}
             {Categories.map((cat) => (
               <div
                 key={cat.id}
@@ -115,10 +112,8 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [imagePreview, setImagePreview] = useState(product?.image || null);
   
-  // ✅ Referencia para el modal
   const modalRef = useRef(null);
 
-  // ✅ Efecto para cerrar con tecla ESC
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
@@ -129,7 +124,6 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel]);
 
-  // ✅ Manejar clic fuera del modal
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       onCancel();
@@ -166,18 +160,30 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
     onSubmit({ ...formData, technicalSheet });
   };
 
-  // ── Shared input style ──────────────────────────────────────────────────────
+  // ESTILOS IGUALES A LA FICHA TÉCNICA
+  const cellStyle = {
+    border: "1px solid #e5e7eb",
+    padding: "8px 12px",
+    fontSize: "13px",
+    color: "#333",
+  };
+
+  const headerCellStyle = {
+    ...cellStyle,
+    backgroundColor: "#f9f9f9",
+    fontWeight: "600",
+    fontSize: "12px",
+    color: "#444",
+  };
+
   const inputStyle = {
     width: "100%",
-    padding: "10px 14px",
     border: "none",
-    borderBottom: "1.5px solid #d1d5db",
-    borderRadius: 0,
-    fontSize: "14px",
-    color: "#333",
     outline: "none",
+    fontSize: "13px",
+    color: "#333",
     background: "transparent",
-    boxSizing: "border-box",
+    padding: "4px 0",
   };
 
   const labelStyle = {
@@ -189,11 +195,10 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
   };
 
   const requiredStar = (
-    <span style={{ color: "#E91E8C", marginLeft: "2px" }}>*</span>
+    <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>
   );
 
   return (
-    /* Full-screen overlay con detección de clic fuera */
     <div
       style={{
         position: "fixed",
@@ -204,55 +209,24 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
         justifyContent: "center",
         backgroundColor: "rgba(0,0,0,0.25)",
       }}
-      onClick={handleOverlayClick} // ✅ Clic en overlay cierra el modal
+      onClick={handleOverlayClick}
     >
       {currentStep === 1 ? (
-        /* ── STEP 1: Modal card ───────────────────────────────────────────── */
         <div
-          ref={modalRef} // ✅ Referencia para no cerrar al hacer clic dentro
+          ref={modalRef}
           style={{
             backgroundColor: "#fff",
             borderRadius: "16px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             width: "100%",
-            maxWidth: "860px",
+            maxWidth: "1000px",
             maxHeight: "90vh",
             overflowY: "auto",
             padding: "36px 40px",
             boxSizing: "border-box",
-            position: "relative", // ✅ Para posicionar la X
+            position: "relative",
           }}
         >
-          {/* ✅ Botón X para cerrar */}
-          <button
-            onClick={onCancel}
-            style={{
-              position: "absolute",
-              top: "16px",
-              right: "16px",
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              border: "none",
-              backgroundColor: "#f3f4f6",
-              color: "#666",
-              fontSize: "18px",
-              fontWeight: "500",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background-color 0.2s",
-              zIndex: 10,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e5e7eb")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f3f4f6")}
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-
-          {/* Title */}
           <h2
             style={{
               margin: "0 0 28px 0",
@@ -265,126 +239,110 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
             {product ? "Editar Producto" : "Crear Nuevo Producto"}
           </h2>
 
-          {/* Two-column layout */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
-            {/* LEFT: form fields */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* CONTENEDOR DE DOS COLUMNAS - CON MÁRGENES CORREGIDAS */}
+          <div style={{ display: "flex", gap: "20px" }}>
+            {/* Columna izquierda: Campos del formulario en formato tabla */}
+            <div style={{ flex: 2 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <tbody>
+                  {/* Referencia */}
+                  <tr>
+                    <td style={headerCellStyle}>Referencia:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <input 
+                        style={inputStyle} 
+                        value={formData.reference} 
+                        onChange={handleInputChange} 
+                        name="reference"
+                        placeholder="Ej. 3 4 5"
+                      />
+                      {requiredStar}
+                    </td>
+                  </tr>
 
-              {/* Referencia */}
-              <div>
-                <label style={labelStyle}>Referencia {requiredStar}</label>
-                <input
-                  type="text"
-                  name="reference"
-                  value={formData.reference}
-                  onChange={handleInputChange}
-                  placeholder="Ej. 3 4 5"
-                  style={inputStyle}
-                  required
-                />
-              </div>
+                  {/* Nombre */}
+                  <tr>
+                    <td style={headerCellStyle}>Nombre:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <input 
+                        style={inputStyle} 
+                        value={formData.name} 
+                        onChange={handleInputChange} 
+                        name="name"
+                        placeholder="Ej. Crop Top Morado"
+                      />
+                      {requiredStar}
+                    </td>
+                  </tr>
 
-              {/* Nombre */}
-              <div>
-                <label style={labelStyle}>Nombre {requiredStar}</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Ej. Crop Top Morado"
-                  style={inputStyle}
-                  required
-                />
-              </div>
+                  {/* Categoría */}
+                  <tr>
+                    <td style={headerCellStyle}>Categoría:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <CategoryDropdown
+                        value={formData.category}
+                        onChange={(val) =>
+                          handleInputChange({ target: { name: "category", value: val } })
+                        }
+                      />
+                      {requiredStar}
+                    </td>
+                  </tr>
 
-              {/* Categoría — custom dropdown */}
-              <div>
-                <label style={labelStyle}>Categoría {requiredStar}</label>
-                <CategoryDropdown
-                  value={formData.category}
-                  onChange={(val) =>
-                    handleInputChange({ target: { name: "category", value: val } })
-                  }
-                />
-              </div>
-
-              {/* Valores label */}
-              <div>
-                <p
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#333",
-                    margin: "0 0 12px 0",
-                  }}
-                >
-                  Valores
-                </p>
-
-                {/* Precio + Stock side by side */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div>
-                    <label style={labelStyle}>Precio {requiredStar}</label>
-                    <input
-                      type="number"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      placeholder="Ej. $40,000"
-                      style={inputStyle}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Stock {requiredStar}</label>
-                    <input
-                      type="number"
-                      name="stock"
-                      value={formData.stock}
-                      onChange={handleInputChange}
-                      placeholder="Ej. 10"
-                      style={inputStyle}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
+                  {/* Valores - Precio y Stock en la misma fila */}
+                  <tr>
+                    <td style={headerCellStyle}>Precio:</td>
+                    <td style={cellStyle}>
+                      <input 
+                        style={inputStyle} 
+                        type="number"
+                        value={formData.price} 
+                        onChange={handleInputChange} 
+                        name="price"
+                        placeholder="Ej. 40000"
+                      />
+                      {requiredStar}
+                    </td>
+                    <td style={headerCellStyle}>Stock:</td>
+                    <td style={cellStyle} colSpan={3}>
+                      <input 
+                        style={inputStyle} 
+                        type="number"
+                        value={formData.stock} 
+                        onChange={handleInputChange} 
+                        name="stock"
+                        placeholder="Ej. 10"
+                      />
+                      {requiredStar}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            {/* RIGHT: image upload */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <label style={{ ...labelStyle, marginBottom: "10px" }}>
-                Imagen del producto
-              </label>
-
-              <label
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "2px dashed #e0e0e0",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                  padding: "24px",
-                  backgroundColor: "#fafafa",
-                  minHeight: "180px",
-                  boxSizing: "border-box",
-                  gap: "10px",
-                }}
-              >
+            {/* Columna derecha: RECUADRO PARA IMAGEN - MISMO ESTILO QUE FICHA TÉCNICA */}
+            <div style={{ flex: 1 }}>
+              <div style={{ 
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                padding: "16px",
+                backgroundColor: "#fafafa",
+                minHeight: "250px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
                 {imagePreview ? (
-                  <>
+                  <div style={{ textAlign: "center", width: "100%" }}>
                     <img
                       src={imagePreview}
                       alt="Preview"
                       style={{
-                        width: "120px",
-                        height: "120px",
-                        objectFit: "cover",
-                        borderRadius: "8px",
+                        maxWidth: "100%",
+                        maxHeight: "150px",
+                        objectFit: "contain",
+                        borderRadius: "4px",
                       }}
                     />
                     <button
@@ -395,57 +353,80 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                         setFormData((prev) => ({ ...prev, image: null }));
                       }}
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: "#E91E8C",
+                        marginTop: "10px",
+                        padding: "4px 12px",
+                        backgroundColor: "#ff4fd6",
+                        border: "1px solid #ff4fd6",
+                        borderRadius: "4px",
                         fontSize: "12px",
+                        color: "#fff",
                         cursor: "pointer",
                       }}
                     >
                       Eliminar imagen
                     </button>
-                  </>
+                  </div>
                 ) : (
                   <>
-                    {/* Upload arrow icon */}
                     <svg
-                      width="36"
-                      height="36"
+                      width="48"
+                      height="48"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#bbb"
+                      stroke="#aaa"
                       strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
                     >
-                      <polyline points="16 16 12 12 8 16" />
-                      <line x1="12" y1="12" x2="12" y2="21" />
-                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                      <line x1="8" y1="2" x2="8" y2="22" />
+                      <line x1="16" y1="2" x2="16" y2="22" />
+                      <line x1="2" y1="8" x2="22" y2="8" />
+                      <line x1="2" y1="16" x2="22" y2="16" />
                     </svg>
-                    <p style={{ margin: 0, fontSize: "13px", color: "#555", textAlign: "center" }}>
-                      <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube un archivo</span>
-                      {" "}o arrastra y suelta PNG, JPG, GIF
+                    <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
+                      <span style={{ color: "#E91E8C", fontWeight: "500" }}>
+                        Sube una imagen
+                      </span>
+                      <br />
+                      o arrastra y suelta
                     </p>
-                    <p style={{ margin: 0, fontSize: "12px", color: "#aaa" }}>has 10MB</p>
+                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>
+                      PNG, JPG, GIF hasta 10MB
+                    </p>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       style={{ display: "none" }}
+                      id="product-image-upload"
                     />
+                    <label
+                      htmlFor="product-image-upload"
+                      style={{
+                        marginTop: "10px",
+                        padding: "6px 16px",
+                        backgroundColor: "#f3f4f6",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        color: "#555",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Seleccionar archivo
+                    </label>
                   </>
                 )}
-              </label>
+              </div>
             </div>
           </div>
 
-          {/* Footer note + CTA button */}
+          {/* Mensaje y botones - SIN CAMBIOS */}
           <div
             style={{
               marginTop: "28px",
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",
+              alignItems: "flex-end",
               gap: "14px",
             }}
           >
@@ -455,6 +436,7 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                 fontSize: "12px",
                 color: "#888",
                 fontStyle: "italic",
+                textAlign: "right",
               }}
             >
               {product
@@ -462,73 +444,76 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                 : "*Para crear un producto, debes crear la ficha técnica*"}
             </p>
 
-            <button
-              type="button"
-              onClick={() => setCurrentStep(2)}
+            <div
               style={{
-                padding: "11px 32px",
-                backgroundColor: "#E91E8C",
-                color: "#fff",
-                fontSize: "14px",
-                fontWeight: "600",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                transition: "background-color 0.2s",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#C9187A")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E91E8C")}
             >
-              {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
-            </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                style={{
+                  padding: "10px 32px",
+                  backgroundColor: "#f3f4f6",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  color: "#555",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#e5e7eb";
+                  e.currentTarget.style.borderColor = "#9ca3af";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f3f4f6";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                }}
+              >
+                Cerrar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                style={{
+                  padding: "11px 32px",
+                  backgroundColor: "#ff4fd6",
+                  color: "#fff",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
+              >
+                {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
+              </button>
+            </div>
           </div>
         </div>
       ) : (
-        /* ── STEP 2: Technical Sheet ──────────────────────────────────────── */
         <div
-          ref={modalRef} // ✅ Referencia para no cerrar al hacer clic dentro
+          ref={modalRef}
           style={{
             backgroundColor: "#fff",
             borderRadius: "16px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             width: "100%",
-            maxWidth: "960px",
+            maxWidth: "1200px",
             maxHeight: "90vh",
             overflowY: "auto",
             padding: "36px 40px",
             boxSizing: "border-box",
-            position: "relative", // ✅ Para posicionar la X
+            position: "relative",
           }}
         >
-          {/* ✅ Botón X para cerrar */}
-          <button
-            onClick={onCancel}
-            style={{
-              position: "absolute",
-              top: "16px",
-              right: "16px",
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              border: "none",
-              backgroundColor: "#f3f4f6",
-              color: "#666",
-              fontSize: "18px",
-              fontWeight: "500",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background-color 0.2s",
-              zIndex: 10,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e5e7eb")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f3f4f6")}
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-
           <h2
             style={{
               margin: "0 0 24px 0",
@@ -548,29 +533,38 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
             onSave={() => handleSubmit()}
           />
 
-          {/* Bottom actions */}
+          {/* Botones */}
           <div
             style={{
               marginTop: "24px",
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: "12px",
             }}
           >
             <button
               type="button"
-              onClick={() => setCurrentStep(1)}
+              onClick={onCancel}
               style={{
-                padding: "10px 24px",
-                backgroundColor: "transparent",
-                border: "1.5px solid #d1d5db",
+                padding: "10px 32px",
+                backgroundColor: "#f3f4f6",
+                border: "1px solid #d1d5db",
                 borderRadius: "8px",
                 fontSize: "14px",
                 color: "#555",
                 cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#e5e7eb";
+                e.currentTarget.style.borderColor = "#9ca3af";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#f3f4f6";
+                e.currentTarget.style.borderColor = "#d1d5db";
               }}
             >
-              ← Volver
+              Cerrar
             </button>
 
             <button
@@ -578,7 +572,7 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
               onClick={handleSubmit}
               style={{
                 padding: "11px 32px",
-                backgroundColor: "#E91E8C",
+                backgroundColor: "#ff4fd6",
                 color: "#fff",
                 fontSize: "14px",
                 fontWeight: "600",
@@ -587,8 +581,8 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                 cursor: "pointer",
                 transition: "background-color 0.2s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#C9187A")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E91E8C")}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
             >
               Guardar producto
             </button>

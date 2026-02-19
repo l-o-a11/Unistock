@@ -45,6 +45,11 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     );
   }
 
+  // Función para determinar si un texto necesita hover
+  const needsHover = (text) => {
+    return text && text.length > 12;
+  };
+
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
@@ -72,7 +77,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  {/* Imagen */}
+                  {/* Imagen - SIEMPRE tiene hover porque muestra la imagen grande */}
                   <td style={tdStyle}>
                     <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del producto</p><img src={product.image} alt={product.name} style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} /><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>REF: {product.reference}</p></div>}>
                       <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
@@ -81,49 +86,59 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     </HoverCard>
                   </td>
 
-                  {/* Referencia */}
+                  {/* Referencia - HOVER SOLO si tiene más de 12 caracteres */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Referencia completa</p><p style={{ fontSize: "13px", color: "#555" }}>{product.reference}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Código: {product.id}</p></div>}>
-                      <span style={{ cursor: "help", color: "#333" }}>{product.reference}</span>
-                    </HoverCard>
+                    {needsHover(product.reference) ? (
+                      <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Referencia completa</p><p style={{ fontSize: "13px", color: "#555" }}>{product.reference}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Código: {product.id}</p></div>}>
+                        <span style={{ cursor: "help", color: "#333" }}>{product.reference}</span>
+                      </HoverCard>
+                    ) : (
+                      <span style={{ color: "#333" }}>{product.reference}</span>
+                    )}
                   </td>
 
-                  {/* Nombre */}
+                  {/* Nombre - HOVER SOLO si tiene más de 12 caracteres */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Información del producto</p><p style={{ fontSize: "13px", color: "#555" }}>{product.name}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Categoría: <strong>{product.category}</strong></p><p style={{ fontSize: "11px", color: "#999" }}>Versiones: <strong>{product.technicalSheetVersions || 1}</strong></p></div>}>
-                      <span style={{ cursor: "help" }}>{product.name && product.name.length > 12 ? product.name.slice(0, 12) + "..." : product.name}</span>
-                    </HoverCard>
+                    {needsHover(product.name) ? (
+                      <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Información del producto</p><p style={{ fontSize: "13px", color: "#555" }}>{product.name}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Categoría: <strong>{product.category}</strong></p><p style={{ fontSize: "11px", color: "#999" }}>Versiones: <strong>{product.technicalSheetVersions || 1}</strong></p></div>}>
+                        <span style={{ cursor: "help" }}>
+                          {product.name && product.name.length > 12 ? product.name.slice(0, 12) + "..." : product.name}
+                        </span>
+                      </HoverCard>
+                    ) : (
+                      <span>{product.name}</span>
+                    )}
                   </td>
 
-                  {/* Categoría */}
+                  {/* Categoría - HOVER SOLO si tiene más de 12 caracteres (raro, pero por si acaso) */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Categoría</p><p style={{ fontSize: "13px", color: "#555" }}>{product.category}</p></div>}>
-                      <span style={{ cursor: "help" }}>{product.category}</span>
-                    </HoverCard>
+                    {needsHover(product.category) ? (
+                      <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Categoría</p><p style={{ fontSize: "13px", color: "#555" }}>{product.category}</p></div>}>
+                        <span style={{ cursor: "help" }}>{product.category}</span>
+                      </HoverCard>
+                    ) : (
+                      <span>{product.category}</span>
+                    )}
                   </td>
 
-                  {/* Precio */}
+                  {/* Precio - NUNCA tiene hover porque siempre es corto */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Precio</p><p style={{ fontSize: "16px", fontWeight: "700", color: "#333" }}>{formatPrice(product.price)}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "4px" }}>COP - Peso Colombiano</p></div>}>
-                      <span style={{ cursor: "help" }}>{formatPrice(product.price)}</span>
-                    </HoverCard>
+                    <span>{formatPrice(product.price)}</span>
                   </td>
 
-                  {/* Stock */}
+                  {/* Stock - NUNCA tiene hover porque siempre es un número */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Estado de inventario</p><p style={{ fontSize: "13px", color: "#555" }}>Stock actual: <strong>{product.stock} unidades</strong></p><div style={{ marginTop: "8px", padding: "6px 10px", borderRadius: "6px", backgroundColor: stockStatus.label === "Crítico" ? "#fee2e2" : stockStatus.label === "Bajo" ? "#fef9c3" : "#dcfce7", fontSize: "12px", fontWeight: "500", color: stockStatus.label === "Crítico" ? "#dc2626" : stockStatus.label === "Bajo" ? "#ca8a04" : "#16a34a" }}>{stockStatus.label === "Crítico" && "⚠️ "}{stockStatus.label === "Bajo" && "⚡ "}{stockStatus.label === "Normal" && "✅ "}{stockStatus.label}</div></div>}>
-                      <span style={{ cursor: "help" }}>{product.stock}</span>
-                    </HoverCard>
+                    <span>{product.stock}</span>
                   </td>
 
-                  {/* Acciones */}
+                  {/* Acciones - SIN CAMBIOS */}
                   <td style={tdStyle}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
                       {/* ⓘ info */}
                       <button onClick={() => onView(product)} title="Ver ficha técnica"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                       >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -136,7 +151,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                       {/* ✏️ edit */}
                       <button onClick={() => onEdit(product)} title="Editar producto"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -160,47 +175,32 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                         </svg>
                       </button>
 
-                      {/* 🟢 Toggle switch */}
+                      {/* SWITCH ACTIVO */}
                       <button
-                        onClick={() => onToggle?.(product.id)}
-                        title={isActive ? "Desactivar" : "Activar"}
+                        onClick={() => onToggle?.(t.id)}
                         style={{
                           position: "relative",
-                          display: "inline-flex",
-                          alignItems: "center",
                           width: "44px",
                           height: "24px",
-                          borderRadius: "12px",
-                          backgroundColor: isActive ? "#22c55e" : "#d1d5db",
+                          borderRadius: "20px",
                           border: "none",
+                          backgroundColor: isActive ? "#22c55e" : "#d1d5db",
                           cursor: "pointer",
-                          padding: 0,
-                          flexShrink: 0,
-                          transition: "background-color 0.2s",
                         }}
                       >
-                        {/* Knob */}
-                        <span style={{
-                          position: "absolute",
-                          left: isActive ? "22px" : "2px",
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          backgroundColor: "#fff",
-                          boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-                          transition: "left 0.2s",
-                        }} />
-                        {/* Checkmark — only when active */}
-                        {isActive && (
-                          <svg
-                            style={{ position: "absolute", left: "5px", width: "11px", height: "11px", color: "#fff", pointerEvents: "none" }}
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            left: isActive ? "22px" : "2px",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            backgroundColor: "#fff",
+                            transition: "0.2s",
+                          }}
+                        />
                       </button>
-
                     </div>
                   </td>
                 </tr>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ProductSearch = ({ value, onChange, placeholder = "Buscar..." }) => {
+const RolSearch = ({ value, onChange, placeholder = "Buscar..." }) => {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
       {/* Magnifying glass icon */}
@@ -47,11 +47,11 @@ const ProductSearch = ({ value, onChange, placeholder = "Buscar..." }) => {
           boxSizing: 'border-box',
           transition: 'border-color 0.2s',
         }}
-        onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+        onFocus={(e) => (e.target.style.borderColor = '#ff4fd6')}
         onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
       />
     </div>
   );
 };
 
-export default ProductSearch;
+export default RolSearch;

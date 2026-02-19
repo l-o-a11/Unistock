@@ -1,10 +1,10 @@
-// Categoría de productos
+// MODULOS de ROLES
 export const Categories = [
-    { id: 1, name: 'Buzos', image: 'https://via.placeholder.com/150?text=Buzos' }, //Cambiar imagen - icon: ''
-    { id: 2, name: 'Bodys', image: 'https://via.placeholder.com/150?text=Bodys' },
-    { id: 3, name: 'Enterizos', image: 'https://via.placeholder.com/150?text=Enterizos' },
-    { id: 4, name: 'Vestidos', image: 'https://via.placeholder.com/150?text=Vestidos' },
-    { id: 5, name: 'Crop Top', image: 'https://via.placeholder.com/150?text=CropTop' }
+    { id: 1, name: 'Roles', image: 'https://via.placeholder.com/150?text=Roles' }, //Cambiar imagen - icon: ''
+    { id: 2, name: 'Usuarios', image: 'https://via.placeholder.com/150?text=Usuarios' },
+    { id: 3, name: 'Categoría de insumos', image: 'https://via.placeholder.com/150?text=Categoría de insumos' },
+    { id: 4, name: 'Insumos', image: 'https://via.placeholder.com/150?text=Insumos' },
+    { id: 5, name: 'Proveedores', image: 'https://via.placeholder.com/150?text=Proveedores' }
 ];
 
 // Ficha técnica

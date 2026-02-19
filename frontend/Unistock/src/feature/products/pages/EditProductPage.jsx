@@ -41,7 +41,7 @@ const EditProductPage = () => {
             height="32"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#E91E8C"
+            stroke="ff4fd6"
             strokeWidth="2.5"
             strokeLinecap="round"
             style={{
