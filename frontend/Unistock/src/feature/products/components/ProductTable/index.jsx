@@ -79,9 +79,51 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                 >
                   {/* Imagen - SIEMPRE tiene hover porque muestra la imagen grande */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del producto</p><img src={product.image} alt={product.name} style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} /><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>REF: {product.reference}</p></div>}>
+                    <HoverCard content={
+                      <div>
+                        <p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del producto</p>
+                        {product.image ? (
+                          <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} 
+                          />
+                        ) : (
+                          <div style={{ 
+                            width: "128px", 
+                            height: "128px", 
+                            backgroundColor: "#f5f5f5", 
+                            borderRadius: "8px", 
+                            border: "1px solid #eee",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#999",
+                            fontSize: "14px"
+                          }}>
+                            Sin imagen
+                          </div>
+                        )}
+                        <p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>REF: {product.reference}</p>
+                      </div>
+                    }>
                       <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
-                        <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        {product.image ? (
+                          <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <div style={{ 
+                            width: "100%", 
+                            height: "100%", 
+                            backgroundColor: "#f0f0f0", 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            color: "#aaa",
+                            fontSize: "10px"
+                          }}>
+                            🖼️
+                          </div>
+                        )}
                       </div>
                     </HoverCard>
                   </td>
@@ -177,7 +219,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
 
                       {/* SWITCH ACTIVO */}
                       <button
-                        onClick={() => onToggle?.(t.id)}
+                        onClick={() => onToggle?.(product.id)}
                         style={{
                           position: "relative",
                           width: "44px",
@@ -213,4 +255,4 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
   );
 };
 
-export default ProductTable;
+export default ProductTable; 
