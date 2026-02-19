@@ -490,7 +490,7 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                   cursor: "pointer",
                   transition: "background-color 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#C9187A")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
               >
                 {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
@@ -581,7 +581,7 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                 cursor: "pointer",
                 transition: "background-color 0.2s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#C9187A")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
             >
               Guardar producto

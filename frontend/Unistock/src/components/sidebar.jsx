@@ -27,7 +27,7 @@ const menuItems = [
   {
     id: 'produccion', name: 'Producción', icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: 'Categorías', path: '/produccion/categorias' },
+      { name: 'Categorías', path: '/categorias' },
       { name: 'Producción', path: '/produccion' },
       { name: 'Terceros', path: '/terceros' },
       { name: 'Productos', path: '/productos' },
