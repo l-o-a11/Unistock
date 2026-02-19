@@ -162,15 +162,7 @@ const supplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                           boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
                           transition: "left 0.2s",
                         }} />
-                        {/* Checkmark — only when active */}
-                        {isActive && (
-                          <svg
-                            style={{ position: "absolute", left: "5px", width: "11px", height: "11px", color: "#fff", pointerEvents: "none" }}
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
+                        
                       </button>
 
                     </div>
