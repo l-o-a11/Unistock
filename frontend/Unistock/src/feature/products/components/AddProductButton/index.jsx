@@ -19,7 +19,7 @@ function AddProductButton({ onClick, label = "Agregar nuevo producto" }) {
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#C9187A'}
+      
       onMouseLeave={e => e.currentTarget.style.backgroundColor = '#E91E8C'}
     >
       {/* Circle plus icon matching the ⊕ style in the screenshot */}
