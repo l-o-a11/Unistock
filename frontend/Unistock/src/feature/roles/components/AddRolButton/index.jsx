@@ -19,8 +19,8 @@ function AddRolButton({ onClick, label = "Agregar nuevo rol" }) {
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
       }}
-      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff4fd6'}
-    >
+      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff4fd6'}>
+      
       {/* Circle plus icon matching the ⊕ style in the screenshot */}
       <svg
         width="18"
