@@ -1,157 +1,232 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-const Third_partieForm = ({ onSubmit, onCancel }) => {
-  const [form, setForm] = useState({
-    nombre: "",
-    nit: "",
-    direccion: "",
-    telefono: "",
-    contacto: "",
-    correo: "",
-    estado: true,
+const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    codigo: Third_partie?.codigo || "",
+    nombre: Third_partie?.nombre || "",
+    nit: Third_partie?.nit || "",
+    direccion: Third_partie?.direccion || "",
+    telefono: Third_partie?.telefono || "",
+    contacto: Third_partie?.contacto || "",
+    correo: Third_partie?.correo || "",
   });
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const modalRef = useRef(null);
 
-    setForm({
-      ...form,
-      [name]: type === "checkbox" ? checked : value,
-    });
+  useEffect(() => {
+    const handleEsc = (e) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onCancel]);
+
+  const handleOverlayClick = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      onCancel();
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!form.nombre || !form.direccion || !form.telefono) {
+    if (!formData.nombre || !formData.direccion || !formData.telefono) {
       alert("Completa los campos obligatorios");
       return;
     }
-
-    onSubmit(form);
+    onSubmit(formData);
   };
 
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 4px",
+    border: "none",
+    borderBottom: "1.5px solid #cfcfcf",
+    fontSize: "14px",
+    outline: "none",
+    background: "transparent",
+  };
+
+  const labelStyle = {
+    fontSize: "13px",
+    color: "#555",
+    marginBottom: "4px",
+    display: "block",
+  };
+
+  const required = <span style={{ color: "#E91E8C" }}>*</span>;
+
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-[#f7f7f7] w-full max-w-4xl rounded-xl shadow-xl p-8"
+    <div
+      onClick={handleOverlayClick}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.25)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 50,
+      }}
+    >
+      <div
+        ref={modalRef}
+        style={{
+          width: "100%",
+          maxWidth: "900px",
+          background: "#f3f3f3",
+          borderRadius: "10px",
+          padding: "28px 32px",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+        }}
       >
         {/* TITLE */}
-        <h1 className="text-xl font-semibold mb-6">
-          Crear nuevo tercero
-        </h1>
+        <h2 style={{margin: "0 0 28px 0",
+              fontSize: "20px",
+              fontWeight: "600",
+              color: "#1a1a1a",
+              textAlign: "center", }}>
+          {Third_partie ? "Editar tercero" : "Crear nuevo tercero"}
+        </h2>
 
-        {/* GRID PRINCIPAL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* NOMBRE */}
-          <Input
-            label="Nombre"
-            name="nombre"
-            required
-            placeholder="Ej: Confecciones Modernas S.A.S."
-            value={form.nombre}
-            onChange={handleChange}
-          />
-
-          {/* NIT */}
-          <Input
-            label="NIT"
-            name="nit"
-            placeholder="Ej: 900.123.456-7"
-            value={form.nit}
-            onChange={handleChange}
-          />
-
-          {/* DIRECCION FULL */}
-          <div className="md:col-span-2">
-            <Input
-              label="Dirección"
-              name="direccion"
-              required
-              placeholder="Ej: Calle 10 # 42-15, Medellín"
-              value={form.direccion}
+        <form onSubmit={handleSubmit}>
+          {/* CODIGO */}
+          <div style={{ marginBottom: "20px" }}>
+            <label style={labelStyle}>
+              Código Asignado {required}
+            </label>
+            <input
+              name="codigo"
+              value={formData.codigo}
               onChange={handleChange}
+              style={inputStyle}
             />
           </div>
 
-          {/* TELEFONO */}
-          <Input
-            label="Teléfono"
-            name="telefono"
-            required
-            placeholder="Ej: 300 123 4567"
-            value={form.telefono}
-            onChange={handleChange}
-          />
+          {/* GRID */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "20px 30px",
+            }}
+          >
+            {/* NOMBRE */}
+            <div>
+              <label style={labelStyle}>Nombre {required}</label>
+              <input
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleChange}
+                placeholder="Ej: Confecciones Modernas S.A.S."
+                style={inputStyle}
+              />
+            </div>
 
-          {/* CONTACTO */}
-          <Input
-            label="Contacto principal"
-            name="contacto"
-            required
-            placeholder="Ej: Ana Pérez"
-            value={form.contacto}
-            onChange={handleChange}
-          />
+            {/* NIT */}
+            <div>
+              <label style={labelStyle}>NIT</label>
+              <input
+                name="nit"
+                value={formData.nit}
+                onChange={handleChange}
+                placeholder="Ej: 900.123.456-7"
+                style={inputStyle}
+              />
+            </div>
 
-          {/* CORREO */}
-          <div className="md:col-span-2">
-            <Input
-              label="Correo electrónico"
-              name="correo"
-              placeholder="Ej: contacto@confecciones.com"
-              value={form.correo}
-              onChange={handleChange}
-            />
+            {/* DIRECCION FULL */}
+            <div style={{ gridColumn: "1 / span 2" }}>
+              <label style={labelStyle}>Dirección {required}</label>
+              <input
+                name="direccion"
+                value={formData.direccion}
+                onChange={handleChange}
+                placeholder="Ej: Calle 10 # 42-15, Medellín"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* TELEFONO */}
+            <div>
+              <label style={labelStyle}>Teléfono {required}</label>
+              <input
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleChange}
+                placeholder="Ej: 300 123 4567"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* CONTACTO */}
+            <div>
+              <label style={labelStyle}>Contacto Principal {required}</label>
+              <input
+                name="contacto"
+                value={formData.contacto}
+                onChange={handleChange}
+                placeholder="Ej: Ana Pérez"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* CORREO */}
+            <div style={{ gridColumn: "1 / span 2" }}>
+              <label style={labelStyle}>Correo Electrónico</label>
+              <input
+                name="correo"
+                value={formData.correo}
+                onChange={handleChange}
+                placeholder="Ej: contacto@empresa.com"
+                style={inputStyle}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* BOTONES */}
-        <div className="flex justify-end gap-4 mt-8">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-700"
+          {/* BOTONES */}
+          <div
+            style={{
+              marginTop: "30px",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "14px",
+            }}
           >
-            Cancelar
-          </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              style={{
+                padding: "8px 20px",
+                borderRadius: "10px",
+                border: "none",
+                background: "#ddd",
+                color: "#555",
+              }}
+            >
+              Cancelar
+            </button>
 
-          <button
-            type="submit"
-            className="px-6 py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white shadow"
-          >
-            Guardar
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              style={{
+                padding: "8px 22px",
+                borderRadius: "10px",
+                border: "none",
+                background: "#E91E8C",
+                color: "#fff",
+                fontWeight: "500",
+              }}
+            >
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
 
 export default Third_partieForm;
-
-/* 🔹 Input reutilizable */
-const Input = ({
-  label,
-  name,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-}) => (
-  <div>
-    <label className="block text-sm text-gray-600 mb-1">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <input
-      type="text"
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-pink-400"
-    />
-  </div>
-);

@@ -1,18 +1,17 @@
 import React, { useState } from "react";
 
-const Third_partieDetail = ({ Third_partie, onEdit, onClose }) => {
+const Third_partieDetail = ({ Third_partie, onEdit }) => {
   const [tab, setTab] = useState("info");
 
   if (!Third_partie) return null;
 
   return (
     <div style={styles.card}>
+      {/* HEADER */}
       <div style={styles.header}>
-        <div>
-          <small style={{ color: "#999" }}>{Third_partie.id}</small>
-          <h2 style={styles.title}>{Third_partie.nombreEmpresa}</h2>
-          <p style={styles.subtitle}>{Third_partie.contacto}</p>
-        </div>
+        <a style={styles.id}>{Third_partie.id}</a>
+        <h1 style={styles.title}>{Third_partie.nombre}</h1>
+        <p style={styles.subtitle}>{Third_partie.contacto}</p>
       </div>
 
       {/* TABS */}
@@ -21,8 +20,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onClose }) => {
           onClick={() => setTab("info")}
           style={{
             ...styles.tab,
-            borderBottom:
-              tab === "info" ? "2px solid #FF4FD6" : "2px solid transparent",
+            borderBottom: tab === "info" ? styles.activeBorder : "3px solid transparent",
           }}
         >
           Información general
@@ -32,8 +30,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onClose }) => {
           onClick={() => setTab("prod")}
           style={{
             ...styles.tab,
-            borderBottom:
-              tab === "prod" ? "2px solid #FF4FD6" : "2px solid transparent",
+            borderBottom: tab === "prod" ? styles.activeBorder : "3px solid transparent",
           }}
         >
           Producciones
@@ -42,11 +39,14 @@ const Third_partieDetail = ({ Third_partie, onEdit, onClose }) => {
 
       {/* CONTENIDO */}
       {tab === "info" && (
-        <div style={styles.body}>
-          <p><b>Nit:</b> {Third_partie.nit}</p>
-          <p><b>Dirección:</b> {Third_partie.direccion}</p>
-          <p><b>Teléfono:</b> {Third_partie.telefono}</p>
-          <p><b>Estado:</b> {Third_partie.estado ? "Activo" : "Inactivo"}</p>
+        <div style={styles.infoGrid}>
+          <LabelValue label="Nit" value={Third_partie.nit} />
+          <LabelValue label="Dirección" value={Third_partie.direccion} />
+          <LabelValue label="Teléfono" value={Third_partie.telefono} />
+          <LabelValue
+            label="Estado"
+            value={Third_partie.estado ? "Activo" : "Inactivo"}
+          />
         </div>
       )}
 
@@ -56,7 +56,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onClose }) => {
         </div>
       )}
 
-      {/* ACCIONES */}
+      {/* ACTIONS */}
       <div style={styles.actions}>
         <button style={styles.deleteBtn}>Eliminar</button>
         <button style={styles.editBtn} onClick={() => onEdit(Third_partie)}>
@@ -67,65 +67,102 @@ const Third_partieDetail = ({ Third_partie, onEdit, onClose }) => {
   );
 };
 
+/* 🔹 Subcomponente */
+const LabelValue = ({ label, value }) => (
+  <>
+    <div style={styles.label}>{label}</div>
+    <div style={styles.value}>{value}</div>
+  </>
+);
+
 const styles = {
   card: {
-    width: "100%",
+    padding: "35px 40px",
+    borderRadius: "10px",
   },
 
   header: {
-    marginBottom: "10px",
+    marginBottom: "15px",
+  },
+
+  id: {
+    fontSize: "12px",
+    display: "block",
+    marginBottom: "8px",
   },
 
   title: {
-    margin: 0,
-    fontSize: "20px",
+    margin: "0",
+    fontSize: "28px",
+    fontWeight: "600",
   },
 
   subtitle: {
-    margin: 0,
-    color: "#666",
+    marginTop: "4px",
+    fontSize: "14px",
   },
 
   tabs: {
     display: "flex",
-    gap: "20px",
-    borderBottom: "1px solid #eee",
-    marginBottom: "15px",
+    gap: "25px",
+    marginTop: "25px",
+    borderBottom: "1px solid #ddd",
   },
 
   tab: {
     background: "none",
     border: "none",
-    padding: "10px 0",
+    padding: "8px 0",
+    fontSize: "14px",
     cursor: "pointer",
     fontWeight: "500",
   },
 
+  activeBorder: "3px solid #E91E8C",
+
+  infoGrid: {
+    display: "grid",
+    gridTemplateColumns: "180px 1fr",
+    rowGap: "20px",
+    columnGap: "30px",
+    marginTop: "25px",
+    fontSize: "15px",
+  },
+
+  label: {
+    fontWeight: "500",
+  },
+
+  value: {},
+
   body: {
-    fontSize: "14px",
-    color: "#444",
-    lineHeight: "1.8",
+    marginTop: "25px",
   },
 
   actions: {
-    marginTop: "20px",
+    marginTop: "40px",
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
+    gap: "80px",
   },
 
   deleteBtn: {
-    background: "#ddd",
+   background: "#ddd",
     border: "none",
-    padding: "10px 18px",
-    borderRadius: "6px",
+    padding: "14px 30px",
+    borderRadius: "14px",
+    fontSize: "15px",
+    cursor: "pointer",
   },
 
   editBtn: {
-    background: "#FF4FD6",
+     background: "#E91E8C",
     color: "#fff",
     border: "none",
-    padding: "10px 18px",
-    borderRadius: "6px",
+    padding: "14px 35px",
+    borderRadius: "14px",
+    fontSize: "15px",
+    cursor: "pointer",
   },
 };
 

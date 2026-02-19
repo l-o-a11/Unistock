@@ -1,6 +1,6 @@
 import React from 'react';
 
-function AddRolButton({ onClick, label = "Agregar nuevo rol" }) {
+function AddUserButton({ onClick, label = "Agregar nuevo proveedor" }) {
   return (
     <button
       onClick={onClick}
@@ -19,9 +19,10 @@ function AddRolButton({ onClick, label = "Agregar nuevo rol" }) {
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
       }}
-      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff4fd6'}>
-      
-      {/* Circle plus icon matching the ⊕ style in the screenshot */}
+      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#FF4FD6A'}
+      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FF4FD6'}
+    >
+
       <svg
         width="18"
         height="18"
@@ -41,4 +42,4 @@ function AddRolButton({ onClick, label = "Agregar nuevo rol" }) {
   );
 }
 
-export default AddRolButton;
+export default AddUserButton;

@@ -1,174 +1,268 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-const SupplierForm = ({ onSubmit, onCancel }) => {
-  const [form, setForm] = useState({
-    nombreEmpresa: "",
-    nit: "",
-    direccion: "",
-    correoEmpresa: "",
-    sitioWeb: "",
-    nombreContacto: "",
-    telefono: "",
-    correoContacto: "",
+const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    nombreEmpresa: supplier?.nombreEmpresa || "",
+    nit: supplier?.nit || "",
+    direccion: supplier?.direccion || "",
+    correoEmpresa: supplier?.correoEmpresa || "",
+    sitioWeb: supplier?.sitioWeb || "",
+    nombreContacto: supplier?.nombreContacto || "",
+    telefono: supplier?.telefono || "",
+    correoContacto: supplier?.correoContacto || "",
   });
+
+  const modalRef = useRef(null);
+
+  // cerrar con ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onCancel]);
+
+  // click fuera
+  const handleOverlayClick = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      onCancel();
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({
-      ...form,
-      [name]: value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(form);
+    onSubmit(formData);
   };
 
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 14px",
+    border: "none",
+    borderBottom: "1.5px solid #d1d5db",
+    fontSize: "14px",
+    outline: "none",
+    background: "transparent",
+  };
+
+  const labelStyle = {
+    fontSize: "13px",
+    fontWeight: "500",
+    color: "#555",
+    marginBottom: "4px",
+    display: "block",
+  };
+
+  const requiredStar = <span style={{ color: "#E91E8C" }}>*</span>;
+
   return (
-    <div className="flex justify-center items-center py-10 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-lg w-full max-w-5xl p-8"
+    <div
+      onClick={handleOverlayClick}
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.25)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 50,
+      }}
+    >
+      <div
+        ref={modalRef}
+        style={{
+          backgroundColor: "#fff",
+          borderRadius: "16px",
+          width: "100%",
+          maxWidth: "900px",
+          padding: "36px 40px",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+          position: "relative",
+        }}
       >
-        {/* TITLE */}
-        <h1 className="text-2xl font-semibold mb-6">
-          Crear Nuevo Proveedores
-        </h1>
+        {/* BOTON CERRAR */}
+        <button
+          onClick={onCancel}
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            border: "none",
+            backgroundColor: "#f3f4f6",
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {/* IZQUIERDA */}
-          <div>
-            <h2 className="font-medium text-gray-700 border-b pb-2 mb-4">
-              Información de la empresa
-            </h2>
+        <h2 style={{ margin: "0 0 28px 0",
+              fontSize: "20px",
+              fontWeight: "600",
+              color: "#1a1a1a",
+              textAlign: "center", }}>
+          {supplier ? "Editar Proveedor" : "Crear Nuevo Proveedor"}
+        </h2>
 
-            <div className="space-y-4">
-              <Input
-                label="Nombre de empresa"
-                name="nombreEmpresa"
-                required
-                placeholder="Ej. Moda Co."
-                value={form.nombreEmpresa}
-                onChange={handleChange}
-              />
+        <form onSubmit={handleSubmit}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "40px",
+            }}
+          >
+            {/* IZQUIERDA */}
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+    borderRight: "1px solid #e5e7eb",
+    paddingRight: "30px",
+  }}
+>
+         <div>
+                <label style={labelStyle}>
+                  Nombre Empresa {requiredStar}
+                </label>
+                <input
+                  name="nombreEmpresa"
+                  value={formData.nombreEmpresa}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required
+                />
+              </div>
 
-              <Input
-                label="NIT"
-                name="nit"
-                required
-                placeholder="Ej. 900123456-7"
-                value={form.nit}
-                onChange={handleChange}
-              />
+              <div>
+                <label style={labelStyle}>NIT {requiredStar}</label>
+                <input
+                  name="nit"
+                  value={formData.nit}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required
+                />
+              </div>
 
-              <Input
-                label="Dirección"
-                name="direccion"
-                required
-                placeholder="Ej. Calle 5, #45-12"
-                value={form.direccion}
-                onChange={handleChange}
-              />
+              <div>
+                <label style={labelStyle}>Dirección {requiredStar}</label>
+                <input
+                  name="direccion"
+                  value={formData.direccion}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required
+                />
+              </div>
 
-              <Input
-                label="Correo"
-                name="correoEmpresa"
-                required
-                placeholder="Ej. correo@gmail.com"
-                value={form.correoEmpresa}
-                onChange={handleChange}
-              />
+              <div>
+                <label style={labelStyle}>Correo Empresa {requiredStar}</label>
+                <input
+                  name="correoEmpresa"
+                  value={formData.correoEmpresa}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required
+                />
+              </div>
 
-              <Input
-                label="Sitio web"
-                name="sitioWeb"
-                placeholder="Ej. ejemplo.com"
-                value={form.sitioWeb}
-                onChange={handleChange}
-              />
+              <div>
+                <label style={labelStyle}>Sitio Web</label>
+                <input
+                  name="sitioWeb"
+                  value={formData.sitioWeb}
+                  onChange={handleChange}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            {/* DERECHA */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div>
+                <label style={labelStyle}>Nombre Contacto</label>
+                <input
+                  name="nombreContacto"
+                  value={formData.nombreContacto}
+                  onChange={handleChange}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  Teléfono {requiredStar}
+                </label>
+                <input
+                  name="telefono"
+                  value={formData.telefono}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Correo Contacto</label>
+                <input
+                  name="correoContacto"
+                  value={formData.correoContacto}
+                  onChange={handleChange}
+                  style={inputStyle}
+                />
+              </div>
             </div>
           </div>
 
-          {/* DERECHA */}
-          <div>
-            <h2 className="font-medium text-gray-700 border-b pb-2 mb-4">
-              Información del contacto
-            </h2>
+          {/* BOTONES */}
+          <div
+            style={{
+              marginTop: "30px",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "16px",
+            }}
+          >
+            <button
+              type="button"
+              onClick={onCancel}
+              style={{
+                padding: "10px 22px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                background: "#eee",
+              }}
+            >
+              Cancelar
+            </button>
 
-            <div className="space-y-4">
-              <Input
-                label="Nombre de contacto"
-                name="nombreContacto"
-                placeholder="Ej. Moda Co."
-                value={form.nombreContacto}
-                onChange={handleChange}
-              />
-
-              <Input
-                label="Teléfono"
-                name="telefono"
-                required
-                placeholder="Ej. 325412354"
-                value={form.telefono}
-                onChange={handleChange}
-              />
-
-              <Input
-                label="Correo"
-                name="correoContacto"
-                placeholder="Ej. correo@gmail.com"
-                value={form.correoContacto}
-                onChange={handleChange}
-              />
-            </div>
+            <button
+              type="submit"
+              style={{
+                padding: "10px 28px",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: "#E91E8C",
+                color: "#fff",
+                fontWeight: "600",
+              }}
+            >
+              Guardar Proveedor
+            </button>
           </div>
-        </div>
-
-        {/* BOTONES */}
-        <div className="flex justify-end gap-4 mt-10">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700"
-          >
-            Cancelar
-          </button>
-
-          <button
-            type="submit"
-            className="px-6 py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white shadow"
-          >
-            Guardar Proveedor
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
 
 export default SupplierForm;
-
-/* 🔹 Componente reutilizable de Input */
-const Input = ({
-  label,
-  name,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-}) => (
-  <div>
-    <label className="block text-sm text-gray-700 mb-1">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <input
-      type="text"
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-    />
-  </div>
-);
