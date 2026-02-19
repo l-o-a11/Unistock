@@ -18,7 +18,7 @@ const menuItems = [
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
     submenu: [
       { name: 'Insumos', path: '/compras/insumos' },
-      { name: 'Categorías', path: '/compras/categorias' },
+      { name: 'Categorías', path: '/categorias' },        
       { name: 'Proveedores', path: '/proveedores' },
       { name: 'Compras', path: '/compras' },
     ],
@@ -26,7 +26,7 @@ const menuItems = [
   {
     id: 'produccion', name: 'Producción', icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: 'Categorías', path: '/produccion/categorias' },
+      { name: 'Categorías', path: '/categorias' },        
       { name: 'Producción', path: '/produccion' },
       { name: 'Terceros', path: '/terceros' },
       { name: 'Productos', path: '/productos' },
