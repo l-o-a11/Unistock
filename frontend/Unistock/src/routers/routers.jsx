@@ -25,7 +25,7 @@ import EditThird_partiePage from '../feature/third_parties/pages/EditThird_parti
 
 import UsersPage from '../feature/users/pages/UsersPage.jsx';
 import CreateUsersPage from '../feature/users/pages/CreateUserPage.jsx';
-import EditUsersPage from '../feature/users/pages/EditUserPage.jsx';
+import EditUserPage from "../feature/users/pages/EditUserPage.jsx";
 
 export function RouterApp() {
   return (
@@ -64,9 +64,9 @@ export function RouterApp() {
         <Route path="/terceros/editar/:id" element={<EditThird_partiePage />} />
         
          {/* Módulo de usuarios */}
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/users/crear" element={<CreateUsersPage />} />
-        <Route path="/users/editar/:id" element={<EditUsersPage />} />
+         <Route path="users" element={<UsersPage />} />
+        <Route path="users/crear" element={<CreateUsersPage />} />
+        <Route path="users/editar/:id" element={<EditUserPage />} />
       </Route>
       
       
