@@ -12,15 +12,25 @@ const EditUserPage = () => {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        // 🔥 convertir id a string para comparar correctamente
         const found = users.find((u) => String(u.id) === String(id));
-        setUser(found);
+
+        if (found) {
+            setUser({
+                id: found.id,
+                documentType: found.tipoDocumento,
+                documentNumber: found.numeroDocumento,
+                name: found.nombreCompleto,
+                email: found.correo,
+                role: found.rol,
+                sede: found.sede,
+            });
+        }
     }, [id, users]);
 
     const handleSubmit = async (userData) => {
         try {
             await updateUser(id, userData);
-            navigate("/usuarios");
+            navigate("/users");
         } catch (error) {
             console.error("Error al actualizar usuario:", error);
         }
@@ -73,10 +83,11 @@ const EditUserPage = () => {
             <UserForm
                 user={user}
                 onSubmit={handleSubmit}
-                onCancel={() => navigate("/usuarios")}
+                onCancel={() => navigate("/users")}
             />
         </div>
     );
+
 };
 
 export default EditUserPage;

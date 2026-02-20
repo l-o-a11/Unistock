@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export const mockUsers = [
+const mockUsers = [
     {
         id: 1,
         tipoDocumento: "CC",
@@ -30,56 +30,6 @@ export const mockUsers = [
         rol: "Administrador",
         sede: "Parque Berrio",
         estado: true,
-    },
-    {
-        id: 4,
-        tipoDocumento: "TI",
-        numeroDocumento: "1098765432",
-        nombreCompleto: "Juan David Martínez",
-        correo: "juan.martinez@gmail.com",
-        rol: "Empleado",
-        sede: "Parque Berrio",
-        estado: false,
-    },
-    {
-        id: 5,
-        tipoDocumento: "CE",
-        numeroDocumento: "553214789",
-        nombreCompleto: "Valentina Rodríguez",
-        correo: "valentina.rodriguez@gmail.com",
-        rol: "Supervisor",
-        sede: "Parque Berrio",
-        estado: true,
-    },
-    {
-        id: 6,
-        tipoDocumento: "CC",
-        numeroDocumento: "741258963",
-        nombreCompleto: "Andrés Felipe Castro",
-        correo: "andres.castro@gmail.com",
-        rol: "Empleado",
-        sede: "Parque Berrio",
-        estado: false,
-    },
-    {
-        id: 7,
-        tipoDocumento: "CC",
-        numeroDocumento: "963852741",
-        nombreCompleto: "Camila Andrea Herrera",
-        correo: "camila.herrera@gmail.com",
-        rol: "Administrador",
-        sede: "Parque Berrio",
-        estado: true,
-    },
-    {
-        id: 8,
-        tipoDocumento: "CE",
-        numeroDocumento: "321654987",
-        nombreCompleto: "Sebastián López",
-        correo: "sebastian.lopez@gmail.com",
-        rol: "Empleado",
-        sede: "Parque Berrio",
-        estado: true,
     }
 ];
 
@@ -91,46 +41,123 @@ export const useUsers = () => {
     useEffect(() => {
         setLoading(true);
         setTimeout(() => {
-            setUsers([...mockUsers]);
+            setUsers(mockUsers);
             setLoading(false);
         }, 500);
     }, []);
 
     const createUser = async (userData) => {
+        const exists = users.find(
+            (u) =>
+                u.numeroDocumento === userData.documentNumber ||
+                u.correo === userData.email
+        );
+
+        if (exists) {
+            throw new Error("Ya existe un usuario con ese documento o correo");
+        }
+
         const newUser = {
-            id: Date.now(),
-            ...userData,
+            id: Date.now().toString(),
+            tipoDocumento: userData.documentType,
+            numeroDocumento: userData.documentNumber,
+            nombreCompleto: userData.name,
+            correo: userData.email,
+            rol: userData.role,
+            sede: userData.sede,
+            estado: true,
         };
 
         setUsers((prev) => [...prev, newUser]);
+
         return newUser;
     };
 
     const updateUser = async (id, userData) => {
+        const exists = users.find(
+            (u) =>
+                String(u.id) !== String(id) &&
+                (
+                    u.numeroDocumento === userData.documentNumber ||
+                    u.correo === userData.email
+                )
+        );
+
+        if (exists) {
+            throw new Error("Ya existe otro usuario con ese documento o correo");
+        }
+
         setUsers((prev) =>
-            prev.map((u) => (u.id === id ? { ...u, ...userData } : u))
+            prev.map((u) =>
+                String(u.id) === String(id)
+                    ? {
+                        ...u,
+                        tipoDocumento: userData.documentType,
+                        numeroDocumento: userData.documentNumber,
+                        nombreCompleto: userData.name,
+                        correo: userData.email,
+                        rol: userData.role,
+                        sede: userData.sede,
+                    }
+                    : u
+            )
         );
     };
 
     const deleteUser = async (id) => {
-        setUsers((prev) => prev.filter((u) => u.id !== id));
+        const userToDelete = users.find(u => u.id === id);
+        if (!userToDelete) return;
+
+        if (userToDelete.rol === "Administrador" && userToDelete.estado) {
+            alert("No se puede eliminar un administrador activo");
+            return;
+        }
+
+        const confirmDelete = window.confirm("¿Seguro que deseas eliminar este usuario?");
+        if (!confirmDelete) return;
+
+        setUsers(prev => prev.filter(u => u.id !== id));
+    };
+
+    const refreshUsers = () => {
+        setUsers(mockUsers);
     };
 
     const toggleUser = (id) => {
-        setUsers((prev) =>
-            prev.map((u) =>
-                u.id === id ? { ...u, estado: !u.estado } : u
-            )
-        );
+        setUsers((prev) => {
+
+            const userToToggle = prev.find(u => u.id === id);
+            if (!userToToggle) return prev;
+
+            const isActive = userToToggle.estado !== false;
+
+            if (userToToggle.rol === "Administrador" && isActive) {
+                const activeAdmins = prev.filter(
+                    u => u.rol === "Administrador" && u.estado !== false
+                );
+
+                if (activeAdmins.length <= 1) {
+                    alert("No se puede desactivar el único administrador activo");
+                    return prev;
+                }
+            }
+
+            return prev.map(u =>
+                u.id === id
+                    ? { ...u, estado: !u.estado }
+                    : u
+            );
+        });
     };
 
     return {
         users,
         loading,
-        error,
         createUser,
         updateUser,
         deleteUser,
         toggleUser,
     };
 };
+
+export default useUsers;

@@ -10,7 +10,7 @@ const CreateUserPage = () => {
     const handleSubmit = async (userData) => {
         try {
             await createUser(userData);
-            navigate("/usuarios");
+            navigate("/users");
         } catch (error) {
             console.error("Error al crear el usuario:", error);
         }
@@ -20,7 +20,7 @@ const CreateUserPage = () => {
         <div className="bg-gray-100 flex justify-center items-center">
             <UserForm
                 onSubmit={handleSubmit}
-                onCancel={() => navigate("/usuarios")}
+                onCancel={() => navigate("/users")}
             />
         </div>
     );

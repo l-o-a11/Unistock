@@ -16,40 +16,40 @@ import EditThird_partiePage from '../feature/third_parties/pages/EditThird_parti
 
 import UsersPage from '../feature/users/pages/UsersPage.jsx';
 import CreateUsersPage from '../feature/users/pages/CreateUserPage.jsx';
-import EditUsersPage from '../feature/users/pages/EditUserPage.jsx';
+import EditUserPage from "../feature/users/pages/EditUserPage.jsx";
 
 export function RouterApp() {
   return (
     <Routes>
       {/* Layout principal con Navbar y Sidebar */}
       <Route path="/" element={<AppLayout />}>
-        
+
         {/* Dashboard - Ruta por defecto */}
         <Route index element={<ProductionDashboard />} />
         <Route path="dashboard" element={<ProductionDashboard />} />
-        
+
         {/* Módulo de roles */}
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/crear" element={<CreateRolPage />} />
         <Route path="roles/editar/:id" element={<EditRolPage />} />
 
-               {/* Módulo de proveedores */}
-        <Route path="/proveedores" element={<SuppliersPage />} />
-        <Route path="/proveedores/crear" element={<CreateSupplierPage />} />
-        <Route path="/proveedores/editar/:id" element={<EditSupplierPage />} />
+        {/* Módulo de proveedores */}
+        <Route path="proveedores" element={<SuppliersPage />} />
+        <Route path="proveedores/crear" element={<CreateSupplierPage />} />
+        <Route path="proveedores/editar/:id" element={<EditSupplierPage />} />
 
-         {/* Módulo de terceros */}
-        <Route path="/terceros" element={<Third_partiesPage />} />
-        <Route path="/terceros/crear" element={<CreateThird_partiePage />} />
-        <Route path="/terceros/editar/:id" element={<EditThird_partiePage />} />
-        
-         {/* Módulo de usuarios */}
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/users/crear" element={<CreateUsersPage />} />
-        <Route path="/users/editar/:id" element={<EditUsersPage />} />
+        {/* Módulo de terceros */}
+        <Route path="terceros" element={<Third_partiesPage />} />
+        <Route path="terceros/crear" element={<CreateThird_partiePage />} />
+        <Route path="terceros/editar/:id" element={<EditThird_partiePage />} />
+
+        {/* Módulo de usuarios */}
+        <Route path="users" element={<UsersPage />} />
+        <Route path="users/crear" element={<CreateUsersPage />} />
+        <Route path="users/editar/:id" element={<EditUserPage />} />
       </Route>
-      
-      
+
+
       {/* Ruta 404 - Redirige al dashboard */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

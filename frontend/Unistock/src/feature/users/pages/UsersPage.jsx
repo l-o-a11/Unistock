@@ -48,7 +48,7 @@ const UsersPage = () => {
   const handleView = (user) => openDetail(user);
 
   const handleEdit = (user) =>
-    navigate(`/usuarios/editar/${user.id}`);
+    navigate(`/users/editar/${user.id}`);
 
   const handleDelete = (id) => {
     if (window.confirm("¿Eliminar usuario?")) deleteUser(id);
@@ -56,7 +56,8 @@ const UsersPage = () => {
 
   const handleToggle = (id) => toggleUser?.(id);
 
-  const handleAddUser = () => navigate("/usuarios/crear");
+  const handleAddUser = () =>
+    navigate("/users/crear");
 
   // 🔢 PAGINACIÓN VISUAL
   const getPageNumbers = () => {
