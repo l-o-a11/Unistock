@@ -5,15 +5,21 @@ import { useProductSearch } from '../hooks/useProductSearch';
 import ProductTable from '../components/ProductTable';
 import ProductSearch from '../components/ProductSearch';
 import AddProductButton from '../components/AddProductButton';
-import { useProductDetail } from '../hooks/useProductDetail';
-import ProductDetail from '../components/ProductDetail';
+import ProductForm from '../components/ProductForm';
+import TechnicalSheetModal from '../components/TechnicalSheetModal';
 
 const ProductsPage = () => {
   const navigate = useNavigate();
-  const { products, deleteProduct, toggleProduct } = useProducts();
+  const { products, createProduct, updateProduct, deleteProduct, toggleProduct } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
-  const { selectedProduct, isOpen, openDetail, closeDetail } = useProductDetail();
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Estados para modales
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showTechnicalSheet, setShowTechnicalSheet] = useState(false);
+  const [selectedProductForSheet, setSelectedProductForSheet] = useState(null);
 
   // Filter
   const filteredProducts = products.filter(product =>
@@ -23,24 +29,68 @@ const ProductsPage = () => {
   );
 
   // Pagination
-  const itemsPerPage = 5;
+  const itemsPerPage = 7;
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
-  // Handlers
-  const handleView = (product) => {
-    navigate(`/productos/ficha-tecnica/${product.id}`);
+  // Handlers para formularios
+  const handleAddProduct = () => {
+    setShowCreateForm(true);
   };
-  
-  const handleEdit = (product) => navigate(`/productos/editar/${product.id}`);
+
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setShowEditForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowCreateForm(false);
+    setShowEditForm(false);
+    setEditingProduct(null);
+  };
+
+  const handleCreateSubmit = async (productData) => {
+    try {
+      await createProduct(productData);
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error al crear producto:', error);
+    }
+  };
+
+  const handleEditSubmit = async (productData) => {
+    try {
+      await updateProduct(editingProduct.id, productData);
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error al actualizar producto:', error);
+    }
+  };
+
+  // Handler para ficha técnica
+  const handleView = (product) => {
+    setSelectedProductForSheet(product);
+    setShowTechnicalSheet(true);
+  };
+
+  const handleCloseTechnicalSheet = () => {
+    setShowTechnicalSheet(false);
+    setSelectedProductForSheet(null);
+  };
+
+  const handleViewTechnicalSheet = (product) => {
+    setSelectedProductForSheet(product);
+    setShowTechnicalSheet(true);
+  };
+
   const handleDelete = (id) => {
     if (window.confirm('¿Estás seguro de eliminar este producto?')) {
       deleteProduct(id);
     }
   };
+
   const handleToggle = (id) => toggleProduct?.(id);
-  const handleAddProduct = () => navigate('/productos/crear');
   
   // Download handler (export)
   const handleDownload = () => {
@@ -80,7 +130,15 @@ const ProductsPage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '24px 32px' }}>
+    <div style={{ 
+      position: 'relative',
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '0', 
+      padding: '24px 32px' 
+    }}>
 
       {/* ── Row 1: Title + Search ── */}
       <div style={{
@@ -150,16 +208,106 @@ const ProductsPage = () => {
         onToggle={handleToggle}
       />
 
-      {/* ── ProductDetail Modal ── */}
-      {isOpen && (
-        <ProductDetail
-          product={selectedProduct}
-          onClose={closeDetail}
-          onEdit={handleEdit}
+      {/* ── MODAL: Crear Producto ── */}
+      {showCreateForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'auto',
+            zIndex: 1001
+          }} onClick={handleCloseForm} />
+          
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '1000px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            zIndex: 1002,
+            pointerEvents: 'auto'
+          }}>
+            <ProductForm
+              onSubmit={handleCreateSubmit}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Editar Producto ── */}
+      {showEditForm && editingProduct && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'auto',
+            zIndex: 1001
+          }} onClick={handleCloseForm} />
+          
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '1000px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            zIndex: 1002,
+            pointerEvents: 'auto'
+          }}>
+            <ProductForm
+              product={editingProduct}
+              onSubmit={handleEditSubmit}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Ficha Técnica ── */}
+      {showTechnicalSheet && (
+        <TechnicalSheetModal
+          product={selectedProductForSheet}
+          onClose={handleCloseTechnicalSheet}
         />
       )}
 
-      {/* ── Pagination (squared like RolesPage) ── */}
+      {/* ── Pagination ── */}
       {filteredProducts.length > 0 && (
         <div style={{
           marginTop: "20px",

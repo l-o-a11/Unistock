@@ -39,21 +39,7 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
   );
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      padding: '80px 24px 24px 24px',
-    }}>
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '16px',
-        padding: '32px',
-        maxWidth: '600px',
-        width: '100%',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-      }}>
+    <div style={{ padding: '32px' }}>
       <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600', color: '#333' }}>
         {category ? 'Editar Categoría' : 'Crear Nueva Categoría'}
       </h2>
@@ -130,7 +116,6 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
           </button>
         </div>
       </form>
-      </div>
     </div>
   );
 };

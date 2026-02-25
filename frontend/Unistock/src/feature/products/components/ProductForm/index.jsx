@@ -112,23 +112,12 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [imagePreview, setImagePreview] = useState(product?.image || null);
   
+  // Estados SOLO para edición
+  const [showVersions, setShowVersions] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState(null);
+  const [viewMode, setViewMode] = useState(false);
+  
   const modalRef = useRef(null);
-
-  useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === "Escape") {
-        onCancel();
-      }
-    };
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [onCancel]);
-
-  const handleOverlayClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
-      onCancel();
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -153,14 +142,29 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (!technicalSheet) {
+    if (!technicalSheet && currentStep === 2) {
       alert("Debes crear la ficha técnica para poder crear el producto");
       return;
     }
-    onSubmit({ ...formData, technicalSheet });
+    if (currentStep === 2) {
+      onSubmit({ ...formData, technicalSheet });
+    }
   };
 
-  // ESTILOS IGUALES A LA FICHA TÉCNICA
+  const handleDeleteVersion = () => {
+    if (window.confirm('¿Estás seguro de eliminar esta versión?')) {
+      console.log('Eliminar última versión');
+      setShowVersions(false);
+    }
+  };
+
+  const handleVersionSelect = (versionNum) => {
+    setSelectedVersion(versionNum);
+    setViewMode(versionNum !== (product?.technicalSheetVersions || 1));
+    setShowVersions(false);
+  };
+
+  // ESTILOS
   const cellStyle = {
     border: "1px solid #e5e7eb",
     padding: "8px 12px",
@@ -198,54 +202,30 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
     <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>
   );
 
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.25)",
-      }}
-      onClick={handleOverlayClick}
-    >
-      {currentStep === 1 ? (
-        <div
-          ref={modalRef}
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: "16px",
-            boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-            width: "100%",
-            maxWidth: "1000px",
-            maxHeight: "90vh",
-            overflowY: "auto",
-            padding: "36px 40px",
-            boxSizing: "border-box",
-            position: "relative",
-          }}
-        >
-          <h2
-            style={{
-              margin: "0 0 28px 0",
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#1a1a1a",
-              textAlign: "center",
-            }}
-          >
-            {product ? "Editar Producto" : "Crear Nuevo Producto"}
-          </h2>
+  // Determinar si la versión actual es la última (solo para edición)
+  const isLastVersion = product ? (!selectedVersion || selectedVersion === (product?.technicalSheetVersions || 1)) : true;
 
-          {/* CONTENEDOR DE DOS COLUMNAS - CON MÁRGENES CORREGIDAS */}
+  return (
+    <div ref={modalRef} style={{ padding: "36px 40px" }}>
+      <h2
+        style={{
+          margin: "0 0 28px 0",
+          fontSize: "20px",
+          fontWeight: "600",
+          color: "#1a1a1a",
+          textAlign: "center",
+        }}
+      >
+        {product ? "Editar Producto" : "Crear Nuevo Producto"}
+      </h2>
+
+      {currentStep === 1 ? (
+        <>
+          {/* Paso 1: Datos del producto */}
           <div style={{ display: "flex", gap: "20px" }}>
-            {/* Columna izquierda: Campos del formulario en formato tabla */}
             <div style={{ flex: 2 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <tbody>
-                  {/* Referencia */}
                   <tr>
                     <td style={headerCellStyle}>Referencia:</td>
                     <td style={cellStyle} colSpan={5}>
@@ -259,8 +239,6 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                       {requiredStar}
                     </td>
                   </tr>
-
-                  {/* Nombre */}
                   <tr>
                     <td style={headerCellStyle}>Nombre:</td>
                     <td style={cellStyle} colSpan={5}>
@@ -274,8 +252,6 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                       {requiredStar}
                     </td>
                   </tr>
-
-                  {/* Categoría */}
                   <tr>
                     <td style={headerCellStyle}>Categoría:</td>
                     <td style={cellStyle} colSpan={5}>
@@ -288,8 +264,6 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                       {requiredStar}
                     </td>
                   </tr>
-
-                  {/* Valores - Precio y Stock en la misma fila */}
                   <tr>
                     <td style={headerCellStyle}>Precio:</td>
                     <td style={cellStyle}>
@@ -320,7 +294,6 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
               </table>
             </div>
 
-            {/* Columna derecha: RECUADRO PARA IMAGEN - MISMO ESTILO QUE FICHA TÉCNICA */}
             <div style={{ flex: 1 }}>
               <div style={{ 
                 border: "1px solid #e5e7eb",
@@ -420,37 +393,14 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
             </div>
           </div>
 
-          {/* Mensaje y botones - SIN CAMBIOS */}
-          <div
-            style={{
-              marginTop: "28px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: "14px",
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                fontSize: "12px",
-                color: "#888",
-                fontStyle: "italic",
-                textAlign: "right",
-              }}
-            >
+          {/* MENSAJE Y BOTONES */}
+          <div style={{ marginTop: "28px", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "14px" }}>
+            <p style={{ margin: 0, fontSize: "12px", color: "#888", fontStyle: "italic", textAlign: "right" }}>
               {product
                 ? "*Para editar un producto, debes editar la ficha técnica*"
                 : "*Para crear un producto, debes crear la ficha técnica*"}
             </p>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "12px",
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
               <button
                 type="button"
                 onClick={onCancel}
@@ -462,20 +412,10 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                   fontSize: "14px",
                   color: "#555",
                   cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#e5e7eb";
-                  e.currentTarget.style.borderColor = "#9ca3af";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f3f4f6";
-                  e.currentTarget.style.borderColor = "#d1d5db";
                 }}
               >
                 Cerrar
               </button>
-
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
@@ -488,63 +428,159 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                   border: "none",
                   borderRadius: "8px",
                   cursor: "pointer",
-                  transition: "background-color 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#C9187A")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
               >
                 {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
               </button>
             </div>
           </div>
-        </div>
+        </>
       ) : (
-        <div
-          ref={modalRef}
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: "16px",
-            boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-            width: "100%",
-            maxWidth: "1200px",
-            maxHeight: "90vh",
-            overflowY: "auto",
-            padding: "36px 40px",
-            boxSizing: "border-box",
-            position: "relative",
-          }}
-        >
-          <h2
-            style={{
-              margin: "0 0 24px 0",
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#1a1a1a",
-              textAlign: "center",
-            }}
-          >
-            {product ? "Editar Producto" : "Crear Nuevo Producto"}
-          </h2>
+        <>
+          {/* SELECTOR DE VERSIONES - SOLO EN EDICIÓN */}
+          {product && product?.technicalSheetVersions > 1 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '24px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ fontSize: '14px', color: '#666' }}>
+                Fecha versión {new Date().toLocaleDateString('es-CO')}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div
+                  onClick={() => setShowVersions(!showVersions)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    backgroundColor: '#fdf0f7',
+                    border: '1px solid #ff4fd6'
+                  }}
+                >
+                  <span style={{ fontSize: '14px', fontWeight: '500', color: '#ff4fd6' }}>
+                    {viewMode ? 'Viendo versión' : 'Editando versión'} {selectedVersion || product?.technicalSheetVersions || 1}
+                  </span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#E91E8C"
+                    strokeWidth="2"
+                    style={{
+                      transform: showVersions ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s'
+                    }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+
+                {showVersions && (
+                  <>
+                    <div
+                      style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 5
+                      }}
+                      onClick={() => setShowVersions(false)}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '4px',
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        zIndex: 10,
+                        minWidth: '200px'
+                      }}
+                    >
+                      {[...Array(product?.technicalSheetVersions || 1)].map((_, i) => {
+                        const versionNum = i + 1;
+                        const isCurrent = versionNum === (product?.technicalSheetVersions || 1);
+                        const isSelected = versionNum === selectedVersion;
+                        
+                        return (
+                          <div
+                            key={versionNum}
+                            onClick={() => handleVersionSelect(versionNum)}
+                            style={{
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#fdf0f7' : 'transparent',
+                              color: isSelected ? '#ff4fd6' : '#333',
+                              borderBottom: '1px solid #f0f0f0',
+                              fontSize: '14px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <span>Versión {versionNum} {isCurrent && '(Actual)'}</span>
+                            {!isCurrent && <span style={{ fontSize: '11px', color: '#999' }}>Solo vista</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje de modo vista - SOLO EN EDICIÓN */}
+          {product && viewMode && (
+            <div style={{
+              backgroundColor: '#fdf0f7',
+              border: '1px solid #ff4fd6',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '13px', color: '#333' }}>
+                Estás viendo una versión anterior. No se pueden realizar cambios.
+                <button
+                  onClick={() => handleVersionSelect(product?.technicalSheetVersions || 1)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ff4fd6',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    marginLeft: '8px',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Volver a la versión actual
+                </button>
+              </span>
+            </div>
+          )}
 
           <TechnicalSheet
-            sheet={product?.technicalSheet}
-            isEditing={true}
+            sheet={product && selectedVersion ? { ...product?.technicalSheet, version: selectedVersion } : product?.technicalSheet}
+            isEditing={product ? (isLastVersion && !viewMode) : true}
             onChange={handleTechnicalSheetChange}
-            onSave={() => handleSubmit()}
           />
 
-          {/* Botones */}
-          <div
-            style={{
-              marginTop: "24px",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "12px",
-            }}
-          >
+          <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
             <button
               type="button"
-              onClick={onCancel}
+              onClick={() => setCurrentStep(1)}
               style={{
                 padding: "10px 32px",
                 backgroundColor: "#f3f4f6",
@@ -553,41 +589,52 @@ const ProductForm = ({ product, onSubmit, onCancel }) => {
                 fontSize: "14px",
                 color: "#555",
                 cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#e5e7eb";
-                e.currentTarget.style.borderColor = "#9ca3af";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#f3f4f6";
-                e.currentTarget.style.borderColor = "#d1d5db";
               }}
             >
-              Cerrar
+              ← Volver
             </button>
 
-            <button
-              type="button"
-              onClick={handleSubmit}
-              style={{
-                padding: "11px 32px",
-                backgroundColor: "#ff4fd6",
-                color: "#fff",
-                fontSize: "14px",
-                fontWeight: "600",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                transition: "background-color 0.2s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#C9187A")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ff4fd6")}
-            >
-              Guardar producto
-            </button>
+            {/* Botón Eliminar - SOLO EN EDICIÓN Y SOLO PARA ÚLTIMA VERSIÓN */}
+            {product && isLastVersion && !viewMode && (
+              <button
+                type="button"
+                onClick={handleDeleteVersion}
+                style={{
+                  padding: "11px 32px",
+                  backgroundColor: "#ff4fd6",
+                  color: "#fff",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Eliminar versión
+              </button>
+            )}
+
+            {/* Botón Guardar - SIEMPRE EN CREACIÓN, O EN EDICIÓN SOLO ÚLTIMA VERSIÓN */}
+            {(!product || (isLastVersion && !viewMode)) && (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                style={{
+                  padding: "11px 32px",
+                  backgroundColor: "#ff4fd6",
+                  color: "#fff",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                {product ? "Guardar producto" : "Crear producto"}
+              </button>
+            )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

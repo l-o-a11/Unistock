@@ -8,7 +8,7 @@ const TechnicalSheetPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { products } = useProducts();
-  const { versions, currentVersion, loadVersions, deleteLastVersion } = useTechnicalSheet(id);
+  const { versions, currentVersion, loadVersions } = useTechnicalSheet(id);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
   
@@ -23,19 +23,6 @@ const TechnicalSheetPage = () => {
   const handleViewVersion = (version) => {
     setSelectedVersion(version);
     setShowVersions(false);
-  };
-
-  const handleDeleteVersion = async (versionId) => {
-    if (window.confirm('¿Estás seguro de eliminar esta versión?')) {
-      try {
-        await deleteLastVersion(versionId);
-        if (selectedVersion?.id === versionId) {
-          setSelectedVersion(null);
-        }
-      } catch (error) {
-        alert(error.message);
-      }
-    }
   };
 
   if (!product) {
@@ -205,7 +192,7 @@ const TechnicalSheetPage = () => {
           isEditing={false}
         />
 
-        {/* Botones Cerrar y Eliminar */}
+        {/* Botón Cerrar */}
         <div style={{ 
           marginTop: '32px', 
           display: 'flex',
@@ -228,24 +215,6 @@ const TechnicalSheetPage = () => {
           >
             Cerrar
           </button>
-
-          {/* Eliminar - Solo para la última versión */}
-          {versions.length > 0 && versions[0]?.id === currentVersionObj?.id && (
-            <button
-              onClick={() => handleDeleteVersion(currentVersionObj.id)}
-              style={{
-                padding: '10px 32px',
-                backgroundColor: '#ff4fd6',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                fontSize: '14px',
-                color: '#fff',
-                cursor: 'pointer'
-              }}
-            >
-              Eliminar
-            </button>
-          )}
         </div>
       </div>
     </div>
