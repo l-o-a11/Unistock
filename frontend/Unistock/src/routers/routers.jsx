@@ -7,13 +7,8 @@ import CreateRolPage from '../feature/roles/pages/CreateRolPage.jsx';
 import EditRolPage from '../feature/roles/pages/EditRolPage.jsx';
 
 import ProductsPage from '../feature/products/pages/ProductsPage';
-import CreateProductPage from '../feature/products/pages/CreateProductPage.jsx';
-import EditProductPage from '../feature/products/pages/EditProductPage.jsx';
-import TechnicalSheetPage from '../feature/products/pages/TechnicalSheetPage'; 
 
 import CategoriesPage from '../feature/categories/pages/CategoriesPage';
-import CreateCategoryPage from '../feature/categories/pages/CreateCategoryPage.jsx';
-import EditCategoryPage from '../feature/categories/pages/EditCategoryPage.jsx';
 
 import SuppliersPage from '../feature/suppliers/pages/SuppliersPage';
 import CreateSupplierPage from '../feature/suppliers/pages/CreateSupplierPage';
@@ -44,14 +39,9 @@ export function RouterApp() {
 
         {/* Módulo de productos */}
         <Route path="productos" element={<ProductsPage />} />
-        <Route path="productos/crear" element={<CreateProductPage />} />
-        <Route path="productos/editar/:id" element={<EditProductPage />} />
-        <Route path="productos/ficha-tecnica/:id" element={<TechnicalSheetPage />} />
 
         {/* Módulo de categorías */}
         <Route path="/categorias" element={<CategoriesPage />} />
-        <Route path="/categorias/crear" element={<CreateCategoryPage />} />
-        <Route path="/categorias/editar/:id" element={<EditCategoryPage />} />
 
                {/* Módulo de proveedores */}
         <Route path="/proveedores" element={<SuppliersPage />} />
