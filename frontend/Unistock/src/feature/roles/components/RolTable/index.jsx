@@ -1,7 +1,7 @@
 import React from "react";
 import HoverCard from "../HoverCard";
 
-const RolTable = ({ roles, onView, onEdit, onDelete, onToggle }) => {
+const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
   const thStyle = {
     padding: "14px 20px",
     textAlign: "left",
@@ -129,36 +129,31 @@ const RolTable = ({ roles, onView, onEdit, onDelete, onToggle }) => {
                         </svg>
                       </button>
 
-                      {/* 🟢 Toggle switch */}
+                      {/* SWITCH ACTIVO */}
                       <button
                         onClick={() => onToggle?.(rol.id)}
-                        title={isActive ? "Desactivar" : "Activar"}
                         style={{
                           position: "relative",
-                          display: "inline-flex",
-                          alignItems: "center",
                           width: "44px",
                           height: "24px",
-                          borderRadius: "12px",
-                          backgroundColor: isActive ? "#22c55e" : "#d1d5db",
+                          borderRadius: "20px",
                           border: "none",
+                          backgroundColor: isActive ? "#22c55e" : "#d1d5db",
                           cursor: "pointer",
-                          padding: 0,
-                          flexShrink: 0,
-                          transition: "background-color 0.2s",
                         }}
                       >
-                        {/* Knob */}
-                        <span style={{
-                          position: "absolute",
-                          left: isActive ? "22px" : "2px",
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          backgroundColor: "#fff",
-                          boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-                          transition: "left 0.2s",
-                        }} />
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            left: isActive ? "22px" : "2px",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            backgroundColor: "#fff",
+                            transition: "0.2s",
+                          }} 
+                          />
                         
                       </button>
 

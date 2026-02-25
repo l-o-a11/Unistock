@@ -10,10 +10,9 @@ import CreateRolPage from "./CreateRolPage";
 import EditRolPage from "./EditRolPage";
 
 const RolesPage = () => {
-  const { roles, createRol, updateRol, deleteRol } = useRoles();
+  const { roles, createRol, updateRol, deleteRol, toggleRol} = useRoles();
   const { searchTerm, handleSearch } = useRolSearch();
   const { selectedRol, isOpen, openDetail, closeDetail } = useRolDetail();
-
   const [currentPage, setCurrentPage] = useState(1);
   const [modalType, setModalType] = useState(null); // "create" | "edit" | null
   const [editingRolId, setEditingRolId] = useState(null);
@@ -55,6 +54,7 @@ const RolesPage = () => {
       deleteRol(id);
     }
   };
+  const handleToggle = (id) => toggleRol?.(id);
 
   const handleAddRol = () => {
     setModalType("create");
@@ -139,6 +139,7 @@ const RolesPage = () => {
         onView={handleViewDetails}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onToggle={handleToggle}
       />
 
       {/* ── Modal Crear / Editar ── */}

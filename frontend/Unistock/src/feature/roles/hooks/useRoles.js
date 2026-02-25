@@ -223,6 +223,18 @@ export const useRoles = () => {
     return modulo ? modulo.privilegios : [];
   };
 
+  // 🔄 Alternar estado
+  const toggleRol = (id) => {
+  setRoles(prev =>
+    prev.map(rol =>
+      rol.id === id
+        ? { ...rol, estado: !rol.estado }
+        : rol
+    )
+  );
+};
+
+
   return {
     // Estados
     roles,
@@ -235,6 +247,7 @@ export const useRoles = () => {
     createRol,
     updateRol,
     deleteRol,
+    toggleRol,
     
     // Módulos y privilegios
     getModulos,
