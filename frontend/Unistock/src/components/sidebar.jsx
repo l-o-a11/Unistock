@@ -4,16 +4,17 @@ import DashboardIcon from '../assets/icons/Dashboard';
 import UsuariosIcon from '../assets/icons/Usuarios';
 import ComprasIcon from '../assets/icons/Compras';
 import ProduccionIcon from '../assets/icons/Produccion';
+import ConfigIcon from '../assets/icons/Config';
 import logo from '../assets/transparent-Photoroom.png';
 
 const menuItems = [
-  { id: 'dashboard',  name: 'Dashboard',  icon: DashboardIcon, hasSubmenu: false },
+  { id: 'dashboard', name: 'Dashboard', icon: DashboardIcon, hasSubmenu: false },
 
-  { id: 'usuarios',   name: 'Usuarios',   icon: UsuariosIcon, hasSubmenu: true,
+  {
+    id: 'usuarios', name: 'Usuarios', icon: UsuariosIcon, hasSubmenu: true,
     submenu: [
-      { name: 'Roles', path: 'roles' },
       { name: 'Usuarios', path: 'users' }
-    ], 
+    ],
   },
   {
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
@@ -33,12 +34,18 @@ const menuItems = [
       { name: 'Productos', path: '/productos' },
     ],
   },
+  {
+    id: 'configuracion', name: 'Configuración', icon: ConfigIcon, hasSubmenu: true,
+    submenu: [
+      { name: 'Roles', path: 'roles' }
+    ]
+  }
 ];
 
 export default function Sidebar() {
-  const [activeMenu,    setActiveMenu]    = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null);
   const [activeSubItem, setActiveSubItem] = useState(null);
-  const [hoveredSub,    setHoveredSub]    = useState(null);
+  const [hoveredSub, setHoveredSub] = useState(null);
 
   const navigate = useNavigate();
 
@@ -76,7 +83,7 @@ export default function Sidebar() {
     navigate(subitem.path);
   };
 
-  const activeItem  = menuItems.find(m => m.id === activeMenu);
+  const activeItem = menuItems.find(m => m.id === activeMenu);
   const isPanelOpen = !!activeMenu && !!activeItem?.hasSubmenu;
 
   return (
@@ -92,7 +99,7 @@ export default function Sidebar() {
         <div className="w-9 h-px bg-gray-100 mb-2" />
 
         {menuItems.map((item) => {
-          const Icon     = item.icon;
+          const Icon = item.icon;
           const isActive = activeMenu === item.id;
 
           return (
@@ -126,10 +133,10 @@ export default function Sidebar() {
       >
         {activeItem?.hasSubmenu && (
           <div className="flex flex-col h-full">
-            
+
             <div className="px-5 py-4 border-b border-gray-100 bg-white">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-7 bg-gradient-to-b from-pink-500 to-fuchsia-500 rounded-full"/>
+                <div className="w-2 h-7 bg-gradient-to-b from-pink-500 to-fuchsia-500 rounded-full" />
                 <div>
                   <h3 className="text-sm font-bold text-gray-900">{activeItem.name}</h3>
                   <p className="text-xs text-gray-400 mt-0.5">{activeItem.submenu.length} elementos</p>
@@ -139,9 +146,9 @@ export default function Sidebar() {
 
             <div className="flex flex-col flex-1 py-3 px-3 space-y-2 overflow-y-auto">
               {activeItem.submenu.map((subitem, i) => {
-                const key      = `${activeItem.id}-${i}`;
+                const key = `${activeItem.id}-${i}`;
                 const isActive = activeSubItem === key;
-                const isHov    = hoveredSub === key;
+                const isHov = hoveredSub === key;
 
                 return (
                   <button
@@ -160,14 +167,13 @@ export default function Sidebar() {
                       ${isActive
                         ? 'bg-gradient-to-r from-pink-500 via-pink-400 to-fuchsia-500 text-white shadow-lg shadow-pink-200'
                         : isHov
-                        ? 'bg-pink-50 text-pink-700 shadow-sm'
-                        : 'bg-white text-gray-700'}
+                          ? 'bg-pink-50 text-pink-700 shadow-sm'
+                          : 'bg-white text-gray-700'}
                     `}
                   >
-                    <div className={`w-1.5 h-5 rounded-full transition-all duration-200 ${
-                      isActive ? 'bg-white' : 'bg-gray-200 group-hover:bg-pink-300'
-                    }`}/>
-                    
+                    <div className={`w-1.5 h-5 rounded-full transition-all duration-200 ${isActive ? 'bg-white' : 'bg-gray-200 group-hover:bg-pink-300'
+                      }`} />
+
                     {isActive && (
                       <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -177,7 +183,7 @@ export default function Sidebar() {
                     <span className="flex-1">{subitem.name}</span>
 
                     {isActive && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"/>
+                      <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     )}
                   </button>
                 );
