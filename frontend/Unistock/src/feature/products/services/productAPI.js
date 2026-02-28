@@ -1,61 +1,64 @@
-// src/feature/products/services/productAPI.js
-
-// Datos de ejemplo con referencias numéricas y nombres COMPLETOS
+// Datos de ejemplo con nombres COMPLETOS
 const mockProducts = [
   {
     id: '772',
-    image: 'https://via.placeholder.com/40/3B82F6/ffffff?text=772',
+    image: 'null',
     reference: '772',
     name: 'Crop Top Negro para todos los días',
     category: 'Crop Top',
     price: 33000,
     stock: 5,
     technicalSheetVersions: 2,
-    lastVersionDate: '2026-02-10'
+    lastVersionDate: '2026-02-10',
+    active: true
   },
   {
     id: '482',
-    image: 'https://via.placeholder.com/40/8B5CF6/ffffff?text=482',
+    image: 'null',
     reference: '482',
     name: 'Vestido Bohemio Largo con Estampado Floral',
     category: 'Vestidos',
     price: 36000,
     stock: 10,
     technicalSheetVersions: 1,
-    lastVersionDate: '2026-02-09'
+    lastVersionDate: '2026-02-09',
+    active: true
   },
   {
     id: 'E57',
-    image: 'https://via.placeholder.com/40/EC4899/ffffff?text=E57',
+    image: 'null',
     reference: 'E57',
     name: 'Enterizo Negro Escotado con Abertura Lateral',
     category: 'Enterizos',
     price: 60000,
     stock: 10,
     technicalSheetVersions: 3,
-    lastVersionDate: '2026-02-08'
+    lastVersionDate: '2026-02-08',
+    active: true
   },
   {
     id: '601',
-    image: 'https://via.placeholder.com/40/F59E0B/ffffff?text=601',
+    image: 'null',
     reference: '601',
     name: 'Buzo Estampado Oversize con Capucha',
     category: 'Buzos',
     price: 35000,
     stock: 20,
     technicalSheetVersions: 1,
-    lastVersionDate: '2026-02-07'
+    lastVersionDate: '2026-02-07',
+    active: true
   },
   {
     id: '678',
-    image: 'https://via.placeholder.com/40/EF4444/ffffff?text=678',
+    image: 'null',
     reference: '678',
     name: 'Crop Top Rojo con Encaje',
     category: 'Crop Top',
     price: 33000,
     stock: 3,
     technicalSheetVersions: 2,
-    lastVersionDate: '2026-02-06'
+    lastVersionDate: '2026-02-06',
+    active: true
   }
 ];
 
@@ -74,17 +77,16 @@ const mockTechnicalSheets = [
       { name: 'DESTELLANTE', consumption: '0.66', pieces: '36' }
     ],
     cups: [
-      { type: 'Copa ojo de gato straple con realce', talla34: '34', talla36: '36', talla38: '38' },
-      { type: 'Copa vergara con realce', talla34: '34', talla36: '36', talla38: '38' },
-      { type: 'Copa ojo de gato sisa con realce', talla34: '34', talla36: '36', talla38: '38' }
+      { type: 'Copa ojo de gato straple con realce', values: ['34', '36', '38'] },
+      { type: 'Copa vergara con realce', values: ['34', '36', '38'] }
     ],
     closures: [
-      { type: 'Abrochadura o gafete', opcion1: '1x1', opcion2: '2x1', opcion3: '3x1' },
-      { type: 'Elástico cargadera', opcion1: '10mm', opcion2: '15mm', opcion3: '20mm' }
+      { type: 'Abrochadura o gafete', values: ['1x1', '2x1', '3x1'] },
+      { type: 'Elástico cargadera', values: ['10mm', '15mm', '20mm'] }
     ],
     accessories: [
       { name: 'Varilla metálica completa', values: ['', '', ''] },
-      { name: 'Elastico envivar', values: ['', '', ''] },
+      { name: 'Elástico envivar', values: ['', '', ''] },
       { name: 'Hiladilla', values: ['', '', ''] },
       { name: 'Broches decorativos', values: ['', '', ''] }
     ],
@@ -104,17 +106,16 @@ const mockTechnicalSheets = [
       { name: 'DESTELLANTE', consumption: '0.68', pieces: '38' }
     ],
     cups: [
-      { type: 'Copa ojo de gato straple con realce', talla34: '36', talla36: '38', talla38: '40' },
-      { type: 'Copa vergara con realce', talla34: '36', talla36: '38', talla38: '40' },
-      { type: 'Copa ojo de gato sisa con realce', talla34: '36', talla36: '38', talla38: '40' }
+      { type: 'Copa ojo de gato straple con realce', values: ['36', '38', '40'] },
+      { type: 'Copa vergara con realce', values: ['36', '38', '40'] }
     ],
     closures: [
-      { type: 'Abrochadura o gafete', opcion1: '2x1', opcion2: '3x1', opcion3: '4x1' },
-      { type: 'Elástico cargadera', opcion1: '15mm', opcion2: '20mm', opcion3: '25mm' }
+      { type: 'Abrochadura o gafete', values: ['2x1', '3x1', '4x1'] },
+      { type: 'Elástico cargadera', values: ['15mm', '20mm', '25mm'] }
     ],
     accessories: [
       { name: 'Varilla metálica completa', values: ['', '', ''] },
-      { name: 'Elastico envivar', values: ['', '', ''] },
+      { name: 'Elástico envivar', values: ['', '', ''] },
       { name: 'Hiladilla', values: ['', '', ''] },
       { name: 'Broches decorativos', values: ['', '', ''] },
       { name: 'Aro', values: ['', '', ''] },
@@ -131,7 +132,6 @@ mockProducts.forEach(product => {
 });
 
 export const productAPI = {
-  // Obtener todos los productos
   getAll: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -140,7 +140,6 @@ export const productAPI = {
     });
   },
 
-  // Obtener producto por ID
   getById: (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -154,16 +153,16 @@ export const productAPI = {
     });
   },
 
-  // Crear nuevo producto
   create: (productData) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         const newProduct = {
           id: Date.now().toString().slice(-4),
           ...productData,
-          image: `https://via.placeholder.com/40/10B981/ffffff?text=${Date.now().toString().slice(-4)}`,
+          image: `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
           technicalSheetVersions: 1,
-          lastVersionDate: new Date().toISOString().split('T')[0]
+          lastVersionDate: new Date().toISOString().split('T')[0],
+          active: true
         };
         mockProducts.push(newProduct);
         resolve({ ...newProduct });
@@ -171,7 +170,6 @@ export const productAPI = {
     });
   },
 
-  // Actualizar producto
   update: (id, updatedData) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -186,7 +184,6 @@ export const productAPI = {
     });
   },
 
-  // Eliminar producto
   delete: (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -201,9 +198,21 @@ export const productAPI = {
     });
   },
 
-  // ===== MÉTODOS PARA FICHAS TÉCNICAS =====
-  
-  // Obtener todas las versiones de ficha técnica de un producto
+  toggleActive: (id) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = mockProducts.findIndex(p => p.id === id);
+        if (index !== -1) {
+          mockProducts[index].active = !mockProducts[index].active;
+          resolve({ ...mockProducts[index] });
+        } else {
+          reject(new Error('Producto no encontrado'));
+        }
+      }, 300);
+    });
+  },
+
+  // Métodos para fichas técnicas
   getTechnicalSheetVersions: (productId) => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -215,7 +224,6 @@ export const productAPI = {
     });
   },
 
-  // Obtener una versión específica de ficha técnica
   getTechnicalSheetById: (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -229,7 +237,6 @@ export const productAPI = {
     });
   },
 
-  // Crear nueva versión de ficha técnica
   createTechnicalSheet: (sheetData) => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -240,7 +247,6 @@ export const productAPI = {
         };
         mockTechnicalSheets.push(newSheet);
         
-        // Actualizar el producto
         const product = mockProducts.find(p => p.id === sheetData.productId);
         if (product) {
           product.technicalSheetVersions = sheetData.version;
@@ -253,11 +259,9 @@ export const productAPI = {
     });
   },
 
-  // Actualizar ficha técnica (crea nueva versión)
   updateTechnicalSheet: (productId, sheetData) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // Obtener la última versión
         const productSheets = mockTechnicalSheets
           .filter(s => s.productId === productId)
           .sort((a, b) => b.version - a.version);
@@ -274,7 +278,6 @@ export const productAPI = {
         
         mockTechnicalSheets.push(newSheet);
         
-        // Actualizar el producto
         const product = mockProducts.find(p => p.id === productId);
         if (product) {
           product.technicalSheetVersions = newVersion;
@@ -287,39 +290,7 @@ export const productAPI = {
     });
   },
 
-  // Eliminar la última versión de ficha técnica (solo si es la única)
-  deleteLastTechnicalSheet: (productId) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const productSheets = mockTechnicalSheets
-          .filter(s => s.productId === productId)
-          .sort((a, b) => b.version - a.version);
-        
-        if (productSheets.length === 0) {
-          reject(new Error('No hay fichas técnicas para eliminar'));
-        } else if (productSheets.length > 1) {
-          reject(new Error('No se puede eliminar: el producto tiene múltiples versiones'));
-        } else {
-          // Eliminar la única versión
-          const index = mockTechnicalSheets.findIndex(s => s.id === productSheets[0].id);
-          mockTechnicalSheets.splice(index, 1);
-          
-          // Actualizar el producto
-          const product = mockProducts.find(p => p.id === productId);
-          if (product) {
-            product.technicalSheetVersions = 0;
-            product.lastVersionDate = null;
-            product.technicalSheet = null;
-          }
-          
-          resolve();
-        }
-      }, 500);
-    });
-  },
-
-  // Eliminar una versión específica (solo si es la última y única)
-  deleteTechnicalSheetById: (id) => {
+  deleteTechnicalSheet: (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         const sheet = mockTechnicalSheets.find(s => s.id === id);
@@ -328,18 +299,15 @@ export const productAPI = {
           return;
         }
         
-        // Verificar si es la única versión del producto
         const productSheets = mockTechnicalSheets.filter(s => s.productId === sheet.productId);
         if (productSheets.length > 1) {
           reject(new Error('No se puede eliminar: el producto tiene múltiples versiones'));
           return;
         }
         
-        // Eliminar
         const index = mockTechnicalSheets.findIndex(s => s.id === id);
         mockTechnicalSheets.splice(index, 1);
         
-        // Actualizar el producto
         const product = mockProducts.find(p => p.id === sheet.productId);
         if (product) {
           product.technicalSheetVersions = 0;

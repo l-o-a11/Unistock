@@ -1,6 +1,4 @@
 import React from "react";
-import HoverCard from "../HoverCard";
-
 const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
   const thStyle = {
     padding: "14px 20px",
@@ -64,22 +62,14 @@ const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
 
                   {/* Nombre */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Nombre del rol</p><p style={{ fontSize: "13px", color: "#555" }}>{rol.nombre}</p></div>}>
-                      <span style={{ cursor: "help" }}>
-                        {rol.nombre && rol.nombre.length > 12 ? rol.nombre.slice(0, 12) + "..." : rol.nombre}
-                      </span>
-                    </HoverCard>
+                    {rol.nombre && rol.nombre.length > 12 ? rol.nombre.slice(0, 12) + "..." : rol.nombre}
                   </td>
 
                   {/* Descripción */}
                   <td style={tdStyle}>
-                    <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Descripción</p><p style={{ fontSize: "13px", color: "#555" }}>{rol.descripcion}</p></div>}>
-                      <span style={{ cursor: "help" }}>
-                        {rol.descripcion && rol.descripcion.length > 30 
+                    {rol.descripcion && rol.descripcion.length > 30 
                           ? rol.descripcion.slice(0, 30) + "..." 
                           : rol.descripcion}
-                      </span>
-                    </HoverCard>
                   </td>
 
                   {/* Acciones */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardIcon from '../assets/icons/Dashboard';
 import UsuariosIcon from '../assets/icons/Usuarios';
@@ -12,6 +12,7 @@ const menuItems = [
   { id: 'usuarios',   name: 'Usuarios',   icon: UsuariosIcon, hasSubmenu: true,
     submenu: [
       { name: 'Roles', path: 'roles' },
+      { name: 'Usuarios', path: 'users' }
     ], 
   },
   {
@@ -26,7 +27,7 @@ const menuItems = [
   {
     id: 'produccion', name: 'Producción', icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: 'Categorías', path: '/produccion/categorias' },
+      { name: 'Categorías', path: '/categorias' },
       { name: 'Producción', path: '/produccion' },
       { name: 'Terceros', path: '/terceros' },
       { name: 'Productos', path: '/productos' },
@@ -38,11 +39,30 @@ export default function Sidebar() {
   const [activeMenu,    setActiveMenu]    = useState(null);
   const [activeSubItem, setActiveSubItem] = useState(null);
   const [hoveredSub,    setHoveredSub]    = useState(null);
+
   const navigate = useNavigate();
+
+  // 🔥 referencia del sidebar
+  const sidebarRef = useRef(null);
+
+  // 🔥 detectar clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setActiveMenu(null);
+        setActiveSubItem(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleMenuClick = (item) => {
     if (!item.hasSubmenu) {
-      // navigate to item path and mark active
       setActiveMenu(item.id);
       setActiveSubItem(null);
       navigate(`/${item.id}`);
@@ -60,19 +80,17 @@ export default function Sidebar() {
   const isPanelOpen = !!activeMenu && !!activeItem?.hasSubmenu;
 
   return (
-    <div className="flex h-screen">
+    <div ref={sidebarRef} className="flex h-screen">
 
       {/* ── Rail principal ── */}
       <div className="w-30 bg-white border-r border-gray-100 flex flex-col items-center py-6 gap-1 shadow-sm z-10">
 
-        {/* Foto del usuario */}
         <div className="w-13 h-13 overflow-hidden flex items-center justify-center">
           <img src={logo} alt="Usuario" className="w-full h-full object-cover" />
         </div>
 
         <div className="w-9 h-px bg-gray-100 mb-2" />
 
-        {/* Botones */}
         {menuItems.map((item) => {
           const Icon     = item.icon;
           const isActive = activeMenu === item.id;
@@ -109,7 +127,6 @@ export default function Sidebar() {
         {activeItem?.hasSubmenu && (
           <div className="flex flex-col h-full">
             
-            {/* Encabezado del panel */}
             <div className="px-5 py-4 border-b border-gray-100 bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-7 bg-gradient-to-b from-pink-500 to-fuchsia-500 rounded-full"/>
@@ -120,7 +137,6 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Items del submenú */}
             <div className="flex flex-col flex-1 py-3 px-3 space-y-2 overflow-y-auto">
               {activeItem.submenu.map((subitem, i) => {
                 const key      = `${activeItem.id}-${i}`;
@@ -148,22 +164,18 @@ export default function Sidebar() {
                         : 'bg-white text-gray-700'}
                     `}
                   >
-                    {/* Indicador izquierdo */}
                     <div className={`w-1.5 h-5 rounded-full transition-all duration-200 ${
                       isActive ? 'bg-white' : 'bg-gray-200 group-hover:bg-pink-300'
                     }`}/>
                     
-                    {/* Icono check */}
                     {isActive && (
                       <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
 
-                    {/* Texto */}
                     <span className="flex-1">{subitem.name}</span>
 
-                    {/* Indicador derecho */}
                     {isActive && (
                       <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"/>
                     )}
@@ -172,7 +184,6 @@ export default function Sidebar() {
               })}
             </div>
 
-            {/* Footer del panel */}
             <div className="px-5 py-3 border-t border-gray-100 bg-gradient-to-b from-transparent to-pink-50">
               <p className="text-xs text-gray-500 text-center">Selecciona una opción</p>
             </div>

@@ -1,5 +1,5 @@
 // Datos de ejemplo para módulos y privilegios (simulando BD)
-const MODULOS_PREDETERMINADOS = [
+export const MODULOS_PREDETERMINADOS = [
   { id: 1, nombre: 'Usuarios' },
   { id: 2, nombre: 'Productos' },
   { id: 3, nombre: 'Insumos' },
@@ -10,7 +10,7 @@ const MODULOS_PREDETERMINADOS = [
   { id: 8, nombre: 'Configuración' }
 ];
 
-const PRIVILEGIOS_PREDETERMINADOS = [
+export  const PRIVILEGIOS_PREDETERMINADOS = [
   { id: 1, nombre: 'Leer', key: 'leer' },
   { id: 2, nombre: 'Crear', key: 'crear' },
   { id: 3, nombre: 'Actualizar', key: 'actualizar' },
@@ -79,7 +79,91 @@ const INITIAL_ROLES = [
     nombre: 'Contador', 
     descripcion: 'Accede a la información de dashboard. No tiene acceso a configuración.',
     modulos: [
-      { moduloId: 2, privilegios: [7] },
+      { moduloId: 7, privilegios: [1] },
     ]
   }
 ];
+let mockRoles = [...INITIAL_ROLES];
+export const RolesAPI = {
+  getAll: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([...mockRoles]);
+      }, 500);
+    });
+  },
+
+  getById: async (id) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const rol = mockRoles.find(r => r.id === id);
+        if (rol) resolve({ ...rol });
+        else reject(new Error('Rol no encontrado'));
+      }, 300);
+    });
+  },
+
+  create: async (rolData) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newRol = {
+          id: mockRoles.length > 0
+            ? Math.max(...mockRoles.map(r => r.id)) + 1
+            : 1,
+          ...rolData
+        };
+
+        mockRoles.push(newRol);
+        resolve({ ...newRol });
+      }, 500);
+    });
+  },
+
+  update: async (id, updatedData) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = mockRoles.findIndex(r => r.id === id);
+        if (index !== -1) {
+          mockRoles[index] = {
+            ...mockRoles[index],
+            ...updatedData
+          };
+          resolve({ ...mockRoles[index] });
+        } else {
+          reject(new Error('Rol no encontrado'));
+        }
+      }, 500);
+    });
+  },
+
+  delete: async (id) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = mockRoles.findIndex(r => r.id === id);
+        if (index !== -1) {
+          mockRoles.splice(index, 1);
+          resolve();
+        } else {
+          reject(new Error('Rol no encontrado'));
+        }
+      }, 500);
+    });
+  },
+
+  getModulos: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([...MODULOS_PREDETERMINADOS]);
+      }, 300);
+    });
+  },
+
+  getPrivilegios: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([...PRIVILEGIOS_PREDETERMINADOS]);
+      }, 300);
+    });
+  }
+};
+

@@ -1,6 +1,6 @@
 import React from 'react';
 
-function AddUserButton({ onClick, label = "Agregar nuevo proveedor" }) {
+function AddUserButton({ onClick, label = "Agregar nuevo usuario" }) {
   return (
     <button
       onClick={onClick}

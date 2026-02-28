@@ -8,12 +8,12 @@ const EditRolPage = ({ rolId, onClose }) => {
 
   useEffect(() => {
     const found = roles.find((rol) => rol.id === rolId);
-    setRol(found || null);
+    setRol(found);
   }, [rolId, roles]);
 
   const handleSubmit = async (rolData) => {
   // combinamos los cambios con el rol original
-  const updatedRol = { ...rol, ...rolData };
+  const updatedRol = { rolId, rolData };
   await updateRol(rolId, updatedRol);
   onClose();
 };
