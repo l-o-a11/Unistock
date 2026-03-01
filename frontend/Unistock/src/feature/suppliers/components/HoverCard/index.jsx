@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const HoverCard = ({ children, content, position = 'right' }) => {
+const HoverCard = ({ children, content, position = 'center' }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const positionStyles = {
