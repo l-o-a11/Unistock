@@ -1,5 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
+import Alert from "../Alert";
 
+/**
+ * Third_partieForm - Modal form component for creating and editing third-party vendors
+ * 
+ * This component manages third-party vendor information including:
+ * - Basic details (code, name, NIT, address)
+ * - Contact information (phone, contact person, email)
+ * 
+ * Features:
+ * - Field-level validation with error display
+ * - Confirmation alerts for save and cancel operations
+ * - Keyboard support (ESC to close) and click-outside detection
+ * - Responsive grid layout for organized field arrangement
+ * - Real-time visual feedback with pink focus borders (#E91E8C)
+ * - Alert system for operation confirmation and success/error feedback
+ * 
+ * @param {Object} Third_partie - Third-party object for editing (optional). If not provided, form is in create mode
+ * @param {Function} onSubmit - Callback when form is submitted with validated data
+ * @param {Function} onCancel - Callback when form is cancelled
+ */
 const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     codigo: Third_partie?.codigo || "",
@@ -11,49 +31,185 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     correo: Third_partie?.correo || "",
   });
 
+  const [errors, setErrors] = useState({});
+  const [alertConfig, setAlertConfig] = useState({
+    open: false,
+    type: "success",
+    message: "",
+  });
+
   const modalRef = useRef(null);
 
+  /**
+   * Close modal when Escape is pressed
+   */
   useEffect(() => {
     const handleEsc = (e) => e.key === "Escape" && onCancel();
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel]);
 
+  /**
+   * Close modal when clicking outside the form
+   */
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       onCancel();
     }
   };
 
+  /**
+   * Validate a single field based on its name and value
+   * Validation rules:
+   * - codigo: Required code in format COD-XXX
+   * - nombre: Required company/vendor name
+   * - nit: Optional, format XX.XXX.XXX-X if provided
+   * - direccion: Required address
+   * - telefono: Required, minimum 7 digits, numeric only
+   * - contacto: Required contact person name
+   * - correo: Optional email, must be valid format if provided
+   */
+  const validateField = (name, value) => {
+    let error = "";
+
+    switch (name) {
+      case "codigo":
+        if (!value.trim()) error = "Ej: COD-001";
+        break;
+
+      case "nombre":
+        if (!value.trim()) error = "Ej: Confecciones Modernas S.A.S.";
+        break;
+
+      case "direccion":
+        if (!value.trim()) error = "Ej: Calle 10 # 42-15, Medellín";
+        break;
+
+      case "telefono":
+        if (!/^[0-9\s]+$/.test(value))
+          error = "Solo números Ej: 3001234567";
+        else if (value.length < 7)
+          error = "Mínimo 7 dígitos";
+        break;
+
+      case "correo":
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          error = "Ej: contacto@empresa.com";
+        break;
+
+      case "nit":
+        if (value && !/^[0-9\.\-]+$/.test(value))
+          error = "Ej: 900.123.456-7";
+        break;
+
+      case "contacto":
+        if (!value.trim()) error = "Ej: Ana Pérez";
+        break;
+
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({ ...prev, [name]: error }));
+    return error;
+  };
+
+  /**
+   * Handle input change and validate field in real-time
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
   };
 
+  /**
+   * Handle form submission
+   * Validates all fields and shows alert with result
+   */
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.nombre || !formData.direccion || !formData.telefono) {
-      alert("Completa los campos obligatorios");
+
+    let newErrors = {};
+
+    Object.entries(formData).forEach(([key, value]) => {
+      const err = validateField(key, value);
+      if (err) newErrors[key] = err;
+    });
+
+    setErrors(newErrors);
+
+    if (Object.values(newErrors).some((e) => e)) {
+      setAlertConfig({
+        open: true,
+        type: "warning",
+        message: "Corrige los campos marcados",
+      });
       return;
     }
+
     onSubmit(formData);
+
+    setAlertConfig({
+      open: true,
+      type: "success",
+      message: Third_partie
+        ? "Tercero actualizado correctamente"
+        : "Tercero creado correctamente",
+    });
   };
 
+  /**
+   * Styling constants for form elements
+   * Uses pink theme (#E91E8C) for focus states and primary actions
+   */
   const inputStyle = {
     width: "100%",
-    padding: "10px 4px",
-    border: "none",
-    borderBottom: "1.5px solid #cfcfcf",
+    padding: "10px 14px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
     fontSize: "14px",
     outline: "none",
-    background: "transparent",
+    transition: "border-color 0.2s",
+  };
+
+  const inputError = {
+    ...inputStyle,
+    borderColor: "#ef4444",
+  };
+
+  const errorText = {
+    color: "#ef4444",
+    fontSize: "12px",
+    marginTop: "4px",
   };
 
   const labelStyle = {
     fontSize: "13px",
+    fontWeight: "500",
     color: "#555",
-    marginBottom: "4px",
+    marginBottom: "6px",
     display: "block",
+  };
+
+  const btnPrimary = {
+    padding: "9px 24px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#E91E8C",
+    color: "#fff",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "0.2s",
+  };
+
+  const btnSecondary = {
+    padding: "9px 22px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#e4e4e4",
+    color: "#555",
+    cursor: "pointer",
   };
 
   const required = <span style={{ color: "#E91E8C" }}>*</span>;
@@ -82,148 +238,146 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
           boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
         }}
       >
-        {/* TITLE */}
-        <h2 style={{margin: "0 0 28px 0",
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#1a1a1a",
-              textAlign: "center", }}>
+        <h2 style={{ textAlign: "center", marginBottom: "28px" }}>
           {Third_partie ? "Editar tercero" : "Crear nuevo tercero"}
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {/* CODIGO */}
+          {/* Código field - Unique identifier for third-party */}
           <div style={{ marginBottom: "20px" }}>
-            <label style={labelStyle}>
-              Código Asignado {required}
-            </label>
+            <label style={labelStyle}>Código {required}</label>
             <input
               name="codigo"
+              placeholder="Ej: COD-001"
               value={formData.codigo}
               onChange={handleChange}
-              style={inputStyle}
+              style={errors.codigo ? inputError : inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+              onBlur={(e) => (e.target.style.borderColor = errors.codigo ? '#ef4444' : '#d1d5db')}
             />
+            {errors.codigo && <span style={errorText}>{errors.codigo}</span>}
           </div>
 
-          {/* GRID */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "20px 30px",
-            }}
-          >
-            {/* NOMBRE */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 30px" }}>
+            
             <div>
               <label style={labelStyle}>Nombre {required}</label>
-              <input
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
+              <input 
+                name="nombre" 
                 placeholder="Ej: Confecciones Modernas S.A.S."
-                style={inputStyle}
-              />
-            </div>
-
-            {/* NIT */}
-            <div>
-              <label style={labelStyle}>NIT</label>
-              <input
-                name="nit"
-                value={formData.nit}
+                value={formData.nombre} 
                 onChange={handleChange}
-                placeholder="Ej: 900.123.456-7"
-                style={inputStyle}
+                style={errors.nombre ? inputError : inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+                onBlur={(e) => (e.target.style.borderColor = errors.nombre ? '#ef4444' : '#d1d5db')}
               />
+              {errors.nombre && <span style={errorText}>{errors.nombre}</span>}
             </div>
 
-            {/* DIRECCION FULL */}
+            <div>
+              <label style={labelStyle}>NIT{required}</label>
+              <input 
+                name="nit" 
+                placeholder="Ej: 900.123.456-7"
+                value={formData.nit} 
+                onChange={handleChange}
+                style={errors.nit ? inputError : inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+                onBlur={(e) => (e.target.style.borderColor = errors.nit ? '#ef4444' : '#d1d5db')}
+              />
+              {errors.nit && <span style={errorText}>{errors.nit}</span>}
+            </div>
+
             <div style={{ gridColumn: "1 / span 2" }}>
               <label style={labelStyle}>Dirección {required}</label>
-              <input
-                name="direccion"
-                value={formData.direccion}
-                onChange={handleChange}
+              <input 
+                name="direccion" 
                 placeholder="Ej: Calle 10 # 42-15, Medellín"
-                style={inputStyle}
+                value={formData.direccion} 
+                onChange={handleChange}
+                style={errors.direccion ? inputError : inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+                onBlur={(e) => (e.target.style.borderColor = errors.direccion ? '#ef4444' : '#d1d5db')}
               />
+              {errors.direccion && <span style={errorText}>{errors.direccion}</span>}
             </div>
 
-            {/* TELEFONO */}
             <div>
               <label style={labelStyle}>Teléfono {required}</label>
-              <input
-                name="telefono"
-                value={formData.telefono}
+              <input 
+                name="telefono" 
+                placeholder="Ej: 3001234567"
+                value={formData.telefono} 
                 onChange={handleChange}
-                placeholder="Ej: 300 123 4567"
-                style={inputStyle}
+                style={errors.telefono ? inputError : inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+                onBlur={(e) => (e.target.style.borderColor = errors.telefono ? '#ef4444' : '#d1d5db')}
               />
+              {errors.telefono && <span style={errorText}>{errors.telefono}</span>}
             </div>
 
-            {/* CONTACTO */}
             <div>
-              <label style={labelStyle}>Contacto Principal {required}</label>
-              <input
-                name="contacto"
-                value={formData.contacto}
-                onChange={handleChange}
+              <label style={labelStyle}>Contacto {required}</label>
+              <input 
+                name="contacto" 
                 placeholder="Ej: Ana Pérez"
-                style={inputStyle}
+                value={formData.contacto} 
+                onChange={handleChange}
+                style={errors.contacto ? inputError : inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+                onBlur={(e) => (e.target.style.borderColor = errors.contacto ? '#ef4444' : '#d1d5db')}
               />
+              {errors.contacto && <span style={errorText}>{errors.contacto}</span>}
             </div>
 
-            {/* CORREO */}
             <div style={{ gridColumn: "1 / span 2" }}>
-              <label style={labelStyle}>Correo Electrónico</label>
-              <input
-                name="correo"
-                value={formData.correo}
-                onChange={handleChange}
+              <label style={labelStyle}>Correo</label>
+              <input 
+                name="correo" 
                 placeholder="Ej: contacto@empresa.com"
-                style={inputStyle}
+                value={formData.correo} 
+                onChange={handleChange}
+                style={errors.correo ? inputError : inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+                onBlur={(e) => (e.target.style.borderColor = errors.correo ? '#ef4444' : '#d1d5db')}
               />
+              {errors.correo && <span style={errorText}>{errors.correo}</span>}
             </div>
           </div>
 
-          {/* BOTONES */}
-          <div
-            style={{
-              marginTop: "30px",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "14px",
-            }}
-          >
+          {/* Action buttons - Cancel and Save */}
+          <div style={{ marginTop: "30px", display: "flex", justifyContent: "flex-end", gap: "14px" }}>
             <button
               type="button"
-              onClick={onCancel}
-              style={{
-                padding: "8px 20px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#ddd",
-                color: "#555",
-              }}
+              style={btnSecondary}
+              onClick={() =>
+                setAlertConfig({
+                  open: true,
+                  type: "confirm",
+                  message: "¿Seguro que deseas cancelar?",
+                  onConfirm: onCancel,
+                })
+              }
             >
               Cancelar
             </button>
 
-            <button
-              type="submit"
-              style={{
-                padding: "8px 22px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#E91E8C",
-                color: "#fff",
-                fontWeight: "500",
-              }}
-            >
+            <button type="submit" style={btnPrimary}>
               Guardar
             </button>
           </div>
         </form>
+
+        <Alert
+          isOpen={alertConfig.open}
+          type={alertConfig.type}
+          message={alertConfig.message}
+          onConfirm={() => {
+            if (alertConfig.onConfirm) alertConfig.onConfirm();
+            setAlertConfig({ ...alertConfig, open: false });
+          }}
+          onCancel={() => setAlertConfig({ ...alertConfig, open: false })}
+        />
       </div>
     </div>
   );

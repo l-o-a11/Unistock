@@ -4,13 +4,17 @@ import { useCategories } from '../hooks/useCategories';
 import CategoryTable from '../components/CategoryTable';
 import CategorySearch from '../components/CategorySearch';
 import AddCategoryButton from '../components/AddCategoryButton';
+import CategoryForm from '../components/CategoryForm';
 
 const CategoriesPage = () => {
   const navigate = useNavigate();
-  const { categories, deleteCategory } = useCategories();
+  const { categories, createCategory, updateCategory, deleteCategory } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const itemsPerPage = 7;
 
   // Filtrar categorías por búsqueda
   const filteredCategories = categories.filter(cat =>
@@ -39,7 +43,36 @@ const CategoriesPage = () => {
   };
 
   const handleEdit = (category) => {
-    navigate(`/categorias/editar/${category.id}`);
+    setEditingCategory(category);
+    setShowEditForm(true);
+  };
+
+  const handleAddCategory = () => {
+    setShowCreateForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowCreateForm(false);
+    setShowEditForm(false);
+    setEditingCategory(null);
+  };
+
+  const handleCreateSubmit = async (categoryData) => {
+    try {
+      await createCategory(categoryData);
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error al crear categoría:', error);
+    }
+  };
+
+  const handleEditSubmit = async (categoryData) => {
+    try {
+      await updateCategory(editingCategory.id, categoryData);
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error al actualizar categoría:', error);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -57,10 +90,6 @@ const CategoriesPage = () => {
     }
   };
 
-  const handleAddCategory = () => {
-    navigate('/categorias/crear');
-  };
-
   const paginationBtn = {
     padding: "6px 12px",
     borderRadius: "6px",
@@ -71,7 +100,14 @@ const CategoriesPage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', padding: '24px 32px' }}>
+    <div style={{ 
+      position: 'relative',
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      display: 'flex', 
+      flexDirection: 'column', 
+      padding: '24px 32px' 
+    }}>
 
       {/* ── Row 1: Title + Search ── */}
       <div style={{
@@ -107,7 +143,98 @@ const CategoriesPage = () => {
         onDelete={handleDelete}
       />
 
-      {/* ── Pagination (squared like RolesPage) ── */}
+      {/* ── MODAL: Crear Categoría ── */}
+      {showCreateForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'auto',
+            zIndex: 1001
+          }} onClick={handleCloseForm} />
+          
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            zIndex: 1002,
+            pointerEvents: 'auto'
+          }}>
+            <CategoryForm
+              onSubmit={handleCreateSubmit}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Editar Categoría ── */}
+      {showEditForm && editingCategory && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'auto',
+            zIndex: 1001
+          }} onClick={handleCloseForm} />
+          
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            zIndex: 1002,
+            pointerEvents: 'auto'
+          }}>
+            <CategoryForm
+              category={editingCategory}
+              onSubmit={handleEditSubmit}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Pagination ── */}
       {filteredCategories.length > 0 && (
         <div style={{
           marginTop: "20px",

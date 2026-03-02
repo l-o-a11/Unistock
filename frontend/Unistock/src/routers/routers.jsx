@@ -7,13 +7,8 @@ import CreateRolPage from '../feature/roles/pages/CreateRolPage.jsx';
 import EditRolPage from '../feature/roles/pages/EditRolPage.jsx';
 
 import ProductsPage from '../feature/products/pages/ProductsPage';
-import CreateProductPage from '../feature/products/pages/CreateProductPage.jsx';
-import EditProductPage from '../feature/products/pages/EditProductPage.jsx';
-import TechnicalSheetPage from '../feature/products/pages/TechnicalSheetPage'; 
 
 import CategoriesPage from '../feature/categories/pages/CategoriesPage';
-import CreateCategoryPage from '../feature/categories/pages/CreateCategoryPage.jsx';
-import EditCategoryPage from '../feature/categories/pages/EditCategoryPage.jsx';
 
 import SuppliersPage from '../feature/suppliers/pages/SuppliersPage';
 import CreateSupplierPage from '../feature/suppliers/pages/CreateSupplierPage';
@@ -26,6 +21,10 @@ import EditThird_partiePage from '../feature/third_parties/pages/EditThird_parti
 import UsersPage from '../feature/users/pages/UsersPage.jsx';
 import CreateUsersPage from '../feature/users/pages/CreateUserPage.jsx';
 import EditUserPage from "../feature/users/pages/EditUserPage.jsx";
+
+
+import ProductionsPage from '../feature/Productions/pages/ProductionPage.jsx';
+import ProductionDetailsPage from '../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx';
 
 export function RouterApp() {
   return (
@@ -44,20 +43,19 @@ export function RouterApp() {
 
         {/* Módulo de productos */}
         <Route path="productos" element={<ProductsPage />} />
-        <Route path="productos/crear" element={<CreateProductPage />} />
-        <Route path="productos/editar/:id" element={<EditProductPage />} />
-        <Route path="productos/ficha-tecnica/:id" element={<TechnicalSheetPage />} />
 
         {/* Módulo de categorías */}
         <Route path="/categorias" element={<CategoriesPage />} />
-        <Route path="/categorias/crear" element={<CreateCategoryPage />} />
-        <Route path="/categorias/editar/:id" element={<EditCategoryPage />} />
 
                {/* Módulo de proveedores */}
         <Route path="/proveedores" element={<SuppliersPage />} />
         <Route path="/proveedores/crear" element={<CreateSupplierPage />} />
         <Route path="/proveedores/editar/:id" element={<EditSupplierPage />} />
 
+
+{/* Módulo de producciones */}
+        <Route path="/produccion" element={<ProductionsPage />} />
+        <Route path="/produccion/:id" element={<ProductionDetailsPage />} />
          {/* Módulo de terceros */}
         <Route path="/terceros" element={<Third_partiesPage />} />
         <Route path="/terceros/crear" element={<CreateThird_partiePage />} />

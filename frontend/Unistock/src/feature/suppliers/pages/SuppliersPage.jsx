@@ -9,6 +9,23 @@ import SupplierSearch from "../components/SupplierSearch";
 import AddSupplierButton from "../components/AddSupplierButton";
 import SupplierDetail from "../components/SupplierDetail";
 
+/**
+ * SuppliersPage - Main page for managing supplier vendors
+ * 
+ * This component displays an organized list of suppliers with comprehensive management features:
+ * - Real-time search across company name and NIT fields
+ * - Table display with supplier information and action buttons
+ * - Detail panel for viewing supplier information
+ * - Create/Edit/Delete functionality with navigation
+ * - Pagination with customizable page buttons
+ * - Enable/disable toggle functionality for suppliers
+ * 
+ * Features:
+ * - Search term filtering with memoization for performance
+ * - Dynamic pagination that resets to page 1 on filter changes
+ * - Responsive button styling with active state indicators
+ * - Connection to supplier hooks for data management
+ */
 const SupplierPage = () => {
   const navigate = useNavigate();
 
@@ -20,7 +37,11 @@ const SupplierPage = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 🔎 FILTRO
+  /**
+   * Filter suppliers based on search term
+   * Searches across supplier company name (nombreEmpresa) and NIT fields
+   * Uses useMemo to prevent unnecessary recalculations
+   */
   const filteredSuppliers = useMemo(() => {
     if (!suppliers) return [];
 
@@ -31,8 +52,13 @@ const SupplierPage = () => {
     );
   }, [suppliers, searchTerm]);
 
-  // 📄 PAGINACIÓN
-  const itemsPerPage = 5;
+  /**
+   * Calculate pagination values
+   * itemsPerPage - number of suppliers per page (fixed at 7)
+   * totalPages - total number of pages based on filtered suppliers
+   * paginatedSupplier - suppliers array slice for current page
+   */
+  const itemsPerPage = 7;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredSuppliers.length / itemsPerPage)
@@ -44,7 +70,14 @@ const SupplierPage = () => {
     startIndex + itemsPerPage
   );
 
-  // 🎯 ACCIONES
+  /**
+   * Action handlers for supplier management
+   * handleView - open supplier detail panel
+   * handleEdit - navigate to edit page
+   * handleDelete - delete supplier with confirmation
+   * handleToggle - toggle supplier active/inactive status
+   * handleAddSupplier - navigate to create new supplier
+   */
   const handleView = (supplier) => openDetail(supplier);
   const handleEdit = (supplier) =>
     navigate(`/proveedores/editar/${supplier.id}`);
@@ -56,7 +89,11 @@ const SupplierPage = () => {
   const handleToggle = (id) => toggleSupplier?.(id);
   const handleAddSupplier = () => navigate("/proveedores/crear");
 
-  // 🔢 PAGINACIÓN VISUAL
+  /**
+   * Generate page numbers for pagination display
+   * Shows limited page buttons (max 5) with dots for skipped pages
+   * Ensures first and last pages are always visible
+   */
   const getPageNumbers = () => {
     if (totalPages <= 5)
       return [...Array(totalPages)].map((_, i) => i + 1);
@@ -81,7 +118,7 @@ const SupplierPage = () => {
 
   return (
     <div style={{ padding: "24px 32px" }}>
-      {/* 🔝 HEADER */}
+      {/* Page header with title and search component */}
       <div
         style={{
           display: "flex",
@@ -97,7 +134,7 @@ const SupplierPage = () => {
         </div>
       </div>
 
-      {/* ➕ BOTÓN */}
+      {/* Add supplier button section */}
       <div
         style={{
           backgroundColor: "#FFFFFF",
@@ -110,7 +147,7 @@ const SupplierPage = () => {
         <AddSupplierButton onClick={handleAddSupplier} />
       </div>
 
-      {/* 📋 TABLA */}
+      {/* Suppliers table with action buttons */}
       <SupplierTable
         suppliers={paginatedSupplier}
         onView={handleView}
@@ -119,7 +156,7 @@ const SupplierPage = () => {
         onToggle={handleToggle}
       />
 
-      {/* 📦 MODAL DETALLE */}
+      {/* Supplier detail panel modal */}
       {isOpen && (
         <SupplierDetail
           supplier={selectedSupplier}
@@ -128,7 +165,7 @@ const SupplierPage = () => {
         />
       )}
 
-      {/* 📄 PAGINACIÓN */}
+      {/* Pagination controls with page buttons */}
       {filteredSuppliers.length > 0 && (
         <div
           style={{
@@ -139,6 +176,7 @@ const SupplierPage = () => {
             alignItems: "center",
           }}
         >
+          {/* Previous page button */}
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             style={paginationBtn}
@@ -146,6 +184,7 @@ const SupplierPage = () => {
             ‹
           </button>
 
+          {/* Page number buttons with ellipsis for skipped pages */}
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
               <span key={i} style={{ padding: "6px 10px" }}>
@@ -170,6 +209,7 @@ const SupplierPage = () => {
             )
           )}
 
+          {/* Next page button */}
           <button
             onClick={() =>
               setCurrentPage((p) => Math.min(totalPages, p + 1))
@@ -184,7 +224,10 @@ const SupplierPage = () => {
   );
 };
 
-// 🎨 estilo reutilizable
+/**
+ * Shared pagination button styles
+ * Used for all page navigation buttons
+ */
 const paginationBtn = {
   padding: "6px 12px",
   borderRadius: "6px",

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useThird_parties } from "../hooks/mockThird_parties";
 import { useThird_partieSearch } from "../hooks/useThird_partiesSearch";
@@ -8,6 +8,24 @@ import Third_partieSearch from "../components/Third_partiesSearch";
 import AddThird_partieButton from "../components/AddThird_partiesButton";
 import Third_partieDetail from "../components/Third_partiesDetail";
 
+/**
+ * Third_partiePage - Main page for managing third-party vendors
+ * 
+ * This component displays third-party vendor information in a two-column layout:
+ * - Left column: table with list of vendors and pagination
+ * - Right column: detail view for selected vendor
+ * 
+ * Features:
+ * - Real-time search across company name (nombreEmpresa) and NIT fields
+ * - Automatic selection of first vendor when page loads
+ * - Tab navigation between Productions and Terceros sections
+ * - Create/Edit/Delete functionality with navigation
+ * - Pagination with dynamic page number display
+ * - Enable/disable toggle for vendors
+ * - Responsive two-column grid layout
+ * 
+ * The component uses local state for detail panel selection instead of a separate hook
+ */
 const Third_partiePage = () => {
   const navigate = useNavigate();
 
@@ -16,12 +34,29 @@ const Third_partiePage = () => {
 
   const { searchTerm, handleSearch } = useThird_partieSearch();
 
-  // 🔥 ESTADO LOCAL PARA DETALLE (REEMPLAZA EL HOOK)
+  /**
+   * Local state for detail panel
+   * selectedThird_partie - currently selected vendor to display in right panel
+   * currentPage - pagination state
+   */
   const [selectedThird_partie, setSelectedThird_partie] = useState(null);
-
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 🔎 FILTRO
+  /**
+   * Auto-select first vendor when component mounts or data changes
+   * This ensures the detail panel always shows a vendor
+   */
+  useEffect(() => {
+    if (Third_parties.length > 0 && !selectedThird_partie) {
+      setSelectedThird_partie(Third_parties[0]);
+    }
+  }, [Third_parties]);
+
+  /**
+   * Filter vendors based on search term
+   * Searches across vendor company name (nombreEmpresa) and NIT fields
+   * Uses useMemo for performance optimization
+   */
   const filteredThird_parties = useMemo(() => {
     if (!Third_parties) return [];
 
@@ -32,8 +67,13 @@ const Third_partiePage = () => {
     );
   }, [Third_parties, searchTerm]);
 
-  // 📄 PAGINACIÓN
-  const itemsPerPage = 5;
+  /**
+   * Calculate pagination values
+   * itemsPerPage - number of vendors per page (fixed at 7)
+   * totalPages - total number of pages based on filtered vendors
+   * paginatedThird_partie - vendors array slice for current page
+   */
+  const itemsPerPage = 7;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredThird_parties.length / itemsPerPage)
@@ -45,9 +85,16 @@ const Third_partiePage = () => {
     startIndex + itemsPerPage
   );
 
-  // 🎯 ACCIONES
+  /**
+   * Action handlers for vendor management
+   * handleView - update detail panel with selected vendor
+   * handleEdit - navigate to edit page
+   * handleDelete - delete vendor with confirmation
+   * handleToggle - toggle vendor active/inactive status
+   * handleAddThird_partie - navigate to create new vendor
+   */
   const handleView = (third) => {
-    setSelectedThird_partie(third); // 👈 muestra el detalle en el panel derecho
+    setSelectedThird_partie(third);
   };
 
   const handleEdit = (third) => {
@@ -62,9 +109,13 @@ const Third_partiePage = () => {
 
   const handleAddThird_partie = () => navigate("/terceros/crear");
 
-  // 🔢 PAGINACIÓN VISUAL
+  /**
+   * Generate page numbers for pagination display
+   * Shows limited page buttons (max 7) with dots for skipped pages
+   * Ensures first and last pages are always visible
+   */
   const getPageNumbers = () => {
-    if (totalPages <= 5)
+    if (totalPages <= 7)
       return [...Array(totalPages)].map((_, i) => i + 1);
 
     const pages = [1];
@@ -87,7 +138,7 @@ const Third_partiePage = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🔝 HEADER */}
+      {/* Page header with title and search component */}
       <div style={styles.header}>
         <h1 style={styles.title}>Gestión de terceros</h1>
 
@@ -96,7 +147,7 @@ const Third_partiePage = () => {
         </div>
       </div>
 
-      {/* 🧭 TABS */}
+      {/* Navigation tabs for Productions and Terceros sections */}
       <div style={styles.tabs}>
         <button
           onClick={() => navigate("/produccion")}
@@ -113,16 +164,16 @@ const Third_partiePage = () => {
         </button>
       </div>
 
-      {/* 🧩 CONTENIDO PRINCIPAL */}
+      {/* Main content with two-column layout: table on left, detail on right */}
       <div style={styles.mainContent}>
-        {/* IZQUIERDA */}
+        {/* Left column: table and pagination */}
         <div style={styles.left}>
-          {/* BOTÓN */}
+          {/* Add new vendor button */}
           <div style={styles.topBar}>
             <AddThird_partieButton onClick={handleAddThird_partie} />
           </div>
 
-          {/* TABLA */}
+          {/* Vendors table with action buttons */}
           <Third_partieTable
             Third_parties={paginatedThird_partie}
             onView={handleView}
@@ -131,9 +182,10 @@ const Third_partiePage = () => {
             onToggle={handleToggle}
           />
 
-          {/* PAGINACIÓN */}
+          {/* Pagination controls with previous/next and page buttons */}
           {filteredThird_parties.length > 0 && (
             <div style={styles.pagination}>
+              {/* Previous page button */}
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 style={styles.pageBtn}
@@ -141,6 +193,7 @@ const Third_partiePage = () => {
                 ‹
               </button>
 
+              {/* Page number buttons with ellipsis for skipped pages */}
               {getPageNumbers().map((p, i) =>
                 p === "..." ? (
                   <span key={i}>...</span>
@@ -159,6 +212,7 @@ const Third_partiePage = () => {
                 )
               )}
 
+              {/* Next page button */}
               <button
                 onClick={() =>
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
@@ -171,7 +225,7 @@ const Third_partiePage = () => {
           )}
         </div>
 
-        {/* DERECHA - DETALLE */}
+        {/* Right column: detail panel for selected vendor */}
         <div style={styles.right}>
           {selectedThird_partie ? (
             <Third_partieDetail
@@ -188,10 +242,14 @@ const Third_partiePage = () => {
   );
 };
 
-// 🎨 ESTILOS
+/**
+ * Styling constants for the page layout
+ * Uses pink theme (#FF4FD6) for active states and primary actions
+ * Two-column grid layout for table and detail view
+ */
 const styles = {
   container: {
-    padding: "24px 32px",
+    padding: "0px 0px",
     background: "#F7F7F9",
     minHeight: "100vh",
   },
@@ -200,7 +258,7 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "10px",
+    marginBottom: "0px",
   },
 
   title: {
@@ -210,7 +268,7 @@ const styles = {
   },
 
   searchBox: {
-    width: "260px",
+    width: "210px",
   },
 
   tabs: {
@@ -240,13 +298,13 @@ const styles = {
   mainContent: {
     display: "grid",
     gridTemplateColumns: "2fr 1fr",
-    gap: "20px",
+    gap: "10px",
   },
 
   left: {
     background: "#fff",
     borderRadius: "10px",
-    padding: "16px",
+    padding: "12px",
   },
 
   right: {
@@ -271,7 +329,7 @@ const styles = {
   },
 
   pagination: {
-    marginTop: "20px",
+    marginTop: "10px",
     display: "flex",
     justifyContent: "center",
     gap: "6px",
