@@ -37,6 +37,8 @@ const HoverCard = ({ children, content, position = 'right' }) => {
               boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
               border: '1px solid #f0f0f0',
               overflow: 'hidden',
+              position: 'relative',
+              maxWidth: '70%',
             }}
           >
             
@@ -47,6 +49,7 @@ const HoverCard = ({ children, content, position = 'right' }) => {
                 padding: '16px',
                 maxHeight: '100px',
                 overflowY: 'auto',
+                
               }}
             >
               {content}

@@ -51,8 +51,15 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
   };
 
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-      <div style={{ overflowX: "auto" }}>
+    <div style={{ 
+      backgroundColor: "#fff", 
+      borderRadius: "12px", 
+      boxShadow: "0 2px 8px rgba(0,0,0,0.06)", 
+      // overflow: "hidden"  ← ELIMINADO
+    }}>
+      <div style={{ 
+        overflowX: "visible",  // CAMBIADO de "auto" a "visible"
+      }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -77,7 +84,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  {/* Imagen - SIEMPRE tiene hover porque muestra la imagen grande */}
+                  {/* Imagen */}
                   <td style={tdStyle}>
                     <HoverCard content={
                       <div>
@@ -128,7 +135,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     </HoverCard>
                   </td>
 
-                  {/* Referencia - HOVER SOLO si tiene más de 12 caracteres */}
+                  {/* Referencia */}
                   <td style={tdStyle}>
                     {needsHover(product.reference) ? (
                       <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Referencia completa</p><p style={{ fontSize: "13px", color: "#555" }}>{product.reference}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Código: {product.id}</p></div>}>
@@ -139,7 +146,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     )}
                   </td>
 
-                  {/* Nombre - HOVER SOLO si tiene más de 12 caracteres */}
+                  {/* Nombre */}
                   <td style={tdStyle}>
                     {needsHover(product.name) ? (
                       <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Información del producto</p><p style={{ fontSize: "13px", color: "#555" }}>{product.name}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Categoría: <strong>{product.category}</strong></p><p style={{ fontSize: "11px", color: "#999" }}>Versiones: <strong>{product.technicalSheetVersions || 1}</strong></p></div>}>
@@ -152,7 +159,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     )}
                   </td>
 
-                  {/* Categoría - HOVER SOLO si tiene más de 12 caracteres (raro, pero por si acaso) */}
+                  {/* Categoría */}
                   <td style={tdStyle}>
                     {needsHover(product.category) ? (
                       <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Categoría</p><p style={{ fontSize: "13px", color: "#555" }}>{product.category}</p></div>}>
@@ -163,17 +170,17 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     )}
                   </td>
 
-                  {/* Precio - NUNCA tiene hover porque siempre es corto */}
+                  {/* Precio */}
                   <td style={tdStyle}>
                     <span>{formatPrice(product.price)}</span>
                   </td>
 
-                  {/* Stock - NUNCA tiene hover porque siempre es un número */}
+                  {/* Stock */}
                   <td style={tdStyle}>
                     <span>{product.stock}</span>
                   </td>
 
-                  {/* Acciones - SIN CAMBIOS */}
+                  {/* Acciones */}
                   <td style={tdStyle}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
@@ -255,4 +262,4 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
   );
 };
 
-export default ProductTable; 
+export default ProductTable;

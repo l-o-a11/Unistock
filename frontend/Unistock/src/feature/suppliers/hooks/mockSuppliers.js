@@ -68,6 +68,28 @@ export const mockSuppliers = [
     sitioweb: 'https://textilesmedellin.com',
     estado: false,
   },
+  {
+    id: 7,
+    nit: '900123456',
+    nombreEmpresa: 'Textiles Medellín',
+    nombreContacto: 'Laura Gómez',
+    direccion: 'Cra 45 #10-20',
+    telefono: '3001234567',
+    email: 'contacto@textiles.com',
+    sitioweb: 'https://textilesmedellin.com',
+    estado: true,
+  },
+  {
+    id: 8,
+    nit: '900123456',
+    nombreEmpresa: 'Textiles Medellín',
+    nombreContacto: 'Laura Gómez',
+    direccion: 'Cra 45 #10-20',
+    telefono: '3001234567',
+    email: 'contacto@textiles.com',
+    sitioweb: 'https://textilesmedellin.com',
+    estado: true,
+  },
 ];
 
 export const useSuppliers = () => {
