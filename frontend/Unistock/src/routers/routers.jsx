@@ -2,9 +2,14 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
 import AppLayout from "../feature/dashboard/components/layout/AppLayout.jsx";
+
 import RolesPage from '../feature/roles/pages/RolesPage';
 import CreateRolPage from '../feature/roles/pages/CreateRolPage.jsx';
 import EditRolPage from '../feature/roles/pages/EditRolPage.jsx';
+
+import SuppliesPage from '../feature/supplies/pages/SuppliesPage.jsx';
+import CreateSuppliesPage from '../feature/supplies/pages/CreateSuppliesPage.jsx';
+import EditSuppliesPage from '../feature/supplies/pages/EditSuppliesPage.jsx';
 
 import ProductsPage from '../feature/products/pages/ProductsPage';
 import CreateProductPage from '../feature/products/pages/CreateProductPage.jsx';
@@ -41,6 +46,11 @@ export function RouterApp() {
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/crear" element={<CreateRolPage />} />
         <Route path="roles/editar/:id" element={<EditRolPage />} />
+
+         {/* Módulo de insumos */}
+        <Route path="insumos" element={<SuppliesPage />} />
+        <Route path="supplies/crear" element={<CreateSuppliesPage />} />
+        <Route path="supplies/editar/:id" element={<EditSuppliesPage />} />
 
         {/* Módulo de productos */}
         <Route path="productos" element={<ProductsPage />} />
