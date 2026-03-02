@@ -22,6 +22,10 @@ import UsersPage from '../feature/users/pages/UsersPage.jsx';
 import CreateUsersPage from '../feature/users/pages/CreateUserPage.jsx';
 import EditUserPage from "../feature/users/pages/EditUserPage.jsx";
 
+
+import ProductionsPage from '../feature/Productions/pages/ProductionPage.jsx';
+import ProductionDetailsPage from '../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx';
+
 export function RouterApp() {
   return (
     <Routes>
@@ -48,6 +52,10 @@ export function RouterApp() {
         <Route path="/proveedores/crear" element={<CreateSupplierPage />} />
         <Route path="/proveedores/editar/:id" element={<EditSupplierPage />} />
 
+
+{/* Módulo de producciones */}
+        <Route path="/produccion" element={<ProductionsPage />} />
+        <Route path="/produccion/:id" element={<ProductionDetailsPage />} />
          {/* Módulo de terceros */}
         <Route path="/terceros" element={<Third_partiesPage />} />
         <Route path="/terceros/crear" element={<CreateThird_partiePage />} />

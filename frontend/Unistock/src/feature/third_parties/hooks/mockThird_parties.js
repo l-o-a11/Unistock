@@ -68,6 +68,28 @@ export const mockThird_parties = [
     sitioweb: 'https://textilesnorte.com',
     estado: true,
   },
+  {
+    id: 7,
+    nit: '900123456-7',
+    nombreEmpresa: 'Textil Aurora S.A.S',
+    nombreContacto: 'Rosalba de los Milagros',
+    direccion: 'Calle 50 # 85-48, Medellín',
+    telefono: '314782451',
+    email: 'contacto@textilaurora.com',
+    sitioweb: 'https://textilaurora.com',
+    estado: true,
+  },
+  {
+    id: 8,
+    nit: '900123456-7',
+    nombreEmpresa: 'Textil Aurora S.A.S',
+    nombreContacto: 'Rosalba de los Milagros',
+    direccion: 'Calle 50 # 85-48, Medellín',
+    telefono: '314782451',
+    email: 'contacto@textilaurora.com',
+    sitioweb: 'https://textilaurora.com',
+    estado: true,
+  },
 ];
 
 export const useThird_parties = () => {
