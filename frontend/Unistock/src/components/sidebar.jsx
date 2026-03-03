@@ -8,7 +8,7 @@ import ConfigIcon from '../assets/icons/Config';
 import logo from '../assets/transparent-Photoroom.png';
 
 const menuItems = [
-  { id: 'dashboard', name: 'Dashboard', icon: DashboardIcon, hasSubmenu: false },
+  { id: 'dashboard', name: 'dashboard', icon: DashboardIcon, hasSubmenu: false, path: 'dashboard'},
 
   {
     id: 'usuarios', name: 'Usuarios', icon: UsuariosIcon, hasSubmenu: true,
@@ -19,19 +19,19 @@ const menuItems = [
   {
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
     submenu: [
-      { name: 'Insumos', path: '/compras/insumos' },
-      { name: 'Categorías', path: '/compras/categorias' },
-      { name: 'Proveedores', path: '/proveedores' },
-      { name: 'Compras', path: '/compras' },
+      { name: 'Insumos', path: 'insumos' },
+      { name: 'Categorías', path: 'categorias' },
+      { name: 'Proveedores', path: 'proveedores' },
+      { name: 'Compras', path: 'compras' },
     ],
   },
   {
     id: 'produccion', name: 'Producción', icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: 'Categorías', path: '/categorias' },
-      { name: 'Producción', path: '/produccion' },
-      { name: 'Terceros', path: '/terceros' },
-      { name: 'Productos', path: '/productos' },
+      { name: 'Categorías', path: 'categorias' },
+      { name: 'Producción', path: 'produccion' },
+      { name: 'Terceros', path: 'terceros' },
+      { name: 'Productos', path: 'productos' },
     ],
   },
   {
@@ -92,7 +92,7 @@ export default function Sidebar() {
       {/* ── Rail principal ── */}
       <div className="w-30 bg-white border-r border-gray-100 flex flex-col items-center py-6 gap-1 shadow-sm z-10">
 
-        <div className="w-13 h-13 overflow-hidden flex items-center justify-center">
+        <div className="w-20 h-20 overflow-hidden flex items-center justify-center">
           <img src={logo} alt="Usuario" className="w-full h-full object-cover" />
         </div>
 

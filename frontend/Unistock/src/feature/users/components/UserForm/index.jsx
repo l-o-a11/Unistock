@@ -110,14 +110,14 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
     return (
         <form
             onSubmit={handleSubmit}
-            className="bg-white w-full max-w-4xl rounded-xl shadow-2xl px-10 py-6"
+            className="bg-white w-full max-w-xl rounded-xl shadow-2xl px-8 py-5 max-h-[90vh] overflow-y-auto"
         >
-            <h1 className="text-3xl font-bold mb-6">
+            <h1 className="text-3xl font-bold mb-3">
                 {user ? "Editar Usuario" : "Crear Usuario"}
             </h1>
 
             {/* IDENTIFICACIÓN */}
-            <div className="mb-6">
+            <div className="mb-3">
                 <h2 className="font-semibold mb-2 text-gray-700">Identificación</h2>
                 <div className="border-t border-gray-200 mb-4"></div>
 
@@ -165,11 +165,11 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
             </div>
 
             {/* DATOS PERSONALES */}
-            <div className="mb-6">
+            <div className="mb-3">
                 <h2 className="font-semibold mb-2 text-gray-700">Datos personales</h2>
                 <div className="border-t border-gray-200 mb-4"></div>
 
-                <div className="mb-4">
+                <div className="mb-3">
                     <label className="text-sm font-medium">Nombre completo *</label>
 
                     <input
@@ -203,7 +203,7 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
             </div>
 
             {/* ROL */}
-            <div className="mb-8">
+            <div className="mb-3">
                 <label className="text-sm font-medium">Rol *</label>
                 <div className="border-t border-gray-200 my-3"></div>
 
@@ -214,12 +214,9 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
                     className={selectStyle}
                 >
                     <option value="">Seleccionar rol</option>
-
-                    {roles.map((rol) => (
-                        <option key={rol.id} value={rol.nombre}>
-                            {rol.nombre}
-                        </option>
-                    ))}
+                    <option value="Admin">gerente</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Empleado">Empleado</option>
                 </select>
 
                 {errors.role && (
@@ -228,7 +225,7 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
             </div>
 
             {/* SEDE */}
-            <div className="mb-10">
+            <div className="mb-4">
                 <label className="text-sm font-medium">Sede *</label>
 
                 <select
@@ -258,7 +255,7 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
 
                 <button
                     type="submit"
-                    className="px-6 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md"
+                    className="px-6 py-2 rounded-xl bg-[#FF4FD6] text-white shadow-md"
                 >
                     Guardar Usuario
                 </button>
