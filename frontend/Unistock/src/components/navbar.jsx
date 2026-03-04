@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Mail, Briefcase, MapPin, LogOut, Edit } from 'lucide-react';
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const navigate = useNavigate();
 
   // Cierra el dropdown al hacer click fuera
   useEffect(() => {
@@ -15,6 +18,14 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const cerrarSesion = () => {
+    navigate('/');
+  };
+
+  const editarPerfil = () => {
+    navigate('/');
+  };
 
   const user = {
     name: 'Sofia Osorio',
@@ -88,11 +99,11 @@ const Navbar = () => {
 
             {/* Botones de acción */}
             <div className="px-5 pb-5 flex gap-3">
-              <button className="flex-1 flex items-center justify-center gap-2 bg-pink-400 hover:bg-pink-500 text-white font-semibold py-2.5 rounded-full transition-colors text-sm">
+              <button onClick={cerrarSesion} className="flex-1 flex items-center justify-center gap-2 bg-pink-400 hover:bg-pink-500 text-white font-semibold py-2.5 rounded-full transition-colors text-sm">
                 <LogOut className="w-4 h-4" />
                 Cerrar sesión
               </button>
-              <button className="flex-1 flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 rounded-full transition-colors text-sm">
+              <button onClick={editarPerfil} className="flex-1 flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 rounded-full transition-colors text-sm">
                 <Edit className="w-4 h-4" />
                 Editar perfil
               </button>
