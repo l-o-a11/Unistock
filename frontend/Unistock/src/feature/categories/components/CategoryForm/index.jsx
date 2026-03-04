@@ -1,19 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const CategoryForm = ({ category, onSubmit, onCancel }) => {
+const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
   const [formData, setFormData] = useState({
     name: category?.name || '',
     description: category?.description || '',
   });
+
+  const [touched, setTouched] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
+  // 🔥 VALIDACIÓN - muestra alerta si faltan campos
+  const validate = () => {
+    const errors = [];
+    if (!formData.name.trim()) errors.push("El nombre es obligatorio");
+    if (!formData.description.trim()) errors.push("La descripción es obligatoria");
+    
+    if (errors.length > 0) {
+      onShowAlert({
+        type: "warning",
+        title: "Campos requeridos",
+        message: errors.join(". ")
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // 🔥 HANDLE SUBMIT con validación
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    setTouched({
+      name: true,
+      description: true
+    });
+
+    if (!validate()) return;
+    
     onSubmit(formData);
+  };
+
+  // 🔥 ALERTA DE CONFIRMACIÓN al cancelar
+  const handleCancelClick = () => {
+    onShowConfirm({
+      title: "¿Seguro que deseas cancelar?",
+      message: "Los cambios no guardados se perderán.",
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      onConfirm: onCancel
+    });
+  };
+
+  useEffect(() => {
+    const handleEsc = (e) => e.key === "Escape" && handleCancelClick();
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  // Funciones unificadas para blur
+  const handleNameBlur = (e) => {
+    const isInvalid = !formData.name.trim();
+    e.target.style.borderColor = isInvalid ? '#E91E8C' : '#d1d5db';
+    handleBlur('name');
+  };
+
+  const handleDescriptionBlur = (e) => {
+    const isInvalid = !formData.description.trim();
+    e.target.style.borderColor = isInvalid ? '#E91E8C' : '#d1d5db';
+    handleBlur('description');
   };
 
   const inputStyle = {
@@ -54,11 +116,20 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
             value={formData.name}
             onChange={handleChange}
             placeholder="Ej. Camiseta"
-            style={inputStyle}
-            required
+            style={{
+              ...inputStyle,
+              borderColor: touched.name && !formData.name.trim() ? '#E91E8C' : '#d1d5db'
+            }}
+            // 🔥 ELIMINADO: required
             onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
-            onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+            onBlur={handleNameBlur}
           />
+          {/* 🔥 Mensaje de error específico para nombre */}
+          {touched.name && !formData.name.trim() && (
+            <span style={{ color: '#E91E8C', fontSize: '11px', marginLeft: '8px', marginTop: '4px', display: 'block' }}>
+              ⚠ El nombre es obligatorio
+            </span>
+          )}
         </div>
 
         {/* Descripción */}
@@ -69,18 +140,29 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
             value={formData.description}
             onChange={handleChange}
             placeholder="Ej. Un jersey negro de cuello redondo hecho de algodón suave y cómodo"
-            style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
-            required
+            style={{
+              ...inputStyle,
+              minHeight: '100px',
+              resize: 'vertical',
+              borderColor: touched.description && !formData.description.trim() ? '#E91E8C' : '#d1d5db'
+            }}
+            // 🔥 ELIMINADO: required
             onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
-            onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+            onBlur={handleDescriptionBlur}
           />
+          {/* 🔥 Mensaje de error específico para descripción */}
+          {touched.description && !formData.description.trim() && (
+            <span style={{ color: '#E91E8C', fontSize: '11px', marginLeft: '8px', marginTop: '4px', display: 'block' }}>
+              ⚠ La descripción es obligatoria
+            </span>
+          )}
         </div>
 
         {/* Botones */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancelClick}
             style={{
               padding: '10px 24px',
               backgroundColor: '#f3f4f6',
