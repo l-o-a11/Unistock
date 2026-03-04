@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import HoverCard from '../HoverCard';
+import Alert from '../Alert'; 
 
 const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
+  // 🔥estado para alerta de eliminación
+  const [deleteAlert, setDeleteAlert] = useState({
+    open: false,
+    step: "confirm",
+  });
+
   if (!product) return null;
 
   const formatPrice = (price) => {
@@ -10,6 +17,14 @@ const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
       currency: 'COP',
       minimumFractionDigits: 0
     }).format(price);
+  };
+
+  // 🔥 función final de eliminar
+  const handleDelete = () => {
+    console.log("Producto eliminado:", product);
+    setDeleteAlert({ open: false });
+    // Aquí iría la lógica real de eliminación
+    // deleteProduct(product.id);
   };
 
   return (
@@ -114,14 +129,75 @@ const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
             </div>
           </div>
 
+          {/* 🔥 ACCIONES */}
           <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200">
-            <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cerrar</button>
-            <button onClick={() => onEdit(product)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Editar Producto</button>
+            <button
+              style={styles.deleteBtn}
+              onClick={() =>
+                setDeleteAlert({
+                  open: true,
+                  step: "confirm",
+                })
+              }
+            >
+              Eliminar
+            </button>
+
+            <button
+              style={styles.editBtn}
+              onClick={() => onEdit(product)}
+            >
+              Editar
+            </button>
           </div>
         </div>
       </div>
+
+      {/* 🔥 ALERTAS */}
+
+      {/* ALERTA CONFIRMAR */}
+      <Alert
+        isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
+        type="confirm"
+        message="¿Seguro que deseas eliminar este producto?"
+        onConfirm={() =>
+          setDeleteAlert({ open: true, step: "password" })
+        }
+        onCancel={() => setDeleteAlert({ open: false })}
+      />
+
+      {/* ALERTA PASSWORD */}
+      <Alert
+        isOpen={deleteAlert.open && deleteAlert.step === "password"}
+        type="password"
+        message="Ingresa la contraseña para eliminar"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteAlert({ open: false })}
+      />
     </div>
   );
+};
+
+// 🔥 ESTILOS 
+const styles = {
+  deleteBtn: {
+    background: "#ddd",
+    border: "none",
+    padding: "10px 24px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "14px",
+    color: "#333",
+  },
+  editBtn: {
+    background: "#E91E8C",
+    color: "#fff",
+    border: "none",
+    padding: "10px 24px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
 };
 
 export default ProductDetail;

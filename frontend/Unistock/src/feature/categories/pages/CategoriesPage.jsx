@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCategories } from '../hooks/useCategories';
+import Alert from '../components/Alert';
 import CategoryTable from '../components/CategoryTable';
 import CategorySearch from '../components/CategorySearch';
 import AddCategoryButton from '../components/AddCategoryButton';
@@ -14,6 +15,48 @@ const CategoriesPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  
+  // Estados para alertas
+  const [successAlert, setSuccessAlert] = useState({
+    open: false,
+    key: Date.now(),
+    title: "",
+    message: "",
+  });
+
+  const [errorAlert, setErrorAlert] = useState({
+    open: false,
+    key: Date.now(),
+    title: "",
+    message: "",
+  });
+
+  const [warningAlert, setWarningAlert] = useState({
+    open: false,
+    key: Date.now(),
+    title: "",
+    message: "",
+  });
+
+  const [confirmAlert, setConfirmAlert] = useState({
+    open: false,
+    key: Date.now(),
+    title: "",
+    message: "",
+    confirmText: "Confirmar",
+    cancelText: "Cancelar",
+    onConfirm: null,
+  });
+
+  const [deleteAlert, setDeleteAlert] = useState({
+    open: false,
+    step: "confirm",
+    categoryId: null,
+    categoryName: "",
+    productCount: 0,
+    key: Date.now()
+  });
+
   const itemsPerPage = 7;
 
   // Filtrar categorías por búsqueda
@@ -27,19 +70,54 @@ const CategoriesPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedCategories = filteredCategories.slice(startIndex, startIndex + itemsPerPage);
 
-  // Build page numbers with ellipsis
-  const getPageNumbers = () => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+  // Funciones para alertas
+  const handleShowAlert = ({ type, title, message }) => {
+    if (type === "success") {
+      setSuccessAlert({ open: false, key: Date.now() });
+      setTimeout(() => {
+        setSuccessAlert({
+          open: true,
+          key: Date.now(),
+          title,
+          message
+        });
+      }, 50);
+    } else if (type === "error") {
+      setErrorAlert({ open: false, key: Date.now() });
+      setTimeout(() => {
+        setErrorAlert({
+          open: true,
+          key: Date.now(),
+          title,
+          message
+        });
+      }, 50);
+    } else if (type === "warning") {
+      setWarningAlert({ open: false, key: Date.now() });
+      setTimeout(() => {
+        setWarningAlert({
+          open: true,
+          key: Date.now(),
+          title,
+          message
+        });
+      }, 50);
     }
-    const pages = [1];
-    if (currentPage > 3) pages.push("...");
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-      pages.push(i);
-    }
-    if (currentPage < totalPages - 2) pages.push("...");
-    pages.push(totalPages);
-    return pages;
+  };
+
+  const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+    setConfirmAlert({ open: false, key: Date.now() });
+    setTimeout(() => {
+      setConfirmAlert({
+        open: true,
+        key: Date.now(),
+        title,
+        message,
+        confirmText: confirmText || "Confirmar",
+        cancelText: cancelText || "Cancelar",
+        onConfirm,
+      });
+    }, 50);
   };
 
   const handleEdit = (category) => {
@@ -61,8 +139,18 @@ const CategoriesPage = () => {
     try {
       await createCategory(categoryData);
       handleCloseForm();
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: "Categoría creada correctamente"
+      });
     } catch (error) {
-      console.error('Error al crear categoría:', error);
+      handleCloseForm();
+      handleShowAlert({
+        type: "error",
+        title: "¡Error!",
+        message: error.message || "Error al crear categoría"
+      });
     }
   };
 
@@ -70,24 +158,75 @@ const CategoriesPage = () => {
     try {
       await updateCategory(editingCategory.id, categoryData);
       handleCloseForm();
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: "Categoría actualizada correctamente"
+      });
     } catch (error) {
-      console.error('Error al actualizar categoría:', error);
+      handleCloseForm();
+      handleShowAlert({
+        type: "error",
+        title: "¡Error!",
+        message: error.message || "Error al actualizar categoría"
+      });
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteClick = (id) => {
     const category = categories.find(c => c.id === id);
+    
     if (category.productCount > 0) {
-      alert('No se puede eliminar una categoría con productos asociados');
+      handleShowAlert({
+        type: "warning",
+        title: "No se puede eliminar",
+        message: `La categoría "${category.name}" tiene ${category.productCount} producto(s) asociado(s)`
+      });
       return;
     }
-    if (window.confirm('¿Estás seguro de eliminar esta categoría?')) {
-      try {
-        await deleteCategory(id);
-      } catch (error) {
-        alert(error.message);
-      }
+
+    setDeleteAlert({
+      open: true,
+      step: "confirm",
+      categoryId: id,
+      categoryName: category.name,
+      productCount: category.productCount,
+      key: Date.now()
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteCategory(deleteAlert.categoryId);
+      setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() });
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: "Categoría eliminada correctamente"
+      });
+    } catch (error) {
+      handleShowAlert({
+        type: "error",
+        title: "¡Error!",
+        message: error.message || "Error al eliminar categoría"
+      });
+      setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() });
     }
+  };
+
+  // Build page numbers with ellipsis
+  const getPageNumbers = () => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = [1];
+    if (currentPage > 3) pages.push("...");
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+    return pages;
   };
 
   const paginationBtn = {
@@ -97,6 +236,44 @@ const CategoriesPage = () => {
     background: "#fff",
     cursor: "pointer",
     fontSize: "14px",
+  };
+
+  const modalOverlayStyle = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1000,
+    pointerEvents: 'none'
+  };
+
+  const modalBackgroundStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    pointerEvents: 'auto',
+    zIndex: 1001
+  };
+
+  const modalContentStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '90%',
+    maxWidth: '600px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+    zIndex: 1002,
+    pointerEvents: 'auto'
   };
 
   return (
@@ -140,49 +317,19 @@ const CategoriesPage = () => {
       <CategoryTable
         categories={paginatedCategories}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={handleDeleteClick}
       />
 
       {/* ── MODAL: Crear Categoría ── */}
       {showCreateForm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1000,
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            pointerEvents: 'auto',
-            zIndex: 1001
-          }} onClick={handleCloseForm} />
-          
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: '600px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            zIndex: 1002,
-            pointerEvents: 'auto'
-          }}>
+        <div style={modalOverlayStyle}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div style={modalContentStyle}>
             <CategoryForm
               onSubmit={handleCreateSubmit}
               onCancel={handleCloseForm}
+              onShowAlert={handleShowAlert}
+              onShowConfirm={handleShowConfirm}
             />
           </div>
         </div>
@@ -190,45 +337,15 @@ const CategoriesPage = () => {
 
       {/* ── MODAL: Editar Categoría ── */}
       {showEditForm && editingCategory && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1000,
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            pointerEvents: 'auto',
-            zIndex: 1001
-          }} onClick={handleCloseForm} />
-          
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: '600px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            zIndex: 1002,
-            pointerEvents: 'auto'
-          }}>
+        <div style={modalOverlayStyle}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div style={modalContentStyle}>
             <CategoryForm
               category={editingCategory}
               onSubmit={handleEditSubmit}
               onCancel={handleCloseForm}
+              onShowAlert={handleShowAlert}
+              onShowConfirm={handleShowConfirm}
             />
           </div>
         </div>
@@ -289,6 +406,86 @@ const CategoriesPage = () => {
           </button>
         </div>
       )}
+
+      {/* Alertas */}
+      <div style={{ position: 'relative', zIndex: 9999 }}>
+        {/* Alerta de éxito */}
+        <Alert
+          key={`success-${successAlert.key}`}
+          isOpen={successAlert.open}
+          type="success"
+          title={successAlert.title}
+          message={successAlert.message}
+          onConfirm={() => setSuccessAlert({ ...successAlert, open: false })}
+        />
+
+        {/* Alerta de error */}
+        <Alert
+          key={`error-${errorAlert.key}`}
+          isOpen={errorAlert.open}
+          type="error"
+          title={errorAlert.title}
+          message={errorAlert.message}
+          onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
+        />
+
+        {/* Alerta de advertencia */}
+        <Alert
+          key={`warning-${warningAlert.key}`}
+          isOpen={warningAlert.open}
+          type="warning"
+          title={warningAlert.title}
+          message={warningAlert.message}
+          onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
+        />
+
+        {/* Alerta de confirmación */}
+        <Alert
+          key={`confirm-${confirmAlert.key}`}
+          isOpen={confirmAlert.open}
+          type="confirm"
+          title={confirmAlert.title}
+          message={confirmAlert.message}
+          confirmText={confirmAlert.confirmText}
+          cancelText={confirmAlert.cancelText}
+          confirmButtonColor="#ff4fd6"
+          onConfirm={() => {
+            if (confirmAlert.onConfirm) {
+              confirmAlert.onConfirm();
+            }
+            setConfirmAlert({ ...confirmAlert, open: false });
+          }}
+          onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}
+        />
+
+        {/* Alerta de eliminación - paso confirmación */}
+        <Alert
+          key={`delete-confirm-${deleteAlert.key}`}
+          isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
+          type="confirm"
+          title="Confirmar eliminación"
+          message={`¿Seguro que deseas eliminar la categoría "${deleteAlert.categoryName}"?`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          confirmButtonColor="#ff4fd6"
+          onConfirm={() => setDeleteAlert({ ...deleteAlert, step: "password", key: Date.now() })}
+          onCancel={() => setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() })}
+        />
+
+        {/* Alerta de eliminación - paso contraseña */}
+        <Alert
+          key={`delete-password-${deleteAlert.key}`}
+          isOpen={deleteAlert.open && deleteAlert.step === "password"}
+          type="password"
+          title="Confirmar eliminación"
+          message="Ingresa la contraseña de administrador"
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          confirmButtonColor="#ff4fd6"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() })}
+        />
+      </div>
     </div>
   );
 };
