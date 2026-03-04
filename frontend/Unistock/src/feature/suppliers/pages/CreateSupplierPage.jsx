@@ -17,12 +17,14 @@ const CreateSupplierPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+      <div style={overlayStyle}>
+          <div style={modalStyle}>
       <SupplierForm
         onSubmit={handleSubmit}
         onCancel={() => navigate("/proveedores")}
       />
     </div>
+     </div>
   );
 };
 

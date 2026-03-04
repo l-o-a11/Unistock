@@ -62,12 +62,15 @@ const EditSupplierPage = () => {
   }
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f3f4f6" }}>
+    <div style={overlayStyle}>
+          <div style={modalStyle}>
       <SupplierForm
-        supplier={supplier}     
+         supplier={supplier}     
         onSubmit={handleSubmit}
         onCancel={() => navigate("/proveedores")}
       />
+    </div>
+    
     </div>
   );
 };

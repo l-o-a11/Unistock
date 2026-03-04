@@ -6,6 +6,7 @@ import RolesPage from '../feature/roles/pages/RolesPage';
 import CreateRolPage from '../feature/roles/pages/CreateRolPage.jsx';
 import EditRolPage from '../feature/roles/pages/EditRolPage.jsx';
 
+
 import ProductsPage from '../feature/products/pages/ProductsPage';
 
 import CategoriesPage from '../feature/categories/pages/CategoriesPage';
@@ -25,6 +26,7 @@ import EditUserPage from "../feature/users/pages/EditUserPage.jsx";
 
 import ProductionsPage from '../feature/Productions/pages/ProductionPage.jsx';
 import ProductionDetailsPage from '../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx';
+import ProductionCalender from '../feature/Productions/components/ProductionCalender/index.jsx';
 
 export function RouterApp() {
   return (
@@ -56,6 +58,7 @@ export function RouterApp() {
 {/* Módulo de producciones */}
         <Route path="/produccion" element={<ProductionsPage />} />
         <Route path="/produccion/:id" element={<ProductionDetailsPage />} />
+        <Route path="/produccion/calendario" element={<ProductionCalender />} />
          {/* Módulo de terceros */}
         <Route path="/terceros" element={<Third_partiesPage />} />
         <Route path="/terceros/crear" element={<CreateThird_partiePage />} />
