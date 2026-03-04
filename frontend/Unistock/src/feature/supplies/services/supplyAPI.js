@@ -1,4 +1,4 @@
-
+// supplies/components/services/supplyAPI.js
 export const MEDIDAS_PREDETERMINADAS = [
   { id: 1, nombre: "Unidad" },
   { id: 2, nombre: "Metro" },
@@ -12,8 +12,18 @@ export const PROPIEDADES_PREDETERMINADAS = [
   { id: 4, nombre: "Diseño" }
 ];
 
+export const CATEGORIAS_PREDETERMINADAS = [
+  { id: 1, nombre: "Telas" },
+  { id: 2, nombre: "Hilos" },
+  { id: 3, nombre: "Cierres y botones" },
+  { id: 4, nombre: "Elásticos" },
+  { id: 5, nombre: "Encajes y pasamanería" },
+  { id: 6, nombre: "Entretelas" }
+];
+
 export const INITIAL_SUPPLIES = [
   {
+    image: null,
     id: 1,
     nombre: "Tela blanca encaje",
     categoriaId: 1,
@@ -27,7 +37,78 @@ export const INITIAL_SUPPLIES = [
     ]
   },
   {
+    image: null,
     id: 2,
+    nombre: "Tela blanca encaje",
+    categoriaId: 1,
+    stock: 10,
+    valorMedida: 45,
+    medidaId: 1,
+    estado: true,
+    propiedades: [
+      { id: 1, propiedadId: 1, valor: "Algodón" },
+      { id: 2, propiedadId: 2, valor: "Ligero" }
+    ]
+  },
+  {
+    image: null,
+    id: 3,
+    nombre: "Tela blanca encaje",
+    categoriaId: 1,
+    stock: 10,
+    valorMedida: 45,
+    medidaId: 1,
+    estado: true,
+    propiedades: [
+      { id: 1, propiedadId: 1, valor: "Algodón" },
+      { id: 2, propiedadId: 2, valor: "Ligero" }
+    ]
+  },
+  {
+    image: null,
+    id: 4,
+    nombre: "Tela blanca encaje",
+    categoriaId: 1,
+    stock: 10,
+    valorMedida: 45,
+    medidaId: 1,
+    estado: false,
+    propiedades: [
+      { id: 1, propiedadId: 1, valor: "Algodón" },
+      { id: 2, propiedadId: 2, valor: "Ligero" }
+    ]
+  },
+  {
+    image: null,
+    id: 5,
+    nombre: "Tela blanca encaje",
+    categoriaId: 1,
+    stock: 10,
+    valorMedida: 45,
+    medidaId: 1,
+    estado: true,
+    propiedades: [
+      { id: 1, propiedadId: 1, valor: "Algodón" },
+      { id: 2, propiedadId: 2, valor: "Ligero" }
+    ]
+  },
+  {
+    image: null,
+    id: 6,
+    nombre: "Tela blanca encaje",
+    categoriaId: 1,
+    stock: 10,
+    valorMedida: 45,
+    medidaId: 1,
+    estado: false,
+    propiedades: [
+      { id: 1, propiedadId: 1, valor: "Algodón" },
+      { id: 2, propiedadId: 2, valor: "Ligero" }
+    ]
+  },
+  { 
+    image: null,
+    id: 7,
     nombre: "Hilo",
     categoriaId: 2,
     stock: 25,
@@ -39,21 +120,22 @@ export const INITIAL_SUPPLIES = [
     ]
   },
   {
-    id: 3,
+    image: null,
+    id: 8,
     nombre: "cierre de metal",
     categoriaId: 3,
     stock: 30,
     valorMedida: 20,
     medidaId: 1,
-    estado: true,
+    estado: false,
     propiedades: [
       { id: 4, propiedadId: 2, valor: "2" }
     ]
   }
 ];
 
-
 let mockSupply = [...INITIAL_SUPPLIES];
+
 export const supplyAPI = {
   getAll: async () => {
     return new Promise((resolve) => {
@@ -80,7 +162,12 @@ export const supplyAPI = {
           id: mockSupply.length > 0
             ? Math.max(...mockSupply.map(supply => supply.id)) + 1
             : 1,
-          ...supplyData
+          ...supplyData,
+          propiedades: supplyData.propiedades.map((prop, index) => ({
+            id: mockSupply.reduce((max, s) => 
+              Math.max(max, ...(s.propiedades?.map(p => p.id) || [0])), 0) + index + 1,
+            ...prop
+          }))
         };
 
         mockSupply.push(newSupply);
@@ -95,9 +182,21 @@ export const supplyAPI = {
         const index = mockSupply.findIndex(supply => supply.id === id);
 
         if (index !== -1) {
+          // Conservar los IDs de propiedades existentes o asignar nuevos
+          const existingProps = mockSupply[index].propiedades || [];
+          const updatedProps = updatedData.propiedades.map((prop, idx) => {
+            const existingProp = existingProps.find(p => p.propiedadId === prop.propiedadId);
+            return {
+              id: existingProp?.id || mockSupply.reduce((max, s) => 
+                Math.max(max, ...(s.propiedades?.map(p => p.id) || [0])), 0) + idx + 1,
+              ...prop
+            };
+          });
+
           mockSupply[index] = {
             ...mockSupply[index],
-            ...updatedData
+            ...updatedData,
+            propiedades: updatedProps
           };
           resolve({ ...mockSupply[index] });
         } else {
@@ -114,7 +213,7 @@ export const supplyAPI = {
 
         if (index !== -1) {
           mockSupply.splice(index, 1);
-          resolve();
+          resolve({ success: true });
         } else {
           reject(new Error("Insumo no encontrado"));
         }
@@ -134,6 +233,14 @@ export const supplyAPI = {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve([...PROPIEDADES_PREDETERMINADAS]);
+      }, 300);
+    });
+  },
+
+  getCategorias: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([...CATEGORIAS_PREDETERMINADAS]);
       }, 300);
     });
   }

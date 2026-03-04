@@ -2,6 +2,9 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useSupplies } from "../hooks/useSupplies";
 import SupplyForm from "../components/SupplyForm";
+import { CATEGORIAS_PREDETERMINADAS, MEDIDAS_PREDETERMINADAS, PROPIEDADES_PREDETERMINADAS } from "../services/supplyAPI";
+
+
 
 const CreateSuppliesPage = () => {
   const navigate = useNavigate();
@@ -24,8 +27,9 @@ const CreateSuppliesPage = () => {
   return (
     <SupplyForm
       onSubmit={handleSubmit}
-      medidas={medidas}
-      propiedades={propiedades}
+      categorias={CATEGORIAS_PREDETERMINADAS}
+      medidas={MEDIDAS_PREDETERMINADAS}
+      propiedades={PROPIEDADES_PREDETERMINADAS}
       loading={loading}
     />
   );

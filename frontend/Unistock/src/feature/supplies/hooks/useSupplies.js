@@ -9,6 +9,8 @@ export const useSupplies = () => {
   const [medidas, setMedidas] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
 
+  
+
   // Cargar datos al montar
   useEffect(() => {
     loadData();
@@ -62,10 +64,10 @@ export const useSupplies = () => {
   const updateSupply = async (id, supplyData) => {
     try {
       setLoading(true);
-      const updated = await supplyAPI.update(id, supplyData);
+      const updatedSupply = await supplyAPI.update(id, supplyData);
 
       setSupplies((prev) =>
-        prev.map((s) => (s.id === id ? updated : s))
+        prev.map((s) => (s.id === id ? updatedSupply : s))
       );
     } catch (err) {
       setError("Error al actualizar el insumo");
