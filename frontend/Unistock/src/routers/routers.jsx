@@ -58,16 +58,14 @@ export function RouterApp() {
 
         {/* Proveedores */}
         <Route path="proveedores" element={<SuppliersPage />} />
-        <Route path="proveedores/crear" element={<CreateSupplierPage />} />
-        <Route path="proveedores/editar/:id" element={<EditSupplierPage />} />
+    
 
         {/* Producciones */}
         <Route path="produccion" element={<ProductionsPage />} />
 
         {/* Terceros */}
         <Route path="terceros" element={<ThirdPartiesPage />} />
-        <Route path="terceros/crear" element={<CreateThirdPartiePage />} />
-        <Route path="terceros/editar/:id" element={<EditThirdPartiePage />} />
+        
 
         {/* Usuarios */}
         <Route path="users" element={<UsersPage />} />
