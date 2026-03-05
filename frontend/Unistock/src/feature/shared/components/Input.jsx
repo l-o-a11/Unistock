@@ -2,50 +2,53 @@ import React from "react";
 
 function Input({
   label,
+  name,
+  value,
+  onChange,
+  onBlur,
   error,
-  as = "input", // input o select
+  type = "text",
+  as = "input",
   children,
-  className = "",
-  ...props
 }) {
-  const baseStyle = `
-    w-full
-    bg-gray-50
-    border
-    rounded-xl
-    px-4 py-2
-    text-sm
-    shadow-sm
-    transition
-    focus:outline-none
-    focus:ring-2
-    focus:ring-pink-500
-  `;
 
-  const errorStyle = error
-    ? "border-red-500 focus:ring-red-400"
-    : "border-gray-200 hover:border-pink-300 focus:border-pink-400";
+  const baseStyle =
+    "w-full border rounded-lg px-3 py-2 text-sm outline-none transition";
+
+  const normal =
+    "border-gray-300 focus:border-[#E91E8C]";
+
+  const errorStyle =
+    "border-red-500 focus:border-red-500";
 
   const Component = as;
 
   return (
-    <div className="w-full">
+    <div className="flex flex-col">
+
       {label && (
-        <label className="text-sm font-medium text-gray-700">
+        <label className="text-sm font-medium text-gray-700 mb-1">
           {label}
         </label>
       )}
 
       <Component
-        {...props}
-        className={`${baseStyle} ${errorStyle} mt-2 ${className}`}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        className={`${baseStyle} ${error ? errorStyle : normal}`}
       >
         {children}
       </Component>
 
       {error && (
-        <p className="text-red-500 text-xs mt-1">{error}</p>
+        <span className="text-red-500 text-xs mt-1">
+          {error}
+        </span>
       )}
+
     </div>
   );
 }
