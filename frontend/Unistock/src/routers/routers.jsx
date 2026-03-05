@@ -27,6 +27,8 @@ import UsersPage from "../feature/users/pages/UsersPage.jsx";
 
 // Producciones
 import ProductionsPage from "../feature/Productions/pages/ProductionPage.jsx";
+import ProductFrom from "../feature/products/components/ProductForm";
+
 
 export function RouterApp() {
   return (
@@ -56,9 +58,11 @@ export function RouterApp() {
         <Route path="proveedores" element={<SuppliersPage />} />
     
 
-        {/* Producciones */}
-        <Route path="produccion" element={<ProductionsPage />} />
+       {/* Producciones */}
+<Route path="produccion" element={<ProductionsPage />} />
 
+{/* Crear ficha técnica */}
+<Route path="products/create" element={<ProductFrom />} />
         {/* Terceros */}
         <Route path="terceros" element={<ThirdPartiesPage />} />
         
