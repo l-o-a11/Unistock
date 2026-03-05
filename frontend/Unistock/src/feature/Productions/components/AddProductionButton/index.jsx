@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductionForm from "../ProductionForm";
+import ProduccionCalendario from "../ProductionCalender";
 
 
 const AddProductionButton = ({
@@ -62,15 +63,15 @@ const AddProductionButton = ({
 REPORTE DE ÓRDENES
 
 ${productions
-  .map(
-    (p, index) => `
+        .map(
+          (p, index) => `
 Orden #${index + 1}
 Producto: ${p.producto || "N/A"}
 Cantidad: ${p.cantidad || "N/A"}
 Fecha: ${p.fecha || "N/A"}
 -----------------------------`
-  )
-  .join("\n")}
+        )
+        .join("\n")}
 `;
 
     const blob = new Blob([content], { type: "application/pdf" });
@@ -85,8 +86,8 @@ Fecha: ${p.fecha || "N/A"}
    * Toggle calendar
    */
   const handleCalendarClick = () => {
-  navigate("/produccion/calendario");
-};
+    setShowCalendar(true);
+  };
 
   const baseButtonStyle = {
     display: "inline-flex",
@@ -122,7 +123,7 @@ Fecha: ${p.fecha || "N/A"}
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        
+
         {/* BOTÓN PRINCIPAL */}
         <button
           onClick={handleAddProduction}
@@ -216,7 +217,9 @@ Fecha: ${p.fecha || "N/A"}
       {showCalendar && (
         <div style={overlayStyle}>
           <div style={modalStyle}>
-            navigate("/proveedores/calendario"); 
+            <ProduccionCalendario
+              onClose={handleCloseCalendar}   // ← prop que sí lee el componente
+            />
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import { useProducts } from '../../../products/hooks/useProducts';
 const ProductionForm = ({ Production, onSubmit, onCancel }) => {
 
   const { products = [] } = useProducts();
-  
+
   const [type, setType] = useState("produccion"); // produccion | diseno
   const [savedColors, setSavedColors] = useState([]);
   const [savedClients, setSavedClients] = useState([]);
@@ -57,7 +57,7 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Save color and client for future use
     saveColor(formData.color);
     saveClient(formData.cliente);
@@ -101,7 +101,7 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
       <form onSubmit={handleSubmit}>
 
         {/* ===== TIPO SOLICITUD ===== */}
-        <p style={{ fontWeight: 500, marginBottom: 10  }}>Tipo de Solicitud</p>
+        <p style={{ fontWeight: 500, marginBottom: 10 }}>Tipo de Solicitud</p>
 
         <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
 
@@ -125,11 +125,11 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
         <div style={{ display: 'flex', gap: 20, marginBottom: 15 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Referencia *</label>
-            <select 
-              name="referencia" 
-              style={inputStyle} 
+            <select
+              name="referencia"
+              style={inputStyle}
               value={formData.referencia}
-              onChange={handleChange} 
+              onChange={handleChange}
               required
             >
               <option value="">Seleccionar</option>
@@ -181,14 +181,14 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
           {/* COLOR */}
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Color *</label>
-            <input 
+            <input
               list="colorList"
-              name="color" 
-              style={inputStyle} 
+              name="color"
+              style={inputStyle}
               value={formData.color}
-              onChange={handleChange} 
+              onChange={handleChange}
               placeholder="Ej: Blanco, Negro, Rojo"
-              required 
+              required
             />
             <datalist id="colorList">
               {savedColors.map((color, idx) => (
@@ -200,14 +200,14 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
           {/* CLIENTE */}
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Cliente *</label>
-            <input 
+            <input
               list="clientList"
-              name="cliente" 
-              style={inputStyle} 
+              name="cliente"
+              style={inputStyle}
               value={formData.cliente}
               onChange={handleChange}
               placeholder="Ej: Juan Pérez, Empresa XYZ"
-              required 
+              required
             />
             <datalist id="clientList">
               {savedClients.map((client, idx) => (

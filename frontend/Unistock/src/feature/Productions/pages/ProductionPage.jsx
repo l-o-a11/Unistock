@@ -132,7 +132,7 @@ const ProductionsPage = () => {
         </button>
 
         <button
-          onClick={() => navigate("/terceros")}
+          onClick={() => navigate("/Layout/terceros")}
           style={{
             padding: '8px 16px',
             borderRadius: 8,

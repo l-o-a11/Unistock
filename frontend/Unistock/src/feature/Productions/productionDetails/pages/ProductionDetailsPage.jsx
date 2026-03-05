@@ -66,7 +66,7 @@ const ProductionDetailsPage = () => {
     <div style={container}>
       {/* Botón volver */}
       <button
-        onClick={() => navigate('/produccion')}
+        onClick={() => navigate('/Layout/produccion')}
         style={{
           marginBottom: 16,
           padding: '8px 16px',
@@ -89,7 +89,7 @@ const ProductionDetailsPage = () => {
             {production.status}
           </span>
         </div>
-        <button 
+        <button
           style={saveBtn}
           onClick={() => {
             const ok = window.confirm('¿Deseas guardar los cambios realizados en esta orden de producción?');
@@ -182,15 +182,15 @@ const ProductionDetailsPage = () => {
           </p>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button 
-              style={secondaryBtn} 
+            <button
+              style={secondaryBtn}
               disabled={currentStepIndex === 0}
               onClick={handlePreviousStep}
             >
               Anterior
             </button>
-            <button 
-              style={primaryBtn} 
+            <button
+              style={primaryBtn}
               disabled={currentStepIndex === steps.length - 1}
               onClick={handleNextStep}
             >

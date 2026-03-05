@@ -134,7 +134,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                             <button
                               style={iconBtn}
                               title="Ver detalle"
-                              onClick={() => navigate(`/produccion/${prod.id}`)}
+                              onClick={() => navigate(`/layout/produccion/detail/${prod.id}`)}
                             >
                               <Eye size={16} />
                             </button>

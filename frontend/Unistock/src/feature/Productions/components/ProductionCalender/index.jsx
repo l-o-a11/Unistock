@@ -14,7 +14,7 @@ const INITIAL_EVENTS = [
 ];
 
 const DAYS = ["LU", "MA", "MI", "JU", "VI", "SÁ", "DO"];
-const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
@@ -81,7 +81,7 @@ export default function ProduccionCalendario({ onClose }) {
     if (onClose) {
       onClose();
     } else {
-      navigate("/produccion");
+      navigate("/layout/produccion");
     }
   };
 
@@ -102,7 +102,7 @@ export default function ProduccionCalendario({ onClose }) {
   const weekDays = Array.from({ length: 7 }, (_, i) => weekStart + i).filter(d => d <= daysInMonth);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-30 z-40 overflow-auto"
       onClick={handleBackdropClick}
       style={{ fontFamily: "'Nunito', sans-serif" }}

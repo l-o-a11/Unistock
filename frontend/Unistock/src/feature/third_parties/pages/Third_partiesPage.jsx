@@ -171,14 +171,14 @@ const Third_partiePage = () => {
       {/* Navigation tabs for Productions and Terceros sections */}
       <div style={styles.tabs}>
         <button
-          onClick={() => navigate("/produccion")}
+          onClick={() => navigate("/Layout/produccion")}
           style={styles.tabInactive}
         >
           Producciones
         </button>
 
         <button
-          onClick={() => navigate("/terceros")}
+          onClick={() => navigate("/Layout/terceros")}
           style={styles.tabActive}
         >
           Terceros
