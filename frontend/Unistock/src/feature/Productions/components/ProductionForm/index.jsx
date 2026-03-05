@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useProducts } from '../../../products/hooks/useProducts';
-
+import { useNavigate } from "react-router-dom";
 const ProductionForm = ({ Production, onSubmit, onCancel }) => {
 
   const { products = [] } = useProducts();
-  
+  const navigate = useNavigate();
+
+const handleCreateTechnicalSheet = () => {
+  navigate("/products/create");
+};
   const [type, setType] = useState("produccion"); // produccion | diseno
   const [savedColors, setSavedColors] = useState([]);
   const [savedClients, setSavedClients] = useState([]);
@@ -160,17 +164,21 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
           {type === "diseno" && (
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Diseño *</label>
-              <button type="button" style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 8,
-                background: '#FF4FD6',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer'
-              }}>
-                Crear ficha técnica
-              </button>
+            <button
+  type="button"
+  onClick={handleCreateTechnicalSheet}
+  style={{
+    width: '100%',
+    padding: 10,
+    borderRadius: 8,
+    background: '#FF4FD6',
+    color: '#fff',
+    border: 'none',
+    cursor: 'pointer'
+  }}
+>
+  Crear ficha técnica
+</button>
             </div>
           )}
         </div>
