@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useThird_parties } from "../hooks/mockThird_parties";
 import { useThird_partieSearch } from "../hooks/useThird_partiesSearch";
 
+import Third_partieForm from "../components/Third_partiesForm";
 import Third_partieTable from "../components/Third_partiesTable";
 import Third_partieSearch from "../components/Third_partiesSearch";
 import AddThird_partieButton from "../components/AddThird_partiesButton";
@@ -29,10 +30,11 @@ import Third_partieDetail from "../components/Third_partiesDetail";
 const Third_partiePage = () => {
   const navigate = useNavigate();
 
-  const { Third_parties, deleteThird_partie, toggleThird_partie } =
-    useThird_parties();
+  const { Third_parties, deleteThird_partie, toggleThird_partie, createThird_partie, updateThird_partie } = useThird_parties();
 
   const { searchTerm, handleSearch } = useThird_partieSearch();
+
+
 
   /**
    * Local state for detail panel
@@ -97,17 +99,36 @@ const Third_partiePage = () => {
     setSelectedThird_partie(third);
   };
 
-  const handleEdit = (third) => {
-    navigate(`/terceros/editar/${third.id}`);
-  };
-
   const handleDelete = (id) => {
     if (window.confirm("¿Eliminar tercero?")) deleteThird_partie(id);
   };
 
   const handleToggle = (id) => toggleThird_partie?.(id);
 
-  const handleAddThird_partie = () => navigate("/terceros/crear");
+  // Añadir estos estados
+  const [showForm, setShowForm] = useState(false);
+  const [editingThird_partie, setEditingThird_partie] = useState(null);
+
+  // Cambiar estos handlers:
+  const handleEdit = (third) => {
+    setEditingThird_partie(third);   // guarda el tercero a editar
+    setShowForm(true);               // abre el modal
+  };
+
+  const handleAddThird_partie = () => {
+    setEditingThird_partie(null);    // modo crear (sin datos previos)
+    setShowForm(true);               // abre el modal
+  };
+
+  // Agregar handler de submit
+  const handleFormSubmit = async (data) => {
+    if (editingThird_partie) {
+      await updateThird_partie(editingThird_partie.id, data);
+    } else {
+      await createThird_partie(data);
+    }
+    setShowForm(false);
+  };
 
   /**
    * Generate page numbers for pagination display
@@ -238,7 +259,16 @@ const Third_partiePage = () => {
           )}
         </div>
       </div>
-    </div>
+
+      {/* Modal de crear/editar tercero */}
+      {showForm && (
+        <Third_partieForm
+          Third_partie={editingThird_partie}
+          onSubmit={handleFormSubmit}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+    </div >
   );
 };
 
