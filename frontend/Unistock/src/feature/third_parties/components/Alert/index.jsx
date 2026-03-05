@@ -13,21 +13,8 @@ const Alert = ({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const isToast = type === "success" || type === "error" || type === "warning";
-
-  //  inyectar keyframes dinámicamente
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @keyframes shrink {
-        from { width: 100%; }
-        to { width: 0%; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => document.head.removeChild(style);
-  }, []);
+  const isToast =
+    type === "success" || type === "error" || type === "warning";
 
   useEffect(() => {
     if (isOpen) {
@@ -45,11 +32,11 @@ const Alert = ({
   if (!isOpen) return null;
 
   const config = {
-    success: { color: "#22c55e", icon: "✓" },
-    error: { color: "#ef4444", icon: "✕" },
-    warning: { color: "#f59e0b", icon: "⚠" },
-    confirm: { color: "#6366f1", icon: "?" },
-    password: { color: "#E91E8C", icon: "🔒" },
+    success: { color: "bg-green-500", border: "border-green-500", icon: "✓" },
+    error: { color: "bg-red-500", border: "border-red-500", icon: "✕" },
+    warning: { color: "bg-yellow-500", border: "border-yellow-500", icon: "⚠" },
+    confirm: { color: "bg-indigo-500", border: "border-indigo-500", icon: "?" },
+    password: { color: "bg-pink-500", border: "border-pink-500", icon: "🔒" },
   };
 
   const current = config[type];
@@ -69,36 +56,43 @@ const Alert = ({
   };
 
   /* ===========================
-        🎯 TOAST LATERAL
+        🔔 TOAST
   =========================== */
   if (isToast) {
     return (
-      <div style={toastContainer}>
+      <div className="fixed top-5 right-5 z-[9999]">
         <div
-          style={{
-            ...toast,
-            transform: visible ? "translateX(0)" : "translateX(120%)",
-            opacity: visible ? 1 : 0,
-            borderLeft: `6px solid ${current.color}`,
-          }}
+          className={`
+            w-80 relative flex items-center gap-3 p-4
+            bg-white/90 backdrop-blur-lg rounded-xl
+            shadow-xl border-l-4
+            transition-all duration-300
+            ${visible ? "translate-x-0 opacity-100" : "translate-x-40 opacity-0"}
+            ${current.border}
+          `}
         >
-          <div style={toastIcon}>{current.icon}</div>
+          <div className="font-bold text-lg">{current.icon}</div>
 
-          <div style={{ flex: 1 }}>
+          <div className="flex-1">
             <strong>{title}</strong>
-            {message && <p style={toastMsg}>{message}</p>}
+            {message && (
+              <p className="text-sm text-gray-600 mt-1">{message}</p>
+            )}
           </div>
 
-          <button style={closeBtn} onClick={handleClose}>
+          <button
+            onClick={handleClose}
+            className="text-gray-500 hover:text-black"
+          >
             ✕
           </button>
 
-          {/* ⏳ barra animada */}
+          {/* Barra progreso */}
           <div
+            className={`absolute bottom-0 left-0 h-1 ${current.color}`}
             style={{
-              ...progressBar,
-              background: current.color,
-              animationDuration: `${duration}ms`,
+              width: visible ? "0%" : "100%",
+              transition: `width ${duration}ms linear`,
             }}
           />
         </div>
@@ -107,26 +101,31 @@ const Alert = ({
   }
 
   /* ===========================
-        🎯 MODAL CENTRADO
+        🪟 MODAL
   =========================== */
+
   return (
-    <div style={overlay}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[999]">
       <div
-        style={{
-          ...modal,
-          transform: visible ? "scale(1)" : "scale(0.9)",
-          opacity: visible ? 1 : 0,
-          borderTop: `6px solid ${current.color}`,
-        }}
+        className={`
+          w-[400px] bg-white rounded-2xl p-6 shadow-2xl
+          transform transition-all duration-300
+          ${visible ? "scale-100 opacity-100" : "scale-95 opacity-0"}
+          border-t-4 ${current.border}
+        `}
       >
-        <div style={modalHeader}>
-          <div style={{ ...modalIcon, background: current.color }}>
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-11 h-11 rounded-full flex items-center justify-center text-white ${current.color}`}
+          >
             {current.icon}
           </div>
 
           <div>
-            <h3 style={{ margin: 0 }}>{title}</h3>
-            {message && <p style={{ margin: 0 }}>{message}</p>}
+            <h3 className="font-semibold">{title}</h3>
+            {message && (
+              <p className="text-sm text-gray-600">{message}</p>
+            )}
           </div>
         </div>
 
@@ -140,24 +139,34 @@ const Alert = ({
                 setPassword(e.target.value);
                 setError("");
               }}
-              style={{
-                ...input,
-                border: error
-                  ? "2px solid #ef4444"
-                  : `2px solid ${current.color}`,
-              }}
+              className={`
+                w-full mt-4 p-2 rounded-lg outline-none border-2
+                ${
+                  error
+                    ? "border-red-500"
+                    : current.border
+                }
+              `}
             />
-            {error && <span style={errorText}>{error}</span>}
+            {error && (
+              <span className="text-red-500 text-xs mt-1 block">
+                {error}
+              </span>
+            )}
           </>
         )}
 
-        <div style={actions}>
-          <button style={cancelBtn} onClick={handleClose}>
+        <div className="flex justify-end gap-3 mt-5">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition"
+          >
             Cancelar
           </button>
+
           <button
-            style={{ ...confirmBtn, background: current.color }}
             onClick={handleConfirm}
+            className={`px-4 py-2 rounded-lg text-white transition hover:opacity-90 ${current.color}`}
           >
             Confirmar
           </button>
@@ -165,120 +174,6 @@ const Alert = ({
       </div>
     </div>
   );
-};
-
-/* 🎨 estilos  */
-
-const toastContainer = {
-  position: "fixed",
-  top: "20px",
-  right: "20px",
-  zIndex: 9999,
-};
-
-const toast = {
-  width: "320px",
-  background: "rgba(255,255,255,0.9)",
-  backdropFilter: "blur(10px)",
-  borderRadius: "14px",
-  padding: "16px",
-  display: "flex",
-  gap: "10px",
-  alignItems: "center",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-  transition: "all .35s ease",
-  position: "relative",
-};
-
-const progressBar = {
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  height: "4px",
-  width: "100%",
-  borderRadius: "0 0 14px 14px",
-  animationName: "shrink",
-  animationTimingFunction: "linear",
-  animationFillMode: "forwards",
-};
-
-const toastIcon = { fontWeight: "bold", fontSize: "18px" };
-const toastMsg = { margin: "2px 0 0", fontSize: "13px", color: "#555" };
-
-const overlay = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.55)",
-  backdropFilter: "blur(5px)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 999,
-};
-
-const modal = {
-  width: "400px",
-  background: "#fff",
-  borderRadius: "16px",
-  padding: "20px",
-  boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
-  transition: "all .25s ease",
-};
-
-const modalHeader = { display: "flex", gap: "12px", alignItems: "center" };
-const modalIcon = {
-  width: "44px",
-  height: "44px",
-  borderRadius: "50%",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const actions = {
-  marginTop: "18px",
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "10px",
-};
-
-const confirmBtn = {
-  border: "none",
-  padding: "10px 16px",
-  borderRadius: "10px",
-  color: "#fff",
-  cursor: "pointer",
-};
-
-const cancelBtn = {
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "10px",
-  background: "#eee",
-  cursor: "pointer",
-};
-
-const closeBtn = {
-  border: "none",
-  background: "transparent",
-  cursor: "pointer",
-  fontSize: "14px",
-  color: "#666",
-};
-
-const input = {
-  width: "100%",
-  marginTop: "14px",
-  padding: "10px",
-  borderRadius: "10px",
-  outline: "none",
-};
-
-const errorText = {
-  color: "#ef4444",
-  fontSize: "12px",
-  marginTop: "6px",
 };
 
 export default Alert;
