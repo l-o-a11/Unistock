@@ -75,7 +75,7 @@ const UsersPage = () => {
 
   // 🔢 PAGINACIÓN VISUAL
   const getPageNumbers = () => {
-    if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
+    if (totalPages <= 7) return [...Array(totalPages)].map((_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
     for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
@@ -93,10 +93,10 @@ const UsersPage = () => {
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Usuarios</h1>
         <div style={{ width: "260px" }}>
           <SearchInput
-  value={searchTerm}
-  onChange={ handleSearch}
-  placeholder="Buscar usuario"
-/>
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Buscar usuario"
+          />
         </div>
       </div>
 

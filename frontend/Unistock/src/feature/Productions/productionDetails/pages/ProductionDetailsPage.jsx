@@ -66,7 +66,7 @@ const ProductionDetailsPage = () => {
     <div style={container}>
       {/* Botón volver */}
       <button
-        onClick={() => navigate('/Layout/produccion')}
+        onClick={() => navigate('/layout/produccion')}
         style={{
           marginBottom: 16,
           padding: '8px 16px',
@@ -323,7 +323,27 @@ const ProductionDetailsPage = () => {
       <div style={card}>
         <div style={techHeader}>
           <h3>Ficha técnica y costos</h3>
-          <span style={completedBadge}>{production.techSpecification?.completed ? 'Completado' : 'Pendiente'}</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={completedBadge}>
+              {production.techSpecification?.completed ? 'Completado' : 'Pendiente'}
+            </span>
+            {/* ✅ BOTÓN NUEVO */}
+            <button
+              onClick={() => navigate(`/layout/productos/technicalsheet/${id}`)}
+              style={{
+                padding: '4px 12px',
+                background: '#ec4899',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 500
+              }}
+            >
+              Ver ficha técnica
+            </button>
+          </div>
         </div>
 
         <div style={techRow}>
