@@ -18,13 +18,9 @@ import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
 
 // Proveedores
 import SuppliersPage from "../feature/suppliers/pages/SuppliersPage.jsx";
-import CreateSupplierPage from "../feature/suppliers/pages/CreateSupplierPage.jsx";
-import EditSupplierPage from "../feature/suppliers/pages/EditSupplierPage.jsx";
 
 // Terceros
 import ThirdPartiesPage from "../feature/third_parties/pages/Third_partiesPage.jsx";
-import CreateThirdPartiePage from "../feature/third_parties/pages/CreateThird_partiesPage.jsx";
-import EditThirdPartiePage from "../feature/third_parties/pages/EditThird_partiesPage.jsx";
 
 // Usuarios
 import UsersPage from "../feature/users/pages/UsersPage.jsx";
