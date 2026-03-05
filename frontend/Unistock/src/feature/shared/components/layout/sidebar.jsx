@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DashboardIcon from '../assets/icons/Dashboard';
-import UsuariosIcon from '../assets/icons/Usuarios';
-import ComprasIcon from '../assets/icons/Compras';
-import ProduccionIcon from '../assets/icons/Produccion';
-import ConfigIcon from '../assets/icons/Config';
-import logo from '../assets/transparent-Photoroom.png';
+import DashboardIcon from '../../../../assets/icons/Dashboard';
+import UsuariosIcon from "../../../../assets/icons/Usuarios";
+import ComprasIcon from "../../../../assets/icons/Compras";
+import ProduccionIcon from "../../../../assets/icons/Produccion";
+import ConfigIcon from "../../../../assets/icons/Config";
+import logo from '../../../../assets/transparent-Photoroom.png';
 
 const menuItems = [
   { id: 'dashboard', name: 'dashboard', icon: DashboardIcon, hasSubmenu: false, path: 'dashboard'},

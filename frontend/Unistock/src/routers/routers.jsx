@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "../feature/auth/pages/LoginPage.jsx";
 import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
-import AppLayout from "../feature/dashboard/components/layout/AppLayout.jsx";
+import AppLayout from "../layout/AppLayout.jsx";
 
 // Roles
 import RolesPage from "../feature/roles/pages/RolesPage.jsx";
