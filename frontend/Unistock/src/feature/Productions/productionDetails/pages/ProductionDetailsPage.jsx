@@ -1,23 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ProductionAPI } from '../../services/ProductionAPI';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ProductionAPI } from "../../services/ProductionAPI";
+import Button from "../../../shared/components/Button";
+import AlertEditProduction from "../pages/AlertEditProduction";
+import ProductionAlerts from "../pages/ProductionAlerts";
 
 const steps = [
-  'Diseño',
-  'Ficha Técnica',
-  'Corte',
-  'Compras',
-  'Producción',
-  'Recepción',
-  'Entregado'
+  "Diseño",
+  "Ficha Técnica",
+  "Corte",
+  "Compras",
+  "Producción",
+  "Recepción",
+  "Entregado",
 ];
+
+const EditIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+      d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0a1 1 0 00-1-1h-4a1 1 0 00-1 1m-4 0h12" />
+  </svg>
+);
 
 const ProductionDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [production, setProduction] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
+  // Alert de avance/estado/anular
+  const [productionAlert, setProductionAlert] = useState({
+    isOpen: false,
+    type: "advance",
+    targetStep: null,
+    tercero: "",
+    sede: "",
+    customTitle: undefined,
+    customMessage: undefined,
+    onConfirmOverride: null,
+  });
+
+  // Alert de edición
+  const [editAlert, setEditAlert] = useState({ isOpen: false, detail: null });
 
   useEffect(() => {
     const load = async () => {
@@ -25,7 +57,7 @@ const ProductionDetailsPage = () => {
         const data = await ProductionAPI.getById(Number(id));
         setProduction(data);
       } catch (err) {
-        setError(err.message || 'Error al obtener detalles');
+        console.error(err.message);
       } finally {
         setLoading(false);
       }
@@ -33,141 +65,172 @@ const ProductionDetailsPage = () => {
     load();
   }, [id]);
 
-  if (loading) return <p>Cargando...</p>;
-  if (error) return <p>Error: {error}</p>;
-  if (!production) return <p>No se encontró la orden de producción</p>;
+  if (loading) return <p className="p-6">Cargando...</p>;
+  if (!production) return <p className="p-6">No se encontró la orden</p>;
 
   const currentStepIndex = steps.indexOf(production.status);
   const progressPercent = Math.round(((currentStepIndex + 1) / steps.length) * 100);
-  const nextStepIndex = currentStepIndex + 1;
-  const nextStep = nextStepIndex < steps.length ? steps[nextStepIndex] : 'Completado';
+  const nextStep = steps[currentStepIndex + 1];
+  const prevStep = steps[currentStepIndex - 1];
 
-  const handlePreviousStep = () => {
-    const prevStep = currentStepIndex > 0 ? steps[currentStepIndex - 1] : null;
-    if (!prevStep) return;
-    const ok = window.confirm(`¿Cambiar estado a "${prevStep}"?`);
-    if (ok) {
-      // Aquí llamarías a updateProduction
-      console.log('Cambiar a paso anterior:', prevStep);
-    }
+  // Determina qué tipo de alerta mostrar según la transición de estado
+  const getAlertType = (from, to) => {
+    if (from === "Compras" && to === "Producción") return "third";
+    if (from === "Producción" && to === "Recepción") return "assignSede";
+    return "advance";
   };
 
+  const openProductionAlert = (overrides) => {
+    setProductionAlert({
+      isOpen: true,
+      type: "advance",
+      targetStep: null,
+      tercero: "",
+      sede: "",
+      customTitle: undefined,
+      customMessage: undefined,
+      onConfirmOverride: null,
+      ...overrides,
+    });
+  };
+
+  const closeProductionAlert = () =>
+    setProductionAlert((p) => ({ ...p, isOpen: false }));
+
   const handleNextStep = () => {
-    const nextStepName = nextStepIndex < steps.length ? steps[nextStepIndex] : null;
-    if (!nextStepName) return;
-    const ok = window.confirm(`¿Cambiar estado a "${nextStepName}"?`);
-    if (ok) {
-      // Aquí llamarías a updateProduction
-      console.log('Cambiar al siguiente paso:', nextStepName);
+    if (!nextStep) return;
+    openProductionAlert({
+      type: getAlertType(production.status, nextStep),
+      targetStep: nextStep,
+    });
+  };
+
+  const handlePreviousStep = () => {
+    if (currentStepIndex === 0) return;
+    openProductionAlert({
+      type: "advance",
+      targetStep: prevStep,
+      customTitle: "Cambiar estado",
+      customMessage: `¿Deseas regresar al estado "${prevStep}"?`,
+    });
+  };
+
+  const handleProductionAlertConfirm = () => {
+    if (productionAlert.onConfirmOverride) {
+      productionAlert.onConfirmOverride();
+      return;
     }
+    console.log(`Estado cambiado a: ${productionAlert.targetStep}`, {
+      tercero: productionAlert.tercero,
+      sede: productionAlert.sede,
+    });
+    closeProductionAlert();
+  };
+
+  const handleEditConfirm = ({ cantidad, color }) => {
+    console.log("Editar referencia:", editAlert.detail?.ref, { cantidad, color });
+    setEditAlert({ isOpen: false, detail: null });
+  };
+
+  const handleAnular = (d) => {
+    openProductionAlert({
+      type: "advance",
+      customTitle: "Anular referencia",
+      customMessage: `¿Deseas anular la referencia ${d.ref}?`,
+      onConfirmOverride: () => {
+        console.log("Anular referencia:", d.ref);
+        closeProductionAlert();
+      },
+    });
+  };
+
+  const handleSaveChanges = () => {
+    openProductionAlert({
+      type: "advance",
+      customTitle: "Guardar cambios",
+      customMessage: "¿Deseas guardar los cambios realizados?",
+      onConfirmOverride: () => {
+        console.log("Guardar cambios");
+        closeProductionAlert();
+      },
+    });
   };
 
   return (
-    <div style={container}>
-      {/* Botón volver */}
-      <button
-        onClick={() => navigate('/Layout/produccion')}
-        style={{
-          marginBottom: 16,
-          padding: '8px 16px',
-          background: '#f3f4f6',
-          border: '1px solid #ddd',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 14,
-          fontWeight: 500
-        }}
-      >
-        ← Volver a Producciones
-      </button>
+    <div className="p-6 bg-gray-100 min-h-screen" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* Header */}
-      <div style={header}>
-        <div>
-          <h2 style={{ margin: 0 }}>Orden #{production.orderNumber}</h2>
-          <span style={{ ...badge, background: production.status === 'Entregado' ? '#d1fae5' : '#fbcfe8', color: production.status === 'Entregado' ? '#065f46' : '#be185d' }}>
+      {/* ALERTA DE PRODUCCIÓN */}
+      <ProductionAlerts
+        isOpen={productionAlert.isOpen}
+        type={productionAlert.type}
+        targetStep={productionAlert.targetStep}
+        tercero={productionAlert.tercero}
+        sede={productionAlert.sede}
+        onChangeTercero={(v) => setProductionAlert((p) => ({ ...p, tercero: v }))}
+        onChangeSede={(v) => setProductionAlert((p) => ({ ...p, sede: v }))}
+        customTitle={productionAlert.customTitle}
+        customMessage={productionAlert.customMessage}
+        onAccept={handleProductionAlertConfirm}
+        onCancel={closeProductionAlert}
+      />
+
+      {/* ALERTA DE EDICIÓN */}
+      <AlertEditProduction
+        isOpen={editAlert.isOpen}
+        detail={editAlert.detail}
+        onAccept={handleEditConfirm}
+        onCancel={() => setEditAlert({ isOpen: false, detail: null })}
+      />
+
+      {/* BOTÓN VOLVER */}
+      <Button variant="secondary" onClick={() => navigate("/layout/produccion")} className="mb-4">
+        ← Volver a Producciones
+      </Button>
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-semibold">Orden #{production.orderNumber}</h2>
+          <span className="px-3 py-1 rounded-full text-xs bg-pink-200 text-pink-700">
             {production.status}
           </span>
         </div>
-        <button
-          style={saveBtn}
-          onClick={() => {
-            const ok = window.confirm('¿Deseas guardar los cambios realizados en esta orden de producción?');
-            if (ok) {
-              console.log('Guardando cambios de la orden:', production.orderNumber);
-              alert('Cambios guardados exitosamente');
-            }
-          }}
-        >
-          Guardar cambios
-        </button>
+        <Button onClick={handleSaveChanges}>Guardar cambios</Button>
       </div>
 
-      {/* Barra progreso general */}
-      <div style={card}>
-        <div style={progressHeader}>
-          <span>Proceso general de la producción</span>
-          <span>{progressPercent}%</span>
+      {/* BARRA PROGRESO */}
+      <div className="bg-white rounded-xl p-4 shadow mb-6">
+        <div className="flex justify-between text-sm mb-2">
+          <span>Proceso general de producción</span>
+          <span className="text-pink-500 font-semibold">{progressPercent}%</span>
         </div>
-        <div style={progressBar}>
-          <div style={{ ...progressFill, width: `${progressPercent}%` }} />
+        <div className="h-2 bg-pink-100 rounded overflow-hidden">
+          <div className="h-full bg-pink-500 transition-all duration-500" style={{ width: `${progressPercent}%` }} />
         </div>
-        <small>Siguiente etapa: {nextStep}</small>
+        <p className="text-xs mt-2 text-gray-500">
+          Siguiente etapa: <span className="font-medium">{nextStep || "Completado ✓"}</span>
+        </p>
       </div>
 
-      {/* Steps */}
-      <div style={card}>
-        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          {/* Líneas de conexión */}
+      {/* STEPPER */}
+      <div className="bg-white p-6 rounded-xl shadow mb-6">
+        <div className="relative flex justify-between items-center">
+          <div className="absolute top-3 left-0 right-0 h-[2px] bg-gray-200" />
+          <div
+            className="absolute top-3 left-0 h-[2px] bg-green-500 transition-all duration-500"
+            style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+          />
           {steps.map((step, i) => {
-            if (i === steps.length - 1) return null;
-            const isConnectorComplete = i < currentStepIndex;
+            const completed = i < currentStepIndex;
+            const current = i === currentStepIndex;
             return (
-              <div
-                key={`line-${i}`}
-                style={{
-                  position: 'absolute',
-                  top: 12,
-                  left: `calc(${(i + 0.5) * (100 / steps.length)}%)`,
-                  right: `calc(${(steps.length - i - 1.5) * (100 / steps.length)}%)`,
-                  height: 2,
-                  background: isConnectorComplete ? '#10b981' : '#e5e7eb',
-                  zIndex: 0
-                }}
-              />
-            );
-          })}
-
-          {/* Pasos */}
-          {steps.map((step, i) => {
-            const isCompleted = i < currentStepIndex;
-            const isCurrent = i === currentStepIndex;
-            let bgColor = '#e5e7eb';
-            let textColor = '#999';
-            if (isCurrent) {
-              bgColor = '#ec4899';
-              textColor = '#fff';
-            } else if (isCompleted) {
-              bgColor = '#10b981';
-              textColor = '#fff';
-            }
-            return (
-              <div key={i} style={{ ...stepItem, position: 'relative', zIndex: 1 }}>
-                <div
-                  style={{
-                    ...stepCircle,
-                    background: bgColor,
-                    color: textColor
-                  }}
-                >
-                  {isCompleted ? '✓' : (isCurrent ? '●' : '')}
+              <div key={i} className="flex flex-col items-center relative z-10 flex-1">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                  ${current ? "bg-pink-500 text-white" : completed ? "bg-green-500 text-white" : "bg-gray-200 text-gray-400"}`}>
+                  {completed ? "✓" : current ? "●" : ""}
                 </div>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: isCurrent ? '#ec4899' : textColor
-                  }}
-                >
+                <span className={`text-xs mt-1 ${current ? "text-pink-500 font-semibold" : "text-gray-400"}`}>
                   {step}
                 </span>
               </div>
@@ -175,117 +238,58 @@ const ProductionDetailsPage = () => {
           })}
         </div>
 
-        <div style={processBox}>
-          <strong>{production.status}</strong>
-          <p style={{ margin: '4px 0', fontSize: 13 }}>
-            Última actualización: {production.statusDate}
-          </p>
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              style={secondaryBtn}
-              disabled={currentStepIndex === 0}
-              onClick={handlePreviousStep}
-            >
+        <div className="bg-pink-50 p-4 rounded-lg mt-6">
+          <strong className="text-pink-600">{production.status}</strong>
+          <p className="text-sm text-gray-500 mt-1">Última actualización: {production.statusDate}</p>
+          <div className="flex gap-2 mt-3">
+            <Button variant="secondary" onClick={handlePreviousStep} disabled={currentStepIndex === 0}>
               Anterior
-            </button>
-            <button
-              style={primaryBtn}
-              disabled={currentStepIndex === steps.length - 1}
-              onClick={handleNextStep}
-            >
+            </Button>
+            <Button onClick={handleNextStep} disabled={currentStepIndex === steps.length - 1}>
               Siguiente
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Grid inferior */}
-      <div style={grid}>
-        {/* Referencias */}
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>Referencia</h3>
-            <button
-              onClick={() => {
-                const ok = window.confirm('¿Deseas agregar una nueva referencia?');
-                if (ok) {
-                  console.log('Agregar nueva referencia');
-                  alert('Funcionalidad de agregar referencia en desarrollo');
-                }
-              }}
-              style={{
-                padding: '6px 12px',
-                background: '#ec4899',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 500
-              }}
-            >
-              + Agregar referencia
-            </button>
-          </div>
-          <table style={{ width: '100%' }}>
+      {/* GRID */}
+      <div className="grid grid-cols-2 gap-6">
+
+        {/* REFERENCIAS */}
+        <div className="bg-white p-4 rounded-xl shadow">
+          <h3 className="font-semibold mb-4">Referencia</h3>
+          <table className="w-full text-sm">
             <thead>
-              <tr>
-                <th style={th}>Número</th>
-                <th style={th}>Código</th>
-                <th style={th}>Cantidad</th>
-                <th style={th}>Color</th>
-                <th style={th}>Acciones</th>
+              <tr className="text-gray-400 text-left border-b border-gray-100 text-xs uppercase tracking-wide">
+                <th className="pb-2">Número</th>
+                <th className="pb-2">Código</th>
+                <th className="pb-2">Cantidad</th>
+                <th className="pb-2">Color</th>
+                <th className="pb-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {production.details?.map((d, i) => (
-                <tr key={i}>
-                  <td style={td}>{d.refCorte}</td>
-                  <td style={td}>{d.ref}</td>
-                  <td style={td}>{d.quantity}</td>
-                  <td style={td}>{d.color}</td>
-                  <td style={td}>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  <td className="py-2">{d.refCorte}</td>
+                  <td className="py-2">{d.ref}</td>
+                  <td className="py-2">{d.quantity}</td>
+                  <td className="py-2">{d.color}</td>
+                  <td className="py-2">
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => {
-                          const ok = window.confirm(`¿Deseas editar la referencia ${d.ref}?`);
-                          if (ok) {
-                            console.log('Editar referencia:', d.ref);
-                            alert('Funcionalidad de editar en desarrollo');
-                          }
-                        }}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#3b82f6',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          fontSize: 12
-                        }}
+                        className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-50 hover:text-blue-600 transition"
+                        onClick={() => setEditAlert({ isOpen: true, detail: d })}
+                        title="Editar"
                       >
-                        Editar
+                        <EditIcon />
                       </button>
                       <button
-                        onClick={() => {
-                          const ok = window.confirm(`¿Deseas anular la referencia ${d.ref}?`);
-                          if (ok) {
-                            console.log('Anular referencia:', d.ref);
-                            alert('Referencia anulada');
-                          }
-                        }}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#ef4444',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          fontSize: 12
-                        }}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition"
+                        onClick={() => handleAnular(d)}
+                        title="Anular"
                       >
-                        Anular
+                        <TrashIcon />
                       </button>
                     </div>
                   </td>
@@ -295,23 +299,25 @@ const ProductionDetailsPage = () => {
           </table>
         </div>
 
-        {/* Historial */}
-        <div style={card}>
-          <h3>Historial</h3>
-          <table style={{ width: '100%' }}>
+        {/* HISTORIAL */}
+        <div className="bg-white p-4 rounded-xl shadow">
+          <h3 className="font-semibold mb-4">Historial</h3>
+          <table className="w-full text-sm">
             <thead>
-              <tr>
-                <th style={th}>Estado</th>
-                <th style={th}>Fecha</th>
-                <th style={th}>Responsable</th>
+              <tr className="text-gray-400 text-left border-b border-gray-100 text-xs uppercase tracking-wide">
+                <th className="pb-2">Estado</th>
+                <th className="pb-2">Fecha</th>
+                <th className="pb-2">Responsable</th>
               </tr>
             </thead>
             <tbody>
               {production.history?.map((h, i) => (
-                <tr key={i}>
-                  <td style={td}>{h.status}</td>
-                  <td style={td}>{h.date}</td>
-                  <td style={td}>{h.user}</td>
+                <tr key={i} className="border-b border-gray-50">
+                  <td className="py-2">
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-pink-100 text-pink-600">{h.status}</span>
+                  </td>
+                  <td className="py-2 text-gray-500">{h.date}</td>
+                  <td className="py-2 text-gray-600">{h.user}</td>
                 </tr>
               ))}
             </tbody>
@@ -319,178 +325,25 @@ const ProductionDetailsPage = () => {
         </div>
       </div>
 
-      {/* Ficha técnica */}
-      <div style={card}>
-        <div style={techHeader}>
-          <h3>Ficha técnica y costos</h3>
-          <span style={completedBadge}>{production.techSpecification?.completed ? 'Completado' : 'Pendiente'}</span>
+      {/* FICHA TÉCNICA */}
+      <div className="bg-white p-4 rounded-xl shadow mt-6">
+        <div className="flex justify-between items-center">
+          <h3 className="font-semibold">Ficha técnica y costos</h3>
+          <Button onClick={() => navigate(`/layout/productos/technicalsheet/${id}`)}>
+            Ver ficha técnica
+          </Button>
         </div>
-
-        <div style={techRow}>
-          <span>{production.techSpecification?.name || 'N/A'}</span>
-          <span>Versión {production.techSpecification?.version || '1.0'}</span>
+        <div className="flex justify-between mt-3 text-sm text-gray-600">
+          <span>{production.techSpecification?.name || "N/A"}</span>
+          <span>Versión {production.techSpecification?.version || "1.0"}</span>
         </div>
-
-        <div style={costBox}>
-          Costo final por unidad: ${production.techSpecification?.costPerUnit?.toLocaleString('es-CO') || 'N/A'}. Costo total del pedido: ${production.techSpecification?.totalCost?.toLocaleString('es-CO') || 'N/A'}
+        <div className="bg-blue-50 p-3 rounded-lg mt-3 text-sm text-blue-700">
+          <p>Costo unidad: <strong>${production.techSpecification?.costPerUnit?.toLocaleString("es-CO")}</strong></p>
+          <p className="mt-1">Costo total: <strong>${production.techSpecification?.totalCost?.toLocaleString("es-CO")}</strong></p>
         </div>
       </div>
     </div>
   );
-};
-
-/* ESTILOS */
-
-const container = {
-  padding: 24,
-  fontFamily: 'sans-serif',
-  background: '#f3f4f6'
-};
-
-const header = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 16
-};
-
-const badge = {
-  background: '#fbcfe8',
-  color: '#be185d',
-  padding: '4px 10px',
-  borderRadius: 12,
-  fontSize: 12,
-  marginLeft: 10
-};
-
-const saveBtn = {
-  background: '#ec4899',
-  color: '#fff',
-  border: 'none',
-  padding: '8px 14px',
-  borderRadius: 8,
-  cursor: 'pointer'
-};
-
-const card = {
-  background: '#fff',
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 16,
-  boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-};
-
-const progressHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginBottom: 8
-};
-
-const progressBar = {
-  height: 8,
-  background: '#fce7f3',
-  borderRadius: 8,
-  overflow: 'hidden',
-  marginBottom: 6
-};
-
-const progressFill = {
-  height: '100%',
-  background: '#ec4899'
-};
-
-const stepsContainer = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginBottom: 16
-};
-
-const stepItem = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  flex: 1
-};
-
-const stepCircle = {
-  width: 24,
-  height: 24,
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: 4,
-  fontSize: 12
-};
-
-const processBox = {
-  background: '#fce7f3',
-  padding: 16,
-  borderRadius: 10
-};
-
-const primaryBtn = {
-  background: '#ec4899',
-  color: '#fff',
-  border: 'none',
-  padding: '6px 12px',
-  borderRadius: 6,
-  cursor: 'pointer'
-};
-
-const secondaryBtn = {
-  background: '#f3f4f6',
-  border: 'none',
-  padding: '6px 12px',
-  borderRadius: 6,
-  cursor: 'pointer'
-};
-
-const grid = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 16
-};
-
-const th = {
-  textAlign: 'left',
-  fontSize: 13,
-  paddingBottom: 6,
-  color: '#6b7280'
-};
-
-const td = {
-  padding: '6px 0',
-  fontSize: 14
-};
-
-const techHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const completedBadge = {
-  background: '#d1fae5',
-  color: '#065f46',
-  padding: '4px 10px',
-  borderRadius: 10,
-  fontSize: 12
-};
-
-const techRow = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginTop: 10,
-  fontSize: 14
-};
-
-const costBox = {
-  marginTop: 12,
-  background: '#dbeafe',
-  padding: 10,
-  borderRadius: 8,
-  fontSize: 13
 };
 
 export default ProductionDetailsPage;

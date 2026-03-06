@@ -28,6 +28,7 @@ import UsersPage from "../feature/users/pages/UsersPage.jsx";
 // Producciones
 import ProductionsPage from "../feature/Productions/pages/ProductionPage.jsx";
 import ProductFrom from "../feature/products/components/ProductForm";
+import ProductionDetailsPage from "../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx";
 
 
 export function RouterApp() {
@@ -60,6 +61,7 @@ export function RouterApp() {
 
         {/* Producciones */}
         <Route path="produccion" element={<ProductionsPage />} />
+        <Route path="produccion/detail/:id" element={<ProductionDetailsPage />} />
 
         {/* Crear ficha técnica */}
         <Route path="products/create" element={<ProductFrom />} />
