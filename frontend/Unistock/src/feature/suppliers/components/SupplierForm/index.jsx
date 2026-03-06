@@ -155,7 +155,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
   /* CLICK CANCELAR */
   const handleCancelClick = () => {
     setAlertConfig({
-      open: true, type: "warning",
+      open: true, type: "confirm",
       title: "Cancelar",
       message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
       onConfirm: () => {
