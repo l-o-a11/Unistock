@@ -6,7 +6,6 @@ import { useUserDetail } from "../hooks/useUserDetail";
 import UserTable from "../components/UserTable";
 import SearchInput from "../../shared/components/Search";
 import AddUserButton from "../components/AddUserButton";
-import UserDetail from "../components/UserDetail";
 import UserForm from "../components/UserForm";
 
 const UsersPage = () => {
@@ -75,7 +74,7 @@ const UsersPage = () => {
 
   // 🔢 PAGINACIÓN VISUAL
   const getPageNumbers = () => {
-    if (totalPages <= 7) return [...Array(totalPages)].map((_, i) => i + 1);
+    if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
     for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
