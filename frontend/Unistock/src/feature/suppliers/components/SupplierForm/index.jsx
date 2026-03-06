@@ -131,19 +131,25 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
       });
       return;
     }
-    setAlertConfig({
-      open: true, type: "confirm",
-      title: "Guardar proveedor",
-      message: "¿Deseas guardar este proveedor?",
-      onConfirm: confirmSave,
-    });
-  };
-
-  /* CONFIRMAR GUARDADO */
-  const confirmSave = () => {
-    onSubmit(formData);
-    setPendingClose(true);
-    setAlertConfig(prev => ({ ...prev, open: false }));
+    try {
+      onSubmit(formData);
+      setPendingClose(true);
+      setAlertConfig({
+        open: true, type: "success",
+        title: supplier ? "Proveedor actualizado" : "Proveedor creado",
+        message: supplier
+          ? "El proveedor fue actualizado correctamente."
+          : "El proveedor fue creado correctamente.",
+        onConfirm: null,
+      });
+    } catch {
+      setAlertConfig({
+        open: true, type: "danger",
+        title: "Error al guardar",
+        message: "No se pudo guardar el proveedor. Intenta de nuevo.",
+        onConfirm: null,
+      });
+    }
   };
 
   /* CLICK CANCELAR */

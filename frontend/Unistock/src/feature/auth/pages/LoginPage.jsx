@@ -25,7 +25,7 @@ const LoginPage = () => {
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
       `}</style>
 
-            <div className="h-screen overflow-hidden flex bg-gray-200">
+            <div className="h-screen overflow-hidden flex bg-[#F8F9FA]">
                 {/* Imagen izquierda — oculta en móvil */}
                 <div className="hidden md:block md:w-1/2 relative flex-shrink-0">
                     <img src={logo} alt="Usuario" className="w-full h-full object-cover" />

@@ -1,46 +1,63 @@
-// Simulación de llamadas a la API de autenticación
-// Reemplaza las URLs con las de tu backend real
+import emailjs from "@emailjs/browser";
 
-const BASE_URL = '/api/auth';
+const EMAILJS_SERVICE_ID = "service_nokqz2k";
+const EMAILJS_TEMPLATE_ID = "template_rgm176v";
+const EMAILJS_PUBLIC_KEY = "5IVlWdQ53cSfiS0i_";
+
+// Código temporal en memoria (expira en 10 minutos)
+let pendingCode = null; // { email, code, expiresAt }
+
+const generateCode = () =>
+    Math.floor(100000 + Math.random() * 900000).toString();
 
 export const AuthAPI = {
+
     login: async ({ username, password }) => {
-        const response = await fetch(`${BASE_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-        });
-        if (!response.ok) throw new Error('Credenciales incorrectas');
-        return response.json();
+        if (!username || !password) throw new Error("Credenciales incorrectas");
+        return { token: "mock-token", user: { username } };
     },
 
     sendRecoveryCode: async (email) => {
-        const response = await fetch(`${BASE_URL}/recover-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-        });
-        if (!response.ok) throw new Error('No se pudo enviar el código');
-        return response.json();
+        const code = generateCode();
+        const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutos
+
+        pendingCode = { email, code, expiresAt };
+
+        await emailjs.send(
+            EMAILJS_SERVICE_ID,
+            EMAILJS_TEMPLATE_ID,
+            {
+                email,  // {{email}} en tu plantilla → destinatario
+                code,   // {{code}} en tu plantilla → el código
+            },
+            EMAILJS_PUBLIC_KEY
+        );
+
+        return { success: true };
     },
 
     verifyCode: async (email, code) => {
-        const response = await fetch(`${BASE_URL}/verify-code`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, code }),
-        });
-        if (!response.ok) throw new Error('Código incorrecto');
-        return response.json();
+        if (!pendingCode)
+            throw new Error("No hay código pendiente. Solicita uno nuevo.");
+
+        if (pendingCode.email !== email)
+            throw new Error("El correo no coincide.");
+
+        if (Date.now() > pendingCode.expiresAt) {
+            pendingCode = null;
+            throw new Error("El código expiró. Solicita uno nuevo.");
+        }
+
+        if (pendingCode.code !== code)
+            throw new Error("Código incorrecto.");
+
+        return { success: true };
     },
 
     changePassword: async (email, code, newPassword) => {
-        const response = await fetch(`${BASE_URL}/change-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, code, newPassword }),
-        });
-        if (!response.ok) throw new Error('No se pudo cambiar la contraseña');
-        return response.json();
+        await AuthAPI.verifyCode(email, code);
+        // Aquí conectas con tu backend para guardar la nueva contraseña
+        pendingCode = null;
+        return { success: true };
     },
 };

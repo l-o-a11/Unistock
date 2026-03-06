@@ -189,7 +189,7 @@ const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
             error={errors.sede}
           >
             <option value="">Seleccionar sede</option>
-            <option value="Parque Berrio">Parque Berrio</option>
+            <option value="Parque Berrio">Parque de Bello</option>
           </Input>
         </div>
 
