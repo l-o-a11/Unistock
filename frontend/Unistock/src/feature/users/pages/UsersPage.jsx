@@ -2,12 +2,11 @@ import React, { useState, useMemo } from "react";
 import { useUsers } from "../hooks/mockUsers";
 import { useUserSearch } from "../hooks/useUserSearch";
 import { useUserDetail } from "../hooks/useUserDetail";
-
 import UserTable from "../components/UserTable";
 import SearchInput from "../../shared/components/Search";
-import AddUserButton from "../components/AddUserButton";
 import UserDetail from "../components/UserDetail";
 import UserForm from "../components/UserForm";
+import AddUserButton from "../components/AddUserButton.jsx";
 
 const UsersPage = () => {
   const { users, createUser, updateUser, deleteUser, toggleUser } = useUsers();
