@@ -10,6 +10,7 @@ const EditSuppliesPage = () => {
   const {
     supplies,
     updateSupply,
+    categorias,
     medidas,
     propiedades,
     loading
@@ -39,6 +40,7 @@ const EditSuppliesPage = () => {
     <SupplyForm
       initialData={supply}
       onSubmit={handleSubmit}
+      categorias={categorias}
       medidas={medidas}
       propiedades={propiedades}
       loading={loading}

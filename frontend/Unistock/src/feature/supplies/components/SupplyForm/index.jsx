@@ -73,7 +73,16 @@ const SupplyForm = ({ supply, medidas = [], propiedades = [], categorias = [], o
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+
+      const dataToSubmit = {
+    ...formData,
+    categoriaId: formData.categoriaId ? parseInt(formData.categoriaId) : 0,
+    medidaId: formData.medidaId ? parseInt(formData.medidaId) : 0,
+    stock: parseFloat(formData.stock) || 0,
+    valorMedida: parseFloat(formData.valorMedida) || 0,
+  };
+
+    onSubmit(dataToSubmit);
   };
 
   // Estilos para inputs
@@ -140,7 +149,7 @@ const SupplyForm = ({ supply, medidas = [], propiedades = [], categorias = [], o
 
            
 
-
+ 
          {/* categoria y stock */}
         <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
 
@@ -387,8 +396,8 @@ const SupplyForm = ({ supply, medidas = [], propiedades = [], categorias = [], o
        
 
       {/* COLUMNA DERECHA - Imagen */}
-      <div style={{ flex: 1, display: "flex",  flexDirection: "column" }}>
-<div style={{display: "flex", justifyContent: "center",  justifyContent: "space-between", }}>
+      <div style={{ flex: 1, display: "flex",  flexDirection: "column", justifyContent: "space-between", }}>
+<div style={{display: "flex", justifyContent: "center",   }}>
               <div style={{ 
                 border: "1px solid #e5e7eb",
                 borderRadius: "8px",

@@ -17,10 +17,14 @@ const SuppliesPage = () => {
     updateSupply,
     deleteSupply,
     toggleSupply,
+    categorias,
+    medidas,
+    propiedades,
+    getCategoriaNombre,
     getMedidaNombre,
   } = useSupplies();
   const { searchTerm, handleSearch } = useSupplySearch();
-  const { selectedSupply, isOpen, openDetail, closeDetail } = useSupplyDetail();
+  const [selectedSupply, setSelectedSupply] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   // Estados para modales
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -28,12 +32,17 @@ const SuppliesPage = () => {
   const [editingSupply, setEditingSupply] = useState(null);
 
   // Filter
-  const filteredSupplies = supplies.filter(
-    (supply) =>
-      supply.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supply.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supply.categoria.toLowerCase().includes(searchTerm.toLowerCase()),
+  
+  const filteredSupplies = supplies.filter((s) => {
+  const text = searchTerm.toLowerCase();
+
+  return (
+    s.id?.toString().includes(searchTerm) ||
+    s.nombre?.toLowerCase().includes(text) ||
+    getCategoriaNombre(s.categoriaId)?.toLowerCase().includes(text) ||
+    getMedidaNombre(s.medidaId)?.toLowerCase().includes(text)
   );
+});
 
   // Pagination
   const itemsPerPage = 5;
@@ -61,9 +70,9 @@ const SuppliesPage = () => {
     setEditingSupply(null);
   };
 
-  const handleView = (supply) => {
-    navigate(`/supplies/${supply.id}`);
-  };
+ const handleView = (supply) => {
+  setSelectedSupply(supply);
+};
 
   const handleDelete = (id) => {
     if (window.confirm("¿Estás seguro de eliminar este insumo?")) {
@@ -222,6 +231,7 @@ const SuppliesPage = () => {
       {/* ── Table ── */}
       <SupplyTable
         supplies={paginatedSupplies}
+        getCategoriaNombre={getCategoriaNombre}
         getMedidaNombre={getMedidaNombre}
         onView={handleView}
         onEdit={handleEdit}
@@ -274,6 +284,9 @@ const SuppliesPage = () => {
             }}
           >
             <SupplyForm
+            categorias={categorias}
+            medidas={medidas}
+            propiedades={propiedades}
               onSubmit={handleCreateSubmit}
               onCancel={handleCloseForm}
             />
@@ -327,21 +340,26 @@ const SuppliesPage = () => {
           >
             <SupplyForm
               supply={editingSupply}
+              categorias={categorias}
+              medidas={medidas}
+              propiedades={propiedades}
               onSubmit={handleEditSubmit}
               onCancel={handleCloseForm}
             />
           </div>
         </div>
       )}
-
+      
       {/* ── SupplyDetail Modal ── */}
-      {isOpen && (
-        <SupplyDetail
-          supply={selectedSupply}
-          onClose={closeDetail}
-          onEdit={handleEdit}
-        />
-      )}
+{selectedSupply && (
+  <SupplyDetail
+    supply={selectedSupply}
+    medidas={medidas}
+    propiedades={propiedades}
+    categorias={categorias}
+    onClose={() => setSelectedSupply(null)}
+  />
+)}
 
       {/* ── Pagination (squared like SuppliesPage) ── */}
       {filteredSupplies.length > 0 && (

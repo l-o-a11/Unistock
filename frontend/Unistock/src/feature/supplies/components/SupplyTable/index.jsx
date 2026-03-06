@@ -1,7 +1,8 @@
 import React from "react";
 import HoverCard from "../HoverCard";
+import {supplyAPI} from "../../services/supplyAPI";
 
-const SupplyTable = ({ supplies = [],getMedidaNombre , onView, onEdit, onDelete, onToggle }) => {
+const SupplyTable = ({ supplies = [], getCategoriaNombre, getMedidaNombre , onView, onEdit, onDelete, onToggle }) => {
   const thStyle = {
     padding: "14px 20px",
     textAlign: "left",
@@ -46,10 +47,9 @@ const SupplyTable = ({ supplies = [],getMedidaNombre , onView, onEdit, onDelete,
         backgroundColor: "#fff",
         borderRadius: "12px",
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        overflow: "hidden",
       }}
     >
-      <div style={{ overflowX: "auto" }}>
+      <div style={{ overflowX: "visible" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           {/* HEADER */}
           <thead>
@@ -66,106 +66,57 @@ const SupplyTable = ({ supplies = [],getMedidaNombre , onView, onEdit, onDelete,
           <tbody>
             {supplies.map((supply) => {
               const isActive = supply.estado !== false;
-              return (
+               return (
                 <tr
                   key={supply.id}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#fafafa")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
+                  style={{ transition: "background 0.15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  {/* Imagen - SIEMPRE tiene hover porque muestra la imagen grande */}
+                  {/* Imagen */}
                   <td style={tdStyle}>
-                    <HoverCard
-                      content={
-                        <div>
-                          <p
-                            style={{
-                              fontWeight: "600",
-                              marginBottom: "8px",
-                              color: "#333",
-                            }}
-                          >
-                            Imagen del insumo
-                          </p>
-                          {supply.image ? (
-                            <img
-                              src={supply.image}
-                              alt={supply.name}
-                              style={{
-                                width: "128px",
-                                height: "128px",
-                                objectFit: "cover",
-                                borderRadius: "8px",
-                                border: "1px solid #eee",
-                              }}
-                            />
-                          ) : (
-                            <div
-                              style={{
-                                width: "128px",
-                                height: "128px",
-                                backgroundColor: "#f5f5f5",
-                                borderRadius: "8px",
-                                border: "1px solid #eee",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#999",
-                                fontSize: "14px",
-                              }}
-                            >
-                              Sin imagen
-                            </div>
-                          )}
-                          <p
-                            style={{
-                              fontSize: "11px",
-                              color: "#999",
-                              marginTop: "6px",
-                            }}
-                          >
-                            ID: {supply.id}
-                          </p>
-                        </div>
-                      }
-                    >
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          overflow: "hidden",
-                          border: "1px solid #eee",
-                          cursor: "pointer",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <HoverCard content={
+                      <div>
+                        <p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del insumo</p>
                         {supply.image ? (
-                          <img
-                            src={supply.image}
-                            alt={supply.name}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
+                          <img 
+                            src={supply.image} 
+                            alt={supply.name} 
+                            style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} 
                           />
                         ) : (
-                          <div
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              backgroundColor: "#f0f0f0",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#aaa",
-                              fontSize: "10px",
-                            }}
-                          >
+                          <div style={{ 
+                            width: "128px", 
+                            height: "128px", 
+                            backgroundColor: "#f5f5f5", 
+                            borderRadius: "8px", 
+                            border: "1px solid #eee",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#999",
+                            fontSize: "14px"
+                          }}>
+                            Sin imagen
+                          </div>
+                        )}
+                        <p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>ID: {supply.id}</p>
+                      </div>
+                    }>
+                      <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
+                        {supply.image ? (
+                          <img src={supply.image} alt={supply.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <div style={{ 
+                            width: "100%", 
+                            height: "100%", 
+                            backgroundColor: "#f0f0f0", 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            color: "#aaa",
+                            fontSize: "10px"
+                          }}>
                             🖼️
                           </div>
                         )}
@@ -185,10 +136,10 @@ const SupplyTable = ({ supplies = [],getMedidaNombre , onView, onEdit, onDelete,
 
                   {/* Categoria */}
                   <td style={tdStyle}>
-                    {supply.categoriaId && supply.categoriaId.length > 30
-                      ? supply.categoriaId.slice(0, 30) + "..."
-                      : supply.categoriaId}
+                    {getCategoriaNombre(supply.categoriaId)}
                   </td>
+                  
+                  
 
                   {/* Stock */}
                   <td style={tdStyle}>

@@ -6,6 +6,8 @@ export const useSupplies = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
+  const [categorias, setCategorias] = useState([]);
   const [medidas, setMedidas] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
 
@@ -20,14 +22,16 @@ export const useSupplies = () => {
     try {
       setLoading(true);
 
-      const [suppliesData, medidasData, propiedadesData] =
+      const [suppliesData, categoriasData, medidasData, propiedadesData] =
         await Promise.all([
           supplyAPI.getAll(),
+          supplyAPI.getCategorias(),
           supplyAPI.getMedidas(),
           supplyAPI.getPropiedades(),
         ]);
 
       setSupplies(suppliesData);
+      setCategorias(categoriasData);
       setMedidas(medidasData);
       setPropiedades(propiedadesData);
       setError(null);
@@ -102,6 +106,12 @@ export const useSupplies = () => {
     );
   };
 
+
+  // Obtener nombre de categoria por ID
+  const getCategoriaNombre = (categoriaId) => {
+  const categoria = categorias.find(c => c.id === categoriaId);
+  return categoria ? categoria.nombre : "Sin categoria";
+};
   // Obtener nombre de medida por ID
 
   const getMedidaNombre = (medidaId) => {
@@ -128,8 +138,10 @@ export const useSupplies = () => {
     toggleSupply,
 
     // Catálogos
+    categorias,
     medidas,
     propiedades,
+    getCategoriaNombre,
     getMedidaNombre,
     getPropiedadNombre,
   };

@@ -221,9 +221,10 @@ export const supplyAPI = {
     });
   },
 
-  getMedidas: async () => {
+    getMedidas: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        console.log('getMedidas devuelve:', MEDIDAS_PREDETERMINADAS);
         resolve([...MEDIDAS_PREDETERMINADAS]);
       }, 300);
     });
@@ -232,6 +233,7 @@ export const supplyAPI = {
   getPropiedades: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        console.log('getPropiedades devuelve:', PROPIEDADES_PREDETERMINADAS);
         resolve([...PROPIEDADES_PREDETERMINADAS]);
       }, 300);
     });
@@ -240,6 +242,7 @@ export const supplyAPI = {
   getCategorias: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        console.log('getCategorias devuelve:', CATEGORIAS_PREDETERMINADAS);
         resolve([...CATEGORIAS_PREDETERMINADAS]);
       }, 300);
     });
