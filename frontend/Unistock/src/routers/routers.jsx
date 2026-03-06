@@ -1,5 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "../feature/auth/pages/LoginPage.jsx";
 import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
 import AppLayout from "../feature/dashboard/components/layout/AppLayout.jsx";
 
@@ -26,9 +27,6 @@ import CreateThird_partiePage from '../feature/third_parties/pages/CreateThird_p
 import EditThird_partiePage from '../feature/third_parties/pages/EditThird_partiesPage.jsx';
 
 import UsersPage from '../feature/users/pages/UsersPage.jsx';
-import CreateUsersPage from '../feature/users/pages/CreateUserPage.jsx';
-import EditUserPage from "../feature/users/pages/EditUserPage.jsx";
-
 
 import ProductionsPage from '../feature/Productions/pages/ProductionPage.jsx';
 import ProductionDetailsPage from '../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx';
@@ -36,13 +34,17 @@ import ProductionDetailsPage from '../feature/Productions/productionDetails/page
 export function RouterApp() {
   return (
     <Routes>
+      <Route>
+        <Route path="/" element={<Login />} />
+      </Route>
+
       {/* Layout principal con Navbar y Sidebar */}
-      <Route path="/" element={<AppLayout />}>
-        
+      <Route path="/Layout" element={<AppLayout />}>
+
         {/* Dashboard - Ruta por defecto */}
         <Route index element={<ProductionDashboard />} />
         <Route path="dashboard" element={<ProductionDashboard />} />
-        
+
         {/* Módulo de roles */}
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/crear" element={<CreateRolPage />} />
@@ -59,31 +61,29 @@ export function RouterApp() {
         <Route path="productos" element={<ProductsPage />} />
 
         {/* Módulo de categorías */}
-        <Route path="/categorias" element={<CategoriesPage />} />
+        <Route path="categorias" element={<CategoriesPage />} />
 
-               {/* Módulo de proveedores */}
-        <Route path="/proveedores" element={<SuppliersPage />} />
-        <Route path="/proveedores/crear" element={<CreateSupplierPage />} />
-        <Route path="/proveedores/editar/:id" element={<EditSupplierPage />} />
+        {/* Módulo de proveedores */}
+        <Route path="proveedores" element={<SuppliersPage />} />
+        <Route path="proveedores/crear" element={<CreateSupplierPage />} />
+        <Route path="proveedores/editar/:id" element={<EditSupplierPage />} />
 
 
-{/* Módulo de producciones */}
-        <Route path="/produccion" element={<ProductionsPage />} />
-        <Route path="/produccion/:id" element={<ProductionDetailsPage />} />
-         {/* Módulo de terceros */}
-        <Route path="/terceros" element={<Third_partiesPage />} />
-        <Route path="/terceros/crear" element={<CreateThird_partiePage />} />
-        <Route path="/terceros/editar/:id" element={<EditThird_partiePage />} />
-        
-         {/* Módulo de usuarios */}
-         <Route path="users" element={<UsersPage />} />
-        <Route path="users/crear" element={<CreateUsersPage />} />
-        <Route path="users/editar/:id" element={<EditUserPage />} />
+        {/* Módulo de producciones */}
+        <Route path="produccion" element={<ProductionsPage />} />
+        <Route path="produccion/:id" element={<ProductionDetailsPage />} />
+        {/* Módulo de terceros */}
+        <Route path="terceros" element={<Third_partiesPage />} />
+        <Route path="terceros/crear" element={<CreateThird_partiePage />} />
+        <Route path="terceros/editar/:id" element={<EditThird_partiePage />} />
+
+        {/* Módulo de usuarios */}
+        <Route path="users" element={<UsersPage />} />
       </Route>
-      
-      
+
+
       {/* Ruta 404 - Redirige al dashboard */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/layout" replace />} />
     </Routes>
   );
 }

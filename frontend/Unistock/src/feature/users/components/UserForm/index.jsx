@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
-const UserForm = ({ user, onSubmit, onCancel }) => {
+const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
+
     const [formData, setFormData] = useState({
         documentType: user?.documentType || "",
         documentNumber: user?.documentNumber || "",
@@ -10,7 +11,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         sede: user?.sede || "",
     });
 
-    const modalRef = useRef(null);
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
@@ -26,12 +26,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         }
     }, [user]);
 
-    const handleOverlayClick = (e) => {
-        if (modalRef.current && !modalRef.current.contains(e.target)) {
-            onCancel();
-        }
-    };
-
     const handleChange = (e) => {
         const { name, value } = e.target;
 
@@ -40,7 +34,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
             [name]: value,
         }));
 
-        // limpiar error individual
         if (errors[name]) {
             setErrors((prev) => ({
                 ...prev,
@@ -87,6 +80,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         e.preventDefault();
 
         const validationErrors = validate();
+
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return;
@@ -116,195 +110,137 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     return (
         <form
             onSubmit={handleSubmit}
-            className="bg-white w-full max-w-4xl rounded-xl shadow-2xl px-10 py-4"
+            className="bg-white w-full max-w-xl rounded-xl shadow-2xl px-8 py-5 max-h-[90vh] overflow-y-auto"
         >
-            {/* Título */}
-            <h1 className="text-3xl font-bold mb-5">
+            <h1 className="text-3xl font-bold mb-3">
                 {user ? "Editar Usuario" : "Crear Usuario"}
             </h1>
 
             {/* IDENTIFICACIÓN */}
-            <div className="mb-5">
+            <div className="mb-3">
                 <h2 className="font-semibold mb-2 text-gray-700">Identificación</h2>
                 <div className="border-t border-gray-200 mb-4"></div>
 
                 <div className="grid grid-cols-2 gap-6">
-                    {/* Tipo documento */}
+
                     <div>
                         <label className="text-sm font-medium">
-                            Tipo de documento <span className="text-red-500">*</span>
+                            Tipo de documento *
                         </label>
 
-                        <div className="relative mt-2">
-                            <select
-                                name="documentType"
-                                value={formData.documentType}
-                                onChange={handleChange}
-                                className={selectStyle}
-                            >
-                                <option value="">Seleccionar Tipo</option>
-                                <option value="CC">CC</option>
-                                <option value="TI">TI</option>
-                            </select>
+                        <select
+                            name="documentType"
+                            value={formData.documentType}
+                            onChange={handleChange}
+                            className={`${selectStyle} mt-2`}
+                        >
+                            <option value="">Seleccionar Tipo</option>
+                            <option value="CC">CC</option>
+                            <option value="TI">TI</option>
+                        </select>
 
-                            {errors.documentType && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.documentType}
-                                </p>
-                            )}
-
-                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                                <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                        </div>
+                        {errors.documentType && (
+                            <p className="text-red-500 text-xs mt-1">{errors.documentType}</p>
+                        )}
                     </div>
 
-                    {/* Número documento */}
                     <div>
                         <label className="text-sm font-medium">
-                            Número de documento <span className="text-red-500">*</span>
+                            Número de documento *
                         </label>
+
                         <input
                             type="text"
                             name="documentNumber"
                             value={formData.documentNumber}
                             onChange={handleChange}
-                            className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-400 transition"
+                            className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm"
                         />
 
                         {errors.documentNumber && (
-                            <p className="text-red-500 text-xs mt-1">
-                                {errors.documentNumber}
-                            </p>
+                            <p className="text-red-500 text-xs mt-1">{errors.documentNumber}</p>
                         )}
                     </div>
                 </div>
             </div>
 
             {/* DATOS PERSONALES */}
-            <div className="mb-5">
+            <div className="mb-3">
                 <h2 className="font-semibold mb-2 text-gray-700">Datos personales</h2>
                 <div className="border-t border-gray-200 mb-4"></div>
 
-                <div className="mb-4">
-                    <label className="text-sm font-medium">Nombre completo</label>
+                <div className="mb-3">
+                    <label className="text-sm font-medium">Nombre completo *</label>
+
                     <input
                         type="text"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="Ej. Marthin Sosa"
-                        className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-400 transition"
+                        className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm"
                     />
 
                     {errors.name && (
-                        <p className="text-red-500 text-xs mt-1">
-                            {errors.name}
-                        </p>
+                        <p className="text-red-500 text-xs mt-1">{errors.name}</p>
                     )}
                 </div>
 
                 <div>
-                    <label className="text-sm font-medium">
-                        Correo electrónico <span className="text-red-500">*</span>
-                    </label>
+                    <label className="text-sm font-medium">Correo electrónico *</label>
+
                     <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="ejemplo@correo.com"
-                        className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-400 transition"
+                        className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm"
                     />
 
                     {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">
-                            {errors.email}
-                        </p>
+                        <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                     )}
                 </div>
             </div>
 
             {/* ROL */}
-            <div className="mb-10">
-                <label className="text-sm font-medium">
-                    Rol <span className="text-red-500">*</span>
-                </label>
-
+            <div className="mb-3">
+                <label className="text-sm font-medium">Rol *</label>
                 <div className="border-t border-gray-200 my-3"></div>
 
-                <div className="grid grid-cols-2 gap-6">
-                    {/* Rol */}
-                    <div className="relative">
-                        <select
-                            name="role"
-                            value={formData.role}
-                            onChange={handleChange}
-                            className={selectStyle}
-                        >
-                            <option value="">Seleccionar rol</option>
-                            <option value="Administrador">Administrador</option>
-                            <option value="Empleado">Empleado</option>
-                        </select>
+                <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className={selectStyle}
+                >
+                    <option value="">Seleccionar rol</option>
+                    <option value="Admin">gerente</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Empleado">Empleado</option>
+                </select>
 
-                        {errors.role && (
-                            <p className="text-red-500 text-xs mt-1">
-                                {errors.role}
-                            </p>
-                        )}
+                {errors.role && (
+                    <p className="text-red-500 text-xs mt-1">{errors.role}</p>
+                )}
+            </div>
 
-                        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                            <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                            >
-                                <path d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
+            {/* SEDE */}
+            <div className="mb-4">
+                <label className="text-sm font-medium">Sede *</label>
 
-                    {/* Sede */}
-                    <div className="relative">
-                        <select
-                            name="sede"
-                            value={formData.sede}
-                            onChange={handleChange}
-                            className={selectStyle}
-                        >
-                            <option value="">Sede asignada</option>
-                            <option value="Parque Berrio">Parque Berrio</option>
-                        </select>
+                <select
+                    name="sede"
+                    value={formData.sede}
+                    onChange={handleChange}
+                    className={`${selectStyle} mt-2`}
+                >
+                    <option value="">Seleccionar sede</option>
+                    <option value="Parque Berrio">Parque Berrio</option>
+                </select>
 
-                        {errors.sede && (
-                            <p className="text-red-500 text-xs mt-1">
-                                {errors.sede}
-                            </p>
-                        )}
-
-                        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                            <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                            >
-                                <path d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
+                {errors.sede && (
+                    <p className="text-red-500 text-xs mt-1">{errors.sede}</p>
+                )}
             </div>
 
             {/* BOTONES */}
@@ -312,14 +248,14 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="px-6 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition font-medium"
+                    className="px-6 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition"
                 >
                     Cancelar
                 </button>
 
                 <button
                     type="submit"
-                    className="px-6 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md hover:scale-[1.02] hover:shadow-lg transition font-medium"
+                    className="px-6 py-2 rounded-xl bg-[#FF4FD6] text-white shadow-md"
                 >
                     Guardar Usuario
                 </button>
