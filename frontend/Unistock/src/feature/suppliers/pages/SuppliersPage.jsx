@@ -4,6 +4,7 @@ import { useSuppliers } from "../hooks/mockSuppliers";
 import { useSupplierSearch } from "../hooks/useSupplierSearch";
 import { useSupplierDetail } from "../hooks/useSupplierDetail";
 
+import SupplierForm from "../components/SupplierForm";
 import SupplierTable from "../components/SupplierTable";
 import SupplierSearch from "../components/SupplierSearch";
 import AddSupplierButton from "../components/AddSupplierButton";
@@ -29,7 +30,7 @@ import SupplierDetail from "../components/SupplierDetail";
 const SupplierPage = () => {
   const navigate = useNavigate();
 
-  const { suppliers, deleteSupplier, toggleSupplier } = useSuppliers();
+  const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } = useSuppliers();
 
   const { searchTerm, handleSearch } = useSupplierSearch();
   const { selectedSupplier, isOpen, openDetail, closeDetail } =
@@ -79,15 +80,35 @@ const SupplierPage = () => {
    * handleAddSupplier - navigate to create new supplier
    */
   const handleView = (supplier) => openDetail(supplier);
-  const handleEdit = (supplier) =>
-    navigate(`/proveedores/editar/${supplier.id}`);
 
   const handleDelete = (id) => {
     if (window.confirm("¿Eliminar proveedor?")) deleteSupplier(id);
   };
 
   const handleToggle = (id) => toggleSupplier?.(id);
-  const handleAddSupplier = () => navigate("/proveedores/crear");
+
+  // Estado del modal
+  const [showForm, setShowForm] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState(null);
+
+  const handleEdit = (supplier) => {
+    setEditingSupplier(supplier);
+    setShowForm(true);
+  };
+
+  const handleAddSupplier = () => {
+    setEditingSupplier(null);
+    setShowForm(true);
+  };
+
+  const handleFormSubmit = async (data) => {
+    if (editingSupplier) {
+      await updateSupplier(editingSupplier.id, data);
+    } else {
+      await createSupplier(data);
+    }
+    setShowForm(false);
+  };
 
   /**
    * Generate page numbers for pagination display
@@ -219,6 +240,14 @@ const SupplierPage = () => {
             ›
           </button>
         </div>
+      )}
+      {/* Modal de crear/editar proveedor */}
+      {showForm && (
+        <SupplierForm
+          supplier={editingSupplier}
+          onSubmit={handleFormSubmit}
+          onCancel={() => setShowForm(false)}
+        />
       )}
     </div>
   );

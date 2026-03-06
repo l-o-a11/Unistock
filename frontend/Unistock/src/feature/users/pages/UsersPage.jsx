@@ -2,12 +2,11 @@ import React, { useState, useMemo } from "react";
 import { useUsers } from "../hooks/mockUsers";
 import { useUserSearch } from "../hooks/useUserSearch";
 import { useUserDetail } from "../hooks/useUserDetail";
-
 import UserTable from "../components/UserTable";
-import UserSearch from "../components/UserSearch";
-import AddUserButton from "../components/AddUserButton";
+import SearchInput from "../../shared/components/Search";
 import UserDetail from "../components/UserDetail";
 import UserForm from "../components/UserForm";
+import AddUserButton from "../components/AddUserButton.jsx";
 
 const UsersPage = () => {
   const { users, createUser, updateUser, deleteUser, toggleUser } = useUsers();
@@ -75,7 +74,7 @@ const UsersPage = () => {
 
   // 🔢 PAGINACIÓN VISUAL
   const getPageNumbers = () => {
-    if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
+    if (totalPages <= 7) return [...Array(totalPages)].map((_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
     for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
@@ -92,7 +91,11 @@ const UsersPage = () => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Usuarios</h1>
         <div style={{ width: "260px" }}>
-          <UserSearch value={searchTerm} onChange={handleSearch} />
+          <SearchInput
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Buscar usuario"
+          />
         </div>
       </div>
 

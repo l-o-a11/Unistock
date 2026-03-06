@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useProducts } from '../../../products/hooks/useProducts';
+import { useNavigate } from "react-router-dom";
+import ProductFrom from "../../../products/components/ProductForm";
 
 const ProductionForm = ({ Production, onSubmit, onCancel }) => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const { products = [] } = useProducts();
-  
+  const handleOpenForm = () => {
+    setShowCreateForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowCreateForm(false);
+  };
+
+  const handleCreateSubmit = (data) => {
+    console.log("Ficha técnica creada:", data);
+    setShowCreateForm(false);
+  }; const { products = [] } = useProducts();
   const [type, setType] = useState("produccion"); // produccion | diseno
   const [savedColors, setSavedColors] = useState([]);
   const [savedClients, setSavedClients] = useState([]);
@@ -57,7 +70,7 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Save color and client for future use
     saveColor(formData.color);
     saveClient(formData.cliente);
@@ -101,7 +114,7 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
       <form onSubmit={handleSubmit}>
 
         {/* ===== TIPO SOLICITUD ===== */}
-        <p style={{ fontWeight: 500, marginBottom: 10  }}>Tipo de Solicitud</p>
+        <p style={{ fontWeight: 500, marginBottom: 10 }}>Tipo de Solicitud</p>
 
         <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
 
@@ -125,11 +138,11 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
         <div style={{ display: 'flex', gap: 20, marginBottom: 15 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Referencia *</label>
-            <select 
-              name="referencia" 
-              style={inputStyle} 
+            <select
+              name="referencia"
+              style={inputStyle}
               value={formData.referencia}
-              onChange={handleChange} 
+              onChange={handleChange}
               required
             >
               <option value="">Seleccionar</option>
@@ -160,17 +173,34 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
           {type === "diseno" && (
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Diseño *</label>
-              <button type="button" style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 8,
-                background: '#FF4FD6',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer'
-              }}>
+
+              <button
+                type="button"
+                onClick={handleOpenForm}
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  borderRadius: 8,
+                  background: "#FF4FD6",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
                 Crear ficha técnica
               </button>
+
+              {showCreateForm && (
+                <div style={modalOverlayStyle}>
+                  <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+                  <div style={modalContentStyle}>
+                    <ProductFrom
+                      onSubmit={handleCreateSubmit}
+                      onCancel={handleCloseForm}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -181,14 +211,14 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
           {/* COLOR */}
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Color *</label>
-            <input 
+            <input
               list="colorList"
-              name="color" 
-              style={inputStyle} 
+              name="color"
+              style={inputStyle}
               value={formData.color}
-              onChange={handleChange} 
+              onChange={handleChange}
               placeholder="Ej: Blanco, Negro, Rojo"
-              required 
+              required
             />
             <datalist id="colorList">
               {savedColors.map((color, idx) => (
@@ -200,14 +230,14 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
           {/* CLIENTE */}
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Cliente *</label>
-            <input 
+            <input
               list="clientList"
-              name="cliente" 
-              style={inputStyle} 
+              name="cliente"
+              style={inputStyle}
               value={formData.cliente}
               onChange={handleChange}
               placeholder="Ej: Juan Pérez, Empresa XYZ"
-              required 
+              required
             />
             <datalist id="clientList">
               {savedClients.map((client, idx) => (
@@ -270,3 +300,41 @@ const ProductionForm = ({ Production, onSubmit, onCancel }) => {
 };
 
 export default ProductionForm;
+
+const modalOverlayStyle = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  zIndex: 1000,
+  pointerEvents: 'none'
+};
+
+const modalBackgroundStyle = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  pointerEvents: 'auto',
+  zIndex: 1001
+};
+
+const modalContentStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: '90%',
+  maxWidth: '1000px',
+  maxHeight: '90vh',
+  overflowY: 'auto',
+  backgroundColor: '#fff',
+  borderRadius: '12px',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+  zIndex: 1002,
+  pointerEvents: 'auto'
+};

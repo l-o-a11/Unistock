@@ -1,7 +1,9 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import Login from "../feature/auth/pages/LoginPage.jsx";
 import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
+
 import AppLayout from "../feature/dashboard/components/layout/AppLayout.jsx";
 
 import RolesPage from '../feature/roles/pages/RolesPage';
@@ -15,37 +17,48 @@ import CreateSuppliesPage from '../feature/supplies/pages/CreateSuppliesPage.jsx
 import EditSuppliesPage from '../feature/supplies/pages/EditSuppliesPage.jsx';
 
 import ProductsPage from '../feature/products/pages/ProductsPage';
+import AppLayout from "../layout/AppLayout.jsx";
 
-import CategoriesPage from '../feature/categories/pages/CategoriesPage';
+// Roles
+import RolesPage from "../feature/roles/pages/RolesPage.jsx";
+import CreateRolPage from "../feature/roles/pages/CreateRolPage.jsx";
+import EditRolPage from "../feature/roles/pages/EditRolPage.jsx";
 
-import SuppliersPage from '../feature/suppliers/pages/SuppliersPage';
-import CreateSupplierPage from '../feature/suppliers/pages/CreateSupplierPage';
-import EditSupplierPage from '../feature/suppliers/pages/EditSupplierPage.jsx';
+// Productos
+import ProductsPage from "../feature/products/pages/ProductsPage.jsx";
 
-import Third_partiesPage from '../feature/third_parties/pages/Third_partiesPage.jsx';
-import CreateThird_partiePage from '../feature/third_parties/pages/CreateThird_partiesPage.jsx';
-import EditThird_partiePage from '../feature/third_parties/pages/EditThird_partiesPage.jsx';
+// Categorías
+import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
 
-import UsersPage from '../feature/users/pages/UsersPage.jsx';
+// Proveedores
+import SuppliersPage from "../feature/suppliers/pages/SuppliersPage.jsx";
 
-import ProductionsPage from '../feature/Productions/pages/ProductionPage.jsx';
-import ProductionDetailsPage from '../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx';
+// Terceros
+import ThirdPartiesPage from "../feature/third_parties/pages/Third_partiesPage.jsx";
+
+// Usuarios
+import UsersPage from "../feature/users/pages/UsersPage.jsx";
+
+// Producciones
+import ProductionsPage from "../feature/Productions/pages/ProductionPage.jsx";
+import ProductFrom from "../feature/products/components/ProductForm";
+import ProductionDetailsPage from "../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx";
+
 
 export function RouterApp() {
   return (
     <Routes>
-      <Route>
-        <Route path="/" element={<Login />} />
-      </Route>
+      {/* Login */}
+      <Route path="/" element={<Login />} />
 
-      {/* Layout principal con Navbar y Sidebar */}
-      <Route path="/Layout" element={<AppLayout />}>
+      {/* Layout principal */}
+      <Route path="/layout" element={<AppLayout />}>
 
-        {/* Dashboard - Ruta por defecto */}
+        {/* Dashboard */}
         <Route index element={<ProductionDashboard />} />
         <Route path="dashboard" element={<ProductionDashboard />} />
 
-        {/* Módulo de roles */}
+        {/* Roles */}
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/crear" element={<CreateRolPage />} />
         <Route path="roles/editar/:id" element={<EditRolPage />} />
@@ -57,32 +70,31 @@ export function RouterApp() {
         <Route path="supplies/crear" element={<CreateSuppliesPage />} />
         <Route path="supplies/editar/:id" element={<EditSuppliesPage />} />
 
-        {/* Módulo de productos */}
+        {/* Productos */}
         <Route path="productos" element={<ProductsPage />} />
 
-        {/* Módulo de categorías */}
+        {/* Categorías */}
         <Route path="categorias" element={<CategoriesPage />} />
 
-        {/* Módulo de proveedores */}
+        {/* Proveedores */}
         <Route path="proveedores" element={<SuppliersPage />} />
-        <Route path="proveedores/crear" element={<CreateSupplierPage />} />
-        <Route path="proveedores/editar/:id" element={<EditSupplierPage />} />
 
 
-        {/* Módulo de producciones */}
+        {/* Producciones */}
         <Route path="produccion" element={<ProductionsPage />} />
-        <Route path="produccion/:id" element={<ProductionDetailsPage />} />
-        {/* Módulo de terceros */}
-        <Route path="terceros" element={<Third_partiesPage />} />
-        <Route path="terceros/crear" element={<CreateThird_partiePage />} />
-        <Route path="terceros/editar/:id" element={<EditThird_partiePage />} />
+        <Route path="produccion/detail/:id" element={<ProductionDetailsPage />} />
 
-        {/* Módulo de usuarios */}
+        {/* Crear ficha técnica */}
+        <Route path="products/create" element={<ProductFrom />} />
+        {/* Terceros */}
+        <Route path="terceros" element={<ThirdPartiesPage />} />
+
+
+        {/* Usuarios */}
         <Route path="users" element={<UsersPage />} />
       </Route>
 
-
-      {/* Ruta 404 - Redirige al dashboard */}
+      {/* 404 */}
       <Route path="*" element={<Navigate to="/layout" replace />} />
     </Routes>
   );
