@@ -29,6 +29,8 @@ import UsersPage from "../feature/users/pages/UsersPage.jsx";
 import ProductionsPage from "../feature/Productions_fixed/pages/ProductionPage.jsx";
 import ProductFrom from "../feature/productions_fixed/components/ProductionForm/index.jsx";
 import ProductionDetailsPage from "../feature/Productions_fixed/productionDetails/pages/ProductionDetailsPage.jsx";
+import EmpleoyeesPage from "../feature/employees/pages/EmployeesPage.jsx";
+import ProfilePage from "../feature/auth/pages/ProfilePage.jsx";
 
 
 export function RouterApp() {
@@ -71,6 +73,12 @@ export function RouterApp() {
 
         {/* Usuarios */}
         <Route path="users" element={<UsersPage />} />
+
+        {/* Empleados */}
+        <Route path="empleados" element={<EmpleoyeesPage />} />
+
+        {/* Perfil */}
+        <Route path="perfil" element={<ProfilePage />} />
       </Route>
 
       {/* 404 */}
