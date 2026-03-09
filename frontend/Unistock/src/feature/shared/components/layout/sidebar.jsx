@@ -19,17 +19,10 @@ const menuItems = [
   {
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
     submenu: [
-<<<<<<< HEAD
-      { name: 'Insumos', path: '/insumos' },
-      { name: 'Categorías', path: '/categorias' },
-      { name: 'Proveedores', path: '/proveedores' },
-      { name: 'Compras', path: '/compras' },
-=======
       { name: 'Insumos', path: 'insumos' },
       { name: 'Categorías', path: 'categorias' },
       { name: 'Proveedores', path: 'proveedores' },
       { name: 'Compras', path: 'compras' },
->>>>>>> 189b11c1a709e089b851c132656490b36fa35ff6
     ],
   },
   {

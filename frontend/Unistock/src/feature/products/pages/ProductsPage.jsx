@@ -401,12 +401,9 @@ const ProductsPage = () => {
         </div>
       )}
 
-<<<<<<< HEAD
 
 
       {/* ── MODAL: Ficha Técnica ── */}
-=======
->>>>>>> 189b11c1a709e089b851c132656490b36fa35ff6
       {showTechnicalSheet && (
         <TechnicalSheetModal
           product={selectedProductForSheet}
