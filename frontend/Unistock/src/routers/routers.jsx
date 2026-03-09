@@ -17,18 +17,18 @@ import ProductsPage from "../feature/products/pages/ProductsPage.jsx";
 import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
 
 // Proveedores
-import SuppliersPage from "../feature/suppliers/pages/SuppliersPage.jsx";
+import SuppliersPage from "../feature/suppliers_fixed/pages/SuppliersPage.jsx";
 
 // Terceros
-import ThirdPartiesPage from "../feature/third_parties/pages/Third_partiesPage.jsx";
+import ThirdPartiesPage from "../feature/third_parties_fixed/pages/Third_partiesPage.jsx";
 
 // Usuarios
 import UsersPage from "../feature/users/pages/UsersPage.jsx";
 
 // Producciones
-import ProductionsPage from "../feature/Productions/pages/ProductionPage.jsx";
-import ProductFrom from "../feature/products/components/ProductForm";
-import ProductionDetailsPage from "../feature/Productions/productionDetails/pages/ProductionDetailsPage.jsx";
+import ProductionsPage from "../feature/Productions_fixed/pages/ProductionPage.jsx";
+import ProductFrom from "../feature/productions_fixed/components/ProductionForm/index.jsx";
+import ProductionDetailsPage from "../feature/Productions_fixed/productionDetails/pages/ProductionDetailsPage.jsx";
 
 
 export function RouterApp() {
