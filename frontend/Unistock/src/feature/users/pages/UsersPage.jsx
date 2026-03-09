@@ -2,12 +2,10 @@ import React, { useState, useMemo } from "react";
 import { useUsers } from "../hooks/mockUsers";
 import { useUserSearch } from "../hooks/useUserSearch";
 import { useUserDetail } from "../hooks/useUserDetail";
-
-import UserTable from "../components/UserTable";
-import UserSearch from "../components/UserSearch";
-import AddUserButton from "../components/AddUserButton";
-import UserDetail from "../components/UserDetail";
-import UserForm from "../components/UserForm";
+import UserTable from "../components/UserTable/index.jsx";
+import SearchInput from "../../shared/components/Search.jsx";
+import UserForm from "../components/UserForm/index.jsx";
+import AddUserButton from "../components/AddUserButton.jsx";
 
 const UsersPage = () => {
   const { users, createUser, updateUser, deleteUser, toggleUser } = useUsers();
@@ -92,7 +90,11 @@ const UsersPage = () => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Usuarios</h1>
         <div style={{ width: "260px" }}>
-          <UserSearch value={searchTerm} onChange={handleSearch} />
+          <SearchInput
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Buscar usuario"
+          />
         </div>
       </div>
 

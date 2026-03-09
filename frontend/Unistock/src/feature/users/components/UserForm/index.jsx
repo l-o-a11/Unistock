@@ -1,267 +1,237 @@
 import React, { useState, useEffect } from "react";
+import Button from "../../../shared/components/Button";
+import Input from "../../../shared/components/Input";
+import Alert from "../../../shared/components/Alert";
+import { validators } from "../../../shared/utils/Validaciones";
 
 const UserForm = ({ user, roles = [], onSubmit, onCancel }) => {
 
-    const [formData, setFormData] = useState({
-        documentType: user?.documentType || "",
-        documentNumber: user?.documentNumber || "",
-        name: user?.name || "",
-        email: user?.email || "",
-        role: user?.role || "",
-        sede: user?.sede || "",
+  const [formData, setFormData] = useState({
+    documentType: "",
+    documentNumber: "",
+    name: "",
+    email: "",
+    role: "",
+    sede: "",
+  });
+
+  const [errors, setErrors]           = useState({});
+  const [pendingClose, setPendingClose] = useState(false); // ← nuevo flag
+  const [alertConfig, setAlertConfig] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
+
+  useEffect(() => {
+    if (user) setFormData(user);
+  }, [user]);
+
+  // Cuando la alerta de éxito se cierra, cerramos el modal
+  useEffect(() => {
+    if (pendingClose && !alertConfig.open) {
+      setPendingClose(false);
+      onCancel();
+    }
+  }, [alertConfig.open, pendingClose]);
+
+  const validateField = (name, value) => {
+    let error = "";
+    switch (name) {
+      case "documentType":   error = validators.required(value); break;
+      case "documentNumber": error = validators.required(value) || validators.numbers(value); break;
+      case "name":           error = validators.required(value); break;
+      case "email":          error = validators.required(value) || validators.email(value); break;
+      case "role":           error = validators.required(value); break;
+      case "sede":           error = validators.required(value); break;
+      default: break;
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    validateField(name, value);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    let newErrors = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      const error = validateField(key, value);
+      if (error) newErrors[key] = error;
     });
+    setErrors(newErrors);
 
-    const [errors, setErrors] = useState({});
+    if (Object.values(newErrors).some(e => e)) {
+      setAlertConfig({
+        open: true,
+        type: "warning",
+        title: "Campos incompletos",
+        message: "Corrige los campos marcados antes de continuar.",
+        onConfirm: null,
+      });
+      return;
+    }
 
-    useEffect(() => {
-        if (user) {
-            setFormData({
-                documentType: user.documentType || "",
-                documentNumber: user.documentNumber || "",
-                name: user.name || "",
-                email: user.email || "",
-                role: user.role || "",
-                sede: user.sede || "",
-            });
+    // Guardar
+    onSubmit(formData);
+
+    // Mostrar alerta de éxito y activar flag de cierre
+    setPendingClose(true);
+    setAlertConfig({
+      open: true,
+      type: "success",
+      title: user ? "Usuario actualizado" : "Usuario creado",
+      message: user
+        ? "El usuario fue actualizado correctamente."
+        : "El usuario fue creado correctamente.",
+      onConfirm: null, // el useEffect se encarga del cierre
+    });
+  };
+
+  return (
+    <>
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white w-full max-w-xl rounded-xl shadow-2xl px-8 py-5"
+      >
+        <h1 className="text-3xl font-bold mb-4">
+          {user ? "Editar Usuario" : "Crear Usuario"}
+        </h1>
+
+        {/* DOCUMENTO */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <Input
+            label="Tipo de documento *"
+            as="select"
+            name="documentType"
+            value={formData.documentType}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={errors.documentType}
+          >
+            <option value="">Seleccionar Tipo</option>
+            <option value="CC">CC</option>
+            <option value="TI">TI</option>
+          </Input>
+
+          <Input
+            label="Número de documento *"
+            name="documentNumber"
+            value={formData.documentNumber}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={errors.documentNumber}
+          />
+        </div>
+
+        {/* DATOS */}
+        <div className="mb-6">
+          <Input
+            label="Nombre completo *"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={errors.name}
+          />
+        </div>
+
+        <div className="mb-6">
+          <Input
+            type="email"
+            label="Correo electrónico *"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={errors.email}
+          />
+        </div>
+
+        {/* ROL */}
+        <div className="mb-6">
+          <Input
+            label="Rol *"
+            as="select"
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={errors.role}
+          >
+            <option value="">Seleccionar rol</option>
+            <option value="Gerente">Gerente</option>
+            <option value="Admin">Admin</option>
+            <option value="Empleado">Empleado</option>
+          </Input>
+        </div>
+
+        {/* SEDE */}
+        <div className="mb-6">
+          <Input
+            label="Sede *"
+            as="select"
+            name="sede"
+            value={formData.sede}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={errors.sede}
+          >
+            <option value="">Seleccionar sede</option>
+            <option value="Parque Berrio">Parque de Bello</option>
+          </Input>
+        </div>
+
+        {/* BOTONES */}
+        <div className="flex justify-end gap-4 mt-6">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              setAlertConfig({
+                open: true,
+                type: "warning",
+                title: "Cancelar",
+                message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
+                onConfirm: onCancel,
+              })
+            }
+          >
+            Cancelar
+          </Button>
+
+          <Button type="submit" variant="primary">
+            Guardar Usuario
+          </Button>
+        </div>
+      </form>
+
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => {
+          if (alertConfig.onConfirm) alertConfig.onConfirm();
+          setAlertConfig(prev => ({ ...prev, open: false }));
+        }}
+        onCancel={() =>
+          setAlertConfig(prev => ({ ...prev, open: false }))
         }
-    }, [user]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-
-        if (errors[name]) {
-            setErrors((prev) => ({
-                ...prev,
-                [name]: "",
-            }));
-        }
-    };
-
-    const validate = () => {
-        const errors = {};
-
-        if (!formData.documentType) {
-            errors.documentType = "Debe seleccionar tipo de documento";
-        }
-
-        if (!formData.documentNumber) {
-            errors.documentNumber = "El número de documento es obligatorio";
-        } else if (!/^\d+$/.test(formData.documentNumber)) {
-            errors.documentNumber = "Solo se permiten números";
-        }
-
-        if (!formData.name.trim()) {
-            errors.name = "El nombre completo es obligatorio";
-        }
-
-        if (!formData.email) {
-            errors.email = "El correo es obligatorio";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            errors.email = "Correo inválido";
-        }
-
-        if (!formData.role) {
-            errors.role = "Debe seleccionar un rol";
-        }
-
-        if (!formData.sede) {
-            errors.sede = "Debe seleccionar una sede";
-        }
-
-        return errors;
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        const validationErrors = validate();
-
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            return;
-        }
-
-        onSubmit(formData);
-    };
-
-    const selectStyle = `
-    w-full
-    appearance-none
-    bg-gray-50
-    border border-gray-200
-    rounded-xl
-    px-4 py-2
-    pr-10
-    text-sm
-    shadow-sm
-    hover:border-pink-300
-    focus:outline-none
-    focus:ring-2
-    focus:ring-pink-500
-    focus:border-pink-400
-    transition
-  `;
-
-    return (
-        <form
-            onSubmit={handleSubmit}
-            className="bg-white w-full max-w-xl rounded-xl shadow-2xl px-8 py-5 max-h-[90vh] overflow-y-auto"
-        >
-            <h1 className="text-3xl font-bold mb-3">
-                {user ? "Editar Usuario" : "Crear Usuario"}
-            </h1>
-
-            {/* IDENTIFICACIÓN */}
-            <div className="mb-3">
-                <h2 className="font-semibold mb-2 text-gray-700">Identificación</h2>
-                <div className="border-t border-gray-200 mb-4"></div>
-
-                <div className="grid grid-cols-2 gap-6">
-
-                    <div>
-                        <label className="text-sm font-medium">
-                            Tipo de documento *
-                        </label>
-
-                        <select
-                            name="documentType"
-                            value={formData.documentType}
-                            onChange={handleChange}
-                            className={`${selectStyle} mt-2`}
-                        >
-                            <option value="">Seleccionar Tipo</option>
-                            <option value="CC">CC</option>
-                            <option value="TI">TI</option>
-                        </select>
-
-                        {errors.documentType && (
-                            <p className="text-red-500 text-xs mt-1">{errors.documentType}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium">
-                            Número de documento *
-                        </label>
-
-                        <input
-                            type="text"
-                            name="documentNumber"
-                            value={formData.documentNumber}
-                            onChange={handleChange}
-                            className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm"
-                        />
-
-                        {errors.documentNumber && (
-                            <p className="text-red-500 text-xs mt-1">{errors.documentNumber}</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* DATOS PERSONALES */}
-            <div className="mb-3">
-                <h2 className="font-semibold mb-2 text-gray-700">Datos personales</h2>
-                <div className="border-t border-gray-200 mb-4"></div>
-
-                <div className="mb-3">
-                    <label className="text-sm font-medium">Nombre completo *</label>
-
-                    <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm"
-                    />
-
-                    {errors.name && (
-                        <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-                    )}
-                </div>
-
-                <div>
-                    <label className="text-sm font-medium">Correo electrónico *</label>
-
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="w-full mt-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm"
-                    />
-
-                    {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                    )}
-                </div>
-            </div>
-
-            {/* ROL */}
-            <div className="mb-3">
-                <label className="text-sm font-medium">Rol *</label>
-                <div className="border-t border-gray-200 my-3"></div>
-
-                <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className={selectStyle}
-                >
-                    <option value="">Seleccionar rol</option>
-                    <option value="Admin">gerente</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Empleado">Empleado</option>
-                </select>
-
-                {errors.role && (
-                    <p className="text-red-500 text-xs mt-1">{errors.role}</p>
-                )}
-            </div>
-
-            {/* SEDE */}
-            <div className="mb-4">
-                <label className="text-sm font-medium">Sede *</label>
-
-                <select
-                    name="sede"
-                    value={formData.sede}
-                    onChange={handleChange}
-                    className={`${selectStyle} mt-2`}
-                >
-                    <option value="">Seleccionar sede</option>
-                    <option value="Parque Berrio">Parque Berrio</option>
-                </select>
-
-                {errors.sede && (
-                    <p className="text-red-500 text-xs mt-1">{errors.sede}</p>
-                )}
-            </div>
-
-            {/* BOTONES */}
-            <div className="flex justify-end gap-4">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-6 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition"
-                >
-                    Cancelar
-                </button>
-
-                <button
-                    type="submit"
-                    className="px-6 py-2 rounded-xl bg-[#FF4FD6] text-white shadow-md"
-                >
-                    Guardar Usuario
-                </button>
-            </div>
-        </form>
-    );
+      />
+    </>
+  );
 };
 
 export default UserForm;

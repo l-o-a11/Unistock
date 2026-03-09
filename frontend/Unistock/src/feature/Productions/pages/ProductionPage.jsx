@@ -81,19 +81,7 @@ const ProductionsPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProductions = filteredProductions.slice(startIndex, startIndex + itemsPerPage);
 
-  /**
-   * Open create production form modal
-   */
-  const handleAddProduction = () => setShowCreateForm(true);
-
-  /**
-   * Close all modals and reset editing state
-   */
-  const handleCloseForm = () => {
-    setShowCreateForm(false);
-    setShowEditForm(false);
-    setEditingProduction(null);
-  };
+ 
 
   /**
    * Cancel a production order
@@ -144,7 +132,7 @@ const ProductionsPage = () => {
         </button>
 
         <button
-          onClick={() => navigate("/terceros")}
+          onClick={() => navigate("/Layout/terceros")}
           style={{
             padding: '8px 16px',
             borderRadius: 8,
@@ -229,21 +217,11 @@ const ProductionsPage = () => {
         </div>
 
         {/* Add new production button */}
-        <button
-          onClick={handleAddProduction}
-          style={{
-            background: '#ff4fd6',
-            color: '#fff',
-            border: 'none',
-            padding: '10px 18px',
-            borderRadius: 8,
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
-          }}
-        >
-          + Agregar nueva producción
-        </button>
+       <AddProductionButton
+  onClick={() => console.log("Agregar")}
+  onDownloadPdf={() => console.log("Descargar PDF")}
+  onCalendarClick={() => console.log("Abrir calendario")}
+/>
       </div>
 
       {/* Data table displaying paginated production records */}
