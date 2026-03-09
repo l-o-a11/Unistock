@@ -1,25 +1,13 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-export const useUserDetail = () => {
-    const [selectedUser, setSelectedUser] = useState(null);
+export const useEmployeeDetail = () => {
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
 
-    const openDetail = (User) => {
-        setSelectedUser(User);
-        setIsOpen(true);
-    };
+    const openDetail = (employee) => { setSelectedEmployee(employee); setIsOpen(true); };
+    const closeDetail = () => { setIsOpen(false); setSelectedEmployee(null); };
 
-    const closeDetail = () => {
-        setIsOpen(false);
-        setSelectedUser(null);
-    };
-
-    return {
-        selectedUser,
-        isOpen,
-        openDetail,
-        closeDetail
-    };
+    return { selectedEmployee, isOpen, openDetail, closeDetail };
 };
 
-export default useUserDetail
+export default useEmployeeDetail;

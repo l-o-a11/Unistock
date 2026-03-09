@@ -1,21 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
-export const useUserSearch = () => {
-    const [searchTerm, setSearchTerm] = useState('');
+export const useEmployeeSearch = () => {
+    const [searchTerm, setSearchTerm] = useState("");
 
-    const handleSearch = useCallback((term) => {
-        setSearchTerm(term);
-    }, []);
+    const handleSearch = useCallback((term) => setSearchTerm(term), []);
+    const clearSearch = useCallback(() => setSearchTerm(""), []);
 
-    const clearSearch = useCallback(() => {
-        setSearchTerm('');
-    }, []);
-
-    return {
-        searchTerm,
-        handleSearch,
-        clearSearch
-    };
+    return { searchTerm, handleSearch, clearSearch };
 };
 
-export default useUserSearch
+export default useEmployeeSearch;

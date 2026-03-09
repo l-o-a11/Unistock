@@ -1,77 +1,72 @@
+// src/feature/employees/pages/EmployeesPage.jsx
 import React, { useState, useMemo } from "react";
-import { useUsers } from "../hooks/mockUsers";
-import { useUserSearch } from "../hooks/useUserSearch";
-import { useUserDetail } from "../hooks/useUserDetail";
-import UserTable from "../components/UserTable/index.jsx";
+import { useEmployees } from "../hooks/mockEmployees";
+import { useEmployeeSearch } from "../hooks/useEmployeeSearch";
+import { useEmployeeDetail } from "../hooks/useEmployeeDetail";
+import EmployeeTable from "../components/EmployeeTable/index.jsx";
+import EmployeeForm from "../components/EmployeeForm/index.jsx";
+import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
 import SearchInput from "../../shared/components/Search.jsx";
-import UserForm from "../components/UserForm/index.jsx";
-import AddUserButton from "../components/AddUserButton.jsx";
 
-const UsersPage = () => {
-    const { users, createUser, updateUser, deleteUser, toggleUser } = useUsers();
-    const { searchTerm, handleSearch } = useUserSearch();
-    const { selectedUser, isOpen, openDetail, closeDetail } = useUserDetail();
+const EmployeesPage = () => {
+    const { employees, createEmployee, updateEmployee, deleteEmployee, toggleEmployee } = useEmployees();
+    const { searchTerm, handleSearch } = useEmployeeSearch();
+    const { isOpen, openDetail, closeDetail } = useEmployeeDetail();
 
     const [currentPage, setCurrentPage] = useState(1);
     const [showCreate, setShowCreate] = useState(false);
-    const [editUser, setEditUser] = useState(null); // null = cerrado, objeto = editando
+    const [editEmployee, setEditEmployee] = useState(null);
 
-    // 🔎 FILTRO
-    const filteredUsers = useMemo(() => {
-        if (!users) return [];
-        return users.filter(
-            (u) =>
-                u.nombreCompleto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.correo?.toLowerCase().includes(searchTerm.toLowerCase())
+    // 🔎 Filtro por nombre o correo
+    const filteredEmployees = useMemo(() => {
+        if (!employees) return [];
+        return employees.filter(
+            (e) =>
+                e.nombreCompleto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                e.correo?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [users, searchTerm]);
+    }, [employees, searchTerm]);
 
-    // 📄 PAGINACIÓN
+    // 📄 Paginación
     const itemsPerPage = 5;
-    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+    const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage));
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+    const paginated = filteredEmployees.slice(startIndex, startIndex + itemsPerPage);
 
-    // 🎯 ACCIONES
-    const handleView = (user) => openDetail(user);
-
-    const handleEdit = (user) => {
-        setEditUser({
-            id: user.id,
-            documentType: user.tipoDocumento,
-            documentNumber: user.numeroDocumento,
-            name: user.nombreCompleto,
-            email: user.correo,
-            role: user.rol,
-            sede: user.sede,
+    // 🎯 Acciones
+    const handleEdit = (employee) => {
+        setEditEmployee({
+            id: employee.id,
+            documentType: employee.tipoDocumento,
+            documentNumber: employee.numeroDocumento,
+            name: employee.nombreCompleto,
+            email: employee.correo,
+            sede: employee.sede,
         });
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm("¿Eliminar usuario?")) deleteUser(id);
-    };
+    const handleDelete = (id) => deleteEmployee(id);
+    const handleToggle = (id) => toggleEmployee?.(id);
 
-    const handleToggle = (id) => toggleUser?.(id);
-
-    const handleCreateSubmit = async (userData) => {
+    const handleCreateSubmit = async (formData) => {
         try {
-            await createUser(userData);
+            await createEmployee(formData);
             setShowCreate(false);
         } catch (error) {
-            console.error("Error al crear el usuario:", error);
+            console.error("Error al crear empleado:", error);
         }
     };
 
-    const handleEditSubmit = async (userData) => {
+    const handleEditSubmit = async (formData) => {
         try {
-            await updateUser(editUser.id, userData);
-            setEditUser(null);
+            await updateEmployee(editEmployee.id, formData);
+            setEditEmployee(null);
         } catch (error) {
-            console.error("Error al actualizar usuario:", error);
+            console.error("Error al actualizar empleado:", error);
         }
     };
 
-    // 🔢 PAGINACIÓN VISUAL
+    // 🔢 Paginación visual
     const getPageNumbers = () => {
         if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
         const pages = [1];
@@ -86,60 +81,54 @@ const UsersPage = () => {
 
     return (
         <div style={{ padding: "24px 32px" }}>
-            {/* 🔝 HEADER */}
+            {/* 🔝 Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Usuarios</h1>
+                <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Empleados</h1>
                 <div style={{ width: "260px" }}>
                     <SearchInput
                         value={searchTerm}
                         onChange={handleSearch}
-                        placeholder="Buscar usuario"
+                        placeholder="Buscar empleado"
                     />
                 </div>
             </div>
 
-            {/* ➕ BOTÓN */}
+            {/* ➕ Botón agregar */}
             <div style={{ backgroundColor: "#FFFFFF", display: "flex", justifyContent: "flex-end", marginBottom: "20px", padding: "12px 16px" }}>
-                <AddUserButton onClick={() => setShowCreate(true)} />
+                <AddEmployeeButton onClick={() => setShowCreate(true)} />
             </div>
 
-            {/* 📋 TABLA */}
-            <UserTable
-                users={paginatedUsers}
-                onView={handleView}
+            {/* 📋 Tabla */}
+            <EmployeeTable
+                employees={paginated}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggle={handleToggle}
             />
 
-            {/* 📦 MODAL DETALLE */}
-            {isOpen && (
-                <UserDetail user={selectedUser} onClose={closeDetail} onEdit={handleEdit} />
-            )}
-
-            {/* ➕ MODAL CREAR */}
+            {/* ➕ Modal crear */}
             {showCreate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
-                    <UserForm
+                    <EmployeeForm
                         onSubmit={handleCreateSubmit}
                         onCancel={() => setShowCreate(false)}
                     />
                 </div>
             )}
 
-            {/* ✏️ MODAL EDITAR */}
-            {editUser && (
+            {/* ✏️ Modal editar */}
+            {editEmployee && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
-                    <UserForm
-                        user={editUser}
+                    <EmployeeForm
+                        employee={editEmployee}
                         onSubmit={handleEditSubmit}
-                        onCancel={() => setEditUser(null)}
+                        onCancel={() => setEditEmployee(null)}
                     />
                 </div>
             )}
 
-            {/* 📄 PAGINACIÓN */}
-            {filteredUsers.length > 0 && (
+            {/* 📄 Paginación */}
+            {filteredEmployees.length > 0 && (
                 <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px", alignItems: "center" }}>
                     <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
                     {getPageNumbers().map((p, i) =>
@@ -175,4 +164,4 @@ const paginationBtn = {
     cursor: "pointer",
 };
 
-export default UsersPage;
+export default EmployeesPage;
