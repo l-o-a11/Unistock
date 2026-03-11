@@ -84,6 +84,14 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     image: product?.image || null,
   });
 
+  const [errors, setErrors] = useState({
+    reference: "",
+    name: "",
+    category: "",
+    price: "",
+    stock: "",
+  });
+
   const [touched, setTouched] = useState({});
   const [technicalSheet, setTechnicalSheet] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -93,124 +101,80 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
 
-  // Detectar si hay cambios sin guardar en paso 1
-  const hasChangesInStep1 = () => {
-    if (!product) {
-      // Creación: hay cambios si algún campo no está vacío
-      return formData.reference.trim() !== "" || 
-             formData.name.trim() !== "" || 
-             formData.category !== "" || 
-             formData.price !== "" || 
-             formData.stock !== "" || 
-             imagePreview !== null;
-    } else {
-      // Edición: comparar con valores originales del producto
-      return formData.reference !== product.reference ||
-             formData.name !== product.name ||
-             formData.category !== product.category ||
-             formData.price !== product.price ||
-             formData.stock !== product.stock ||
-             imagePreview !== product.image;
-    }
+  // 🔥 VALIDACIONES EN TIEMPO REAL
+  const validateReference = (value) => {
+    if (!value.trim()) return "La referencia es obligatoria";
+    if (value.trim().length < 3) return "La referencia debe tener al menos 3 caracteres";
+    return "";
   };
 
-  // Validar un campo específico
-  const isFieldValid = (field) => {
-    if (field === 'reference') return formData.reference.trim() !== '';
-    if (field === 'name') return formData.name.trim() !== '';
-    if (field === 'category') return formData.category !== '';
-    if (field === 'price') return formData.price.toString().trim() !== '';
-    if (field === 'stock') return formData.stock.toString().trim() !== '';
-    return true;
+  const validateName = (value) => {
+    if (!value.trim()) return "El nombre es obligatorio";
+    if (/\d/.test(value)) return "El nombre no puede contener números"; // 🔥 NUEVA VALIDACIÓN
+    if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres";
+    return "";
   };
 
-  // Obtener mensaje de error para un campo
-  const getFieldError = (field) => {
-    if (!touched[field]) return null;
-    if (field === 'reference' && !formData.reference.trim()) return "La referencia es obligatoria";
-    if (field === 'name' && !formData.name.trim()) return "El nombre es obligatorio";
-    if (field === 'category' && !formData.category) return "Selecciona una categoría";
-    if (field === 'price' && !formData.price) return "El precio es obligatorio";
-    if (field === 'stock' && !formData.stock) return "El stock es obligatorio";
-    return null;
+  const validateCategory = (value) => {
+    if (!value) return "Selecciona una categoría";
+    return "";
   };
 
-  // Marcar campo como tocado
+  const validatePrice = (value) => {
+    if (!value) return "El precio es obligatorio";
+    if (isNaN(value) || Number(value) <= 0) return "El precio debe ser un número positivo";
+    return "";
+  };
+
+  const validateStock = (value) => {
+    if (!value) return "El stock es obligatorio";
+    if (isNaN(value) || Number(value) < 0) return "El stock debe ser un número válido";
+    return "";
+  };
+
+  // Validar campo específico y actualizar errores
+  const validateField = (name, value) => {
+    let error = '';
+    if (name === 'reference') error = validateReference(value);
+    if (name === 'name') error = validateName(value);
+    if (name === 'category') error = validateCategory(value);
+    if (name === 'price') error = validatePrice(value);
+    if (name === 'stock') error = validateStock(value);
+    
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Validar en tiempo real mientras escribe
+    validateField(name, value);
+  };
+
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
+    // Validar al salir del campo
+    validateField(field, formData[field]);
   };
 
-  // Estilo para inputs con error
-  const getInputStyle = (field) => {
-    if (touched[field] && !isFieldValid(field)) {
-      return {
-        ...inputStyle,
-        borderBottom: "2px solid #ff4fd6",
-        backgroundColor: "#fff0f7"
-      };
-    }
-    return inputStyle;
-  };
+  // Validar todos los campos antes de enviar
+  const validateForm = () => {
+    const referenceError = validateReference(formData.reference);
+    const nameError = validateName(formData.name);
+    const categoryError = validateCategory(formData.category);
+    const priceError = validatePrice(formData.price);
+    const stockError = validateStock(formData.stock);
+    
+    setErrors({
+      reference: referenceError,
+      name: nameError,
+      category: categoryError,
+      price: priceError,
+      stock: stockError,
+    });
 
-  // Renderizar input con label y error
-  const renderField = (field, label, placeholder, type = "text", colSpan = 5) => {
-    const error = getFieldError(field);
-    return (
-      <tr>
-        <td style={headerCellStyle}>{label}:</td>
-        <td style={cellStyle} colSpan={colSpan}>
-          <div>
-            <input 
-              style={getInputStyle(field)}
-              type={type}
-              value={formData[field]} 
-              onChange={handleInputChange} 
-              name={field} 
-              placeholder={placeholder}
-              onBlur={() => handleBlur(field)}
-              min={type === "number" ? "0" : undefined}
-            />
-            {requiredStar}
-            {error && (
-              <span style={{ color: "#ff4fd6", fontSize: "11px", marginLeft: "8px", display: "block", marginTop: "4px" }}>
-                ⚠️ {error}
-              </span>
-            )}
-          </div>
-        </td>
-      </tr>
-    );
-  };
-
-  useEffect(() => {
-    const handleEsc = (e) => e.key === "Escape" && handleCancelClick();
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleTechnicalSheetChange = (sheetData) => {
-    setTechnicalSheet(sheetData);
-  };
-
-  const validateStep1 = () => {
-    // Marcar todos los campos como tocados
+    // Marcar todos como tocados
     setTouched({
       reference: true,
       name: true,
@@ -219,18 +183,21 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       stock: true
     });
 
-    const errors = [];
-    if (!formData.reference.trim()) errors.push("La referencia es obligatoria");
-    if (!formData.name.trim()) errors.push("El nombre es obligatorio");
-    if (!formData.category) errors.push("La categoría es obligatoria");
-    if (!formData.price) errors.push("El precio es obligatorio");
-    if (!formData.stock) errors.push("El stock es obligatorio");
+    const hasErrors = referenceError || nameError || categoryError || priceError || stockError;
     
-    if (errors.length > 0) {
+    if (hasErrors) {
+      // Mostrar alerta con los errores
+      const errorMessages = [];
+      if (referenceError) errorMessages.push(referenceError);
+      if (nameError) errorMessages.push(nameError);
+      if (categoryError) errorMessages.push(categoryError);
+      if (priceError) errorMessages.push(priceError);
+      if (stockError) errorMessages.push(stockError);
+      
       onShowAlert({
         type: "warning",
-        title: "Campos requeridos",
-        message: errors.join(". ")
+        title: "Campos inválidos",
+        message: errorMessages.join(". ")
       });
       return false;
     }
@@ -242,10 +209,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     if (e) e.preventDefault();
     
     if (currentStep === 1) {
-      const isValid = validateStep1();
-      if (isValid) {
-        setCurrentStep(2);
-      }
+      if (!validateForm()) return;
+      setCurrentStep(2);
       return;
     }
     
@@ -300,10 +265,71 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     });
   };
 
-  const cellStyle = { border: "1px solid #e5e7eb", padding: "8px 12px", fontSize: "13px", color: "#333" };
-  const headerCellStyle = { ...cellStyle, backgroundColor: "#f9f9f9", fontWeight: "600", fontSize: "12px", color: "#444", whiteSpace: "nowrap" };
-  const inputStyle = { width: "100%", border: "none", outline: "none", fontSize: "13px", color: "#333", background: "transparent", padding: "4px 0", transition: "all 0.2s" };
-  const requiredStar = <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>;
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setFormData((prev) => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleTechnicalSheetChange = (sheetData) => {
+    setTechnicalSheet(sheetData);
+  };
+
+  useEffect(() => {
+    const handleEsc = (e) => e.key === "Escape" && handleCancelClick();
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  // Estilo para inputs con error
+  const getInputStyle = (field) => {
+    const baseStyle = {
+      width: "100%",
+      border: "none",
+      borderBottom: "1.5px solid #d1d5db",
+      outline: "none",
+      fontSize: "13px",
+      color: "#333",
+      background: "transparent",
+      padding: "4px 0",
+      transition: "all 0.2s"
+    };
+
+    if ((touched[field] || formData[field]) && errors[field]) {
+      return {
+        ...baseStyle,
+        borderBottom: "2px solid #ff4fd6",
+        backgroundColor: "#fff0f7"
+      };
+    }
+    return baseStyle;
+  };
+
+  const cellStyle = { 
+    border: "1px solid #e5e7eb", 
+    padding: "8px 12px", 
+    fontSize: "13px", 
+    color: "#333",
+    verticalAlign: "top"
+  };
+  
+  const headerCellStyle = { 
+    ...cellStyle, 
+    backgroundColor: "#f9f9f9", 
+    fontWeight: "600", 
+    fontSize: "12px", 
+    color: "#444", 
+    whiteSpace: "nowrap",
+    width: "100px"
+  };
+
+  const requiredStar = <span style={{ color: "#ff4fd6", marginLeft: "2px", display: "inline" }}>*</span>;
 
   const isLastVersion = product ? (!selectedVersion || selectedVersion === (product?.technicalSheetVersions || 1)) : true;
 
@@ -329,7 +355,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
   // Verificar si hay campos inválidos
   const hasInvalidFields = () => {
-    return !isFieldValid('reference') || !isFieldValid('name') || !isFieldValid('category') || !isFieldValid('price') || !isFieldValid('stock');
+    return errors.reference || errors.name || errors.category || errors.price || errors.stock;
   };
 
   return (
@@ -344,69 +370,121 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
             <div style={{ flex: 2 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <tbody>
-                  {renderField("reference", "Referencia", "Ej. 3 4 5")}
-                  {renderField("name", "Nombre", "Ej. Crop Top Morado")}
-                  
-                  {/* Campo Categoría (personalizado) */}
+                  {/* Referencia */}
                   <tr>
-                    <td style={headerCellStyle}>Categoría:</td>
+                    <td style={headerCellStyle}>Referencia:</td>
                     <td style={cellStyle} colSpan={5}>
-                      <CategoryDropdown 
-                        value={formData.category} 
-                        onChange={(val) => {
-                          handleInputChange({ target: { name: "category", value: val } });
-                          handleBlur("category");
-                        }}
-                        onBlur={() => handleBlur("category")}
-                        touched={touched.category}
-                        error={getFieldError("category")}
-                      />
-                      {requiredStar}
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <input 
+                          style={getInputStyle("reference")}
+                          value={formData.reference} 
+                          onChange={handleChange} 
+                          name="reference" 
+                          placeholder="Ej. 3 4 5" 
+                          onBlur={() => handleBlur("reference")}
+                          autoFocus
+                        />
+                        {requiredStar}
+                      </div>
+                      {(touched.reference || formData.reference) && errors.reference && (
+                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
+                          ⚠ {errors.reference}
+                        </span>
+                      )}
                     </td>
                   </tr>
 
+                  {/* Nombre */}
+                  <tr>
+                    <td style={headerCellStyle}>Nombre:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <input 
+                          style={getInputStyle("name")}
+                          value={formData.name} 
+                          onChange={handleChange} 
+                          name="name" 
+                          placeholder="Ej. Crop Top Morado" 
+                          onBlur={() => handleBlur("name")}
+                        />
+                        {requiredStar}
+                      </div>
+                      {(touched.name || formData.name) && errors.name && (
+                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
+                          ⚠ {errors.name}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Categoría */}
+                  <tr>
+                    <td style={headerCellStyle}>Categoría:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <CategoryDropdown 
+                          value={formData.category} 
+                          onChange={(val) => {
+                            handleChange({ target: { name: "category", value: val } });
+                            handleBlur("category");
+                          }}
+                          onBlur={() => handleBlur("category")}
+                          touched={touched.category}
+                          error={errors.category}
+                        />
+                        {requiredStar}
+                      </div>
+                      {(touched.category || formData.category) && errors.category && (
+                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
+                          ⚠ {errors.category}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Precio y Stock */}
                   <tr>
                     <td style={headerCellStyle}>Precio:</td>
                     <td style={cellStyle}>
-                      <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                         <input 
                           style={getInputStyle("price")}
                           type="number" 
                           value={formData.price} 
-                          onChange={handleInputChange} 
+                          onChange={handleChange} 
                           name="price" 
                           placeholder="Ej. 40000" 
                           onBlur={() => handleBlur("price")}
                           min="0"
                         />
                         {requiredStar}
-                        {getFieldError("price") && (
-                          <span style={{ color: "#ff4fd6", fontSize: "11px", marginLeft: "8px", display: "block", marginTop: "4px" }}>
-                            ⚠️ {getFieldError("price")}
-                          </span>
-                        )}
                       </div>
+                      {(touched.price || formData.price) && errors.price && (
+                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
+                          ⚠ {errors.price}
+                        </span>
+                      )}
                     </td>
                     <td style={headerCellStyle}>Stock:</td>
                     <td style={cellStyle} colSpan={3}>
-                      <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                         <input 
                           style={getInputStyle("stock")}
                           type="number" 
                           value={formData.stock} 
-                          onChange={handleInputChange} 
+                          onChange={handleChange} 
                           name="stock" 
                           placeholder="Ej. 10" 
                           onBlur={() => handleBlur("stock")}
                           min="0"
                         />
                         {requiredStar}
-                        {getFieldError("stock") && (
-                          <span style={{ color: "#ff4fd6", fontSize: "11px", marginLeft: "8px", display: "block", marginTop: "4px" }}>
-                            ⚠️ {getFieldError("stock")}
-                          </span>
-                        )}
                       </div>
+                      {(touched.stock || formData.stock) && errors.stock && (
+                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
+                          ⚠ {errors.stock}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 </tbody>

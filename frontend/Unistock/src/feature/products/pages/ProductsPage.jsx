@@ -60,20 +60,35 @@ const ProductsPage = () => {
     key: Date.now()
   });
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 🔥 FILTRO MEJORADO - busca en TODOS los campos
+  const filteredProducts = products.filter(product => {
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Buscar por nombre
+    const matchesName = product.name.toLowerCase().includes(searchLower);
+    
+    // Buscar por referencia
+    const matchesReference = product.reference.toLowerCase().includes(searchLower);
+    
+    // Buscar por categoría
+    const matchesCategory = product.category.toLowerCase().includes(searchLower);
+    
+    // Buscar por precio (convertir número a string)
+    const matchesPrice = product.price?.toString().includes(searchTerm);
+    
+    // Buscar por stock (convertir número a string)
+    const matchesStock = product.stock?.toString().includes(searchTerm);
+    
+    return matchesName || matchesReference || matchesCategory || matchesPrice || matchesStock;
+  });
 
   const itemsPerPage = 7;
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
-  // 🔥 FUNCIONES CORREGIDAS PARA COINCIDIR CON ProductForm
+  // Funciones para alertas
   const handleShowAlert = ({ type, title, message }) => {
-    // Cerrar cualquier alerta del mismo tipo
     if (type === "success") {
       setSuccessAlert({ open: false, key: Date.now() });
       setTimeout(() => {

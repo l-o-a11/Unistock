@@ -59,11 +59,21 @@ const CategoriesPage = () => {
 
   const itemsPerPage = 7;
 
-  // Filtrar categorías por búsqueda
-  const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cat.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar categorías por búsqueda (nombre, descripción y cantidad)
+  const filteredCategories = categories.filter(cat => {
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Buscar por nombre
+    const matchesName = cat.name.toLowerCase().includes(searchLower);
+    
+    // Buscar por descripción
+    const matchesDescription = cat.description.toLowerCase().includes(searchLower);
+    
+    // Buscar por cantidad (convertir número a string para buscar)
+    const matchesCount = cat.productCount?.toString().includes(searchTerm);
+    
+    return matchesName || matchesDescription || matchesCount;
+  });
 
   // Paginación
   const totalPages = Math.max(1, Math.ceil(filteredCategories.length / itemsPerPage));
@@ -238,6 +248,7 @@ const CategoriesPage = () => {
     fontSize: "14px",
   };
 
+  // 🔥 MODALES CON Z-INDEX REDUCIDO (menor que las alertas)
   const modalOverlayStyle = {
     position: 'fixed',
     top: 0,
@@ -245,7 +256,7 @@ const CategoriesPage = () => {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1000,
+    zIndex: 100,  // 👈 REDUCIDO de 1000 a 100
     pointerEvents: 'none'
   };
 
@@ -257,7 +268,7 @@ const CategoriesPage = () => {
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     pointerEvents: 'auto',
-    zIndex: 1001
+    zIndex: 101,  // 👈 REDUCIDO de 1001 a 101
   };
 
   const modalContentStyle = {
@@ -272,7 +283,7 @@ const CategoriesPage = () => {
     backgroundColor: '#fff',
     borderRadius: '12px',
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    zIndex: 1002,
+    zIndex: 102,  // 👈 REDUCIDO de 1002 a 102
     pointerEvents: 'auto'
   };
 
@@ -407,85 +418,83 @@ const CategoriesPage = () => {
         </div>
       )}
 
-      {/* Alertas */}
-      <div style={{ position: 'relative', zIndex: 9999 }}>
-        {/* Alerta de éxito */}
-        <Alert
-          key={`success-${successAlert.key}`}
-          isOpen={successAlert.open}
-          type="success"
-          title={successAlert.title}
-          message={successAlert.message}
-          onConfirm={() => setSuccessAlert({ ...successAlert, open: false })}
-        />
+      {/* Alertas - SIN CONTENEDOR ADICIONAL */}
+      {/* Alerta de éxito */}
+      <Alert
+        key={`success-${successAlert.key}`}
+        isOpen={successAlert.open}
+        type="success"
+        title={successAlert.title}
+        message={successAlert.message}
+        onConfirm={() => setSuccessAlert({ ...successAlert, open: false })}
+        onCancel={() => setSuccessAlert({ ...successAlert, open: false })}
+      />
 
-        {/* Alerta de error */}
-        <Alert
-          key={`error-${errorAlert.key}`}
-          isOpen={errorAlert.open}
-          type="error"
-          title={errorAlert.title}
-          message={errorAlert.message}
-          onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
-        />
+      {/* Alerta de error */}
+      <Alert
+        key={`error-${errorAlert.key}`}
+        isOpen={errorAlert.open}
+        type="error"
+        title={errorAlert.title}
+        message={errorAlert.message}
+        onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
+        onCancel={() => setErrorAlert({ ...errorAlert, open: false })}
+      />
 
-        {/* Alerta de advertencia */}
-        <Alert
-          key={`warning-${warningAlert.key}`}
-          isOpen={warningAlert.open}
-          type="warning"
-          title={warningAlert.title}
-          message={warningAlert.message}
-          onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
-        />
+      {/* Alerta de advertencia */}
+      <Alert
+        key={`warning-${warningAlert.key}`}
+        isOpen={warningAlert.open}
+        type="warning"
+        title={warningAlert.title}
+        message={warningAlert.message}
+        onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
+        onCancel={() => setWarningAlert({ ...warningAlert, open: false })}
+      />
 
-        {/* Alerta de confirmación */}
-        <Alert
-          key={`confirm-${confirmAlert.key}`}
-          isOpen={confirmAlert.open}
-          type="confirm"
-          title={confirmAlert.title}
-          message={confirmAlert.message}
-          confirmText={confirmAlert.confirmText}
-          cancelText={confirmAlert.cancelText}
-          confirmButtonColor="#ff4fd6"
-          onConfirm={() => {
-            if (confirmAlert.onConfirm) {
-              confirmAlert.onConfirm();
-            }
-            setConfirmAlert({ ...confirmAlert, open: false });
-          }}
-          onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}
-        />
+      {/* Alerta de confirmación */}
+      <Alert
+        key={`confirm-${confirmAlert.key}`}
+        isOpen={confirmAlert.open}
+        type="confirm"
+        title={confirmAlert.title}
+        message={confirmAlert.message}
+        confirmText={confirmAlert.confirmText}
+        cancelText={confirmAlert.cancelText}
+        onConfirm={() => {
+          if (confirmAlert.onConfirm) {
+            confirmAlert.onConfirm();
+          }
+          setConfirmAlert({ ...confirmAlert, open: false });
+        }}
+        onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}
+      />
 
-        {/* Alerta de eliminación - paso confirmación */}
-        <Alert
-          key={`delete-confirm-${deleteAlert.key}`}
-          isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
-          type="confirm"
-          title="Confirmar eliminación"
-          message={`¿Seguro que deseas eliminar la categoría "${deleteAlert.categoryName}"?`}
-          confirmText="Eliminar"
-          cancelText="Cancelar"
-          confirmButtonColor="#ff4fd6"
-          onConfirm={() => setDeleteAlert({ ...deleteAlert, step: "password", key: Date.now() })}
-          onCancel={() => setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() })}
-        />
+      {/* Alerta de eliminación - paso confirmación */}
+      <Alert
+        key={`delete-confirm-${deleteAlert.key}`}
+        isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
+        type="confirm"
+        title="Confirmar eliminación"
+        message={`¿Seguro que deseas eliminar la categoría "${deleteAlert.categoryName}"?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={() => setDeleteAlert({ ...deleteAlert, step: "password", key: Date.now() })}
+        onCancel={() => setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() })}
+      />
 
-        {/* Alerta de eliminación - paso contraseña */}
-        <Alert
-          key={`delete-password-${deleteAlert.key}`}
-          isOpen={deleteAlert.open && deleteAlert.step === "password"}
-          type="password"
-          title="Confirmar eliminación"
-          message="Ingresa la contraseña de administrador"
-          confirmText="Eliminar"
-          cancelText="Cancelar"
-          confirmButtonColor="#ff4fd6"
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() })}
-        />
-      </div>
+      {/* Alerta de eliminación - paso contraseña */}
+      <Alert
+        key={`delete-password-${deleteAlert.key}`}
+        isOpen={deleteAlert.open && deleteAlert.step === "password"}
+        type="password"
+        title="Confirmar eliminación"
+        message="Ingresa la contraseña de administrador"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() })}
+      />
     </div>
   );
 };
