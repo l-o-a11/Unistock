@@ -1,25 +1,13 @@
 // Datos de ejemplo para categorías
 const mockCategories = [
-  {
-    id: "1",
-    name: "telas"
-  },
-  {
-    id: "2",
-    name: "cierres",
-  },
-  {
-    id: "3",
-    name: "Hilos",
-  },
-  {
-    id: "4",
-    name: "Botones",
-  },
-  {
-    id: "5",
-    name: "Broches",
-  },
+  { id: 1, name: "Telas" },
+  { id: 2, name: "Hilos" },
+  { id: 3, name: "Cierres" },
+  { id: 4, name: "Elásticos" },
+  { id: 5, name: "Encajes y pasamanería" },
+  { id: 6, name: "Entretelas" },
+  { id: 7, name: "Botones" },
+  { id: 8, name: "Velcros" },
 ];
 
 export const categoryAPI = {
@@ -87,9 +75,9 @@ export const categoryAPI = {
       setTimeout(() => {
         const index = mockCategories.findIndex(c => c.id === id);
         if (index !== -1) {
-          // Verificar si tiene productos asociados
-          if (mockCategories[index].productCount > 0) {
-            reject(new Error('No se puede eliminar una categoría con productos asociados'));
+          // Verificar si tiene insumos asociados
+          if (mockCategories[index].supplyCount > 0) {
+            reject(new Error('No se puede eliminar una categoría con insumos asociados'));
           } else {
             mockCategories.splice(index, 1);
             resolve();

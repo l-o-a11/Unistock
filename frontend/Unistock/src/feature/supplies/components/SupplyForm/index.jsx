@@ -1,6 +1,6 @@
 // supplies/components/SupplyForm.jsx
 import React, { useState } from "react";
-import Alert from "../Alert";
+import Alert from "../../../shared/components/Alert";
 
 const SupplyForm = ({
   supply,
@@ -48,13 +48,18 @@ const SupplyForm = ({
     required: (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) =>
       isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
+
+    onlyLetters: (v) =>
+    v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(v)
+      ? "Solo se permiten letras"
+      : "",
   };
 
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
       case "nombre":
-        error = validators.required(value);
+        error = validators.required(value) || validators.onlyLetters(value);
         break;
       case "categoriaId":
         error = validators.required(value);
@@ -74,16 +79,23 @@ const SupplyForm = ({
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
   };
+  
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+
+ const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+  validateField(name, value);
+};
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
     validateField(name, value);
   };
+  
 
   // ─── Propiedades ──────────────────────────────────────────────────────────
   const agregarPropiedad = () => {
@@ -125,28 +137,28 @@ const SupplyForm = ({
   };
 
   // ─── Submit con validación y alertas (patrón UserForm) ───────────────────
+
   const handleSubmit = (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Validar campos requeridos
-    const fieldsToValidate = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
-    let newErrors = {};
-    fieldsToValidate.forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
+  const fields = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
+  let newErrors = {};
+
+  fields.forEach((field) => {
+    const error = validateField(field, formData[field]);
+    if (error) newErrors[field] = error;
+  });
+
+  setErrors(newErrors);
+
+  if (Object.values(newErrors).some((e) => e)) {
+    showAlert({
+      type: "warning",
+      message: "Corrige los campos marcados"
     });
-    setErrors(newErrors);
-
-    if (Object.values(newErrors).some((e) => e)) {
-      // Alerta warning — igual que UserForm
-      showAlert({
-        type: "warning",
-        message: "Corrige los campos marcados antes de continuar",
-      });
-      return;
-    }
-
-    const dataToSubmit = {
+    return;
+  }
+  const dataToSubmit = {
       ...formData,
       categoriaId: formData.categoriaId ? parseInt(formData.categoriaId) : 0,
       medidaId: formData.medidaId ? parseInt(formData.medidaId) : 0,
@@ -154,14 +166,16 @@ const SupplyForm = ({
       valorMedida: parseFloat(formData.valorMedida) || 0,
     };
 
-    onSubmit(dataToSubmit);
+  onSubmit(dataToSubmit);
 
-    // Alerta success — el padre puede cerrar el form después
-    showAlert({
-      type: "success",
-      message: supply ? "Insumo actualizado correctamente" : "Insumo creado correctamente",
-    });
-  };
+  showAlert({
+    type: "success",
+    message: supply
+      ? "Insumo actualizado correctamente"
+      : "Insumo creado correctamente"
+  });
+};
+
 
   // ─── Cancelar con confirm — igual que UserForm ───────────────────────────
   const handleCancel = () => {
@@ -202,6 +216,7 @@ const SupplyForm = ({
   const requiredStar = (
     <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>
   );
+
 
   return (
     <>
@@ -459,11 +474,20 @@ const SupplyForm = ({
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "15px", marginTop: "30px" }}>
             <button
               type="button"
-              onClick={handleCancel}
+              onClick={() =>
+              showAlert({
+                open: true,
+                type: "confirm",
+                message: "¿Seguro que deseas cancelar?",
+                onConfirm: onCancel,
+              })
+            }
               style={{ padding: "10px 32px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", color: "#555", cursor: "pointer" }}
             >
               Cancelar
             </button>
+
+
             <button
               type="button"
               onClick={handleSubmit}

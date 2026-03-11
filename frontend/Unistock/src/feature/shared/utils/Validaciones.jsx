@@ -20,4 +20,11 @@ export const validators = {
     return "";
   },
 
+  onlyLetters: (value) =>
+    value && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(value)
+      ? "Solo se permiten letras"
+      : "",
+  
+    
+
 };

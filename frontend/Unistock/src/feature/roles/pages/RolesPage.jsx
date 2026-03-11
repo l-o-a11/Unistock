@@ -22,6 +22,7 @@ const RolesPage = () => {
   // ─────────────────────────────
   const filteredRoles = roles.filter(
     (rol) =>
+      rol.id.toString().includes(searchTerm) ||
       rol.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rol.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -260,11 +261,6 @@ const RolesPage = () => {
           </button>
           </div>
       )}
-
-
-
-
-
     </div>
   );
 };

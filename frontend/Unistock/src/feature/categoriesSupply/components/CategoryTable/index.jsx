@@ -1,6 +1,7 @@
 import React from 'react';
-import HoverCard from '../../../products/components/HoverCard'; 
+import HoverCard from '../../../shared/components/HoverCart'; 
 import { CATEGORY_COLORS } from '../../types/constants';
+import BaseTable from '../../../shared/components/Table';
 
 const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
   const thStyle = {
@@ -78,7 +79,7 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
 
                   
                 >
-                  {/* CANTIDAD - SIN HOVER (números cortos) */}
+                  {/* ID - SIN HOVER (números cortos) */}
                   <td style={tdStyle}>
                     <span style={{ color: '#666', fontSize: '14px' }}>
                       {category.id}

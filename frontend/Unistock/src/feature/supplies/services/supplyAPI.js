@@ -2,23 +2,30 @@
 export const MEDIDAS_PREDETERMINADAS = [
   { id: 1, nombre: "Unidad" },
   { id: 2, nombre: "Metro" },
-  { id: 3, nombre: "Rollo" }
+  { id: 3, nombre: "Rollo" },
+  { id: 4, nombre: "Paquete" },
+  { id: 5, nombre: "Caja" },
+  { id: 6, nombre: "Litro" },
+  
 ];
 
 export const PROPIEDADES_PREDETERMINADAS = [
-  { id: 1, nombre: "Color" },
-  { id: 2, nombre: "Ancho" },
-  { id: 3, nombre: "Elasticidad" },
-  { id: 4, nombre: "Diseño" }
+  { id: 1, nombre: "Color" }, //string
+  { id: 2, nombre: "tamaño" }, //int
+  { id: 3, nombre: "Elasticidad" }, 
+  { id: 4, nombre: "Diseño" }, //string
+  { id: 5, nombre: "Material" }, //string
 ];
 
 export const CATEGORIAS_PREDETERMINADAS = [
   { id: 1, nombre: "Telas" },
   { id: 2, nombre: "Hilos" },
-  { id: 3, nombre: "Cierres y botones" },
+  { id: 3, nombre: "Cierres" },
   { id: 4, nombre: "Elásticos" },
   { id: 5, nombre: "Encajes y pasamanería" },
-  { id: 6, nombre: "Entretelas" }
+  { id: 6, nombre: "Entretelas" },
+  { id: 7, nombre: "Botones" },
+  { id: 8, nombre: "Velcros" },
 ];
 
 export const INITIAL_SUPPLIES = [
@@ -39,86 +46,87 @@ export const INITIAL_SUPPLIES = [
   {
     image: null,
     id: 2,
-    nombre: "Tela blanca encaje",
-    categoriaId: 1,
-    stock: 10,
-    valorMedida: 45,
-    medidaId: 1,
-    estado: true,
-    propiedades: [
-      { id: 1, propiedadId: 1, valor: "Algodón" },
-      { id: 2, propiedadId: 2, valor: "Ligero" }
-    ]
-  },
-  {
-    image: null,
-    id: 3,
-    nombre: "Tela blanca encaje",
-    categoriaId: 1,
-    stock: 10,
-    valorMedida: 45,
-    medidaId: 1,
-    estado: true,
-    propiedades: [
-      { id: 1, propiedadId: 1, valor: "Algodón" },
-      { id: 2, propiedadId: 2, valor: "Ligero" }
-    ]
-  },
-  {
-    image: null,
-    id: 4,
-    nombre: "Tela blanca encaje",
-    categoriaId: 1,
-    stock: 10,
-    valorMedida: 45,
-    medidaId: 1,
-    estado: false,
-    propiedades: [
-      { id: 1, propiedadId: 1, valor: "Algodón" },
-      { id: 2, propiedadId: 2, valor: "Ligero" }
-    ]
-  },
-  {
-    image: null,
-    id: 5,
-    nombre: "Tela blanca encaje",
-    categoriaId: 1,
-    stock: 10,
-    valorMedida: 45,
-    medidaId: 1,
-    estado: true,
-    propiedades: [
-      { id: 1, propiedadId: 1, valor: "Algodón" },
-      { id: 2, propiedadId: 2, valor: "Ligero" }
-    ]
-  },
-  {
-    image: null,
-    id: 6,
-    nombre: "Tela blanca encaje",
-    categoriaId: 1,
-    stock: 10,
-    valorMedida: 45,
-    medidaId: 1,
-    estado: false,
-    propiedades: [
-      { id: 1, propiedadId: 1, valor: "Algodón" },
-      { id: 2, propiedadId: 2, valor: "Ligero" }
-    ]
-  },
-  { 
-    image: null,
-    id: 7,
-    nombre: "Hilo",
+    nombre: "Hilo ",
     categoriaId: 2,
-    stock: 25,
-    valorMedida: 5,
-    medidaId: 3,
+    stock: 10,
+    valorMedida: 45,
+    medidaId: 1,
     estado: true,
     propiedades: [
-      { id: 3, propiedadId: 1, valor: "Poliéster" }
+      { id: 1, propiedadId: 1, valor: "Algodón" },
+      { id: 2, propiedadId: 2, valor: "Ligero" }
     ]
   },
+  {
+  image: null,
+  id: 3,
+  nombre: "Botón",
+  categoriaId: 7,
+  stock: 200,
+  valorMedida: 200,
+  medidaId: 1,
+  estado: true,
+  propiedades: [
+    { id: 3, propiedadId: 1, valor: "Plástico" },
+    { id: 4, propiedadId: 2, valor: "Negro" }
+  ]
+},
+  {
+  image: null,
+  id: 4,
+  nombre: "Cierre de plastico",
+  categoriaId: 3,
+  stock: 50,
+  valorMedida: 20,
+  medidaId: 1,
+  estado: true,
+  propiedades: [
+    { id: 5, propiedadId: 1, valor: "Metal" },
+    { id: 6, propiedadId: 2, valor: "20 cm" }
+  ]
+},
+  {
+  image: null,
+  id: 5,
+  nombre: "Elástico",
+  categoriaId: 4,
+  stock: 30,
+  valorMedida: 10,
+  medidaId: 1,
+  estado: true,
+  propiedades: [
+    { id: 7, propiedadId: 1, valor: "Poliéster" },
+    { id: 8, propiedadId: 2, valor: "Flexible" }
+  ]
+},
+  {
+  image: null,
+  id: 6,
+  nombre: "Entretela",
+  categoriaId: 6,
+  stock: 25,
+  valorMedida: 5,
+  medidaId: 1,
+  estado: true,
+  propiedades: [
+    { id: 9, propiedadId: 1, valor: "Fusible" },
+    { id: 10, propiedadId: 2, valor: "Blanca" }
+  ]
+},
+  {
+  image: null,
+  id: 7,
+  nombre: "Velcro",
+  categoriaId: 8,
+  stock: 40,
+  valorMedida: 3,
+  medidaId: 1,
+  estado: true,
+  propiedades: [
+    { id: 11, propiedadId: 1, valor: "Nylon" },
+    { id: 12, propiedadId: 2, valor: "Negro" }
+  ]
+},
   {
     image: null,
     id: 8,

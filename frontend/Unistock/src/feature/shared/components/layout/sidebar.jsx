@@ -20,7 +20,7 @@ const menuItems = [
     id: 'compras', name: 'Compras', icon: ComprasIcon, hasSubmenu: true,
     submenu: [
       { name: 'Insumos', path: 'insumos' },
-      { name: 'Categorías', path: 'categorias' },
+      { name: 'Categorías', path: 'categoriasInsumos' },
       { name: 'Proveedores', path: 'proveedores' },
       { name: 'Compras', path: 'compras' },
     ],

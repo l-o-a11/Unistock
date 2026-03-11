@@ -5,18 +5,16 @@ import Login from "../feature/auth/pages/LoginPage.jsx";
 import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
 
 import AppLayout from "../layout/AppLayout.jsx";
-
+// Roles
 import RolesPage from '../feature/roles/pages/RolesPage';
 import CreateRolPage from '../feature/roles/pages/CreateRolPage.jsx';
 import EditRolPage from '../feature/roles/pages/EditRolPage.jsx';
-
-import CategoriesSupplyPage from '../feature/categoriesSupply/pages/CategoriesSupplyPage';
-
+//Categorias de insumos
+import CategoriesSupplyPage from '../feature/categoriesSupply/pages/CategoriesSupplyPage.jsx';
+//insumos
 import SuppliesPage from '../feature/supplies/pages/SuppliesPage.jsx';
 import CreateSuppliesPage from '../feature/supplies/pages/CreateSuppliesPage.jsx';
 import EditSuppliesPage from '../feature/supplies/pages/EditSuppliesPage.jsx';
-
-
 
 // Productos
 import ProductsPage from "../feature/products/pages/ProductsPage.jsx";
@@ -58,7 +56,7 @@ export function RouterApp() {
         <Route path="roles/editar/:id" element={<EditRolPage />} />
 
           {/* Módulo de categorías */}
-        <Route path="categorias" element={<CategoriesSupplyPage />} />
+        <Route path="categoriasInsumos" element={<CategoriesSupplyPage />} />
 
          {/* Módulo de insumos */}
         <Route path="insumos" element={<SuppliesPage />} />
