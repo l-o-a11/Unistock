@@ -1,13 +1,26 @@
 import React, { useState } from "react";
-import Alert from "../Alert";
+import { useNavigate } from "react-router-dom";
+import Alert from "../../../shared/components/Alert";
 
 const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("info");
   const [deleteAlert, setDeleteAlert] = useState({ open: false, step: "confirm" });
 
   if (!Third_partie) return null;
 
-  const isActive = Third_partie.estado !== false;
+  const isActive   = Third_partie.estado !== false;
+  const producciones = Third_partie.producciones || [];
+  const hasProd    = producciones.length > 0;
+
+  const handleDeleteClick = () => {
+    if (hasProd) {
+      // Se bloquea — mostrar error en Alert
+      setDeleteAlert({ open: true, step: "blocked" });
+    } else {
+      setDeleteAlert({ open: true, step: "confirm" });
+    }
+  };
 
   const handleDeleteConfirmed = () => {
     onDelete?.(Third_partie.id);
@@ -15,75 +28,101 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
     onClose?.();
   };
 
-  // Producciones del tercero (puede venir como prop o campo del objeto)
-  const producciones = Third_partie.producciones || [];
-
   return (
     <div style={styles.card}>
       {/* HEADER */}
       <div style={styles.header}>
-        <span style={styles.id}>#{Third_partie.id}</span>
-        <h1 style={styles.title}>{Third_partie.nombre || Third_partie.nombreEmpresa}</h1>
-        <p style={styles.subtitle}>{Third_partie.contacto || Third_partie.nombreContacto}</p>
-        <span style={{
-          display: "inline-block",
-          marginTop: "6px",
-          padding: "3px 10px",
-          borderRadius: "20px",
-          fontSize: "12px",
-          fontWeight: "600",
-          backgroundColor: isActive ? "#dcfce7" : "#f3f4f6",
-          color: isActive ? "#16a34a" : "#6b7280",
-        }}>
-          {isActive ? "Activo" : "Inactivo"}
-        </span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <span style={styles.id}>{Third_partie.codigo || `#${Third_partie.id}`}</span>
+          <span style={{
+            padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+            backgroundColor: isActive ? "#dcfce7" : "#f3f4f6",
+            color: isActive ? "#16a34a" : "#6b7280",
+          }}>
+            {isActive ? "Activo" : "Inactivo"}
+          </span>
+        </div>
+        <h1 style={styles.title}>{Third_partie.nombreEmpresa || Third_partie.nombre}</h1>
+        <p style={styles.subtitle}>{Third_partie.nombreContacto || Third_partie.contacto}</p>
       </div>
 
       {/* TABS */}
       <div style={styles.tabs}>
-        <button
-          onClick={() => setTab("info")}
-          style={{ ...styles.tab, borderBottom: tab === "info" ? styles.activeBorder : "2px solid transparent" }}
-        >
-          Información general
-        </button>
-        <button
-          onClick={() => setTab("prod")}
-          style={{ ...styles.tab, borderBottom: tab === "prod" ? styles.activeBorder : "2px solid transparent" }}
-        >
-          Producciones
-        </button>
+        {["info", "prod"].map(t => (
+          <button key={t}
+            onClick={() => setTab(t)}
+            style={{ ...styles.tab, borderBottom: tab === t ? "2px solid #E91E8C" : "2px solid transparent", color: tab === t ? "#E91E8C" : "#555" }}>
+            {t === "info" ? "Información general" : `Producciones${hasProd ? ` (${producciones.length})` : ""}`}
+          </button>
+        ))}
       </div>
 
       {/* INFO */}
       {tab === "info" && (
         <div style={styles.infoGrid}>
-          <LabelValue label="NIT"       value={Third_partie.nit} />
-          <LabelValue label="Dirección" value={Third_partie.direccion} />
-          <LabelValue label="Teléfono"  value={Third_partie.telefono} />
-          <LabelValue label="Correo"    value={Third_partie.correo || Third_partie.email || "—"} />
-          <LabelValue label="Estado"    value={isActive ? "Activo" : "Inactivo"} />
+          <LV label="NIT"       value={Third_partie.nit} />
+          <LV label="Dirección" value={Third_partie.direccion} />
+          <LV label="Teléfono"  value={Third_partie.telefono} />
+          <LV label="Correo"    value={Third_partie.correo || Third_partie.email} />
+          {(Third_partie.sitioweb || Third_partie.sitioWeb) && (
+            <>
+              <div style={styles.label}>Sitio web</div>
+              <div style={styles.value}>
+                <a href={Third_partie.sitioweb || Third_partie.sitioWeb} target="_blank" rel="noreferrer"
+                  style={{ color: "#E91E8C", textDecoration: "none", fontSize: 13 }}>
+                  {Third_partie.sitioweb || Third_partie.sitioWeb}
+                </a>
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {/* PRODUCCIONES */}
       {tab === "prod" && (
-        <div style={{ marginTop: "24px" }}>
+        <div style={{ marginTop: 20 }}>
           {producciones.length === 0 ? (
-            <p style={{ color: "#999", fontSize: "14px" }}>No hay producciones asociadas.</p>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#bbb" }}>
+              <p style={{ fontSize: 13 }}>No hay producciones asociadas</p>
+            </div>
           ) : (
-            <table style={styles.prodTable}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th style={styles.prodTh}>Orden</th>
-                  <th style={styles.prodTh}>Fecha</th>
+                  <th style={styles.th}>Orden</th>
+                  <th style={styles.th}>Fecha</th>
+                  <th style={styles.th}>Ver</th>
                 </tr>
               </thead>
               <tbody>
                 {producciones.map((prod, i) => (
-                  <tr key={i} style={styles.prodRow}>
-                    <td style={styles.prodTd}>{prod.orden}</td>
-                    <td style={styles.prodTd}>{prod.fecha}</td>
+                  <tr key={i} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                    <td style={styles.td}>
+                      <span style={{ fontWeight: 700, color: "#E91E8C", fontSize: 13 }}>
+                        #{prod.orden || prod.orderNumber}
+                      </span>
+                    </td>
+                    <td style={styles.td}>{prod.fecha || "—"}</td>
+                    <td style={styles.td}>
+                      {prod.produccionId && (
+                        <button
+                          onClick={() => navigate(`/layout/produccion/detalle/${prod.produccionId}`)}
+                          style={{
+                            background: "none", border: "none", cursor: "pointer",
+                            color: "#E91E8C", fontSize: 12, fontWeight: 600,
+                            display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                          </svg>
+                          Ver
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -94,16 +133,23 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
 
       {/* ACTIONS */}
       <div style={styles.actions}>
-        <button
-          style={styles.deleteBtn}
-          onClick={() => setDeleteAlert({ open: true, step: "confirm" })}
-        >
+        <button style={{ ...styles.deleteBtn, opacity: hasProd ? 0.5 : 1 }} onClick={handleDeleteClick}>
           Eliminar
         </button>
         <button style={styles.editBtn} onClick={() => onEdit?.(Third_partie)}>
           Editar
         </button>
       </div>
+
+      {/* Alert: bloqueado por producciones */}
+      <Alert
+        isOpen={deleteAlert.open && deleteAlert.step === "blocked"}
+        type="error"
+        title="No se puede eliminar"
+        message={`Este tercero tiene ${producciones.length} producción(es) asignada(s). Desvincula las producciones antes de eliminarlo.`}
+        onConfirm={() => setDeleteAlert({ open: false, step: "confirm" })}
+        onCancel={() => setDeleteAlert({ open: false, step: "confirm" })}
+      />
 
       {/* Paso 1: confirmar intención */}
       <Alert
@@ -115,7 +161,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
         onCancel={() => setDeleteAlert({ open: false, step: "confirm" })}
       />
 
-      {/* Paso 2: contraseña de administrador */}
+      {/* Paso 2: contraseña */}
       <Alert
         isOpen={deleteAlert.open && deleteAlert.step === "password"}
         type="password"
@@ -128,7 +174,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
   );
 };
 
-const LabelValue = ({ label, value }) => (
+const LV = ({ label, value }) => (
   <>
     <div style={styles.label}>{label}</div>
     <div style={styles.value}>{value || "—"}</div>
@@ -136,76 +182,24 @@ const LabelValue = ({ label, value }) => (
 );
 
 const styles = {
-  card:     { padding: "35px 40px" },
-  header:   { marginBottom: "15px" },
-  id:       { fontSize: "12px", color: "#999", display: "block", marginBottom: "6px" },
-  title:    { margin: 0, fontSize: "24px", fontWeight: "600" },
-  subtitle: { marginTop: "4px", fontSize: "14px", color: "#666" },
-  tabs:     { display: "flex", gap: "25px", marginTop: "20px", borderBottom: "1px solid #f0f0f0" },
+  card:     { padding: "28px 32px" },
+  header:   { marginBottom: 14 },
+  id:       { fontSize: 11, color: "#E91E8C", fontWeight: 700, background: "#fce7f3", padding: "2px 8px", borderRadius: 6, display: "inline-block", marginBottom: 6 },
+  title:    { margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: "#1f2937" },
+  subtitle: { margin: "4px 0 0", fontSize: 13, color: "#9ca3af" },
+  tabs:     { display: "flex", gap: 20, marginTop: 16, borderBottom: "1px solid #f0f0f0", paddingBottom: 0 },
   tab: {
-    background: "none",
-    border: "none",
-    borderBottom: "2px solid transparent",
-    cursor: "pointer",
-    padding: "8px 0",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#555",
+    background: "none", border: "none", borderBottom: "2px solid transparent",
+    cursor: "pointer", padding: "8px 0", fontSize: 13, fontWeight: 600,
   },
-  activeBorder: "2px solid #E91E8C",
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "150px 1fr",
-    gap: "12px 8px",
-    marginTop: "20px",
-  },
-  label: { fontWeight: "500", fontSize: "13px", color: "#888" },
-  value: { fontSize: "14px", color: "#222" },
-  actions: {
-    marginTop: "40px",
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-  },
-  deleteBtn: {
-    background: "#f3f4f6",
-    color: "#ef4444",
-    border: "none",
-    padding: "10px 24px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
-  editBtn: {
-    background: "#E91E8C",
-    color: "#fff",
-    border: "none",
-    padding: "10px 28px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
-  // Tabla de producciones
-  prodTable: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  prodTh: {
-    textAlign: "left",
-    fontSize: "13px",
-    fontWeight: "500",
-    color: "#888",
-    paddingBottom: "10px",
-    borderBottom: "1px solid #f0f0f0",
-  },
-  prodRow: {
-    borderBottom: "1px solid #f5f5f5",
-  },
-  prodTd: {
-    padding: "12px 0",
-    fontSize: "14px",
-    color: "#333",
-  },
+  infoGrid: { display: "grid", gridTemplateColumns: "120px 1fr", gap: "10px 8px", marginTop: 18 },
+  label:    { fontWeight: 600, fontSize: 11, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", alignSelf: "center" },
+  value:    { fontSize: 13, color: "#1f2937" },
+  th:       { textAlign: "left", fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", padding: "0 0 8px", borderBottom: "1px solid #f0f0f0" },
+  td:       { padding: "11px 0", fontSize: 13, color: "#333", borderBottom: "1px solid #f8f8f8" },
+  actions:  { marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 10 },
+  deleteBtn: { background: "#f3f4f6", color: "#ef4444", border: "none", padding: "9px 20px", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 13 },
+  editBtn:   { background: "linear-gradient(135deg,#E91E8C,#FF4FD6)", color: "#fff", border: "none", padding: "9px 24px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13 },
 };
 
 export default Third_partieDetail;

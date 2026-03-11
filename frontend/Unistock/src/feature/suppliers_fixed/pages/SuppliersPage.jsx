@@ -8,7 +8,7 @@ import SupplierTable from "../components/SupplierTable";
 import SupplierSearch from "../components/SupplierSearch";
 import AddSupplierButton from "../components/AddSupplierButton";
 import SupplierDetail from "../components/SupplierDetail";
-import Alert from "../components/Alert";
+import Alert from "../../shared/components/Alert";
 
 const SupplierPage = () => {
   const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } = useSuppliers();
@@ -19,7 +19,8 @@ const SupplierPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
 
-  // ✅ Fix #5: Alert propio en lugar de window.confirm para eliminar
+  const itemsPerPage = 5;
+
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: "confirm",
@@ -30,21 +31,27 @@ const SupplierPage = () => {
 
   const filteredSuppliers = useMemo(() => {
     if (!suppliers) return [];
-    return suppliers.filter(
-      (s) =>
-        s.nombreEmpresa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.nit?.toString().includes(searchTerm)
+
+    const term = searchTerm.toLowerCase();
+
+    return suppliers.filter((supplier) =>
+      Object.values(supplier).some((value) =>
+        value?.toString().toLowerCase().includes(term)
+      )
     );
   }, [suppliers, searchTerm]);
 
-  const itemsPerPage = 7;
   const totalPages = Math.max(1, Math.ceil(filteredSuppliers.length / itemsPerPage));
+
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedSupplier = filteredSuppliers.slice(startIndex, startIndex + itemsPerPage);
+
+  const paginatedSupplier = filteredSuppliers.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   const handleView = (supplier) => openDetail(supplier);
 
-  // ✅ Fix #5: eliminación con Alert (tipo "password") en lugar de window.confirm
   const handleDelete = (id) => {
     setAlertConfig({
       open: true,
@@ -53,7 +60,7 @@ const SupplierPage = () => {
       message: "Esta acción no se puede deshacer. Ingresa la contraseña de administrador para confirmar.",
       onConfirm: () => {
         deleteSupplier(id);
-        setAlertConfig(prev => ({ ...prev, open: false }));
+        setAlertConfig((prev) => ({ ...prev, open: false }));
       },
     });
   };
@@ -70,56 +77,74 @@ const SupplierPage = () => {
     setShowForm(true);
   };
 
-  // ✅ Fix #6: handleFormSubmit NO cierra el modal — el SupplierForm lo maneja
-  // con su propio pendingClose + useEffect al terminar el Alert de éxito
   const handleFormSubmit = async (data) => {
     if (editingSupplier) {
       await updateSupplier(editingSupplier.id, data);
     } else {
       await createSupplier(data);
     }
-    // No se llama setShowForm(false) aquí — el SupplierForm llama onCancel()
-    // cuando el Alert de éxito se cierra, lo que dispara setShowForm(false)
   };
 
   const getPageNumbers = () => {
     if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
+
     const pages = [1];
+
     if (currentPage > 3) pages.push("...");
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
       pages.push(i);
     }
+
     if (currentPage < totalPages - 2) pages.push("...");
+
     pages.push(totalPages);
+
     return pages;
   };
 
   return (
     <div style={{ padding: "24px 32px" }}>
-      {/* Alert global para confirmaciones de eliminación */}
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
         onConfirm={alertConfig.onConfirm}
-        onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
+        onCancel={() => setAlertConfig((prev) => ({ ...prev, open: false }))}
       />
 
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Proveedores</h1>
+
         <div style={{ width: "260px" }}>
           <SupplierSearch value={searchTerm} onChange={handleSearch} />
         </div>
       </div>
 
-      {/* Botón agregar */}
-      <div style={{ backgroundColor: "#FFFFFF", display: "flex", justifyContent: "flex-end", marginBottom: "20px", padding: "12px 16px" }}>
+      <div
+        style={{
+          backgroundColor: "#FFFFFF",
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "20px",
+          padding: "12px 16px",
+        }}
+      >
         <AddSupplierButton onClick={handleAddSupplier} />
       </div>
 
-      {/* Tabla */}
       <SupplierTable
         suppliers={paginatedSupplier}
         onView={handleView}
@@ -128,7 +153,6 @@ const SupplierPage = () => {
         onToggle={handleToggle}
       />
 
-      {/* Modal detalle */}
       {isOpen && (
         <SupplierDetail
           supplier={selectedSupplier}
@@ -137,13 +161,28 @@ const SupplierPage = () => {
         />
       )}
 
-      {/* Paginación */}
       {filteredSuppliers.length > 0 && (
-        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px", alignItems: "center" }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            justifyContent: "center",
+            gap: "6px",
+            alignItems: "center",
+          }}
+        >
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            style={paginationBtn}
+          >
+            ‹
+          </button>
+
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>...</span>
+              <span key={i} style={{ padding: "6px 10px" }}>
+                ...
+              </span>
             ) : (
               <button
                 key={p}
@@ -152,18 +191,26 @@ const SupplierPage = () => {
                   ...paginationBtn,
                   backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
                   color: p === currentPage ? "#fff" : "#333",
-                  border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                  border:
+                    p === currentPage
+                      ? "1px solid #FF4FD6"
+                      : "1px solid #ddd",
                 }}
               >
                 {p}
               </button>
             )
           )}
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={paginationBtn}>›</button>
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            style={paginationBtn}
+          >
+            ›
+          </button>
         </div>
       )}
 
-      {/* Modal crear/editar */}
       {showForm && (
         <SupplierForm
           supplier={editingSupplier}
