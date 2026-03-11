@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { useProducts } from '../hooks/useProducts';
 import { useProductSearch } from '../hooks/useProductSearch';
 import Alert from '../components/Alert';
@@ -228,19 +229,40 @@ const ProductsPage = () => {
     });
   };
   
+  // 🔥 FUNCIÓN DE DESCARGA MEJORADA - EXCEL
   const handleDownload = () => {
     try {
-      const csv = [
-        ['Referencia', 'Nombre', 'Categoría', 'Precio', 'Stock'],
-        ...filteredProducts.map(p => [p.reference, p.name, p.category, p.price, p.stock])
-      ].map(row => row.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'productos.csv';
-      a.click();
-      URL.revokeObjectURL(url);
+      // Preparar los datos para Excel con formato mejorado
+      const data = filteredProducts.map(p => ({
+        'Referencia': p.reference,
+        'Nombre': p.name,
+        'Categoría': p.category,
+        'Precio': p.price,
+        'Stock': p.stock,
+        'Estado': p.active ? 'Activo' : 'Inactivo'
+      }));
+
+      // Crear hoja de cálculo
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      
+      // Ajustar ancho de columnas para mejor visualización
+      const columnWidths = [
+        { wch: 15 }, // Referencia
+        { wch: 30 }, // Nombre
+        { wch: 20 }, // Categoría
+        { wch: 15 }, // Precio
+        { wch: 10 }, // Stock
+        { wch: 10 }, // Estado
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Crear libro y agregar la hoja
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos');
+
+      // Generar nombre de archivo con fecha actual
+      const fecha = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `productos_${fecha}.xlsx`);
       
       handleShowAlert({
         type: "success",
@@ -248,6 +270,7 @@ const ProductsPage = () => {
         message: "Archivo exportado correctamente"
       });
     } catch (error) {
+      console.error('Error al exportar:', error);
       handleShowAlert({
         type: "error",
         title: "¡Error!",
