@@ -6,49 +6,94 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     description: category?.description || '',
   });
 
+  const [errors, setErrors] = useState({
+    name: '',
+    description: '',
+  });
+
   const [touched, setTouched] = useState({});
+
+  // 🔥 VALIDACIONES EN TIEMPO REAL
+  const validateName = (value) => {
+    if (!value.trim()) return "El nombre es obligatorio";
+    if (/\d/.test(value)) return "El nombre no puede contener números";
+    if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres";
+    return "";
+  };
+
+  const validateDescription = (value) => {
+    if (!value.trim()) return "La descripción es obligatoria";
+    if (value.trim().length < 10) return "La descripción debe tener al menos 10 caracteres";
+    return "";
+  };
+
+  // Validar campo específico y actualizar errores
+  const validateField = (name, value) => {
+    let error = '';
+    if (name === 'name') error = validateName(value);
+    if (name === 'description') error = validateDescription(value);
+    
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Validar en tiempo real mientras escribe
+    validateField(name, value);
   };
 
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
+    // Validar al salir del campo
+    validateField(field, formData[field]);
   };
 
-  // 🔥 VALIDACIÓN - muestra alerta si faltan campos
-  const validate = () => {
-    const errors = [];
-    if (!formData.name.trim()) errors.push("El nombre es obligatorio");
-    if (!formData.description.trim()) errors.push("La descripción es obligatoria");
+  // Validar todos los campos antes de enviar
+  const validateForm = () => {
+    const nameError = validateName(formData.name);
+    const descriptionError = validateDescription(formData.description);
     
-    if (errors.length > 0) {
-      onShowAlert({
-        type: "warning",
-        title: "Campos requeridos",
-        message: errors.join(". ")
-      });
-      return false;
-    }
-    return true;
-  };
+    setErrors({
+      name: nameError,
+      description: descriptionError,
+    });
 
-  // 🔥 HANDLE SUBMIT con validación
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
+    // Marcar todos como tocados
     setTouched({
       name: true,
       description: true
     });
 
-    if (!validate()) return;
+    const hasErrors = nameError || descriptionError;
+    
+    if (hasErrors) {
+      // Mostrar alerta con los errores
+      const errorMessages = [];
+      if (nameError) errorMessages.push(nameError);
+      if (descriptionError) errorMessages.push(descriptionError);
+      
+      onShowAlert({
+        type: "warning",
+        title: "Campos inválidos",
+        message: errorMessages.join(". ")
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
     
     onSubmit(formData);
   };
 
-  // 🔥 ALERTA DE CONFIRMACIÓN al cancelar
+  // ALERTA DE CONFIRMACIÓN al cancelar
   const handleCancelClick = () => {
     onShowConfirm({
       title: "¿Seguro que deseas cancelar?",
@@ -65,27 +110,26 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // Funciones unificadas para blur
-  const handleNameBlur = (e) => {
-    const isInvalid = !formData.name.trim();
-    e.target.style.borderColor = isInvalid ? '#E91E8C' : '#d1d5db';
-    handleBlur('name');
-  };
+  // Estilo para inputs con error
+  const getInputStyle = (field) => {
+    const baseStyle = {
+      width: '100%',
+      padding: '10px 14px',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '14px',
+      outline: 'none',
+      transition: 'border-color 0.2s',
+    };
 
-  const handleDescriptionBlur = (e) => {
-    const isInvalid = !formData.description.trim();
-    e.target.style.borderColor = isInvalid ? '#E91E8C' : '#d1d5db';
-    handleBlur('description');
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: '10px 14px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'border-color 0.2s',
+    if ((touched[field] || formData[field]) && errors[field]) {
+      return {
+        ...baseStyle,
+        borderColor: '#E91E8C',
+        backgroundColor: '#fff0f7'
+      };
+    }
+    return baseStyle;
   };
 
   const labelStyle = {
@@ -115,19 +159,15 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             name="name"
             value={formData.name}
             onChange={handleChange}
+            onBlur={() => handleBlur('name')}
             placeholder="Ej. Camiseta"
-            style={{
-              ...inputStyle,
-              borderColor: touched.name && !formData.name.trim() ? '#E91E8C' : '#d1d5db'
-            }}
-            // 🔥 ELIMINADO: required
-            onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
-            onBlur={handleNameBlur}
+            style={getInputStyle('name')}
+            onFocus={(e) => !errors.name && (e.target.style.borderColor = '#E91E8C')}
           />
-          {/* 🔥 Mensaje de error específico para nombre */}
-          {touched.name && !formData.name.trim() && (
+          {/* Mensaje de error en tiempo real */}
+          {(touched.name || formData.name) && errors.name && (
             <span style={{ color: '#E91E8C', fontSize: '11px', marginLeft: '8px', marginTop: '4px', display: 'block' }}>
-              ⚠ El nombre es obligatorio
+              ⚠ {errors.name}
             </span>
           )}
         </div>
@@ -139,24 +179,41 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             name="description"
             value={formData.description}
             onChange={handleChange}
+            onBlur={() => handleBlur('description')}
             placeholder="Ej. Un jersey negro de cuello redondo hecho de algodón suave y cómodo"
             style={{
-              ...inputStyle,
+              ...getInputStyle('description'),
               minHeight: '100px',
               resize: 'vertical',
-              borderColor: touched.description && !formData.description.trim() ? '#E91E8C' : '#d1d5db'
             }}
-            // 🔥 ELIMINADO: required
-            onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
-            onBlur={handleDescriptionBlur}
+            onFocus={(e) => !errors.description && (e.target.style.borderColor = '#E91E8C')}
           />
-          {/* 🔥 Mensaje de error específico para descripción */}
-          {touched.description && !formData.description.trim() && (
+          {/* Mensaje de error en tiempo real */}
+          {(touched.description || formData.description) && errors.description && (
             <span style={{ color: '#E91E8C', fontSize: '11px', marginLeft: '8px', marginTop: '4px', display: 'block' }}>
-              ⚠ La descripción es obligatoria
+              ⚠ {errors.description}
             </span>
           )}
         </div>
+
+        {/* Mensaje general si hay errores */}
+        {(errors.name || errors.description) && (
+          <div style={{ 
+            marginBottom: '20px', 
+            padding: '8px 12px', 
+            backgroundColor: '#fff0f7', 
+            border: '1px solid #E91E8C',
+            borderRadius: '6px',
+            color: '#E91E8C', 
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>⚠️</span>
+            <span>Corrige los campos marcados</span>
+          </div>
+        )}
 
         {/* Botones */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -190,9 +247,11 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
               color: '#fff',
               cursor: 'pointer',
               transition: 'background-color 0.2s',
+              opacity: (errors.name || errors.description) ? 0.7 : 1,
             }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#C9187A')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FF4FD6')}
+            disabled={errors.name || errors.description}
           >
             {category ? 'Guardar Categoría' : 'Guardar Categoría'}
           </button>
