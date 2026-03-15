@@ -16,7 +16,7 @@ const UsersPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState(null);
 
-  // ── Alerta global (solo para eliminar con contraseña) ────────────────────
+  // ── Alerta global ────────────────────────────────────────────────────────
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: "password",
@@ -33,8 +33,8 @@ const UsersPage = () => {
 
     const term = searchTerm.toLowerCase();
 
-    return users.filter((users) =>
-      Object.values(users).some((value) =>
+    return users.filter((user) =>
+      Object.values(user).some((value) =>
         value?.toString().toLowerCase().includes(term),
       ),
     );
@@ -65,7 +65,7 @@ const UsersPage = () => {
     });
   };
 
-  // Eliminar con contraseña de administrador (patrón proveedores)
+  // 🗑️ ELIMINAR CON CONTRASEÑA
   const handleDelete = (id) => {
     setAlertConfig({
       open: true,
@@ -80,18 +80,22 @@ const UsersPage = () => {
     });
   };
 
+  // 🔁 ACTIVAR / DESACTIVAR CON CONTRASEÑA
   const handleToggle = (id) => {
-    try {
-      toggleUser?.(id);
-    } catch (error) {
-      setAlertConfig({
-        open: true,
-        type: "error",
-        title: "Acción no permitida",
-        message: error.message,
-        onConfirm: null,
-      });
-    }
+    const user = users.find((u) => String(u.id) === String(id));
+    const isActive = user?.estado !== false;
+    setAlertConfig({
+      open: true,
+      type: "password",
+      title: isActive ? "Inactivar usuario" : "Activar usuario",
+      message: isActive
+        ? "Para inactivar este usuario ingresa la contraseña de administrador."
+        : "Para activar este usuario ingresa la contraseña de administrador.",
+      onConfirm: () => {
+        toggleUser(id);
+        closeAlert();
+      },
+    });
   };
 
   const handleCreateSubmit = async (userData) => {
@@ -122,7 +126,7 @@ const UsersPage = () => {
 
   return (
     <div style={{ padding: "24px 32px" }}>
-      {/* 🔔 ALERTA GLOBAL (eliminar con contraseña) */}
+      {/* 🔔 ALERTA GLOBAL */}
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -164,7 +168,7 @@ const UsersPage = () => {
         <AddUserButton onClick={() => setShowCreate(true)} />
       </div>
 
-      {/* 📋 TABLA — el toggle ya tiene su propia alerta de contraseña */}
+      {/* 📋 TABLA */}
       <UserTable
         users={paginatedUsers}
         onEdit={handleEdit}
@@ -172,7 +176,7 @@ const UsersPage = () => {
         onToggle={handleToggle}
       />
 
-      {/* ➕ FORM CREAR — el form maneja su propio overlay y alertas */}
+      {/* ➕ FORM CREAR */}
       {showCreate && (
         <UserForm
           roles={USERS_ROLE}
