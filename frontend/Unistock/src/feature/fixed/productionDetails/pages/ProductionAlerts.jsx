@@ -37,10 +37,15 @@ const ProductionAlerts = ({
   const { title, message } = config[type] || config.advance;
 
   // Validación: no se puede confirmar si faltan datos requeridos
+  // canConfirm: el botón de confirmar se habilita para todos los tipos excepto
+  // "third" y "assignSede" cuando aún no se ha seleccionado el valor requerido.
+  // CORRECCIÓN: se agregó el tipo "confirm" (usado en eliminación de artículos)
+  // para que el botón quede habilitado y la acción pueda ejecutarse.
   const canConfirm =
     (type === "third" && tercero) ||
     (type === "assignSede" && sede) ||
-    type === "advance";
+    type === "advance"  ||
+    type === "confirm";
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">

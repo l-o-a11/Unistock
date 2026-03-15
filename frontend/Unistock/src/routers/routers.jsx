@@ -32,9 +32,11 @@ import ThirdPartiesPage from "../feature/third_parties_fixed/pages/Third_parties
 import UsersPage from "../feature/users/pages/UsersPage.jsx";
 
 // Producciones
-import ProductionsPage from "../feature/productions_fixed/pages/ProductionPage.jsx";
-import ProductForm from "../feature/productions_fixed/components/ProductionForm/index.jsx";
-import ProductionDetailsPage from "../feature/productions_fixed/productionDetails/pages/ProductionDetailsPage.jsx";
+import ProductionsPage from "../feature/fixed/pages/ProductionPage.jsx";
+import ProductForm from "../feature/fixed/components/ProductionForm/index.jsx";
+import ProductionDetailsPage from "../feature/fixed/productionDetails/pages/ProductionDetailsPage.jsx";
+import ProductionCalendarPage from "../feature/fixed/components/ProductionCalender";
+
 
 // Empleados
 import EmployeesPage from "../feature/employees/pages/EmployeesPage.jsx";
@@ -81,7 +83,7 @@ export function RouterApp() {
         {/* Producciones */}
         <Route path="produccion" element={<ProductionsPage />} />
         <Route path="produccion/detalle/:id" element={<ProductionDetailsPage />} />
-
+        <Route path="/layout/produccion/calendario" element={<ProductionCalendarPage />} />
         {/* Crear ficha técnica */}
         <Route path="productos/crear" element={<ProductForm />} />
 

@@ -1,13 +1,39 @@
+/**
+ * @file SupplierForm/index.jsx
+ * @description Formulario modal para crear o editar un proveedor.
+ *
+ * CAMPOS Y SUS VALIDACIONES:
+ *   nombreEmpresa  — texto libre, obligatorio
+ *   nit            — solo dígitos (bloqueado en onChange), 8-12 dígitos, obligatorio
+ *   direccion      — texto libre, obligatorio
+ *   correoEmpresa  — formato email, obligatorio
+ *   sitioWeb       — texto libre, opcional
+ *   nombreContacto — texto libre, opcional
+ *   telefono       — solo dígitos (bloqueado en onChange), exactamente 10, obligatorio
+ *   correoContacto — formato email, opcional (solo valida si tiene valor)
+ *
+ * PROPS:
+ *   supplier  {object|null}  — proveedor a editar; null para crear nuevo
+ *   onSubmit  {function}     — recibe los datos del formulario
+ *   onCancel  {function}     — cierra el modal sin guardar
+ */
 import React, { useState, useEffect, useRef } from "react";
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
-import { validators } from "../../../shared/utils/Validaciones";
+import { validators, blockInput } from "../../../shared/utils/Validaciones";
 
+/**
+ * @param {object}      props
+ * @param {object|null} [props.supplier]  — datos del proveedor existente (edición)
+ * @param {function}    props.onSubmit
+ * @param {function}    props.onCancel
+ */
 const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
 
   const modalRef = useRef(null);
 
+  // ── Estado del formulario ─────────────────────────────────────────────────
   const [formData, setFormData] = useState({
     nombreEmpresa:  "",
     nit:            "",
@@ -29,7 +55,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     onConfirm: null,
   });
 
-  /* cargar proveedor si es edición */
+  // ── Cargar datos del proveedor si es modo edición ─────────────────────────
   useEffect(() => {
     if (supplier) {
       setFormData({
@@ -45,7 +71,10 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     }
   }, [supplier]);
 
-  /* cuando la alerta se cierra y pendingClose está activo → cerrar modal */
+  /**
+   * Cierra el modal después de que el Alert de éxito/error se cierre.
+   * pendingClose se activa cuando el submit fue exitoso.
+   */
   useEffect(() => {
     if (pendingClose && !alertConfig.open) {
       setPendingClose(false);
@@ -53,64 +82,103 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     }
   }, [alertConfig.open, pendingClose]);
 
-  /* cerrar con ESC */
+  // ── ESC para cerrar ───────────────────────────────────────────────────────
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") handleCancelClick(); };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  /* cerrar clic afuera */
+  /** Cierra si el clic fue fuera del modal */
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
   };
 
-  /* VALIDAR CAMPO */
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VALIDACIÓN DE CAMPO INDIVIDUAL
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Valida un campo específico y actualiza el estado de errores.
+   * Se llama en onBlur para mostrar el error al salir del campo.
+   *
+   * @param {string} name  — nombre del campo
+   * @param {string} value — valor actual
+   * @returns {string} mensaje de error o ""
+   */
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
       case "nombreEmpresa":
+        // Obligatorio, texto libre
         error = validators.required(value);
         break;
       case "nit":
+        // Obligatorio + solo dígitos + longitud 8-12
         error = validators.required(value) || validators.numbers(value);
         if (!error && (value.length < 8 || value.length > 12))
           error = "Debe tener entre 8 y 12 dígitos";
         break;
       case "direccion":
+        // Obligatorio, texto libre
         error = validators.required(value);
         break;
       case "correoEmpresa":
+        // Obligatorio + formato email
         error = validators.required(value) || validators.email(value);
         break;
       case "telefono":
+        // Obligatorio + solo dígitos + exactamente 10 caracteres
         error = validators.required(value) || validators.numbers(value);
-        if (!error && value.length !== 10) error = "Debe tener 10 dígitos";
+        if (!error && value.length !== 10) error = "Debe tener exactamente 10 dígitos";
         break;
-      // ✅ Fix #4: correoContacto es opcional — solo valida formato si tiene valor
       case "correoContacto":
+        // Opcional — solo valida formato si el usuario escribió algo
         error = value ? validators.email(value) : "";
         break;
-      // sitioWeb y nombreContacto son opcionales, sin validación
-      default: break;
+      // sitioWeb y nombreContacto son completamente opcionales
+      default:
+        break;
     }
     setErrors(prev => ({ ...prev, [name]: error }));
     return error;
   };
 
-  /* CAMBIO INPUT */
+  // ─────────────────────────────────────────────────────────────────────────────
+  // HANDLER DE CAMBIO DE CAMPO
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Maneja el cambio de cualquier campo del formulario.
+   *
+   * Para "nit" y "telefono": bloquea en tiempo real cualquier carácter que
+   * no sea dígito. El bloqueo es inmediato (no espera al onBlur).
+   * Esto se hace comprobando con blockInput.onlyNumbers antes de actualizar el estado.
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if ((name === "telefono" || name === "nit") && !/^[0-9]*$/.test(value)) return;
+
+    // ── Bloqueo a nivel de carácter para campos numéricos ──────────────────
+    // Si blockInput.onlyNumbers retorna false, el carácter no es un dígito
+    // y simplemente retornamos sin actualizar el estado.
+    if (name === "telefono" || name === "nit") {
+      if (!blockInput.onlyNumbers(e)) return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  /** Dispara la validación de campo al salir del input */
   const handleBlur = (e) => {
     const { name, value } = e.target;
     validateField(name, value);
   };
 
-  /* VALIDAR TODO — solo los campos obligatorios */
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VALIDACIÓN COMPLETA (antes del submit)
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Valida todos los campos obligatorios y los opcionales con valor.
+   * @returns {boolean} true si no hay errores
+   */
   const validateAll = () => {
     const requiredFields = ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono"];
     let newErrors = {};
@@ -120,7 +188,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
       if (error) newErrors[key] = error;
     });
 
-    // ✅ Fix #4: correoContacto solo se valida si tiene valor
+    // correoContacto: opcional — solo valida si tiene valor
     if (formData.correoContacto) {
       const emailError = validators.email(formData.correoContacto);
       if (emailError) newErrors.correoContacto = emailError;
@@ -130,7 +198,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  /* SUBMIT */
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateAll()) {
@@ -144,6 +212,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     }
     try {
       onSubmit(formData);
+      // pendingClose = true hace que el modal se cierre cuando el Alert de éxito se cierre
       setPendingClose(true);
       setAlertConfig({
         open: true, type: "success",
@@ -155,7 +224,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
       });
     } catch {
       setAlertConfig({
-        open: true, type: "danger",
+        open: true, type: "error",
         title: "Error al guardar",
         message: "No se pudo guardar el proveedor. Intenta de nuevo.",
         onConfirm: null,
@@ -163,7 +232,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     }
   };
 
-  /* CLICK CANCELAR */
+  /** Confirma cancelación con Alert antes de cerrar si hay cambios */
   const handleCancelClick = () => {
     setAlertConfig({
       open: true, type: "confirm",
@@ -176,6 +245,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
     });
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
       <Alert
@@ -190,6 +262,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
         onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
       />
 
+      {/* Overlay del modal */}
       <div
         onClick={handleOverlayClick}
         style={{
@@ -207,6 +280,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
             padding: "36px 40px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             position: "relative",
+            maxHeight: "92vh", overflowY: "auto",
           }}
         >
           {/* Botón cerrar ✕ */}
@@ -222,15 +296,17 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
             ✕
           </button>
 
-          <h2 style={{ textAlign: "center", marginBottom: "28px" }}>
+          <h2 style={{ textAlign: "center", marginBottom: "28px", fontSize: 20, fontWeight: 800, color: "#1f2937" }}>
             {supplier ? "Editar Proveedor" : "Crear Nuevo Proveedor"}
           </h2>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
 
-              {/* IZQUIERDA */}
+              {/* ── COLUMNA IZQUIERDA ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "18px", borderRight: "1px solid #e5e7eb", paddingRight: "30px" }}>
+
+                {/* Nombre empresa — texto libre */}
                 <Input
                   label="Nombre Empresa *"
                   name="nombreEmpresa"
@@ -239,14 +315,18 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                   onBlur={handleBlur}
                   error={errors.nombreEmpresa}
                 />
+
+                {/* NIT — solo dígitos (bloqueado + validado) */}
                 <Input
-                  label="NIT *"
+                  label="NIT * (solo dígitos, 8-12 caracteres)"
                   name="nit"
                   value={formData.nit}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.nit}
                 />
+
+                {/* Dirección — texto libre */}
                 <Input
                   label="Dirección *"
                   name="direccion"
@@ -255,6 +335,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                   onBlur={handleBlur}
                   error={errors.direccion}
                 />
+
+                {/* Correo empresa — formato email */}
                 <Input
                   label="Correo Empresa *"
                   type="email"
@@ -264,6 +346,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                   onBlur={handleBlur}
                   error={errors.correoEmpresa}
                 />
+
+                {/* Sitio web — opcional */}
                 <Input
                   label="Sitio Web"
                   name="sitioWeb"
@@ -273,8 +357,10 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                 />
               </div>
 
-              {/* DERECHA */}
+              {/* ── COLUMNA DERECHA ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+
+                {/* Nombre contacto — opcional */}
                 <Input
                   label="Nombre Contacto"
                   name="nombreContacto"
@@ -282,14 +368,18 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                   onChange={handleChange}
                   onBlur={handleBlur}
                 />
+
+                {/* Teléfono — solo dígitos (bloqueado + validado), exactamente 10 */}
                 <Input
-                  label="Teléfono *"
+                  label="Teléfono * (10 dígitos)"
                   name="telefono"
                   value={formData.telefono}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.telefono}
                 />
+
+                {/* Correo contacto — opcional, solo valida formato si tiene valor */}
                 <Input
                   label="Correo Contacto"
                   type="email"
@@ -302,13 +392,13 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
               </div>
             </div>
 
-            {/* BOTONES */}
+            {/* ── BOTONES ── */}
             <div className="flex justify-end gap-4 mt-8">
               <Button type="button" variant="secondary" onClick={handleCancelClick}>
                 Cancelar
               </Button>
               <Button type="submit" variant="primary">
-                Guardar Proveedor
+                {supplier ? "Guardar cambios" : "Guardar Proveedor"}
               </Button>
             </div>
           </form>

@@ -16,31 +16,43 @@ export const useProductions = () => {
       const data = await ProductionAPI.getAll();
       setProductions(data);
     } catch (err) {
-      setError('Error al cargar categorías');
+      setError('Error al cargar producciones');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const createProduction = async (ProductionData) => {
+  const createProduction = async (productionData) => {
     try {
-      const newProduction = await ProductionAPI.create(ProductionData);
+      const newProduction = await ProductionAPI.create(productionData);
       setProductions(prev => [...prev, newProduction]);
       return newProduction;
     } catch (err) {
-      setError('Error al crear categoría');
+      setError('Error al crear producción');
       throw err;
     }
   };
 
-  const updateProduction = async (id, ProductionData) => {
+  const updateProduction = async (id, productionData) => {
     try {
-      const updatedProduction = await ProductionAPI.update(id, ProductionData);
-      setProductions(prev => prev.map(c => c.id === id ? updatedProduction : c));
-      return updatedProduction;
+      const updated = await ProductionAPI.update(id, productionData);
+      setProductions(prev => prev.map(p => p.id === id ? updated : p));
+      return updated;
     } catch (err) {
-      setError('Error al actualizar categoría');
+      setError('Error al actualizar producción');
+      throw err;
+    }
+  };
+
+  // Anular producción con motivo — agrega fecha + motivo al historial
+  const cancelProduction = async (id, motivo) => {
+    try {
+      const updated = await ProductionAPI.cancel(id, motivo);
+      setProductions(prev => prev.map(p => p.id === id ? updated : p));
+      return updated;
+    } catch (err) {
+      setError('Error al anular producción');
       throw err;
     }
   };
@@ -48,26 +60,12 @@ export const useProductions = () => {
   const deleteProduction = async (id) => {
     try {
       await ProductionAPI.delete(id);
-      setProductions(prev => prev.filter(c => c.id !== id));
+      setProductions(prev => prev.filter(p => p.id !== id));
     } catch (err) {
-      setError(err.message || 'Error al eliminar categoría');
+      setError(err.message || 'Error al eliminar producción');
       throw err;
     }
   };
-
-const handleCancelProduction = async (id) => {
-  try {
-    // 🔴 Llamada a tu servicio / hook
-    await updateProduction(id, { status: 'Anulada' });
-
-    // opcional: si tienes función dedicada
-    // await cancelProduction(id);
-
-  } catch (error) {
-    console.error('Error al anular producción:', error);
-    alert('No se pudo anular la orden');
-  }
-};
 
   return {
     Productions,
@@ -75,6 +73,7 @@ const handleCancelProduction = async (id) => {
     error,
     createProduction,
     updateProduction,
+    cancelProduction,
     deleteProduction,
     refreshProductions: loadProductions,
   };

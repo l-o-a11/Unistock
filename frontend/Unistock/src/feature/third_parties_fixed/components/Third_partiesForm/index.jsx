@@ -1,114 +1,192 @@
+/**
+ * @file Third_partiesForm/index.jsx
+ * @description Formulario modal para crear o editar un tercero.
+ *
+ * CAMPOS Y SUS VALIDACIONES:
+ *   nombre    — texto libre, obligatorio
+ *   nit       — formato NIT colombiano (dígitos, puntos, guion), opcional
+ *   direccion — texto libre, obligatorio
+ *   contacto  — texto libre, obligatorio (nombre de la persona de contacto)
+ *   telefono  — solo dígitos (bloqueado en onChange), exactamente 10, obligatorio
+ *   correo    — formato email, opcional (solo valida si tiene valor)
+ *
+ * PROPS:
+ *   Third_partie {object|null}  — tercero a editar; null para crear nuevo
+ *   onSubmit     {function}     — recibe los datos mapeados al formato del hook
+ *   onCancel     {function}     — cierra el modal sin guardar
+ */
 import React, { useState, useEffect, useRef } from "react";
-import Alert from "../Alert";
+import Alert from "../../../shared/components/Alert";
+import Input from "../../../shared/components/Input";
+import Button from "../../../shared/components/Button";
+import { validators, blockInput } from "../../../shared/utils/Validaciones";
 
+/**
+ * @param {object}      props
+ * @param {object|null} [props.Third_partie]  — tercero existente (modo edición)
+ * @param {function}    props.onSubmit
+ * @param {function}    props.onCancel
+ */
 const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
+  const isEdit = Boolean(Third_partie);
+
+  // ── Estado del formulario ─────────────────────────────────────────────────
   const [formData, setFormData] = useState({
-    codigo:    Third_partie?.codigo    || "",
-    nombre:    Third_partie?.nombre    || "",
-    nit:       Third_partie?.nit       || "",
-    direccion: Third_partie?.direccion || "",
-    telefono:  Third_partie?.telefono  || "",
-    contacto:  Third_partie?.contacto  || "",
-    correo:    Third_partie?.correo    || "",
+    nombre:    "",
+    nit:       "",
+    direccion: "",
+    telefono:  "",
+    contacto:  "",
+    correo:    "",
   });
 
   const [errors,       setErrors]       = useState({});
-  // ✅ Fix: pendingClose para cerrar el modal DESPUÉS de que el Alert de éxito se cierre
   const [pendingClose, setPendingClose] = useState(false);
   const [alertConfig,  setAlertConfig]  = useState({
-    open:      false,
-    type:      "success",
-    title:     "",
-    message:   "",
-    onConfirm: null,
+    open: false, type: "success", title: "", message: "", onConfirm: null,
   });
-
   const modalRef = useRef(null);
 
-  // ✅ Fix: cuando la alerta de éxito se cierra y pendingClose está activo → cerrar modal
+  // ── Cargar datos del tercero al editar ────────────────────────────────────
   useEffect(() => {
-    if (pendingClose && !alertConfig.open) {
-      setPendingClose(false);
-      onCancel();
+    if (Third_partie) {
+      setFormData({
+        nombre:    Third_partie.nombreEmpresa || Third_partie.nombre    || "",
+        nit:       Third_partie.nit       || "",
+        direccion: Third_partie.direccion || "",
+        telefono:  Third_partie.telefono  || "",
+        contacto:  Third_partie.nombreContacto || Third_partie.contacto || "",
+        correo:    Third_partie.correo    || Third_partie.email || "",
+      });
     }
+  }, [Third_partie]);
+
+  /**
+   * Cierra el modal cuando el Alert de éxito/error se cierra.
+   * Se activa solo cuando pendingClose está en true (submit exitoso).
+   */
+  useEffect(() => {
+    if (pendingClose && !alertConfig.open) { setPendingClose(false); onCancel(); }
   }, [alertConfig.open, pendingClose]);
 
-  // ✅ Fix: ESC ahora abre alerta de confirmación en lugar de cerrar directo
+  // ── ESC para cerrar ───────────────────────────────────────────────────────
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") handleCancelClick(); };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // ✅ Fix: clic afuera también usa alerta de confirmación
+  /** Cierra si el clic fue fuera del modal */
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VALIDACIÓN DE CAMPO INDIVIDUAL
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Valida un campo específico y actualiza el estado de errores.
+   * Llamado en onBlur y también durante validateAll.
+   *
+   * @param {string} name
+   * @param {string} value
+   * @returns {string} mensaje de error o ""
+   */
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
-      case "codigo":
-        if (!value.trim()) error = "Ej: COD-001";
-        break;
       case "nombre":
-        if (!value.trim()) error = "Ej: Confecciones Modernas S.A.S.";
+        // Obligatorio, texto libre (nombre de empresa)
+        error = validators.required(value);
         break;
       case "direccion":
-        if (!value.trim()) error = "Ej: Calle 10 # 42-15, Medellín";
-        break;
-      case "telefono":
-        if (!/^[0-9\s]+$/.test(value))
-          error = "Solo números Ej: 3001234567";
-        else if (value.length < 7)
-          error = "Mínimo 7 dígitos";
-        break;
-      case "correo":
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
-          error = "Ej: contacto@empresa.com";
-        break;
-      case "nit":
-        if (value && !/^[0-9.\-]+$/.test(value))
-          error = "Ej: 900.123.456-7";
+        // Obligatorio, texto libre
+        error = validators.required(value);
         break;
       case "contacto":
-        if (!value.trim()) error = "Ej: Ana Pérez";
+        // Obligatorio, nombre de la persona de contacto
+        error = validators.required(value);
+        break;
+      case "telefono":
+        // Obligatorio + solo dígitos + exactamente 10 caracteres
+        error = validators.required(value) || validators.phone(value);
+        break;
+      case "nit":
+        // Opcional — si tiene valor, valida formato NIT colombiano
+        // Formato aceptado: dígitos, puntos y guiones (Ej: 900.123.456-7)
+        if (value) error = validators.nit(value);
+        break;
+      case "correo":
+        // Opcional — si tiene valor, valida formato de email
+        if (value) error = validators.email(value);
         break;
       default:
         break;
     }
-    setErrors((prev) => ({ ...prev, [name]: error }));
+    setErrors(prev => ({ ...prev, [name]: error }));
     return error;
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // HANDLER DE CAMBIO DE CAMPO
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Maneja el cambio de cualquier campo.
+   *
+   * Para "telefono": bloqueo a nivel de carácter — solo dígitos pasan.
+   * Para "nit":      bloqueo con formato NIT — dígitos, puntos y guión pasan.
+   * Para los demás:  acepta cualquier texto y re-valida si había un error previo.
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    validateField(name, value);
+
+    // ── Bloqueo a nivel de carácter según tipo de campo ────────────────────
+    if (name === "telefono") {
+      // Solo dígitos para el teléfono
+      if (!blockInput.onlyNumbers(e)) return;
+    } else if (name === "nit") {
+      // Solo dígitos, puntos y guión para NIT
+      if (!blockInput.nit(e)) return;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Re-validar en tiempo real si el campo ya tenía un error visible
+    if (errors[name]) validateField(name, value);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  /** Dispara la validación de campo al salir del input */
+  const handleBlur = (e) => validateField(e.target.name, e.target.value);
 
-    const requiredFields = ["codigo", "nombre", "direccion", "telefono", "contacto"];
-    let newErrors = {};
-    requiredFields.forEach((key) => {
-      const err = validateField(key, formData[key]);
-      if (err) newErrors[key] = err;
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VALIDACIÓN COMPLETA
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Valida todos los campos antes del submit.
+   * Los campos opcionales (nit, correo) solo se validan si tienen valor.
+   * @returns {boolean} true si el formulario es válido
+   */
+  const validateAll = () => {
+    // Campos obligatorios
+    const required = ["nombre", "direccion", "telefono", "contacto"];
+    const newErrors = {};
+    required.forEach(k => {
+      const e = validateField(k, formData[k]);
+      if (e) newErrors[k] = e;
     });
-    // correo y nit son opcionales — solo validar formato si tienen valor
-    if (formData.correo) {
-      const err = validateField("correo", formData.correo);
-      if (err) newErrors.correo = err;
-    }
-    if (formData.nit) {
-      const err = validateField("nit", formData.nit);
-      if (err) newErrors.nit = err;
-    }
+
+    // Campos opcionales con validación condicional
+    if (formData.nit)    { const e = validateField("nit",    formData.nit);    if (e) newErrors.nit    = e; }
+    if (formData.correo) { const e = validateField("correo", formData.correo); if (e) newErrors.correo = e; }
 
     setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    if (Object.values(newErrors).some((e) => e)) {
+  // ── Submit ────────────────────────────────────────────────────────────────
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!validateAll()) {
       setAlertConfig({
         open: true, type: "warning",
         title: "Campos incompletos",
@@ -117,15 +195,28 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
       });
       return;
     }
-
     try {
-      onSubmit(formData);
-      // ✅ Fix: activar pendingClose para que el modal se cierre tras el Alert
+      /**
+       * Mapeamos al formato que espera el hook useThird_parties.
+       * Se incluyen ambas claves (nombreEmpresa/nombre, nombreContacto/contacto)
+       * para compatibilidad con el backend y la tabla de listado.
+       */
+      onSubmit({
+        nombreEmpresa:  formData.nombre,
+        nombre:         formData.nombre,
+        nit:            formData.nit,
+        direccion:      formData.direccion,
+        telefono:       formData.telefono,
+        nombreContacto: formData.contacto,
+        contacto:       formData.contacto,
+        correo:         formData.correo,
+        email:          formData.correo,
+      });
       setPendingClose(true);
       setAlertConfig({
         open: true, type: "success",
-        title: Third_partie ? "Tercero actualizado" : "Tercero creado",
-        message: Third_partie
+        title: isEdit ? "Tercero actualizado" : "Tercero creado",
+        message: isEdit
           ? "El tercero fue actualizado correctamente."
           : "El tercero fue creado correctamente.",
         onConfirm: null,
@@ -134,203 +225,152 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
       setAlertConfig({
         open: true, type: "error",
         title: "Error al guardar",
-        message: "No se pudo guardar el tercero. Intenta de nuevo.",
+        message: "No se pudo guardar. Intenta de nuevo.",
         onConfirm: null,
       });
     }
   };
 
-  // ✅ Fix: función dedicada para cancelar con alerta de confirmación
+  /** Confirma cancelación con Alert antes de cerrar */
   const handleCancelClick = () => {
     setAlertConfig({
       open: true, type: "confirm",
       title: "Cancelar",
       message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
-      onConfirm: () => {
-        setAlertConfig(prev => ({ ...prev, open: false }));
-        onCancel();
-      },
+      onConfirm: () => { setAlertConfig(prev => ({ ...prev, open: false })); onCancel(); },
     });
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "10px 14px",
-    border: "1px solid #d1d5db",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    transition: "border-color 0.2s",
-    boxSizing: "border-box",
-  };
-
-  const inputError = { ...inputStyle, borderColor: "#ef4444" };
-  const errorText  = { color: "#ef4444", fontSize: "12px", marginTop: "4px" };
-  const labelStyle = { fontSize: "13px", fontWeight: "500", color: "#555", marginBottom: "6px", display: "block" };
-  const btnPrimary   = { padding: "9px 24px", borderRadius: "10px", border: "none", background: "#E91E8C", color: "#fff", fontWeight: "600", cursor: "pointer" };
-  const btnSecondary = { padding: "9px 22px", borderRadius: "10px", border: "none", background: "#e4e4e4", color: "#555", cursor: "pointer" };
-  const required = <span style={{ color: "#E91E8C" }}>*</span>;
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
       <Alert
-        isOpen={alertConfig.open}
-        type={alertConfig.type}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onConfirm={() => {
-          if (alertConfig.onConfirm) alertConfig.onConfirm();
-          else setAlertConfig(prev => ({ ...prev, open: false }));
-        }}
+        isOpen={alertConfig.open} type={alertConfig.type}
+        title={alertConfig.title} message={alertConfig.message}
+        onConfirm={() => { if (alertConfig.onConfirm) alertConfig.onConfirm(); else setAlertConfig(prev => ({ ...prev, open: false })); }}
         onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
       />
 
+      {/* Overlay del modal */}
       <div
         onClick={handleOverlayClick}
-        style={{
-          position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.25)",
-          display: "flex", justifyContent: "center", alignItems: "center",
-          zIndex: 50,
-        }}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50 }}
       >
         <div
           ref={modalRef}
-          style={{
-            width: "100%", maxWidth: "900px",
-            background: "#f3f3f3",
-            borderRadius: "10px",
-            padding: "28px 32px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-            position: "relative",
-          }}
+          style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 860, padding: "32px 36px", boxShadow: "0 12px 48px rgba(0,0,0,0.18)", position: "relative", maxHeight: "92vh", overflowY: "auto" }}
         >
+
           {/* Botón cerrar ✕ */}
           <button
             onClick={handleCancelClick}
-            style={{
-              position: "absolute", top: "16px", right: "16px",
-              width: "32px", height: "32px", borderRadius: "50%",
-              border: "none", backgroundColor: "#e4e4e4", cursor: "pointer", fontSize: "14px",
-            }}
+            style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", border: "none", background: "#f3f4f6", cursor: "pointer", fontSize: 14 }}
           >
             ✕
           </button>
 
-          <h2 style={{ textAlign: "center", marginBottom: "28px" }}>
-            {Third_partie ? "Editar tercero" : "Crear nuevo tercero"}
-          </h2>
+          {/* Header del modal */}
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1f2937" }}>
+              {isEdit ? "Editar tercero" : "Nuevo tercero"}
+            </h2>
+            {/* En edición muestra el código asignado */}
+            {isEdit && Third_partie?.codigo && (
+              <span style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: "#FF4FD6", background: "#fce7f3", padding: "2px 10px", borderRadius: 20 }}>
+                Código: {Third_partie.codigo}
+              </span>
+            )}
+            {/* En creación avisa que el código se asigna automáticamente */}
+            {!isEdit && (
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#9ca3af" }}>
+                El código se asignará automáticamente al crear el tercero.
+              </p>
+            )}
+          </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Código */}
-            <div style={{ marginBottom: "20px" }}>
-              <label style={labelStyle}>Código {required}</label>
-              <input
-                name="codigo"
-                placeholder="Ej: COD-001"
-                value={formData.codigo}
-                onChange={handleChange}
-                style={errors.codigo ? inputError : inputStyle}
-                onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                onBlur={(e) => (e.target.style.borderColor = errors.codigo ? "#ef4444" : "#d1d5db")}
-              />
-              {errors.codigo && <span style={errorText}>{errors.codigo}</span>}
-            </div>
+          <form onSubmit={handleSubmit} noValidate>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 32px" }}>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 30px" }}>
-              <div>
-                <label style={labelStyle}>Nombre {required}</label>
-                <input
+              {/* ── COLUMNA IZQUIERDA ── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, borderRight: "1px solid #f0f0f0", paddingRight: 28 }}>
+
+                {/* Nombre empresa — texto libre, obligatorio */}
+                <Input
+                  label="Nombre empresa *"
                   name="nombre"
-                  placeholder="Ej: Confecciones Modernas S.A.S."
                   value={formData.nombre}
                   onChange={handleChange}
-                  style={errors.nombre ? inputError : inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.nombre ? "#ef4444" : "#d1d5db")}
+                  onBlur={handleBlur}
+                  error={errors.nombre}
                 />
-                {errors.nombre && <span style={errorText}>{errors.nombre}</span>}
-              </div>
 
-              <div>
-                <label style={labelStyle}>NIT</label>
-                <input
+                {/* NIT — opcional, formato: dígitos + puntos + guión */}
+                <Input
+                  label="NIT (opcional)"
                   name="nit"
-                  placeholder="Ej: 900.123.456-7"
                   value={formData.nit}
                   onChange={handleChange}
-                  style={errors.nit ? inputError : inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.nit ? "#ef4444" : "#d1d5db")}
+                  onBlur={handleBlur}
+                  error={errors.nit}
                 />
-                {errors.nit && <span style={errorText}>{errors.nit}</span>}
-              </div>
 
-              <div style={{ gridColumn: "1 / span 2" }}>
-                <label style={labelStyle}>Dirección {required}</label>
-                <input
+                {/* Dirección — texto libre, obligatorio */}
+                <Input
+                  label="Dirección *"
                   name="direccion"
-                  placeholder="Ej: Calle 10 # 42-15, Medellín"
                   value={formData.direccion}
                   onChange={handleChange}
-                  style={errors.direccion ? inputError : inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.direccion ? "#ef4444" : "#d1d5db")}
+                  onBlur={handleBlur}
+                  error={errors.direccion}
                 />
-                {errors.direccion && <span style={errorText}>{errors.direccion}</span>}
               </div>
 
-              <div>
-                <label style={labelStyle}>Teléfono {required}</label>
-                <input
-                  name="telefono"
-                  placeholder="Ej: 3001234567"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                  style={errors.telefono ? inputError : inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.telefono ? "#ef4444" : "#d1d5db")}
-                />
-                {errors.telefono && <span style={errorText}>{errors.telefono}</span>}
-              </div>
+              {/* ── COLUMNA DERECHA ── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-              <div>
-                <label style={labelStyle}>Contacto {required}</label>
-                <input
+                {/* Contacto principal — texto libre, obligatorio */}
+                <Input
+                  label="Contacto principal *"
                   name="contacto"
-                  placeholder="Ej: Ana Pérez"
                   value={formData.contacto}
                   onChange={handleChange}
-                  style={errors.contacto ? inputError : inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.contacto ? "#ef4444" : "#d1d5db")}
+                  onBlur={handleBlur}
+                  error={errors.contacto}
                 />
-                {errors.contacto && <span style={errorText}>{errors.contacto}</span>}
-              </div>
 
-              <div style={{ gridColumn: "1 / span 2" }}>
-                <label style={labelStyle}>Correo</label>
-                <input
+                {/* Teléfono — solo dígitos (bloqueado), exactamente 10, obligatorio */}
+                <Input
+                  label="Teléfono * (10 dígitos)"
+                  name="telefono"
+                  value={formData.telefono}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.telefono}
+                />
+
+                {/* Correo — opcional, formato email */}
+                <Input
+                  label="Correo (opcional)"
+                  type="email"
                   name="correo"
-                  placeholder="Ej: contacto@empresa.com"
                   value={formData.correo}
                   onChange={handleChange}
-                  style={errors.correo ? inputError : inputStyle}
-                  onFocus={(e) => (e.target.style.borderColor = "#E91E8C")}
-                  onBlur={(e) => (e.target.style.borderColor = errors.correo ? "#ef4444" : "#d1d5db")}
+                  onBlur={handleBlur}
+                  error={errors.correo}
                 />
-                {errors.correo && <span style={errorText}>{errors.correo}</span>}
               </div>
             </div>
 
-            <div style={{ marginTop: "30px", display: "flex", justifyContent: "flex-end", gap: "14px" }}>
-              {/* ✅ Fix: Cancelar usa handleCancelClick con alerta de confirmación */}
-              <button type="button" style={btnSecondary} onClick={handleCancelClick}>
+            {/* ── BOTONES ── */}
+            <div className="flex justify-end gap-4 mt-8">
+              <Button type="button" variant="secondary" onClick={handleCancelClick}>
                 Cancelar
-              </button>
-              <button type="submit" style={btnPrimary}>
-                Guardar
-              </button>
+              </Button>
+              <Button type="submit" variant="primary">
+                {isEdit ? "Guardar cambios" : "Crear tercero"}
+              </Button>
             </div>
           </form>
         </div>
