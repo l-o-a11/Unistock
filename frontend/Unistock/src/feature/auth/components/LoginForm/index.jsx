@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
 
 const EyeIcon = ({ open }) => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,7 +19,9 @@ const FieldError = ({ msg }) => msg ? (
 ) : null;
 
 const inputCls = (err, val) =>
-    `flex items-center border rounded-xl px-3 py-2.5 gap-2 transition-all duration-200 ${err ? 'border-red-400 bg-red-50' : val ? 'border-pink-400 bg-white ring-2 ring-pink-100' : 'border-gray-200 bg-gray-50'
+    `flex items-center border rounded-xl px-3 py-2.5 gap-2 transition-all duration-200 ${err ? 'border-red-400 bg-red-50'
+        : val ? 'border-pink-400 bg-white ring-2 ring-pink-100'
+            : 'border-gray-200 bg-gray-50'
     }`;
 
 const LoginForm = ({ onLogin, onForgotPassword, loading, error }) => {
@@ -29,81 +30,103 @@ const LoginForm = ({ onLogin, onForgotPassword, loading, error }) => {
     const [showPass, setShowPass] = useState(false);
     const [touched, setTouched] = useState({ u: false, p: false });
 
-    const navigate = useNavigate();
+    // Validaciones de campo vacío
+    const uErr = touched.u && !user.trim() ? 'Este campo es requerido' : '';
+    const pErr = touched.p && !pass.trim() ? 'Este campo es requerido' : '';
 
-    const uErr = touched.u && !user ? 'Este campo es requerido' : '';
-    const pErr = touched.p && !pass ? 'Este campo es requerido' : '';
-    const valid = user.trim() && pass.trim();
+    // Validación de formato de correo (si parece un email)
+    const emailFormatErr =
+        touched.u &&
+            user.includes('@') &&
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user)
+            ? 'Formato de correo inválido'
+            : '';
+
+    const fieldUErr = uErr || emailFormatErr;
+    const valid = user.trim() && pass.trim() && !fieldUErr;
 
     const handleSubmit = (e) => {
         e.preventDefault();
         setTouched({ u: true, p: true });
-        if (valid) onLogin(user, pass);
+        if (valid) onLogin(user.trim(), pass);
     };
-
-    const login = (e) => {
-        e.preventDefault();
-
-        navigate("/Layout")
-    }
-
 
     return (
         <div className="w-full max-w-sm bg-white rounded-xl shadow-xl p-6 sm:p-8">
             <h1 className="text-3xl font-extrabold text-black mb-1">Bienvenido</h1>
-            <p className="text-gray-500 text-sm font-medium mb-6">Accede a tu panel de administración.</p>
+            <p className="text-gray-500 text-sm font-medium mb-6">
+                Accede a tu panel de administración.
+            </p>
 
             <form onSubmit={handleSubmit} noValidate>
+                {/* Usuario / correo */}
                 <div className="mb-4">
                     <label className="block text-sm font-bold text-gray-700 mb-1.5">
                         Nombre del usuario o correo electrónico
                     </label>
-                    <div className={inputCls(uErr, user)}>
+                    <div className={inputCls(fieldUErr, user)}>
                         <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <input type="text" value={user}
+                        <input
+                            type="text"
+                            value={user}
                             onChange={(e) => { setUser(e.target.value); setTouched(t => ({ ...t, u: true })); }}
                             placeholder="Salome@gmail.com o salome hurtado Berrio"
                             className="flex-1 bg-transparent text-sm font-medium outline-none text-gray-700 placeholder-gray-400"
                         />
                     </div>
-                    <FieldError msg={uErr} />
+                    <FieldError msg={fieldUErr} />
                 </div>
 
+                {/* Contraseña */}
                 <div className="mb-6">
                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Contraseña</label>
                     <div className={inputCls(pErr, pass)}>
                         <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
-                        <input type={showPass ? 'text' : 'password'} value={pass}
+                        <input
+                            type={showPass ? 'text' : 'password'}
+                            value={pass}
                             onChange={(e) => { setPass(e.target.value); setTouched(t => ({ ...t, p: true })); }}
                             placeholder="••••••••••••"
                             className="flex-1 bg-transparent text-sm font-medium outline-none text-gray-700 placeholder-gray-400"
                         />
-                        <button type="button" onClick={() => setShowPass(!showPass)} className="text-gray-400 hover:text-pink-400 transition-colors">
+                        <button
+                            type="button"
+                            onClick={() => setShowPass(!showPass)}
+                            className="text-gray-400 hover:text-pink-400 transition-colors"
+                        >
                             <EyeIcon open={showPass} />
                         </button>
                     </div>
                     <FieldError msg={pErr} />
                 </div>
 
+                {/* Error del servidor (usuario no encontrado, desactivado, etc.) */}
                 {error && (
                     <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                        <p className="text-red-600 text-sm text-center font-semibold">{error}</p>
+                        <p className="text-red-600 text-sm text-center font-semibold">⚠ {error}</p>
                     </div>
                 )}
 
-                <button type="submit" disabled={loading} onClick={login}
-                    className={`w-full py-3 rounded-xl font-bold text-white text-sm tracking-wide transition-all duration-200 active:scale-95 ${valid && !loading ? 'bg-pink-500 hover:bg-pink-600 shadow-md shadow-pink-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                <button
+                    type="submit"
+                    disabled={!valid || loading}
+                    className={`w-full py-3 rounded-xl font-bold text-white text-sm tracking-wide transition-all duration-200 active:scale-95 ${valid && !loading
+                            ? 'bg-pink-500 hover:bg-pink-600 shadow-md shadow-pink-200'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         }`}
                 >
                     {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                 </button>
             </form>
 
-            <button onClick={onForgotPassword}
+            <button
+                onClick={onForgotPassword}
                 className="w-full text-center text-pink-500 text-sm font-bold mt-4 hover:underline transition-colors"
             >
                 ¿Olvidaste tu contraseña?

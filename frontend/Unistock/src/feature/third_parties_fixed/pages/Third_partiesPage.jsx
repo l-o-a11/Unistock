@@ -1,0 +1,166 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useThird_parties } from '../hooks/mockThird_parties';
+
+import Third_partieForm     from '../components/Third_partiesForm';
+import Third_partieTable    from '../components/Third_partiesTable';
+import Third_partieSearch   from '../components/Third_partiesSearch';
+import AddThird_partieButton from '../components/AddThird_partiesButton';
+import Third_partieDetail   from '../components/Third_partiesDetail';
+import Alert                from '../../shared/components/Alert';
+
+const Third_partiePage = () => {
+  const navigate = useNavigate();
+  const { Third_parties, deleteThird_partie, toggleThird_partie, createThird_partie, updateThird_partie } = useThird_parties();
+
+  const [searchTerm,           setSearchTerm]           = useState('');
+  const [selectedThird_partie, setSelectedThird_partie] = useState(null);
+  const [currentPage,          setCurrentPage]          = useState(1);
+  const [showForm,             setShowForm]             = useState(false);
+  const [editingThird_partie,  setEditingThird_partie]  = useState(null);
+  const [deleteAlert,          setDeleteAlert]          = useState({ open: false, id: null });
+  const [errorAlert,           setErrorAlert]           = useState({ open: false, message: '' });
+
+  // Auto-seleccionar primer tercero
+  useEffect(() => {
+    if (Third_parties.length > 0 && !selectedThird_partie) setSelectedThird_partie(Third_parties[0]);
+  }, [Third_parties]);
+
+  // Sincronizar panel derecho si el tercero fue editado
+  useEffect(() => {
+    if (selectedThird_partie) {
+      const updated = Third_parties.find(t => t.id === selectedThird_partie.id);
+      if (updated) setSelectedThird_partie(updated);
+    }
+  }, [Third_parties]);
+
+  // Búsqueda: Código, Nombre empresa, Contacto
+  const filtered = useMemo(() => {
+    if (!searchTerm.trim()) return Third_parties;
+    const q = searchTerm.toLowerCase();
+    return Third_parties.filter(t =>
+      t.codigo?.toLowerCase().includes(q) ||
+      t.nombreEmpresa?.toLowerCase().includes(q) ||
+      t.nombreContacto?.toLowerCase().includes(q) ||
+      t.nit?.toString().includes(q) ||
+      t.telefono?.toString().includes(q) ||
+      t.email?.toLowerCase().includes(q) ||
+      t.correo?.toLowerCase().includes(q)
+    );
+  }, [Third_parties, searchTerm]);
+
+  const ITEMS = 7;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS));
+  const paginated  = filtered.slice((currentPage - 1) * ITEMS, currentPage * ITEMS);
+
+  const handleView   = (t) => setSelectedThird_partie(t);
+  const handleEdit   = (t) => { setEditingThird_partie(t); setShowForm(true); };
+  const handleAdd    = () => { setEditingThird_partie(null); setShowForm(true); };
+  const handleToggle = (id) => toggleThird_partie?.(id);
+
+  const handleDelete = (id) => {
+    const t = Third_parties.find(x => x.id === id);
+    if (t?.producciones?.length > 0) {
+      setErrorAlert({ open: true, message: `Este tercero tiene ${t.producciones.length} producción(es) asignada(s) y no puede eliminarse.` });
+      return;
+    }
+    setDeleteAlert({ open: true, id });
+  };
+
+  const confirmDelete = () => {
+    try {
+      deleteThird_partie(deleteAlert.id);
+      if (selectedThird_partie?.id === deleteAlert.id) setSelectedThird_partie(null);
+    } catch (e) {
+      setErrorAlert({ open: true, message: e?.message || 'No se puede eliminar.' });
+    }
+    setDeleteAlert({ open: false, id: null });
+  };
+
+  const handleFormSubmit = async (data) => {
+    if (editingThird_partie) await updateThird_partie(editingThird_partie.id, data);
+    else await createThird_partie(data);
+  };
+
+  const getPages = () => {
+    if (totalPages <= 7) return [...Array(totalPages)].map((_, i) => i + 1);
+    const p = [1];
+    if (currentPage > 3) p.push('...');
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) p.push(i);
+    if (currentPage < totalPages - 2) p.push('...');
+    p.push(totalPages);
+    return p;
+  };
+
+  return (
+    <div style={{ padding: 0, background: '#F7F7F9', minHeight: '100vh' }}>
+      {/* Alerts globales */}
+      <Alert isOpen={deleteAlert.open} type="password" title="Eliminar tercero"
+        message="Esta acción no se puede deshacer. Ingresa la contraseña de administrador."
+        onConfirm={confirmDelete} onCancel={() => setDeleteAlert({ open: false, id: null })}
+      />
+      <Alert isOpen={errorAlert.open} type="error" title="No se puede eliminar" message={errorAlert.message}
+        onConfirm={() => setErrorAlert({ open: false, message: '' })}
+        onCancel={() => setErrorAlert({ open: false, message: '' })}
+      />
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 600, color: '#1E1E1E' }}>Gestión de terceros</h1>
+        <Third_partieSearch value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por código, nombre, contacto..." />
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button onClick={() => navigate('/Layout/produccion')} style={{ background: '#F1F1F1', color: '#666', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>Producciones</button>
+        <button onClick={() => navigate('/Layout/terceros')}   style={{ background: '#FF4FD6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>Terceros</button>
+      </div>
+
+      {/* Layout 2 columnas */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+        {/* Izquierda */}
+        <div style={{ background: '#fff', borderRadius: 10, padding: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <AddThird_partieButton onClick={handleAdd} />
+          </div>
+
+          <Third_partieTable
+            Third_parties={paginated}
+            selectedId={selectedThird_partie?.id}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggle={handleToggle}
+          />
+
+          {filtered.length > 0 && (
+            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center' }}>
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} style={pgBtn}>‹</button>
+              {getPages().map((p, i) => p === '...' ? <span key={i} style={{ padding: '6px 4px' }}>…</span> : (
+                <button key={p} onClick={() => setCurrentPage(p)}
+                  style={{ ...pgBtn, background: p === currentPage ? '#FF4FD6' : '#fff', color: p === currentPage ? '#fff' : '#333', border: `1px solid ${p === currentPage ? '#FF4FD6' : '#ddd'}` }}>{p}</button>
+              ))}
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} style={pgBtn}>›</button>
+            </div>
+          )}
+        </div>
+
+        {/* Derecha — detalle */}
+        <div style={{ background: '#fff', borderRadius: 10, minHeight: 400, alignSelf: 'start' }}>
+          {selectedThird_partie
+            ? <Third_partieDetail Third_partie={selectedThird_partie} onEdit={handleEdit} onDelete={handleDelete} onClose={() => setSelectedThird_partie(null)} />
+            : <p style={{ color: '#999', textAlign: 'center', marginTop: 40 }}>Selecciona un tercero</p>}
+        </div>
+      </div>
+
+      {/* Modal form */}
+      {showForm && (
+        <Third_partieForm Third_partie={editingThird_partie} onSubmit={handleFormSubmit} onCancel={() => setShowForm(false)} />
+      )}
+    </div>
+  );
+};
+
+const pgBtn = { padding: '6px 12px', borderRadius: 6, border: '1px solid #ddd', background: '#fff', cursor: 'pointer' };
+
+export default Third_partiePage;

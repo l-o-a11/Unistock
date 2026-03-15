@@ -1,5 +1,37 @@
+/**
+ * @file Alert.jsx
+ * @description Componente de alertas unificado para toda la aplicación.
+ *
+ * TIPOS:
+ *   success  — Toast verde deslizante (esquina superior derecha, cierre automático)
+ *   error    — Toast rojo deslizante (cierre automático)
+ *   warning  — Toast amarillo deslizante (cierre automático)
+ *   confirm  — Modal centrado con botones Cancelar / Confirmar
+ *   password — Modal centrado con campo de contraseña de administrador
+ *
+ * USO:
+ *   <Alert
+ *     isOpen={alertConfig.open}
+ *     type="confirm"
+ *     title="¿Eliminar registro?"
+ *     message="Esta acción no se puede deshacer."
+ *     onConfirm={handleDelete}
+ *     onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
+ *   />
+ */
+import React, { useState, useEffect } from "react";
 import React, { useState, useEffect, useRef } from "react";
 
+/**
+ * @param {object}   props
+ * @param {boolean}  props.isOpen     - Controla la visibilidad del alert
+ * @param {'success'|'error'|'warning'|'confirm'|'password'} [props.type='success']
+ * @param {string}   props.title      - Título principal
+ * @param {string}   [props.message]  - Descripción o detalle adicional
+ * @param {function} [props.onConfirm]- Se llama al confirmar (en toasts, también cierra)
+ * @param {function} [props.onCancel] - Se llama al cancelar o cerrar
+ * @param {number}   [props.duration=3000] - Duración en ms para los toasts automáticos
+ */
 const Alert = ({
   isOpen,
   type = "success",
@@ -13,6 +45,7 @@ const Alert = ({
   const [error, setError] = useState("");
   const timerRef = useRef(null);
 
+  // Los tipos toast se cierran solos; los modales requieren acción del usuario
   const isToast = type === "success" || type === "error" || type === "warning";
 
   useEffect(() => {
@@ -53,8 +86,13 @@ const Alert = ({
     };
   }, [isOpen, type]);
 
+  // No renderiza nada cuando está cerrado
   if (!isOpen) return null;
 
+  /**
+   * Paleta de estilos por tipo de alerta.
+   * Unificada con la paleta del componente Button.
+   */
   const config = {
     success: { color: "#22c55e", icon: "✓" },
     error:   { color: "#ef4444", icon: "✕" },
@@ -65,11 +103,15 @@ const Alert = ({
 
   const current = config[type] || config.success;
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  /** Cierra la alerta con animación de salida */
   const handleClose = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     onCancel && onCancel();
   };
 
+  /** Confirma la acción — para "password" valida primero */
   const handleConfirm = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     onConfirm && onConfirm(password);
@@ -130,7 +172,7 @@ const Alert = ({
           <div style={{ marginBottom: "4px" }}>
             <input
               type="password"
-              placeholder="Contraseña administrador"
+              placeholder="Contraseña de administrador"
               value={password}
               autoFocus
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
