@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const Alert = ({
   isOpen,
@@ -9,13 +9,12 @@ const Alert = ({
   onCancel,
   duration = 3000,
 }) => {
-  const [visible, setVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const timerRef = useRef(null);
 
   const isToast = type === "success" || type === "error" || type === "warning";
 
-  //  inyectar keyframes dinámicamente
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -23,141 +22,152 @@ const Alert = ({
         from { width: 100%; }
         to { width: 0%; }
       }
+      @keyframes slideIn {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes popIn {
+        from { transform: scale(0.92); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
     `;
     document.head.appendChild(style);
-
     return () => document.head.removeChild(style);
   }, []);
 
+  // Reset password/error cada vez que se abre
   useEffect(() => {
     if (isOpen) {
-      setVisible(true);
       setPassword("");
       setError("");
-
+      // Auto-cierre para toasts
       if (isToast) {
-        const timer = setTimeout(() => handleClose(), duration);
-        return () => clearTimeout(timer);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          onCancel && onCancel();
+        }, duration);
       }
     }
-  }, [isOpen]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isOpen, type]);
 
   if (!isOpen) return null;
 
   const config = {
     success: { color: "#22c55e", icon: "✓" },
-    error: { color: "#ef4444", icon: "✕" },
+    error:   { color: "#ef4444", icon: "✕" },
     warning: { color: "#f59e0b", icon: "⚠" },
-    confirm: { color: "#6366f1", icon: "?" },
-    password: { color: "#E91E8C", icon: "🔒" },
+    confirm: { color: "#FF4FD6", icon: "!" },
+    password:{ color: "#FF4FD6", icon: "🔒" },
   };
 
-  const current = config[type];
+  const current = config[type] || config.success;
 
   const handleClose = () => {
-    setVisible(false);
-    setTimeout(() => onCancel && onCancel(), 250);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onCancel && onCancel();
   };
 
   const handleConfirm = () => {
-    if (type === "password" && password !== "1234") {
-      setError("Contraseña incorrecta");
-      return;
-    }
-    setVisible(false);
-    setTimeout(() => onConfirm && onConfirm(password), 250);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onConfirm && onConfirm(password);
   };
 
-  /* ===========================
-        🎯 TOAST LATERAL
-  =========================== */
+  /* ── TOAST ── */
   if (isToast) {
     return (
       <div style={toastContainer}>
-        <div
-          style={{
-            ...toast,
-            transform: visible ? "translateX(0)" : "translateX(120%)",
-            opacity: visible ? 1 : 0,
-            borderLeft: `6px solid ${current.color}`,
-          }}
-        >
+        <div style={{
+          ...toast,
+          borderLeft: `6px solid ${current.color}`,
+          animation: "slideIn .3s ease forwards",
+        }}>
           <div style={toastIcon}>{current.icon}</div>
-
           <div style={{ flex: 1 }}>
-            <strong>{title}</strong>
-            {message && <p style={toastMsg}>{message}</p>}
+            <strong>{title || message}</strong>
+            {title && message && <p style={toastMsg}>{message}</p>}
           </div>
-
-          <button style={closeBtn} onClick={handleClose}>
-            ✕
-          </button>
-
-          {/* ⏳ barra animada */}
-          <div
-            style={{
-              ...progressBar,
-              background: current.color,
-              animationDuration: `${duration}ms`,
-            }}
-          />
+          <button style={closeBtn} onClick={handleClose}>✕</button>
+          <div style={{
+            ...progressBar,
+            background: current.color,
+            animationDuration: `${duration}ms`,
+          }} />
         </div>
       </div>
     );
   }
 
-  /* ===========================
-        🎯 MODAL CENTRADO
-  =========================== */
+  /* ── MODAL ── */
   return (
     <div style={overlay}>
-      <div
-        style={{
-          ...modal,
-          transform: visible ? "scale(1)" : "scale(0.9)",
-          opacity: visible ? 1 : 0,
-          borderTop: `6px solid ${current.color}`,
-        }}
-      >
-        <div style={modalHeader}>
-          <div style={{ ...modalIcon, background: current.color }}>
+      <div style={{ ...modal, animation: "popIn .2s cubic-bezier(0.34,1.4,0.64,1) forwards" }}>
+
+        {/* Ícono + texto */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+          <div style={{
+            width: "56px", height: "56px", borderRadius: "50%",
+            background: `${current.color}18`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "22px", color: current.color, fontWeight: "bold",
+          }}>
             {current.icon}
           </div>
-
-          <div>
-            <h3 style={{ margin: 0 }}>{title}</h3>
-            {message && <p style={{ margin: 0 }}>{message}</p>}
-          </div>
+          {title && (
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#111827", textAlign: "center" }}>
+              {title}
+            </h3>
+          )}
+          <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", textAlign: "center", lineHeight: 1.6 }}>
+            {message}
+          </p>
         </div>
 
+        {/* Input contraseña */}
         {type === "password" && (
-          <>
+          <div style={{ marginBottom: "4px" }}>
             <input
               type="password"
               placeholder="Contraseña administrador"
               value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
+              autoFocus
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && password && handleConfirm()}
               style={{
-                ...input,
-                border: error
-                  ? "2px solid #ef4444"
-                  : `2px solid ${current.color}`,
+                ...inputStyle,
+                border: error ? "1.5px solid #ef4444" : "1.5px solid #e5e7eb",
+                backgroundColor: "#f9fafb",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = current.color;
+                e.target.style.boxShadow = `0 0 0 3px ${current.color}20`;
+                e.target.style.backgroundColor = "#fff";
+              }}
+              onBlur={(e) => {
+                if (!error) e.target.style.borderColor = "#e5e7eb";
+                e.target.style.boxShadow = "none";
+                e.target.style.backgroundColor = "#f9fafb";
               }}
             />
-            {error && <span style={errorText}>{error}</span>}
-          </>
+            {error && <span style={errorStyle}>{error}</span>}
+          </div>
         )}
 
+        {/* Botones */}
         <div style={actions}>
-          <button style={cancelBtn} onClick={handleClose}>
-            Cancelar
-          </button>
+          <button style={cancelBtn} onClick={handleClose}>Cancelar</button>
           <button
-            style={{ ...confirmBtn, background: current.color }}
+            style={{
+              ...confirmBtn,
+              background: `linear-gradient(135deg, ${current.color} 0%, ${current.color}cc 100%)`,
+              boxShadow: `0 4px 12px ${current.color}44`,
+              opacity: type === "password" && !password ? 0.5 : 1,
+              cursor: type === "password" && !password ? "not-allowed" : "pointer",
+            }}
             onClick={handleConfirm}
+            disabled={type === "password" && !password}
           >
             Confirmar
           </button>
@@ -167,118 +177,79 @@ const Alert = ({
   );
 };
 
-/* 🎨 estilos  */
+/* ── Estilos ── */
 
 const toastContainer = {
-  position: "fixed",
-  top: "20px",
-  right: "20px",
-  zIndex: 9999,
+  position: "fixed", top: "20px", right: "20px", zIndex: 9999,
 };
 
 const toast = {
   width: "320px",
-  background: "rgba(255,255,255,0.9)",
+  background: "rgba(255,255,255,0.95)",
   backdropFilter: "blur(10px)",
   borderRadius: "14px",
   padding: "16px",
   display: "flex",
   gap: "10px",
   alignItems: "center",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-  transition: "all .35s ease",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
   position: "relative",
 };
 
 const progressBar = {
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  height: "4px",
-  width: "100%",
+  position: "absolute", bottom: 0, left: 0,
+  height: "4px", width: "100%",
   borderRadius: "0 0 14px 14px",
   animationName: "shrink",
   animationTimingFunction: "linear",
   animationFillMode: "forwards",
 };
 
-const toastIcon = { fontWeight: "bold", fontSize: "18px" };
-const toastMsg = { margin: "2px 0 0", fontSize: "13px", color: "#555" };
+const toastIcon  = { fontWeight: "bold", fontSize: "18px" };
+const toastMsg   = { margin: "2px 0 0", fontSize: "13px", color: "#555" };
+const closeBtn   = { border: "none", background: "transparent", cursor: "pointer", fontSize: "14px", color: "#666" };
 
 const overlay = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.55)",
-  backdropFilter: "blur(5px)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
+  position: "fixed", inset: 0,
+  background: "rgba(0,0,0,0.25)",
+  backdropFilter: "blur(3px)",
+  WebkitBackdropFilter: "blur(3px)",
+  display: "flex", justifyContent: "center", alignItems: "center",
   zIndex: 999,
 };
 
 const modal = {
-  width: "400px",
+  width: "380px",
   background: "#fff",
-  borderRadius: "16px",
-  padding: "20px",
-  boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
-  transition: "all .25s ease",
-};
-
-const modalHeader = { display: "flex", gap: "12px", alignItems: "center" };
-const modalIcon = {
-  width: "44px",
-  height: "44px",
-  borderRadius: "50%",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  borderRadius: "20px",
+  padding: "28px 24px 20px",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
 };
 
 const actions = {
-  marginTop: "18px",
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "10px",
+  marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px",
 };
 
 const confirmBtn = {
-  border: "none",
-  padding: "10px 16px",
-  borderRadius: "10px",
-  color: "#fff",
-  cursor: "pointer",
+  flex: 1, border: "none",
+  padding: "10px 16px", borderRadius: "50px",
+  color: "#fff", fontSize: "14px", fontWeight: 700,
 };
 
 const cancelBtn = {
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "10px",
-  background: "#eee",
-  cursor: "pointer",
+  flex: 1, border: "1.5px solid #e5e7eb",
+  padding: "10px 18px", borderRadius: "50px",
+  background: "#fff", color: "#6b7280",
+  cursor: "pointer", fontSize: "14px", fontWeight: 600,
 };
 
-const closeBtn = {
-  border: "none",
-  background: "transparent",
-  cursor: "pointer",
-  fontSize: "14px",
-  color: "#666",
+const inputStyle = {
+  width: "100%", padding: "10px 14px",
+  borderRadius: "12px", outline: "none",
+  fontSize: "14px", boxSizing: "border-box",
+  transition: "all 0.18s",
 };
 
-const input = {
-  width: "100%",
-  marginTop: "14px",
-  padding: "10px",
-  borderRadius: "10px",
-  outline: "none",
-};
-
-const errorText = {
-  color: "#ef4444",
-  fontSize: "12px",
-  marginTop: "6px",
-};
+const errorStyle = { color: "#ef4444", fontSize: "12px", marginTop: "6px", display: "block" };
 
 export default Alert;

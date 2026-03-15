@@ -23,6 +23,7 @@ const INITIAL_ROLES = [
     id: 1, 
     nombre: 'Gerente', 
     descripcion: 'Accede a todos los módulos y permisos completos del sistema. Puede crear, editar y eliminar cualquier registro.',
+    estado: true,
     modulos: [
       { moduloId: 1, privilegios: [1, 2, 3, 4] }, // Usuarios: todos
       { moduloId: 2, privilegios: [1, 2, 3, 4] }, // Productos: todos
@@ -38,6 +39,7 @@ const INITIAL_ROLES = [
     id: 2, 
     nombre: 'Administrador', 
     descripcion: 'Accede a todos los módulos de su área. Puede gestionar usuarios y configuraciones básicas.',
+    estado: true,
     modulos: [
       { moduloId: 1, privilegios: [1, 2, 3] }, // Usuarios: Leer, Crear, Actualizar
       { moduloId: 2, privilegios: [1, 2, 3] }, // Productos: Leer, Crear, Actualizar
@@ -50,6 +52,7 @@ const INITIAL_ROLES = [
     id: 3, 
     nombre: 'Personal de corte', 
     descripcion: 'Accede a la zona contable de la empresa y puede registrar horas de trabajo y materiales utilizados.',
+    estado: true,
     modulos: [
       { moduloId: 2, privilegios: [1] }, // Productos: Leer
       { moduloId: 3, privilegios: [1, 2] } // Insumos: Leer, Crear
@@ -59,6 +62,7 @@ const INITIAL_ROLES = [
     id: 4, 
     nombre: 'Gestor de inventario', 
     descripcion: 'Este rol permite acceder a los módulos de gestión de inventario, incluyendo insumos, productos y compras. Ideal para personal encargado del control de stock.',
+    estado: false,
     modulos: [
       { moduloId: 2, privilegios: [1, 2, 3] }, // Productos: Leer, Crear, Actualizar
       { moduloId: 3, privilegios: [1, 2, 3] }, // Insumos: Leer, Crear, Actualizar
@@ -69,6 +73,7 @@ const INITIAL_ROLES = [
     id: 5, 
     nombre: 'Vendedor', 
     descripcion: 'Visualiza la información de productos y puede registrar ventas. No tiene acceso a configuración.',
+    estado: true,
     modulos: [
       { moduloId: 2, privilegios: [1] }, // Productos: Leer
       { moduloId: 6, privilegios: [1, 2] } // Ventas: Leer, Crear
@@ -78,6 +83,7 @@ const INITIAL_ROLES = [
     id: 6, 
     nombre: 'Contador', 
     descripcion: 'Accede a la información de dashboard. No tiene acceso a configuración.',
+    estado: false,
     modulos: [
       { moduloId: 7, privilegios: [1] },
     ]
