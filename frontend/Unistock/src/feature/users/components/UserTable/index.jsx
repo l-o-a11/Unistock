@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import Table, { tdClass, truncateName, truncateText } from "../../../shared/components/Table";
 import HoverCard from "../../../shared/components/HoverCart";
+import Alert from "../Alert";
 
-// ✏️ Columnas de esta tabla
 const HEADERS = [
   "Tipo de documento",
   "Documento",
@@ -14,6 +14,19 @@ const HEADERS = [
 ];
 
 const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
+
+  // ── Alerta de cambio de estado (requiere contraseña) ──────────────────────
+  const [toggleAlert, setToggleAlert] = useState({ open: false, id: null, newStatus: null });
+
+  const handleToggleClick = (user) => {
+    const isActive = user.estado !== false;
+    setToggleAlert({
+      open: true,
+      id: user.id,
+      newStatus: !isActive,
+    });
+  };
+
   const renderRow = (user) => {
     const isActive = user.estado !== false;
 
@@ -27,13 +40,12 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
           <HoverCard
             title="Información del usuario"
             position="right"
-            // ✏️ Campos del tooltip para usuarios
             fields={[
               { label: "Nombre completo", value: user.nombreCompleto, highlight: true },
-              { label: "Documento", value: `${user.tipoDocumento} ${user.numeroDocumento}`, highlight: true },
-              { label: "Rol", value: user.rol, type: "badge" },
-              { label: "Sede", value: user.sede },
-              { label: "Estado", value: isActive ? "Activo" : "Inactivo", type: "status" },
+              { label: "Documento",       value: `${user.tipoDocumento} ${user.numeroDocumento}`, highlight: true },
+              { label: "Rol",             value: user.rol,  type: "badge"   },
+              { label: "Sede",            value: user.sede                  },
+              { label: "Estado",          value: isActive ? "Activo" : "Inactivo", type: "status" },
             ]}
           >
             <span className="font-medium">{truncateName(user.nombreCompleto)}</span>
@@ -79,13 +91,32 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
               </svg>
             </button>
 
-            {/* Toggle activo/inactivo */}
+            {/* Toggle — pide contraseña antes de cambiar estado */}
             <button
-              onClick={() => onToggle?.(user.id)}
+              onClick={() => handleToggleClick(user)}
               title={isActive ? "Desactivar usuario" : "Activar usuario"}
-              className={`relative w-11 h-6 rounded-full border-none cursor-pointer transition-colors duration-200 ${isActive ? "bg-green-500" : "bg-gray-300"}`}
+              style={{
+                position: "relative",
+                width: "44px",
+                height: "24px",
+                borderRadius: "20px",
+                border: "none",
+                backgroundColor: isActive ? "#22c55e" : "#d1d5db",
+                cursor: "pointer",
+              }}
             >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${isActive ? "left-[22px]" : "left-0.5"}`} />
+              <span
+                style={{
+                  position: "absolute",
+                  top: "2px",
+                  left: isActive ? "22px" : "2px",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  backgroundColor: "#fff",
+                  transition: "0.2s",
+                }}
+              />
             </button>
 
           </div>
@@ -95,13 +126,32 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
   };
 
   return (
-    <Table
-      headers={HEADERS}
-      rows={users}
-      renderRow={renderRow}
-      emptyIcon="👤"
-      emptyText="No hay usuarios para mostrar"
-    />
+    <>
+      <Table
+        headers={HEADERS}
+        rows={users}
+        renderRow={renderRow}
+        emptyIcon="👤"
+        emptyText="No hay usuarios para mostrar"
+      />
+
+      {/* Alerta de contraseña para cambio de estado */}
+      <Alert
+        isOpen={toggleAlert.open}
+        type="password"
+        title={toggleAlert.newStatus ? "Activar usuario" : "Inactivar usuario"}
+        message={
+          toggleAlert.newStatus
+            ? "Para activar este usuario ingresa la contraseña de administrador."
+            : "Para inactivar este usuario ingresa la contraseña de administrador."
+        }
+        onCancel={() => setToggleAlert({ open: false, id: null, newStatus: null })}
+        onConfirm={() => {
+          onToggle?.(toggleAlert.id);
+          setToggleAlert({ open: false, id: null, newStatus: null });
+        }}
+      />
+    </>
   );
 };
 
