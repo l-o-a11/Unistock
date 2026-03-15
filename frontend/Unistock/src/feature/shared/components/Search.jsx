@@ -1,5 +1,3 @@
-import React from "react";
-
 function SearchInput({
   value,
   onChange,
@@ -10,11 +8,7 @@ function SearchInput({
 }) {
   return (
     <div
-      style={{
-        position: "relative",
-        width: "100%",
-        maxWidth: width,
-      }}
+      style={{ position: "relative", width: "100%", maxWidth: width }}
       className={className}
     >
       {showIcon && (
@@ -44,7 +38,6 @@ function SearchInput({
           </svg>
         </span>
       )}
-
       <input
         type="text"
         value={value}

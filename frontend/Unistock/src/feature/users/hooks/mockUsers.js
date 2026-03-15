@@ -137,37 +137,32 @@ export const useUsers = () => {
         if (!userToDelete) return;
 
         if (userToDelete.rol === "Administrador" && userToDelete.estado) {
-            alert("No se puede eliminar un administrador activo");
-            return;
+            throw new Error("No se puede eliminar un administrador activo");
         }
-
-        const confirmDelete = window.confirm("¿Seguro que deseas eliminar este usuario?");
-        if (!confirmDelete) return;
 
         setUsers((prev) => prev.filter((u) => u.id !== id));
     };
 
     const toggleUser = (id) => {
-        setUsers((prev) => {
-            const userToToggle = prev.find((u) => u.id === id);
-            if (!userToToggle) return prev;
+        const userToToggle = users.find((u) => u.id === id);
+        if (!userToToggle) return;
 
-            const isActive = userToToggle.estado !== false;
+        const isActive = userToToggle.estado !== false;
 
-            if (userToToggle.rol === "Administrador" && isActive) {
-                const activeAdmins = prev.filter(
-                    (u) => u.rol === "Administrador" && u.estado !== false
-                );
-                if (activeAdmins.length <= 1) {
-                    alert("No se puede desactivar el único administrador activo");
-                    return prev;
-                }
-            }
-
-            return prev.map((u) =>
-                u.id === id ? { ...u, estado: !u.estado } : u
+        if (userToToggle.rol === "Administrador" && isActive) {
+            const activeAdmins = users.filter(
+                (u) => u.rol === "Administrador" && u.estado !== false
             );
-        });
+            if (activeAdmins.length <= 1) {
+                throw new Error("No se puede desactivar el único administrador activo");
+            }
+        }
+
+        setUsers((prev) =>
+            prev.map((u) =>
+                u.id === id ? { ...u, estado: !u.estado } : u
+            )
+        );
     };
 
     // Util: resetear al seed original (útil para desarrollo/testing)

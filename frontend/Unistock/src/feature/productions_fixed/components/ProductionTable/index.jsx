@@ -159,7 +159,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                               <button
                                 style={{ ...iconBtn, color: '#888' }}
                                 title="Ver detalle completo"
-                                onClick={() => navigate(`/layout/produccion/detail/${prod.id}`)}
+                                onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
                                 onMouseEnter={(e) => (e.currentTarget.style.color = '#ff4fd6')}
                                 onMouseLeave={(e) => (e.currentTarget.style.color = '#888')}
                               >

@@ -29,13 +29,16 @@ const SupplierPage = () => {
   });
 
   const filteredSuppliers = useMemo(() => {
-    if (!suppliers) return [];
-    return suppliers.filter(
-      (s) =>
-        s.nombreEmpresa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.nit?.toString().includes(searchTerm)
-    );
-  }, [suppliers, searchTerm]);
+  if (!suppliers) return [];
+
+  const term = searchTerm.toLowerCase();
+
+  return suppliers.filter((supplier) =>
+    Object.values(supplier).some((value) =>
+      value?.toString().toLowerCase().includes(term)
+    )
+  );
+}, [suppliers, searchTerm]);
 
   const itemsPerPage = 7;
   const totalPages = Math.max(1, Math.ceil(filteredSuppliers.length / itemsPerPage));
