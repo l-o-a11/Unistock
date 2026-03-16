@@ -14,6 +14,48 @@ const CategoriesSupplyPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  // Estados para alertas
+    const [successAlert, setSuccessAlert] = useState({
+      open: false,
+      key: Date.now(),
+      title: "",
+      message: "",
+    });
+  
+    const [errorAlert, setErrorAlert] = useState({
+      open: false,
+      key: Date.now(),
+      title: "",
+      message: "",
+    });
+  
+    const [warningAlert, setWarningAlert] = useState({
+      open: false,
+      key: Date.now(),
+      title: "",
+      message: "",
+    });
+  
+    const [confirmAlert, setConfirmAlert] = useState({
+      open: false,
+      key: Date.now(),
+      title: "",
+      message: "",
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      onConfirm: null,
+    });
+  
+    const [deleteAlert, setDeleteAlert] = useState({
+      open: false,
+      step: "confirm",
+      categoryId: null,
+      categoryName: "",
+      productCount: 0,
+      key: Date.now()
+    });
+  
+
   const itemsPerPage = 7;
 
   // Filtrar categorías por búsqueda
@@ -76,9 +118,9 @@ const CategoriesSupplyPage = () => {
   };
 
   const handleDelete = async (id) => {
-    const category = categories.find(c => c.id === id);
-    if (category.productCount > 0) {
-      alert('No se puede eliminar una categoría con productos asociados');
+    const supply = supplies.find(s => s.id === id);
+    if (supply.supplyCount > 0) {
+      alert('No se puede eliminar una categoría con insumos asociados');
       return;
     }
     if (window.confirm('¿Estás seguro de eliminar esta categoría?')) {
@@ -88,7 +130,36 @@ const CategoriesSupplyPage = () => {
         alert(error.message);
       }
     }
+
+    setDeleteAlert({
+      open: true,
+      step: "confirm",
+      categoryId: id,
+      categoryName: category.name,
+      productCount: category.productCount,
+      key: Date.now()
+    });
   };
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteCategory(deleteAlert.categoryId);
+      setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() });
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: "Categoría eliminada correctamente"
+      });
+    } catch (error) {
+      handleShowAlert({
+        type: "error",
+        title: "¡Error!",
+        message: error.message || "Error al eliminar categoría"
+      });
+      setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() });
+    }
+  };
+
+
 
   const paginationBtn = {
     padding: "6px 12px",

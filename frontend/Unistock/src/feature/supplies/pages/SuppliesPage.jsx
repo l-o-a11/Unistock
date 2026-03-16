@@ -9,6 +9,7 @@ import SupplyForm from "../components/SupplyForm";
 import SupplyDetail from "../components/SupplyDetail";
 import Alert from "../components/Alert";
 
+
 const SuppliesPage = () => {
   const navigate = useNavigate();
 
@@ -33,37 +34,17 @@ const SuppliesPage = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSupply, setEditingSupply] = useState(null);
 
-  // ─── Estado único de alertas (patrón Users) ──────────────────────────────
-  const [alertConfig, setAlertConfig] = useState({
-    open: false,
-    type: "success",   // "success" | "error" | "warning" | "confirm" | "password"
-    title: "",
-    message: "",
-    confirmText: "Confirmar",
-    cancelText: "Cancelar",
-    onConfirm: null,
-  });
+ 
 
-  // Helpers para abrir cada tipo de alerta
-  const showAlert = ({ type, title, message }) => {
-    setAlertConfig({ open: false, type, title, message, onConfirm: null });
-    // pequeño delay para re-montar el componente y reiniciar su animación
-    setTimeout(() => setAlertConfig((prev) => ({ ...prev, open: true })), 50);
-  };
-
-  const showConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
-    setAlertConfig({ open: false, type: "confirm", title, message, confirmText, cancelText, onConfirm });
-    setTimeout(() => setAlertConfig((prev) => ({ ...prev, open: true })), 50);
-  };
-
-  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
 
   // ─── Filtrado y paginación ────────────────────────────────────────────────
   const filteredSupplies = supplies.filter((s) => {
     const text = searchTerm.toLowerCase();
     return (
       s.id?.toString().includes(searchTerm) ||
+      s.stock?.toString().includes(searchTerm) ||
       s.nombre?.toLowerCase().includes(text) ||
+      s.valorMedida?.toString().includes(searchTerm) ||
       getCategoriaNombre(s.categoriaId)?.toLowerCase().includes(text) ||
       getMedidaNombre(s.medidaId)?.toLowerCase().includes(text)
     );
@@ -91,47 +72,30 @@ const SuppliesPage = () => {
   const handleView = (supply) => setSelectedSupply(supply);
 
   const handleDelete = (id) => {
-    showConfirm({
-      title: "Eliminar insumo",
-      message: "¿Seguro que deseas eliminar este insumo? Esta acción no se puede deshacer.",
-      confirmText: "Eliminar",
-      cancelText: "Cancelar",
-      onConfirm: async () => {
-        try {
-          await deleteSupply(id);
-          showAlert({ type: "success", title: "Eliminado", message: "El insumo fue eliminado correctamente" });
-        } catch {
-          showAlert({ type: "error", title: "Error", message: "No se pudo eliminar el insumo" });
-        }
-      },
-    });
+        if (window.confirm("¿Eliminar insumo?")) deleteSupply(id);
   };
 
   const handleToggle = (id) => {
     toggleSupply?.(id);
   };
 
-  const handleCreateSubmit = async (supplyData) => {
-    try {
-      await createSupply(supplyData);
-      handleCloseForm();
-      showAlert({ type: "success", title: "¡Éxito!", message: "Insumo creado correctamente" });
-    } catch (error) {
-      handleCloseForm();
-      showAlert({ type: "error", title: "Error", message: error.message || "Error al crear el insumo" });
-    }
-  };
+ const handleCreateSubmit = async (supplyData) => {
+  try {
+    await createSupply(supplyData);
+    handleCloseForm();
+  } catch (error) {
+    console.error("Error al crear el insumo:", error);
+  }
+};
 
-  const handleEditSubmit = async (supplyData) => {
-    try {
-      await updateSupply(editingSupply.id, supplyData);
-      handleCloseForm();
-      showAlert({ type: "success", title: "Actualizado", message: "El insumo se actualizó correctamente" });
-    } catch {
-      showAlert({ type: "error", title: "Error", message: "No se pudo actualizar el insumo" });
-    }
-  };
-
+const handleEditSubmit = async (supplyData) => {
+  try {
+    await updateSupply(editingSupply.id, supplyData);
+    handleCloseForm();
+  } catch (error) {
+    console.error("Error al actualizar el insumo:", error);
+  }
+};
   const handleDownload = () => {
     const csv = [
       ["id", "Nombre", "Categoría", "Stock"],
@@ -205,18 +169,12 @@ const SuppliesPage = () => {
             medidas={medidas}
             propiedades={propiedades}
             onSubmit={handleCreateSubmit}
-            onCancel={() =>
-              showConfirm({
-                title: "Cancelar creación",
-                message: "¿Seguro que deseas cancelar? Los datos ingresados se perderán.",
-                confirmText: "Sí, cancelar",
-                cancelText: "Seguir editando",
-                onConfirm: handleCloseForm,
-              })
-            }
+            onCancel={handleCloseForm}
+            
           />
         </div>
       )}
+      
 
       {/* MODAL EDITAR */}
       {showEditForm && editingSupply && (
@@ -227,15 +185,7 @@ const SuppliesPage = () => {
             medidas={medidas}
             propiedades={propiedades}
             onSubmit={handleEditSubmit}
-            onCancel={() =>
-              showConfirm({
-                title: "Cancelar edición",
-                message: "¿Seguro que deseas cancelar? Los cambios no guardados se perderán.",
-                confirmText: "Sí, cancelar",
-                cancelText: "Seguir editando",
-                onConfirm: handleCloseForm,
-              })
-            }
+            onCancel={handleCloseForm}
           />
         </div>
       )}
@@ -276,18 +226,7 @@ const SuppliesPage = () => {
         </div>
       )}
 
-      {/* ─── ALERTA ÚNICA (patrón Users) ─── */}
-      <Alert
-        isOpen={alertConfig.open}
-        type={alertConfig.type}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onConfirm={() => {
-          if (alertConfig.onConfirm) alertConfig.onConfirm();
-          closeAlert();
-        }}
-        onCancel={closeAlert}
-      />
+      
     </div>
   );
 };

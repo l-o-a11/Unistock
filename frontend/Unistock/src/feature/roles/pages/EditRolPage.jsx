@@ -1,22 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useRoles } from "../hooks/useRoles";
+import React from "react";
 import RolForm from "../components/RolForm";
 
-const EditRolPage = ({ rolId, onClose }) => {
-  const { roles, updateRol } = useRoles();
-  const [rol, setRol] = useState(null);
-
-  useEffect(() => {
-    const found = roles.find((rol) => rol.id === rolId);
-    setRol(found);
-  }, [rolId, roles]);
+const EditRolPage = ({ rol, updateRol, onClose }) => {
+  // ✅ Recibe el rol directo desde RolesPage — sin hook propio
+  // Así comparte exactamente el mismo estado que la tabla
 
   const handleSubmit = async (rolData) => {
-  // combinamos los cambios con el rol original
-  const updatedRol = { rolId, rolData };
-  await updateRol(rolId, updatedRol);
-  onClose();
-};
+    await updateRol(rolData);
+    onClose();
+  };
 
   if (!rol) return null;
 
@@ -28,10 +20,5 @@ const EditRolPage = ({ rolId, onClose }) => {
     />
   );
 };
-
-
- 
-
-
 
 export default EditRolPage;

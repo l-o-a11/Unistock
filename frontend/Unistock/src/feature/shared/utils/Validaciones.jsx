@@ -50,7 +50,8 @@ export const blockInput = {
    */
   alphanumeric: (e) => {
     const val = e.target.value;
-    if (val !== "" && !/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\-_,./]+$/.test(val)) return false;
+    if (val !== "" && !/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\-_,./]+$/.test(val))
+      return false;
     return true;
   },
 
@@ -128,9 +129,11 @@ export const validators = {
    */
   nit: (value) => {
     if (!value) return "";
-    if (!/^[0-9.\-]+$/.test(value)) return "Formato inválido — Ej: 900.123.456-7";
+    if (!/^[0-9.\-]+$/.test(value))
+      return "Formato inválido — Ej: 900.123.456-7";
     const digits = value.replace(/[.\-]/g, "");
-    if (digits.length < 8 || digits.length > 12) return "Debe tener entre 8 y 12 dígitos numéricos";
+    if (digits.length < 8 || digits.length > 12)
+      return "Debe tener entre 8 y 12 dígitos numéricos";
     return "";
   },
 
@@ -141,7 +144,8 @@ export const validators = {
    */
   positiveInteger: (value) => {
     if (!value && value !== 0) return "Este campo es obligatorio";
-    if (!/^\d+$/.test(String(value))) return "Solo se permiten números enteros positivos";
+    if (!/^\d+$/.test(String(value)))
+      return "Solo se permiten números enteros positivos";
     if (Number(value) < 1) return "Debe ser mayor a 0";
     return "";
   },
