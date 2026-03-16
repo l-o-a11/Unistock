@@ -12,8 +12,6 @@ import EditRolPage from "../feature/roles/pages/EditRolPage.jsx";
 
 // Insumos
 import SuppliesPage from "../feature/supplies/pages/SuppliesPage.jsx";
-import CreateSuppliesPage from "../feature/supplies/pages/CreateSuppliesPage.jsx";
-import EditSuppliesPage from "../feature/supplies/pages/EditSuppliesPage.jsx";
 
 // Categorías
 import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
@@ -71,8 +69,6 @@ export function RouterApp() {
 
         {/* Insumos */}
         <Route path="insumos" element={<SuppliesPage />} />
-        <Route path="insumos/crear" element={<CreateSuppliesPage />} />
-        <Route path="insumos/editar/:id" element={<EditSuppliesPage />} />
 
         {/* Productos */}
         <Route path="productos" element={<ProductsPage />} />

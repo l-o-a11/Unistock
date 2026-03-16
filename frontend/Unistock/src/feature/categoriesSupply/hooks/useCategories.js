@@ -1,14 +1,49 @@
 import { useState, useEffect } from 'react';
 import { categoryAPI } from '../services/categoryAPI';
 
+const STORAGE_KEY = 'app_categorias';
+
+// ── Helpers de localStorage ────────────────────────────────────────────────
+const loadFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // JSON corrupto — ignorar y usar seed
+  }
+  return null;
+};
+
+const saveToStorage = (categories) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
+  } catch (e) {
+    console.error('No se pudo guardar en localStorage:', e);
+  }
+};
+
 export const useCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Carga inicial: localStorage primero, API como fallback
   useEffect(() => {
-    loadCategories();
+    const cached = loadFromStorage();
+    if (cached) {
+      setCategories(cached);
+      setLoading(false);
+    } else {
+      loadCategories();
+    }
   }, []);
+
+  // Persistir cada vez que categories cambia
+  useEffect(() => {
+    if (!loading) {
+      saveToStorage(categories);
+    }
+  }, [categories, loading]);
 
   const loadCategories = async () => {
     try {

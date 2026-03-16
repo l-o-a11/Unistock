@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useSupplies } from "../hooks/useSupplies";
 import { useSupplySearch } from "../hooks/useSupplySearch";
 import SupplyTable from "../components/SupplyTable";
@@ -7,12 +6,11 @@ import SupplySearch from "../components/SupplySearch";
 import AddSupplyButton from "../components/AddSupplyButton";
 import SupplyForm from "../components/SupplyForm";
 import SupplyDetail from "../components/SupplyDetail";
-import Alert from "../components/Alert";
+import Alert from "../../shared/components/Alert";
 
+const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
 const SuppliesPage = () => {
-  const navigate = useNavigate();
-
   const {
     supplies,
     createSupply,
@@ -34,10 +32,22 @@ const SuppliesPage = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSupply, setEditingSupply] = useState(null);
 
- 
+  const [alertConfig, setAlertConfig] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
 
+  // ── Alert helpers ──────────────────────────────────────────────────────────
+  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
 
-  // ─── Filtrado y paginación ────────────────────────────────────────────────
+  const showAlert = (type, title, message, onConfirm = null) => {
+    setAlertConfig({ open: true, type, title, message, onConfirm });
+  };
+
+  // ── Filtrado y paginación ──────────────────────────────────────────────────
   const filteredSupplies = supplies.filter((s) => {
     const text = searchTerm.toLowerCase();
     return (
@@ -55,7 +65,7 @@ const SuppliesPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedSupplies = filteredSupplies.slice(startIndex, startIndex + itemsPerPage);
 
-  // ─── Acciones ─────────────────────────────────────────────────────────────
+  // ── Acciones ───────────────────────────────────────────────────────────────
   const handleAddSupply = () => setShowCreateForm(true);
 
   const handleEdit = (supply) => {
@@ -71,35 +81,89 @@ const SuppliesPage = () => {
 
   const handleView = (supply) => setSelectedSupply(supply);
 
-  const handleDelete = (id) => {
-        if (window.confirm("¿Eliminar insumo?")) deleteSupply(id);
+  const handleDelete = async (id) => {
+    const supply = supplies.find((s) => s.id === id);
+
+    // TODO: validar fichas técnicas enlazadas
+    // Cuando el módulo de fichas esté listo, descomenta:
+    // const fichasEnlazadas = getFichasEnlazadas(id); // ver useSupplies.js
+    // if (fichasEnlazadas > 0) {
+    //   showAlert("error", "No se puede eliminar",
+    //     `"${supply?.nombre}" está enlazado a ${fichasEnlazadas} ficha(s) técnica(s). Desasócialo primero.`);
+    //   return;
+    // }
+
+    showAlert(
+      "password",
+      "¿Eliminar insumo?",
+      `Para eliminar "${supply?.nombre}" confirma tu contraseña de administrador.`,
+      async (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) {
+          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+          return;
+        }
+        try {
+          await deleteSupply(id);
+          showAlert("success", "Insumo eliminado", `"${supply?.nombre}" fue eliminado correctamente.`);
+        } catch {
+          showAlert("error", "Error", "No se pudo eliminar el insumo. Intenta nuevamente.");
+        }
+      }
+    );
   };
 
   const handleToggle = (id) => {
-    toggleSupply?.(id);
+    const supply = supplies.find((s) => s.id === id);
+    const accion = supply?.estado ? "inactivar" : "activar";
+    showAlert(
+      "password",
+      `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} insumo?`,
+      `Para ${accion} "${supply?.nombre}" confirma tu contraseña de administrador.`,
+      (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) {
+          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+          return;
+        }
+        toggleSupply(id);
+        showAlert(
+          "success",
+          `Insumo ${accion === "activar" ? "activado" : "inactivado"}`,
+          `"${supply?.nombre}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`
+        );
+      }
+    );
   };
 
- const handleCreateSubmit = async (supplyData) => {
-  try {
-    await createSupply(supplyData);
-    handleCloseForm();
-  } catch (error) {
-    console.error("Error al crear el insumo:", error);
-  }
-};
+  const handleCreateSubmit = async (supplyData) => {
+    try {
+      await createSupply(supplyData);
+      handleCloseForm();
+      showAlert("success", "Insumo creado", `"${supplyData.nombre}" fue creado correctamente.`);
+    } catch (error) {
+      showAlert("error", "Error al crear", error.message || "No se pudo crear el insumo.");
+    }
+  };
 
-const handleEditSubmit = async (supplyData) => {
-  try {
-    await updateSupply(editingSupply.id, supplyData);
-    handleCloseForm();
-  } catch (error) {
-    console.error("Error al actualizar el insumo:", error);
-  }
-};
+  const handleEditSubmit = async (supplyData) => {
+    try {
+      await updateSupply(editingSupply.id, supplyData);
+      handleCloseForm();
+      showAlert("success", "Insumo actualizado", `"${supplyData.nombre}" fue actualizado correctamente.`);
+    } catch (error) {
+      showAlert("error", "Error al actualizar", error.message || "No se pudo actualizar el insumo.");
+    }
+  };
+
+  // El SupplyForm maneja su propia alerta de confirmación antes de llamar onCancel
+  const handleCancelCreate = () => handleCloseForm();
+  const handleCancelEdit = () => handleCloseForm();
+
   const handleDownload = () => {
     const csv = [
       ["id", "Nombre", "Categoría", "Stock"],
-      ...filteredSupplies.map((s) => [s.id, s.nombre, getCategoriaNombre(s.categoriaId), s.stock]),
+      ...filteredSupplies.map((s) => [
+        s.id, s.nombre, getCategoriaNombre(s.categoriaId), s.stock,
+      ]),
     ]
       .map((row) => row.join(","))
       .join("\n");
@@ -113,7 +177,7 @@ const handleEditSubmit = async (supplyData) => {
     URL.revokeObjectURL(url);
   };
 
-  // ─── Paginación visual ────────────────────────────────────────────────────
+  // ── Paginación visual ──────────────────────────────────────────────────────
   const getPageNumbers = () => {
     if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [1];
@@ -169,12 +233,10 @@ const handleEditSubmit = async (supplyData) => {
             medidas={medidas}
             propiedades={propiedades}
             onSubmit={handleCreateSubmit}
-            onCancel={handleCloseForm}
-            
+            onCancel={handleCancelCreate}
           />
         </div>
       )}
-      
 
       {/* MODAL EDITAR */}
       {showEditForm && editingSupply && (
@@ -185,7 +247,7 @@ const handleEditSubmit = async (supplyData) => {
             medidas={medidas}
             propiedades={propiedades}
             onSubmit={handleEditSubmit}
-            onCancel={handleCloseForm}
+            onCancel={handleCancelEdit}
           />
         </div>
       )}
@@ -226,7 +288,17 @@ const handleEditSubmit = async (supplyData) => {
         </div>
       )}
 
-      
+      {/* ALERT GLOBAL */}
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={(pwd) => {
+          alertConfig.onConfirm?.(pwd);
+        }}
+        onCancel={closeAlert}
+      />
     </div>
   );
 };

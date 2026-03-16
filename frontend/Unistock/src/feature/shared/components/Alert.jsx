@@ -19,19 +19,9 @@
  *     onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
  *   />
  */
-import React, { useState, useEffect } from "react";
+
 import React, { useState, useEffect, useRef } from "react";
 
-/**
- * @param {object}   props
- * @param {boolean}  props.isOpen     - Controla la visibilidad del alert
- * @param {'success'|'error'|'warning'|'confirm'|'password'} [props.type='success']
- * @param {string}   props.title      - Título principal
- * @param {string}   [props.message]  - Descripción o detalle adicional
- * @param {function} [props.onConfirm]- Se llama al confirmar (en toasts, también cierra)
- * @param {function} [props.onCancel] - Se llama al cancelar o cerrar
- * @param {number}   [props.duration=3000] - Duración en ms para los toasts automáticos
- */
 const Alert = ({
   isOpen,
   type = "success",
@@ -45,7 +35,6 @@ const Alert = ({
   const [error, setError] = useState("");
   const timerRef = useRef(null);
 
-  // Los tipos toast se cierran solos; los modales requieren acción del usuario
   const isToast = type === "success" || type === "error" || type === "warning";
 
   useEffect(() => {
@@ -68,12 +57,10 @@ const Alert = ({
     return () => document.head.removeChild(style);
   }, []);
 
-  // Reset password/error cada vez que se abre
   useEffect(() => {
     if (isOpen) {
       setPassword("");
       setError("");
-      // Auto-cierre para toasts
       if (isToast) {
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
@@ -86,32 +73,23 @@ const Alert = ({
     };
   }, [isOpen, type]);
 
-  // No renderiza nada cuando está cerrado
   if (!isOpen) return null;
 
-  /**
-   * Paleta de estilos por tipo de alerta.
-   * Unificada con la paleta del componente Button.
-   */
   const config = {
-    success: { color: "#22c55e", icon: "✓" },
-    error:   { color: "#ef4444", icon: "✕" },
-    warning: { color: "#f59e0b", icon: "⚠" },
-    confirm: { color: "#FF4FD6", icon: "!" },
-    password:{ color: "#FF4FD6", icon: "🔒" },
+    success:  { color: "#22c55e", icon: "✓" },
+    error:    { color: "#ef4444", icon: "✕" },
+    warning:  { color: "#f59e0b", icon: "⚠" },
+    confirm:  { color: "#FF4FD6", icon: "!" },
+    password: { color: "#FF4FD6", icon: "🔒" },
   };
 
   const current = config[type] || config.success;
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
-  /** Cierra la alerta con animación de salida */
   const handleClose = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     onCancel && onCancel();
   };
 
-  /** Confirma la acción — para "password" valida primero */
   const handleConfirm = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     onConfirm && onConfirm(password);
@@ -122,16 +100,16 @@ const Alert = ({
     return (
       <div style={toastContainer}>
         <div style={{
-          ...toast,
+          ...toastStyle,
           borderLeft: `6px solid ${current.color}`,
           animation: "slideIn .3s ease forwards",
         }}>
-          <div style={toastIcon}>{current.icon}</div>
+          <div style={toastIconStyle}>{current.icon}</div>
           <div style={{ flex: 1 }}>
-            <strong>{title || message}</strong>
-            {title && message && <p style={toastMsg}>{message}</p>}
+            <strong style={{ fontSize: "14px", color: "#111827" }}>{title || message}</strong>
+            {title && message && <p style={toastMsgStyle}>{message}</p>}
           </div>
-          <button style={closeBtn} onClick={handleClose}>✕</button>
+          <button style={closeBtnStyle} onClick={handleClose}>✕</button>
           <div style={{
             ...progressBar,
             background: current.color,
@@ -144,8 +122,8 @@ const Alert = ({
 
   /* ── MODAL ── */
   return (
-    <div style={overlay}>
-      <div style={{ ...modal, animation: "popIn .2s cubic-bezier(0.34,1.4,0.64,1) forwards" }}>
+    <div style={overlayStyle}>
+      <div style={{ ...modalStyle, animation: "popIn .2s cubic-bezier(0.34,1.4,0.64,1) forwards" }}>
 
         {/* Ícono + texto */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
@@ -162,9 +140,11 @@ const Alert = ({
               {title}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", textAlign: "center", lineHeight: 1.6 }}>
-            {message}
-          </p>
+          {message && (
+            <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", textAlign: "center", lineHeight: 1.6 }}>
+              {message}
+            </p>
+          )}
         </div>
 
         {/* Input contraseña */}
@@ -178,9 +158,8 @@ const Alert = ({
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && password && handleConfirm()}
               style={{
-                ...inputStyle,
+                ...passwordInputStyle,
                 border: error ? "1.5px solid #ef4444" : "1.5px solid #e5e7eb",
-                backgroundColor: "#f9fafb",
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = current.color;
@@ -198,11 +177,11 @@ const Alert = ({
         )}
 
         {/* Botones */}
-        <div style={actions}>
-          <button style={cancelBtn} onClick={handleClose}>Cancelar</button>
+        <div style={actionsStyle}>
+          <button style={cancelBtnStyle} onClick={handleClose}>Cancelar</button>
           <button
             style={{
-              ...confirmBtn,
+              ...confirmBtnStyle,
               background: `linear-gradient(135deg, ${current.color} 0%, ${current.color}cc 100%)`,
               boxShadow: `0 4px 12px ${current.color}44`,
               opacity: type === "password" && !password ? 0.5 : 1,
@@ -219,15 +198,20 @@ const Alert = ({
   );
 };
 
-/* ── Estilos ── */
+/* ── Estilos ────────────────────────────────────────────────────────────────
+   Nombres únicos para evitar colisiones con otros archivos del proyecto
+── */
 
 const toastContainer = {
-  position: "fixed", top: "20px", right: "20px", zIndex: 9999,
+  position: "fixed",
+  top: "20px",
+  right: "20px",
+  zIndex: 99999,           // ✅ Siempre encima de todo
 };
 
-const toast = {
+const toastStyle = {
   width: "320px",
-  background: "rgba(255,255,255,0.95)",
+  background: "rgba(255,255,255,0.97)",
   backdropFilter: "blur(10px)",
   borderRadius: "14px",
   padding: "16px",
@@ -236,62 +220,90 @@ const toast = {
   alignItems: "center",
   boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
   position: "relative",
+  overflow: "hidden",
 };
 
 const progressBar = {
-  position: "absolute", bottom: 0, left: 0,
-  height: "4px", width: "100%",
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  height: "4px",
+  width: "100%",
   borderRadius: "0 0 14px 14px",
   animationName: "shrink",
   animationTimingFunction: "linear",
   animationFillMode: "forwards",
 };
 
-const toastIcon  = { fontWeight: "bold", fontSize: "18px" };
-const toastMsg   = { margin: "2px 0 0", fontSize: "13px", color: "#555" };
-const closeBtn   = { border: "none", background: "transparent", cursor: "pointer", fontSize: "14px", color: "#666" };
+const toastIconStyle = { fontWeight: "bold", fontSize: "18px", flexShrink: 0 };
+const toastMsgStyle  = { margin: "2px 0 0", fontSize: "13px", color: "#555" };
+const closeBtnStyle  = { border: "none", background: "transparent", cursor: "pointer", fontSize: "14px", color: "#666", flexShrink: 0 };
 
-const overlay = {
-  position: "fixed", inset: 0,
-  background: "rgba(0,0,0,0.25)",
+const overlayStyle = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.30)",
   backdropFilter: "blur(3px)",
   WebkitBackdropFilter: "blur(3px)",
-  display: "flex", justifyContent: "center", alignItems: "center",
-  zIndex: 999,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,            // ✅ Sobre modales de formulario (z-50 = 50) pero bajo el toast
 };
 
-const modal = {
+const modalStyle = {
   width: "380px",
   background: "#fff",
   borderRadius: "20px",
   padding: "28px 24px 20px",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
 };
 
-const actions = {
-  marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px",
+const actionsStyle = {
+  marginTop: "20px",
+  display: "flex",
+  justifyContent: "center",
+  gap: "10px",
 };
 
-const confirmBtn = {
-  flex: 1, border: "none",
-  padding: "10px 16px", borderRadius: "50px",
-  color: "#fff", fontSize: "14px", fontWeight: 700,
+const confirmBtnStyle = {
+  flex: 1,
+  border: "none",
+  padding: "10px 16px",
+  borderRadius: "50px",
+  color: "#fff",
+  fontSize: "14px",
+  fontWeight: 700,
 };
 
-const cancelBtn = {
-  flex: 1, border: "1.5px solid #e5e7eb",
-  padding: "10px 18px", borderRadius: "50px",
-  background: "#fff", color: "#6b7280",
-  cursor: "pointer", fontSize: "14px", fontWeight: 600,
+const cancelBtnStyle = {
+  flex: 1,
+  border: "1.5px solid #e5e7eb",
+  padding: "10px 18px",
+  borderRadius: "50px",
+  background: "#fff",
+  color: "#6b7280",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: 600,
 };
 
-const inputStyle = {
-  width: "100%", padding: "10px 14px",
-  borderRadius: "12px", outline: "none",
-  fontSize: "14px", boxSizing: "border-box",
+const passwordInputStyle = {
+  width: "100%",
+  padding: "10px 14px",
+  borderRadius: "12px",
+  outline: "none",
+  fontSize: "14px",
+  boxSizing: "border-box",
   transition: "all 0.18s",
+  backgroundColor: "#f9fafb",
 };
 
-const errorStyle = { color: "#ef4444", fontSize: "12px", marginTop: "6px", display: "block" };
+const errorStyle = {
+  color: "#ef4444",
+  fontSize: "12px",
+  marginTop: "6px",
+  display: "block",
+};
 
 export default Alert;
