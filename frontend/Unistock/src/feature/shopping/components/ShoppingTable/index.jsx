@@ -1,10 +1,8 @@
 import React from "react";
-import HoverCard from "../HoverCard";
 
-const SupplyTable = ({
-  supplies = [],
-  getCategoriaNombre,
-  getMedidaNombre,
+const ShoppingTable = ({
+  shoppings = [],
+  getProveedorNombre,
   onView,
   onEdit,
   onDelete,
@@ -29,72 +27,69 @@ const SupplyTable = ({
     whiteSpace: "nowrap",
   };
 
-  if (supplies.length === 0) {
+  if (shoppings.length === 0) {
     return (
       <div style={{ backgroundColor: "#fff", borderRadius: "12px", padding: "64px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-        <div style={{ fontSize: "48px", marginBottom: "16px" }}>📦</div>
-        <p style={{ color: "#999", fontSize: "15px", margin: 0 }}>No hay insumos para mostrar</p>
+        <div style={{ fontSize: "48px", marginBottom: "16px" }}>🧾</div>
+        <p style={{ color: "#999", fontSize: "15px", margin: 0 }}>No hay compras para mostrar</p>
       </div>
     );
   }
 
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-      <div style={{ overflowX: "visible" }}>
+      <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Imagen", "ID", "Nombre del insumo", "Categoría", "Stock", "Medida", "Acciones"].map((h) => (
+              {["ID", "Fecha", "N° Factura", "Proveedor", "Observaciones", "Costo total", "Acciones"].map((h) => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {supplies.map((supply) => {
-              const isActive = supply.estado !== false;
+            {shoppings.map((shopping) => {
+              const isActive = shopping.estado !== false;
               return (
                 <tr
-                  key={supply.id}
+                  key={shopping.id}
                   style={{ transition: "background 0.15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  {/* Imagen */}
+                  <td style={tdStyle}>{shopping.id}</td>
+
                   <td style={tdStyle}>
-                    <HoverCard
-                      content={
-                        <div>
-                          <p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del insumo</p>
-                          {supply.image ? (
-                            <img src={supply.image} alt={supply.nombre} style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} />
-                          ) : (
-                            <div style={{ width: "128px", height: "128px", backgroundColor: "#f5f5f5", borderRadius: "8px", border: "1px solid #eee", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: "14px" }}>Sin imagen</div>
-                          )}
-                          <p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>ID: {supply.id}</p>
-                        </div>
-                      }
-                    >
-                      <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
-                        {supply.image ? (
-                          <img src={supply.image} alt={supply.nombre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <div style={{ width: "100%", height: "100%", backgroundColor: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: "10px" }}>🖼️</div>
-                        )}
-                      </div>
-                    </HoverCard>
+                    {shopping.fecha
+                      ? new Date(shopping.fecha).toLocaleDateString("es-CO")
+                      : "—"}
                   </td>
 
-                  <td style={tdStyle}>{supply.id}</td>
-                  <td style={tdStyle}>{supply.nombre?.length > 30 ? supply.nombre.slice(0, 30) + "..." : supply.nombre}</td>
-                  <td style={tdStyle}>{getCategoriaNombre(supply.categoriaId)}</td>
-                  <td style={tdStyle}>{supply.stock}</td>
-                  <td style={tdStyle}>{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
+                  <td style={tdStyle}>{shopping.numeroFactura || "—"}</td>
+
+                  <td style={tdStyle}>
+                    {shopping.proveedor?.length > 25
+                      ? shopping.proveedor.slice(0, 25) + "..."
+                      : shopping.proveedor || "—"}
+                  </td>
+
+                  <td style={tdStyle}>
+                    {shopping.observaciones?.length > 35
+                      ? shopping.observaciones.slice(0, 35) + "..."
+                      : shopping.observaciones || "—"}
+                  </td>
+
+                  <td style={tdStyle}>
+                    {shopping.costoTotal != null
+                      ? `$${Number(shopping.costoTotal).toLocaleString("es-CO")}`
+                      : "—"}
+                  </td>
 
                   {/* Acciones */}
                   <td style={tdStyle}>
                     <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
 
-                      <button onClick={() => onView(supply)} title="Ver detalles"
+                      <button onClick={() => onView(shopping)} title="Ver detalles"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
@@ -106,7 +101,7 @@ const SupplyTable = ({
                         </svg>
                       </button>
 
-                      <button onClick={() => onEdit(supply)} title="Editar"
+                      <button onClick={() => onEdit(shopping)} title="Editar"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
@@ -117,7 +112,7 @@ const SupplyTable = ({
                         </svg>
                       </button>
 
-                      <button onClick={() => onDelete(supply.id)} title="Eliminar"
+                      <button onClick={() => onDelete(shopping.id)} title="Eliminar"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
@@ -130,10 +125,9 @@ const SupplyTable = ({
                         </svg>
                       </button>
 
-                      {/* Toggle — delega completamente al padre, sin lógica local */}
                       <button
-                        onClick={() => onToggle?.(supply.id)}
-                        title={isActive ? "Desactivar insumo" : "Activar insumo"}
+                        onClick={() => onToggle?.(shopping.id)}
+                        title={isActive ? "Desactivar compra" : "Activar compra"}
                         style={{ position: "relative", width: "44px", height: "24px", borderRadius: "20px", border: "none", backgroundColor: isActive ? "#22c55e" : "#d1d5db", cursor: "pointer" }}
                       >
                         <span style={{ position: "absolute", top: "2px", left: isActive ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s" }} />
@@ -151,4 +145,4 @@ const SupplyTable = ({
   );
 };
 
-export default SupplyTable;
+export default ShoppingTable;

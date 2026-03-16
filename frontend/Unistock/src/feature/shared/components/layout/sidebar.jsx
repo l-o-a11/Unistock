@@ -35,6 +35,7 @@ const mainMenuItems = [
       { name: 'Categorías', path: 'categorias-insumos' },
       { name: 'Insumos', path: 'insumos' },
       { name: 'Proveedores', path: 'proveedores' },
+      { name: 'Compras', path: 'compras' },
     ]
   },
 

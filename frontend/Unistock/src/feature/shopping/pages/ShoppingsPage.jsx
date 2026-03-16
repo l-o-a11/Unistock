@@ -1,36 +1,38 @@
 import React, { useState } from "react";
-import { useSupplies } from "../hooks/useSupplies";
-import { useSupplySearch } from "../hooks/useSupplySearch";
-import SupplyTable from "../components/SupplyTable";
-import SupplySearch from "../components/SupplySearch";
-import AddSupplyButton from "../components/AddSupplyButton";
-import SupplyForm from "../components/SupplyForm";
-import SupplyDetail from "../components/SupplyDetail";
+import { useShoppings } from "../hooks/useShoppings";
+import { useShoppingSearch } from "../hooks/useShoppingSearch";
+import ShoppingTable from "../components/ShoppingTable";
+import ShoppingSearch from "../components/ShoppingSearch";
+import AddShoppingButton from "../components/AddShoppingButton";
+import ShoppingForm from "../components/ShoppingForm";
+import ShoppingDetail from "../components/ShoppingDetail";
 import Alert from "../../shared/components/Alert";
+import { useSuppliers } from "../../suppliers_fixed/hooks/mockSuppliers";
 
 const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
-const SuppliesPage = () => {
+const ShoppingsPage = () => {
+  const { suppliers } = useSuppliers();
+
+  // Resuelve el nombre del proveedor desde su ID — igual que getCategoriaNombre en supplies
+  const getProveedorNombre = (proveedorId) =>
+    suppliers.find((s) => s.id === parseInt(proveedorId))?.nombreEmpresa ?? "—";
+
   const {
-    supplies,
-    createSupply,
-    updateSupply,
-    deleteSupply,
-    toggleSupply,
-    categorias,
-    medidas,
-    propiedades,
-    getCategoriaNombre,
-    getMedidaNombre,
-  } = useSupplies();
+    shoppings,
+    createShopping,
+    updateShopping,
+    deleteShopping,
+    toggleShopping,
+  } = useShoppings();
 
-  const { searchTerm, handleSearch } = useSupplySearch();
+  const { searchTerm, handleSearch } = useShoppingSearch();
 
-  const [selectedSupply, setSelectedSupply] = useState(null);
+  const [selectedShopping, setSelectedShopping] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [editingSupply, setEditingSupply] = useState(null);
+  const [editingShopping, setEditingShopping] = useState(null);
 
   const [alertConfig, setAlertConfig] = useState({
     open: false,
@@ -48,121 +50,111 @@ const SuppliesPage = () => {
   };
 
   // ── Filtrado y paginación ──────────────────────────────────────────────────
-  const filteredSupplies = supplies.filter((s) => {
+  const filteredShoppings = shoppings.filter((p) => {
     const text = searchTerm.toLowerCase();
     return (
-      s.id?.toString().includes(searchTerm) ||
-      s.stock?.toString().includes(searchTerm) ||
-      s.nombre?.toLowerCase().includes(text) ||
-      s.valorMedida?.toString().includes(searchTerm) ||
-      getCategoriaNombre(s.categoriaId)?.toLowerCase().includes(text) ||
-      getMedidaNombre(s.medidaId)?.toLowerCase().includes(text)
+      p.id?.toString().includes(searchTerm) ||
+      p.numeroFactura?.toLowerCase().includes(text) ||
+      p.proveedor?.toLowerCase().includes(text) ||
+      p.observaciones?.toLowerCase().includes(text) ||
+      p.costoTotal?.toString().includes(searchTerm) ||
+      p.fecha?.includes(searchTerm)
     );
   });
 
   const itemsPerPage = 5;
-  const totalPages = Math.max(1, Math.ceil(filteredSupplies.length / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(filteredShoppings.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedSupplies = filteredSupplies.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedShoppings = filteredShoppings.slice(startIndex, startIndex + itemsPerPage);
 
   // ── Acciones ───────────────────────────────────────────────────────────────
-  const handleAddSupply = () => setShowCreateForm(true);
+  const handleAddShopping = () => setShowCreateForm(true);
 
-  const handleEdit = (supply) => {
-    setEditingSupply(supply);
+  const handleEdit = (shopping) => {
+    setEditingShopping(shopping);
     setShowEditForm(true);
   };
 
   const handleCloseForm = () => {
     setShowCreateForm(false);
     setShowEditForm(false);
-    setEditingSupply(null);
+    setEditingShopping(null);
   };
 
-  const handleView = (supply) => setSelectedSupply(supply);
+  const handleView = (shopping) => setSelectedShopping(shopping);
 
   const handleDelete = async (id) => {
-    const supply = supplies.find((s) => s.id === id);
-
-    // TODO: validar fichas técnicas enlazadas
-    // Cuando el módulo de fichas esté listo, descomenta:
-    // const fichasEnlazadas = getFichasEnlazadas(id); // ver useSupplies.js
-    // if (fichasEnlazadas > 0) {
-    //   showAlert("error", "No se puede eliminar",
-    //     `"${supply?.nombre}" está enlazado a ${fichasEnlazadas} ficha(s) técnica(s). Desasócialo primero.`);
-    //   return;
-    // }
+    const shopping = shoppings.find((p) => p.id === id);
 
     showAlert(
       "password",
-      "¿Eliminar insumo?",
-      `Para eliminar "${supply?.nombre}" confirma tu contraseña de administrador.`,
+      "¿Eliminar compra?",
+      `Para eliminar la factura "${shopping?.numeroFactura || id}" confirma tu contraseña de administrador.`,
       async (pwd) => {
         if (pwd !== ADMIN_PASSWORD) {
           showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
           return;
         }
         try {
-          await deleteSupply(id);
-          showAlert("success", "Insumo eliminado", `"${supply?.nombre}" fue eliminado correctamente.`);
+          await deleteShopping(id);
+          showAlert("success", "Compra eliminada", `La factura "${shopping?.numeroFactura || id}" fue eliminada correctamente.`);
         } catch {
-          showAlert("error", "Error", "No se pudo eliminar el insumo. Intenta nuevamente.");
+          showAlert("error", "Error", "No se pudo eliminar la compra. Intenta nuevamente.");
         }
       }
     );
   };
 
   const handleToggle = (id) => {
-    const supply = supplies.find((s) => s.id === id);
-    const accion = supply?.estado ? "inactivar" : "activar";
+    const shopping = shoppings.find((p) => p.id === id);
+    const accion = shopping?.estado ? "inactivar" : "activar";
     showAlert(
       "password",
-      `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} insumo?`,
-      `Para ${accion} "${supply?.nombre}" confirma tu contraseña de administrador.`,
+      `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} compra?`,
+      `Para ${accion} la factura "${shopping?.numeroFactura || id}" confirma tu contraseña de administrador.`,
       (pwd) => {
         if (pwd !== ADMIN_PASSWORD) {
           showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
           return;
         }
-        toggleSupply(id);
+        toggleShopping(id);
         showAlert(
           "success",
-          `Insumo ${accion === "activar" ? "activado" : "inactivado"}`,
-          `"${supply?.nombre}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`
+          `Compra ${accion === "activar" ? "activada" : "inactivada"}`,
+          `La factura "${shopping?.numeroFactura || id}" fue ${accion === "activar" ? "activada" : "inactivada"} correctamente.`
         );
       }
     );
   };
 
-  const handleCreateSubmit = async (supplyData) => {
+  const handleCreateSubmit = async (shoppingData) => {
     try {
-      await createSupply(supplyData);
+      await createShopping(shoppingData);
       handleCloseForm();
-      showAlert("success", "Insumo creado", `"${supplyData.nombre}" fue creado correctamente.`);
+      showAlert("success", "Compra registrada", `Factura "${shoppingData.numeroFactura}" creada correctamente.`);
     } catch (error) {
-      showAlert("error", "Error al crear", error.message || "No se pudo crear el insumo.");
+      showAlert("error", "Error al crear", error.message || "No se pudo registrar la compra.");
     }
   };
 
-  const handleEditSubmit = async (supplyData) => {
+  const handleEditSubmit = async (shoppingData) => {
     try {
-      await updateSupply(editingSupply.id, supplyData);
+      await updateShopping(editingShopping.id, shoppingData);
       handleCloseForm();
-      showAlert("success", "Insumo actualizado", `"${supplyData.nombre}" fue actualizado correctamente.`);
+      showAlert("success", "Compra actualizada", `Factura "${shoppingData.numeroFactura}" actualizada correctamente.`);
     } catch (error) {
-      showAlert("error", "Error al actualizar", error.message || "No se pudo actualizar el insumo.");
+      showAlert("error", "Error al actualizar", error.message || "No se pudo actualizar la compra.");
     }
   };
 
-  // El SupplyForm maneja su propia alerta de confirmación antes de llamar onCancel
   const handleCancelCreate = () => handleCloseForm();
   const handleCancelEdit = () => handleCloseForm();
 
   const handleDownload = () => {
     const csv = [
-      ["id", "Nombre", "Categoría", "Stock"],
-      ...filteredSupplies.map((s) => [
-        s.id, s.nombre, getCategoriaNombre(s.categoriaId), s.stock,
+      ["ID", "Fecha", "N° Factura", "Proveedor", "Observaciones", "Costo Total"],
+      ...filteredShoppings.map((p) => [
+        p.id, p.fecha, p.numeroFactura, p.proveedor, p.observaciones, p.costoTotal,
       ]),
     ]
       .map((row) => row.join(","))
@@ -172,7 +164,7 @@ const SuppliesPage = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "insumos.csv";
+    a.download = "compras.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -204,21 +196,20 @@ const SuppliesPage = () => {
 
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-        <h1>Insumos</h1>
-        <SupplySearch value={searchTerm} onChange={handleSearch} />
+        <h1>Compras</h1>
+        <ShoppingSearch value={searchTerm} onChange={handleSearch} />
       </div>
 
       {/* TOOLBAR */}
       <div style={{ display: "flex", justifyContent: "space-between", background: "#fff", padding: "12px 20px", borderRadius: "10px", marginBottom: "20px" }}>
         <button onClick={handleDownload}>Exportar</button>
-        <AddSupplyButton onClick={handleAddSupply} />
+        <AddShoppingButton onClick={handleAddShopping} />
       </div>
 
       {/* TABLA */}
-      <SupplyTable
-        supplies={paginatedSupplies}
-        getCategoriaNombre={getCategoriaNombre}
-        getMedidaNombre={getMedidaNombre}
+      <ShoppingTable
+        shoppings={paginatedShoppings}
+        getProveedorNombre={getProveedorNombre}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -228,10 +219,7 @@ const SuppliesPage = () => {
       {/* MODAL CREAR */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
-          <SupplyForm
-            categorias={categorias}
-            medidas={medidas}
-            propiedades={propiedades}
+          <ShoppingForm
             onSubmit={handleCreateSubmit}
             onCancel={handleCancelCreate}
           />
@@ -239,13 +227,10 @@ const SuppliesPage = () => {
       )}
 
       {/* MODAL EDITAR */}
-      {showEditForm && editingSupply && (
+      {showEditForm && editingShopping && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
-          <SupplyForm
-            supply={editingSupply}
-            categorias={categorias}
-            medidas={medidas}
-            propiedades={propiedades}
+          <ShoppingForm
+            shopping={editingShopping}
             onSubmit={handleEditSubmit}
             onCancel={handleCancelEdit}
           />
@@ -253,22 +238,20 @@ const SuppliesPage = () => {
       )}
 
       {/* MODAL DETALLE */}
-      {selectedSupply && (
-        <SupplyDetail
-          supply={selectedSupply}
-          medidas={medidas}
-          propiedades={propiedades}
-          categorias={categorias}
-          onClose={() => setSelectedSupply(null)}
-          onEdit={(supply) => {
-            setSelectedSupply(null);
-            handleEdit(supply);
+      {selectedShopping && (
+        <ShoppingDetail
+          shopping={selectedShopping}
+          getProveedorNombre={getProveedorNombre}
+          onClose={() => setSelectedShopping(null)}
+          onEdit={(shopping) => {
+            setSelectedShopping(null);
+            handleEdit(shopping);
           }}
         />
       )}
 
       {/* PAGINACIÓN */}
-      {filteredSupplies.length > 0 && (
+      {filteredShoppings.length > 0 && (
         <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
           <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
           {getPageNumbers().map((p, i) =>
@@ -303,4 +286,4 @@ const SuppliesPage = () => {
   );
 };
 
-export default SuppliesPage;
+export default ShoppingsPage;

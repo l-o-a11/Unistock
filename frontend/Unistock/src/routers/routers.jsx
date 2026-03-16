@@ -12,8 +12,7 @@ import EditRolPage from "../feature/roles/pages/EditRolPage.jsx";
 
 // Insumos
 import SuppliesPage from "../feature/supplies/pages/SuppliesPage.jsx";
-import CreateSuppliesPage from "../feature/supplies/pages/CreateSuppliesPage.jsx";
-import EditSuppliesPage from "../feature/supplies/pages/EditSuppliesPage.jsx";
+
 
 // Categorías
 import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
@@ -21,9 +20,12 @@ import CategoriesSupplyPage from "../feature/categoriesSupply/pages/CategoriesSu
 
 // Productos
 import ProductsPage from "../feature/products/pages/ProductsPage.jsx";
-
+ 
 // Proveedores
 import SuppliersPage from "../feature/suppliers_fixed/pages/SuppliersPage.jsx";
+//compras
+
+import ShoppingsPage from "../feature/shopping/pages/ShoppingsPage.jsx";
 
 // Terceros
 import ThirdPartiesPage from "../feature/third_parties_fixed/pages/Third_partiesPage.jsx";
@@ -71,14 +73,15 @@ export function RouterApp() {
 
         {/* Insumos */}
         <Route path="insumos" element={<SuppliesPage />} />
-        <Route path="insumos/crear" element={<CreateSuppliesPage />} />
-        <Route path="insumos/editar/:id" element={<EditSuppliesPage />} />
 
         {/* Productos */}
         <Route path="productos" element={<ProductsPage />} />
 
         {/* Proveedores */}
         <Route path="proveedores" element={<SuppliersPage />} />
+
+        {/* Compras */}
+        <Route path="compras" element={<ShoppingsPage />} />
 
         {/* Producciones */}
         <Route path="produccion" element={<ProductionsPage />} />
