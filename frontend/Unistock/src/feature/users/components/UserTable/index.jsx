@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import Table, { tdClass, truncateName, truncateText } from "../../../shared/components/Table";
 import HoverCard from "../../../shared/components/HoverCart";
-import Alert from "../Alert";
 
 const HEADERS = [
   "Tipo de documento",
@@ -15,18 +14,6 @@ const HEADERS = [
 
 const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
 
-  // ── Alerta de cambio de estado (requiere contraseña) ──────────────────────
-  const [toggleAlert, setToggleAlert] = useState({ open: false, id: null, newStatus: null });
-
-  const handleToggleClick = (user) => {
-    const isActive = user.estado !== false;
-    setToggleAlert({
-      open: true,
-      id: user.id,
-      newStatus: !isActive,
-    });
-  };
-
   const renderRow = (user) => {
     const isActive = user.estado !== false;
 
@@ -35,7 +22,6 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
         <td className={tdClass}>{user.tipoDocumento}</td>
         <td className={tdClass}>{user.numeroDocumento}</td>
 
-        {/* Nombre — dispara el HoverCard */}
         <td className={tdClass}>
           <HoverCard
             title="Información del usuario"
@@ -56,11 +42,9 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
         <td className={tdClass}>{user.rol}</td>
         <td className={tdClass} title={user.sede}>{truncateText(user.sede)}</td>
 
-        {/* Acciones */}
         <td className={tdClass}>
           <div className="flex items-center gap-2.5">
 
-            {/* Editar */}
             <button
               onClick={() => onEdit(user)}
               title="Editar usuario"
@@ -74,7 +58,6 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
               </svg>
             </button>
 
-            {/* Eliminar */}
             <button
               onClick={() => onDelete(user.id)}
               title="Eliminar usuario"
@@ -91,9 +74,8 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
               </svg>
             </button>
 
-            {/* Toggle — pide contraseña antes de cambiar estado */}
             <button
-              onClick={() => handleToggleClick(user)}
+              onClick={() => onToggle(user.id)}
               title={isActive ? "Desactivar usuario" : "Activar usuario"}
               style={{
                 position: "relative",
@@ -126,32 +108,13 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
   };
 
   return (
-    <>
-      <Table
-        headers={HEADERS}
-        rows={users}
-        renderRow={renderRow}
-        emptyIcon="👤"
-        emptyText="No hay usuarios para mostrar"
-      />
-
-      {/* Alerta de contraseña para cambio de estado */}
-      <Alert
-        isOpen={toggleAlert.open}
-        type="password"
-        title={toggleAlert.newStatus ? "Activar usuario" : "Inactivar usuario"}
-        message={
-          toggleAlert.newStatus
-            ? "Para activar este usuario ingresa la contraseña de administrador."
-            : "Para inactivar este usuario ingresa la contraseña de administrador."
-        }
-        onCancel={() => setToggleAlert({ open: false, id: null, newStatus: null })}
-        onConfirm={() => {
-          onToggle?.(toggleAlert.id);
-          setToggleAlert({ open: false, id: null, newStatus: null });
-        }}
-      />
-    </>
+    <Table
+      headers={HEADERS}
+      rows={users}
+      renderRow={renderRow}
+      emptyIcon="👤"
+      emptyText="No hay usuarios para mostrar"
+    />
   );
 };
 

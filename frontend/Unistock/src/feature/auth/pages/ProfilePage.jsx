@@ -201,21 +201,6 @@ const ProfilePage = () => {
                     {passwordStep === 'confirmed' && (
                         <div className="grid grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar nueva contraseña</label>
-                                <div className={passwordWrapper}>
-                                    <input
-                                        type={showConfirm ? 'text' : 'password'}
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        placeholder="••••••••••••••••••••"
-                                        className="flex-1 text-sm text-gray-800 outline-none bg-transparent placeholder-gray-400"
-                                    />
-                                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                        <EyeIcon open={showConfirm} />
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Nueva contraseña</label>
                                 <div className={passwordWrapper}>
                                     <input
@@ -227,6 +212,21 @@ const ProfilePage = () => {
                                     />
                                     <button type="button" onClick={() => setShowNew(!showNew)} className="text-gray-400 hover:text-gray-600 transition-colors">
                                         <EyeIcon open={showNew} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar nueva contraseña</label>
+                                <div className={passwordWrapper}>
+                                    <input
+                                        type={showConfirm ? 'text' : 'password'}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="••••••••••••••••••••"
+                                        className="flex-1 text-sm text-gray-800 outline-none bg-transparent placeholder-gray-400"
+                                    />
+                                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                        <EyeIcon open={showConfirm} />
                                     </button>
                                 </div>
                             </div>

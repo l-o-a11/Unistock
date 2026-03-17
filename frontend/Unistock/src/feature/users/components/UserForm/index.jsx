@@ -1,47 +1,51 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
-import Alert from "../Alert";
+import Alert from "../../../shared/components/Alert";
 import { validators } from "../../../shared/utils/Validaciones";
 
 const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
   const modalRef = useRef(null);
 
-  const [formData, setFormData] = useState(
-    user || {
-      documentType:   "",
-      documentNumber: "",
-      name:           "",
-      email:          "",
-      role:           "",
-      sede:           "",
-    }
-  );
-
-  const [errors,       setErrors]       = useState({});
-  const [pendingClose, setPendingClose] = useState(false);
-  const [alertConfig,  setAlertConfig]  = useState({
-    open:      false,
-    type:      "confirm",
-    title:     "",
-    message:   "",
-    onConfirm: null,
+  // Inicializa directamente desde la prop — sin useEffect para evitar setState en efecto
+  const [formData, setFormData] = useState(() => user ?? {
+    documentType:   "",
+    documentNumber: "",
+    name:           "",
+    email:          "",
+    role:           "",
+    sede:           "",
   });
 
-  /* Cuando la alerta se cierra y pendingClose está activo → cerrar modal */
-  useEffect(() => {
-    if (pendingClose && !alertConfig.open) {
-      setPendingClose(false);
-      onCancel();
-    }
-  }, [alertConfig.open, pendingClose]);
+  const [errors,      setErrors]      = useState({});
+  const [alertConfig, setAlertConfig] = useState({
+    open: false, type: "confirm", title: "", message: "", onConfirm: null,
+  });
 
-  /* Cerrar con ESC */
+  const closeAlert = useCallback(
+    () => setAlertConfig((prev) => ({ ...prev, open: false })),
+    []
+  );
+
+  // Declarado con useCallback ANTES del useEffect del ESC para evitar "used before declared"
+  const handleCancelClick = useCallback(() => {
+    setAlertConfig({
+      open: true, type: "confirm",
+      title: "Cancelar",
+      message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, open: false }));
+        onCancel();
+      },
+    });
+  }, [onCancel]);
+
+  /* Cerrar con ESC — handleCancelClick ya está declarado arriba */
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") handleCancelClick(); };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
+  }, [handleCancelClick]);
 
   /* Cerrar clic afuera del modal */
   const handleOverlayClick = (e) => {
@@ -100,7 +104,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
 
     try {
       onSubmit(formData);
-      setPendingClose(true);
       setAlertConfig({
         open: true, type: "success",
         title: user ? "Usuario actualizado" : "Usuario creado",
@@ -119,19 +122,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
     }
   };
 
-  /* ── Cancelar ─────────────────────────────────────────────────────────── */
-  const handleCancelClick = () => {
-    setAlertConfig({
-      open: true, type: "confirm",
-      title: "Cancelar",
-      message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
-      onConfirm: () => {
-        setAlertConfig((prev) => ({ ...prev, open: false }));
-        onCancel();
-      },
-    });
-  };
-
   return (
     <>
       <Alert
@@ -141,9 +131,13 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
         message={alertConfig.message}
         onConfirm={() => {
           if (alertConfig.onConfirm) alertConfig.onConfirm();
-          else setAlertConfig((prev) => ({ ...prev, open: false }));
+          else closeAlert();
         }}
-        onCancel={() => setAlertConfig((prev) => ({ ...prev, open: false }))}
+        onCancel={() => {
+          closeAlert();
+          // Si era toast de éxito, cerramos el modal al cerrar la alerta
+          if (alertConfig.type === "success") onCancel();
+        }}
       />
 
       {/* Overlay con cierre al hacer clic afuera */}

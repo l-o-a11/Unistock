@@ -5,7 +5,7 @@ import EmployeeTable from "../components/EmployeeTable/index.jsx";
 import EmployeeForm from "../components/EmployeeForm/index.jsx";
 import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
 import SearchInput from "../../shared/components/Search.jsx";
-import Alert from "../components/Alert/index.jsx";
+import Alert from "../../shared/components/Alert";
 
 const EmployeesPage = () => {
   const {
@@ -80,9 +80,19 @@ const EmployeesPage = () => {
       title: "Eliminar empleado",
       message:
         "Esta acción no se puede deshacer. Ingresa la contraseña de administrador para confirmar.",
-      onConfirm: () => {
-        deleteEmployee(id);
-        closeAlert();
+      onConfirm: async () => {
+        try {
+          await deleteEmployee(id);
+          closeAlert();
+        } catch (e) {
+          setAlertConfig({
+            open: true,
+            type: "error",
+            title: "No se puede eliminar",
+            message: e.message,
+            onConfirm: null,
+          });
+        }
       },
     });
   };
@@ -99,8 +109,18 @@ const EmployeesPage = () => {
         ? "Para inactivar este empleado ingresa la contraseña de administrador."
         : "Para activar este empleado ingresa la contraseña de administrador.",
       onConfirm: () => {
-        toggleEmployee(id);
-        closeAlert();
+        try {
+          toggleEmployee(id);
+          closeAlert();
+        } catch (e) {
+          setAlertConfig({
+            open: true,
+            type: "error",
+            title: "No se puede cambiar el estado",
+            message: e.message,
+            onConfirm: null,
+          });
+        }
       },
     });
   };
