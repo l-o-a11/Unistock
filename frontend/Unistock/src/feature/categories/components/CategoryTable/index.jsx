@@ -1,5 +1,5 @@
 import React from 'react';
-import HoverCard from '../../../products/components/HoverCard'; 
+import HoverCard from '../../../shared/components/HoverCart'
 import { CATEGORY_COLORS } from '../../types/constants';
 
 const CategoryTable = ({ categories = [], onEdit, onDelete }) => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { useProducts } from '../hooks/useProducts';
 import { useProductSearch } from '../hooks/useProductSearch';
-import Alert from '../components/Alert';
+import Alert from '../../shared/components/Alert';
 import ProductTable from '../components/ProductTable';
 import ProductSearch from '../components/ProductSearch';
 import AddProductButton from '../components/AddProductButton';
@@ -52,11 +52,12 @@ const ProductsPage = () => {
     confirmText: "Confirmar",
     cancelText: "Cancelar",
     onConfirm: null,
+    type: "confirm",
   });
 
   const [deleteAlert, setDeleteAlert] = useState({
     open: false,
-    step: "confirm",
+    step: "password",
     productId: null,
     key: Date.now()
   });
@@ -119,11 +120,16 @@ const ProductsPage = () => {
           title,
           message
         });
+        
+        // 🔥 FORZAR CIERRE DESPUÉS DE 3 SEGUNDOS
+        setTimeout(() => {
+          setWarningAlert(prev => ({ ...prev, open: false }));
+        }, 3000);
       }, 50);
     }
   };
 
-  const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm, type = "default" }) => {
+  const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm, type = "confirm" }) => {
     setConfirmAlert({ open: false, key: Date.now() });
     setTimeout(() => {
       setConfirmAlert({
@@ -134,6 +140,7 @@ const ProductsPage = () => {
         confirmText: confirmText || "Confirmar",
         cancelText: cancelText || "Cancelar",
         onConfirm,
+        type,
       });
     }, 50);
   };
@@ -204,7 +211,7 @@ const ProductsPage = () => {
   const handleDeleteConfirm = async () => {
     try {
       await deleteProduct(deleteAlert.productId);
-      setDeleteAlert({ open: false, step: "confirm", productId: null, key: Date.now() });
+      setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() });
       handleShowAlert({
         type: "success",
         title: "¡Éxito!",
@@ -216,23 +223,21 @@ const ProductsPage = () => {
         title: "¡Error!",
         message: error.message || "Error al eliminar producto"
       });
-      setDeleteAlert({ open: false, step: "confirm", productId: null, key: Date.now() });
+      setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() });
     }
   };
 
   const handleDeleteClick = (id) => {
     setDeleteAlert({
       open: true,
-      step: "confirm",
+      step: "password",
       productId: id,
       key: Date.now()
     });
   };
   
-  // 🔥 FUNCIÓN DE DESCARGA MEJORADA - EXCEL
   const handleDownload = () => {
     try {
-      // Preparar los datos para Excel con formato mejorado
       const data = filteredProducts.map(p => ({
         'Referencia': p.reference,
         'Nombre': p.name,
@@ -242,25 +247,21 @@ const ProductsPage = () => {
         'Estado': p.active ? 'Activo' : 'Inactivo'
       }));
 
-      // Crear hoja de cálculo
       const worksheet = XLSX.utils.json_to_sheet(data);
       
-      // Ajustar ancho de columnas para mejor visualización
       const columnWidths = [
-        { wch: 15 }, // Referencia
-        { wch: 30 }, // Nombre
-        { wch: 20 }, // Categoría
-        { wch: 15 }, // Precio
-        { wch: 10 }, // Stock
-        { wch: 10 }, // Estado
+        { wch: 15 },
+        { wch: 30 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 10 },
       ];
       worksheet['!cols'] = columnWidths;
 
-      // Crear libro y agregar la hoja
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos');
 
-      // Generar nombre de archivo con fecha actual
       const fecha = new Date().toISOString().split('T')[0];
       XLSX.writeFile(workbook, `productos_${fecha}.xlsx`);
       
@@ -526,7 +527,7 @@ const ProductsPage = () => {
           onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
         />
 
-        {/* Alerta de advertencia */}
+        {/* Alerta de advertencia - AHORA SE CIERRA AUTOMÁTICAMENTE */}
         <Alert
           key={`warning-${warningAlert.key}`}
           isOpen={warningAlert.open}
@@ -536,16 +537,15 @@ const ProductsPage = () => {
           onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
         />
 
-        {/* Alerta de confirmación genérica */}
+        {/* Alerta de confirmación */}
         <Alert
           key={`confirm-${confirmAlert.key}`}
           isOpen={confirmAlert.open}
-          type="confirm"
+          type={confirmAlert.type || "confirm"}
           title={confirmAlert.title}
           message={confirmAlert.message}
           confirmText={confirmAlert.confirmText}
           cancelText={confirmAlert.cancelText}
-          confirmButtonColor="#ff4fd6"
           onConfirm={() => {
             if (confirmAlert.onConfirm) {
               confirmAlert.onConfirm();
@@ -555,21 +555,7 @@ const ProductsPage = () => {
           onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}
         />
 
-        {/* Alerta de eliminación de producto - paso confirmación */}
-        <Alert
-          key={`delete-confirm-${deleteAlert.key}`}
-          isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
-          type="confirm"
-          title="Confirmar eliminación"
-          message="¿Seguro que deseas eliminar este producto?"
-          confirmText="Eliminar"
-          cancelText="Cancelar"
-          confirmButtonColor="#ff4fd6"
-          onConfirm={() => setDeleteAlert({ ...deleteAlert, step: "password", key: Date.now() })}
-          onCancel={() => setDeleteAlert({ open: false, step: "confirm", productId: null, key: Date.now() })}
-        />
-
-        {/* Alerta de eliminación de producto - paso contraseña */}
+        {/* Alerta de eliminación */}
         <Alert
           key={`delete-password-${deleteAlert.key}`}
           isOpen={deleteAlert.open && deleteAlert.step === "password"}
@@ -578,9 +564,8 @@ const ProductsPage = () => {
           message="Ingresa la contraseña de administrador"
           confirmText="Eliminar"
           cancelText="Cancelar"
-          confirmButtonColor="#ff4fd6"
           onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteAlert({ open: false, step: "confirm", productId: null, key: Date.now() })}
+          onCancel={() => setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() })}
         />
       </div>
     </div>
