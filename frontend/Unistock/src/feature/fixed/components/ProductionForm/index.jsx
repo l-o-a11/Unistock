@@ -332,11 +332,17 @@ const ProductionForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => { e.preventDefault(); if (validate()) setShowConfirm(true); };
 
+  /**
+   * handleConfirm — se llama al presionar "Confirmar y crear" en el modal de resumen.
+   * Ejecuta onSubmit con los datos del formulario, cierra el resumen y muestra
+   * un Alert de éxito unificado (shared/components/Alert, type="success").
+   */
   const handleConfirm = () => {
     saveColor(formData.color);
     saveClient(formData.cliente);
     onSubmit({ tipo: type, ...formData, referencias: extraRefs, techSheet: type === 'diseno' ? techSheetData : null });
     setShowConfirm(false);
+    // Alerta de éxito unificada — usa el Alert compartido (type="success")
     setAlertConfig({ open: true, type: 'success', title: 'Orden creada', message: 'La orden de producción fue creada correctamente.', onConfirm: null });
   };
 
@@ -375,7 +381,7 @@ const ProductionForm = ({ onSubmit, onCancel }) => {
 
           {/* Encabezado */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#FF4FD6,#c026d3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#E91E8C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>

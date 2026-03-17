@@ -165,14 +165,14 @@ const ProductionDetailsPage = () => {
   };
 
   /**
-   * Callback que se ejecuta al presionar "Confirmar" en ProductionAlerts.
-   * Si el alert tiene onConfirmOverride (ej: eliminar artículo, anular orden),
-   * lo ejecuta directamente. Si no, aplica el cambio de paso normal.
+   * handleProductionAlertConfirm — callback al confirmar en ProductionAlerts.
+   * Recibe `motivo` (string) desde el modal cuando type === "anular".
+   * Para los demás tipos ejecuta la acción correspondiente sin motivo.
    */
-  const handleProductionAlertConfirm = async () => {
-    const { targetStep, type, tercero, sede, onConfirmOverride } = productionAlert;
+  const handleProductionAlertConfirm = async (motivo = "") => {
+    const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
-    if (onConfirmOverride) { onConfirmOverride(); return; }
+    if (onConfirmOverride) { onConfirmOverride(motivo); return; }
     if (targetStep) await applyStepChange(targetStep);
   };
 
@@ -276,7 +276,7 @@ const ProductionDetailsPage = () => {
       type: "confirm",
       customTitle: "Anular artículo",
       customMessage: `¿Deseas anular el artículo ${d.ref} (${d.color}, ${d.quantity} uds)? Se eliminará de la tabla y quedará registrado en el historial.`,
-      onConfirmOverride: async () => {
+      onConfirmOverride: async (_motivo) => {
         const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const currentUser = ProductionAPI.getCurrentUser();
         const newDetails = (production.details || []).filter(x => x !== d);
@@ -304,7 +304,7 @@ const ProductionDetailsPage = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="p-6 bg-gray-50 min-h-screen" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       <ProductionAlerts
@@ -367,11 +367,12 @@ const ProductionDetailsPage = () => {
         ← Volver a Producciones
       </Button>
 
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-5">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold">Orden #{production.orderNumber}</h2>
+          {/* Título estandarizado: text-2xl + font-bold para todas las páginas principales */}
+          <h2 className="text-2xl font-bold text-gray-800">Orden #{production.orderNumber}</h2>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold
-            ${isAnulada ? 'bg-red-100 text-red-600' : 'bg-pink-200 text-pink-700'}`}>
+            ${isAnulada ? 'bg-red-100 text-red-600' : 'bg-pink-100 text-pink-700'}`}>
             {production.status}
           </span>
         </div>
@@ -401,7 +402,7 @@ const ProductionDetailsPage = () => {
             <span className="text-xs font-bold text-pink-600">{progressPercent}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5 mb-5">
-            <div className="bg-gradient-to-r from-pink-400 to-fuchsia-500 h-1.5 rounded-full transition-all duration-500"
+            <div className="bg-[#E91E8C] h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }} />
           </div>
           <div className="flex justify-between">
@@ -468,20 +469,20 @@ const ProductionDetailsPage = () => {
                 customTitle: `Avanzar a "${nextStep}"`,
                 customMessage: `¿Confirmas el avance al estado "${nextStep}"?`,
               })}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-pink-300 transition">
+                className="px-5 py-2 rounded-xl bg-[#E91E8C] text-white text-sm font-bold shadow-md shadow-pink-100 transition">
                 {nextStep} →
               </button>
             )
           )}
           <button onClick={() => openProductionAlert({
-            type: "confirm",
+            type: "anular",
             customTitle: "Anular orden",
             customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
-            onConfirmOverride: async () => {
-              const motivo = prompt("Motivo de anulación:") || "Sin motivo";
-              const saved = await ProductionAPI.cancel(production.id, motivo);
+            // onConfirmOverride recibe el motivo ingresado en el modal (sin prompt nativo)
+            onConfirmOverride: async (motivo) => {
+              const saved = await ProductionAPI.cancel(production.id, motivo || "Sin motivo");
               setProduction(saved);
-            }
+            },
           })}
             className="ml-auto px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-sm text-red-500 hover:bg-red-100 font-medium transition">
             Anular orden
@@ -489,9 +490,10 @@ const ProductionDetailsPage = () => {
         </div>
       )}
 
-      {/* Info general */}
-      <div className="bg-white rounded-2xl p-5 shadow mb-4">
-        <h3 className="font-semibold mb-3 text-sm text-gray-700">Información general</h3>
+      {/* Info general — padding y título estandarizados */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        {/* Subtítulo de sección: text-sm + font-700 + uppercase + tracking — igual en todas las cards */}
+        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Información general</h3>
         <div className="grid grid-cols-2 gap-3 text-sm">
           {[
             // Se omite "Color" de la vista general resumida (visible en la tabla de artículos)
@@ -512,9 +514,10 @@ const ProductionDetailsPage = () => {
       {/* Grid: artículos + historial */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Artículos */}
-        <div className="bg-white p-4 rounded-xl shadow overflow-auto">
+        <div className="bg-white p-5 rounded-2xl shadow-sm overflow-auto">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-sm">Artículos de la orden</h3>
+            {/* Subtítulo estandarizado igual a "Información general" */}
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Artículos de la orden</h3>
             {!isAnulada && !isLocked && (
               <button onClick={() => setAddRefOpen(true)}
                 className="text-xs font-semibold text-pink-500 hover:text-pink-700 flex items-center gap-1 border border-pink-200 rounded-lg px-2 py-1">
@@ -564,9 +567,9 @@ const ProductionDetailsPage = () => {
           </table>
         </div>
 
-        {/* Historial */}
-        <div className="bg-white p-4 rounded-xl shadow overflow-auto">
-          <h3 className="font-semibold mb-4 text-sm">Historial de la orden</h3>
+        {/* Historial — mismos estilos de card y subtítulo */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm overflow-auto">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Historial de la orden</h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-400 text-left border-b border-gray-100 text-xs uppercase tracking-wide">
@@ -601,13 +604,19 @@ const ProductionDetailsPage = () => {
         </div>
       </div>
 
-      {/* ── SECCIÓN FICHA TÉCNICA (inline, NO modal) ── */}
+      {/* ── SECCIÓN FICHA TÉCNICA — tarjeta resumen + modal para ver/crear ── */}
+      {/*
+        CORRECCIÓN: La ficha técnica ahora se abre en un modal flotante (overlay)
+        en lugar de expandirse inline. El botón "Ver ficha técnica" abre un modal
+        con scroll propio, y el formulario de creación también usa un modal.
+        Esto evita que la ficha ocupe espacio en la página y facilita la lectura.
+      */}
       <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.07)", overflow: "hidden", marginBottom: 20 }}>
 
-        {/* Cabecera */}
+        {/* Cabecera de la tarjeta */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #f3f4f6" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#FF4FD6,#c026d3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: "#E91E8C", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
               </svg>
@@ -623,59 +632,45 @@ const ProductionDetailsPage = () => {
             </div>
           </div>
 
-          {/* Botones de acción según estado */}
+          {/* Botones: abren modal, ya NO expanden inline */}
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {production.techSpecification ? (
-              <>
-                <button
-                  onClick={() => setShowTechSheet(prev => !prev)}
-                  style={{
-                    padding: "7px 14px", borderRadius: 8,
-                    border: showTechSheet ? "1.5px solid #FF4FD6" : "1.5px solid #e5e7eb",
-                    background: showTechSheet ? "#fff0fb" : "#f9fafb",
-                    color: showTechSheet ? "#FF4FD6" : "#374151",
-                    cursor: "pointer", fontSize: 12, fontWeight: 600,
-                    display: "flex", alignItems: "center", gap: 5,
-                  }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    {showTechSheet
-                      ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                      : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                    }
-                  </svg>
-                  {showTechSheet ? "Ocultar ficha" : "Ver ficha técnica"}
-                </button>
-              </>
+              <button
+                onClick={() => setShowTechSheet(true)}
+                style={{
+                  padding: "7px 14px", borderRadius: 8,
+                  border: "1.5px solid #e5e7eb", background: "#f9fafb",
+                  color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                  display: "flex", alignItems: "center", gap: 5,
+                }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                Ver ficha técnica
+              </button>
             ) : (
               !isAnulada && (
                 <button
-                  onClick={() => setShowTechSheetForm(prev => !prev)}
+                  onClick={() => setShowTechSheetForm(true)}
                   style={{
-                    padding: "7px 16px", borderRadius: 8,
-                    border: "none",
-                    background: showTechSheetForm
-                      ? "#f3f4f6"
-                      : "linear-gradient(135deg,#FF4FD6,#c026d3)",
-                    color: showTechSheetForm ? "#555" : "#fff",
-                    cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    padding: "7px 16px", borderRadius: 8, border: "none",
+                    background: "#E91E8C",
+                    color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700,
                     display: "flex", alignItems: "center", gap: 6,
-                    boxShadow: showTechSheetForm ? "none" : "0 4px 12px rgba(255,79,214,0.3)",
+                    boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
                   }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    {showTechSheetForm
-                      ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
-                      : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>
-                    }
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                   </svg>
-                  {showTechSheetForm ? "Cancelar" : "+ Crear ficha técnica"}
+                  + Crear ficha técnica
                 </button>
               )
             )}
           </div>
         </div>
 
-        {/* ── Resumen de stats (si ya tiene ficha) ── */}
-        {production.techSpecification && !showTechSheet && (
+        {/* Resumen de stats cuando ya existe la ficha */}
+        {production.techSpecification && (
           <div style={{ padding: "16px 20px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               {[
@@ -692,15 +687,46 @@ const ProductionDetailsPage = () => {
           </div>
         )}
 
-        {/* ── Ficha técnica EXPANDIDA (solo lectura, inline, NO modal) ── */}
-        {production.techSpecification && showTechSheet && (
-          <div style={{ padding: "20px 24px", borderTop: "1px solid #f3f4f6" }}>
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #f3f4f6",
-            }}>
+        {/* Estado vacío — sin ficha y sin botón de crear abierto */}
+        {!production.techSpecification && (
+          <div style={{ padding: "28px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
+            <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, color: "#374151" }}>Sin ficha técnica</p>
+            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#9ca3af" }}>
+              {isOnFichaStep
+                ? "Este paso requiere una ficha técnica para poder avanzar."
+                : "Podrás crear la ficha técnica cuando la orden llegue al paso correspondiente."}
+            </p>
+            {isOnFichaStep && !isAnulada && (
+              <button
+                onClick={() => setShowTechSheetForm(true)}
+                style={{
+                  padding: "9px 22px", borderRadius: 10, border: "none",
+                  background: "#E91E8C",
+                  color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700,
+                  boxShadow: "0 4px 16px rgba(255,79,214,0.35)",
+                }}>
+                + Crear ficha técnica ahora
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── MODAL: VER FICHA TÉCNICA (solo lectura) ── */}
+      {showTechSheet && production.techSpecification && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => setShowTechSheet(false)}
+        >
+          <div
+            style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del modal */}
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1f2937" }}>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1f2937" }}>
                   📋 Ficha Técnica — Orden #{production.orderNumber}
                 </h4>
                 <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>
@@ -709,25 +735,32 @@ const ProductionDetailsPage = () => {
               </div>
               <button
                 onClick={() => setShowTechSheet(false)}
-                style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#555", cursor: "pointer", fontSize: 12 }}>
-                Colapsar ↑
+                style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#555", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                ×
               </button>
             </div>
-            <TechnicalSheet sheet={production.techSpecification} isEditing={false} />
+            {/* Contenido con scroll */}
+            <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
+              <TechnicalSheet sheet={production.techSpecification} isEditing={false} />
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── FORMULARIO DE CREACIÓN DE FICHA (inline, solo si NO existe ficha) ── */}
-        {!production.techSpecification && showTechSheetForm && (
-          <div style={{ padding: "20px 24px", borderTop: "3px solid #FF4FD6" }}>
-            <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #f3f4f6",
-            }}>
+      {/* ── MODAL: CREAR FICHA TÉCNICA ── */}
+      {showTechSheetForm && !production.techSpecification && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}
+        >
+          <div
+            style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del modal de creación */}
+            <div style={{ padding: "16px 20px", borderBottom: "3px solid #E91E8C", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
-                  ✏️ Crear ficha técnica
-                </h4>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>✏️ Crear ficha técnica</h4>
                 <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>
                   Completa los datos y guarda para desbloquear el avance al siguiente paso
                 </p>
@@ -749,11 +782,7 @@ const ProductionDetailsPage = () => {
                       const newSpec = {
                         ...techSheetDraft,
                         name: techSheetDraft.type || "Ficha técnica",
-                        version: "1",
-                        costPerUnit: 0,
-                        totalCost: 0,
-                        completed: true,
-                        createdAt: today,
+                        version: "1", costPerUnit: 0, totalCost: 0, completed: true, createdAt: today,
                       };
                       const saved = await ProductionAPI.update(production.id, {
                         ...production,
@@ -773,8 +802,8 @@ const ProductionDetailsPage = () => {
                     }
                   }}
                   style={{
-                    padding: "7px 18px", borderRadius: 8,
-                    border: "none", background: "linear-gradient(135deg,#FF4FD6,#c026d3)",
+                    padding: "7px 18px", borderRadius: 8, border: "none",
+                    background: "#E91E8C",
                     color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700,
                     boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
                   }}>
@@ -782,42 +811,17 @@ const ProductionDetailsPage = () => {
                 </button>
               </div>
             </div>
-
-            <TechnicalSheet
-              sheet={null}
-              isEditing={true}
-              onChange={(data) => setTechSheetDraft(data)}
-            />
+            {/* Formulario con scroll */}
+            <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
+              <TechnicalSheet
+                sheet={null}
+                isEditing={true}
+                onChange={(data) => setTechSheetDraft(data)}
+              />
+            </div>
           </div>
-        )}
-
-        {/* ── Estado vacío (sin ficha y sin formulario abierto) ── */}
-        {!production.techSpecification && !showTechSheetForm && (
-          <div style={{ padding: "28px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
-            <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, color: "#374151" }}>
-              Sin ficha técnica
-            </p>
-            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#9ca3af" }}>
-              {isOnFichaStep
-                ? "Este paso requiere una ficha técnica para poder avanzar."
-                : "Podrás crear la ficha técnica cuando la orden llegue al paso correspondiente."}
-            </p>
-            {isOnFichaStep && !isAnulada && (
-              <button
-                onClick={() => setShowTechSheetForm(true)}
-                style={{
-                  padding: "9px 22px", borderRadius: 10,
-                  border: "none", background: "linear-gradient(135deg,#FF4FD6,#c026d3)",
-                  color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700,
-                  boxShadow: "0 4px 16px rgba(255,79,214,0.35)",
-                }}>
-                + Crear ficha técnica ahora
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
             <Alert
         isOpen={globalAlert.open}

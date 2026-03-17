@@ -276,8 +276,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
           ref={modalRef}
           style={{
             backgroundColor: "#fff", borderRadius: "16px",
-            width: "100%", maxWidth: "900px",
-            padding: "36px 40px",
+            width: "100%", maxWidth: "860px",
+            // Padding estandarizado: 28px vertical, 32px horizontal (= misma medida que Third_partiesForm)
+            padding: "28px 32px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             position: "relative",
             maxHeight: "92vh", overflowY: "auto",
@@ -296,15 +297,18 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
             ✕
           </button>
 
-          <h2 style={{ textAlign: "center", marginBottom: "28px", fontSize: 20, fontWeight: 800, color: "#1f2937" }}>
+          {/* Título estandarizado: 18px bold — igual al de Third_partiesForm */}
+          <h2 style={{ textAlign: "center", marginBottom: "22px", fontSize: 18, fontWeight: 800, color: "#1f2937" }}>
             {supplier ? "Editar Proveedor" : "Crear Nuevo Proveedor"}
           </h2>
 
           <form onSubmit={handleSubmit} noValidate>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+            {/* Gap reducido de 40px→28px para consistencia con otros forms de 2 columnas */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px" }}>
 
               {/* ── COLUMNA IZQUIERDA ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "18px", borderRight: "1px solid #e5e7eb", paddingRight: "30px" }}>
+              {/* gap entre campos: 16px (antes 18px) — estandarizado con Third_partiesForm */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", borderRight: "1px solid #e5e7eb", paddingRight: "24px" }}>
 
                 {/* Nombre empresa — texto libre */}
                 <Input
@@ -357,8 +361,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                 />
               </div>
 
-              {/* ── COLUMNA DERECHA ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* ── COLUMNA DERECHA — mismo gap que columna izquierda ── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
                 {/* Nombre contacto — opcional */}
                 <Input
@@ -393,7 +397,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
             </div>
 
             {/* ── BOTONES ── */}
-            <div className="flex justify-end gap-4 mt-8">
+            {/* Botones — margen superior estandarizado 24px */}
+            <div className="flex justify-end gap-3 mt-6">
               <Button type="button" variant="secondary" onClick={handleCancelClick}>
                 Cancelar
               </Button>

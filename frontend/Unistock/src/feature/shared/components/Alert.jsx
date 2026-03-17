@@ -19,7 +19,6 @@
  *     onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
  *   />
  */
-import React, { useState, useEffect } from "react";
 import React, { useState, useEffect, useRef } from "react";
 
 /**

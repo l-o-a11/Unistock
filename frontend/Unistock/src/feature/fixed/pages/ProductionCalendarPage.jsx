@@ -1,19 +1,18 @@
 /**
  * @file pages/ProductionCalendarPage.jsx
- * @description Página independiente del Calendario de Producción.
+ * @description Página del Calendario de Producción.
  *
- * Diseño idéntico al detalle de producción:
- *   - bg-white rounded-2xl shadow para cada sección
- *   - Badges de estado/tipo igual al stepper
- *   - Grid de info igual a "Información general"
- *   - Historial de eventos igual al historial de la orden
- *   - Al hacer clic en un evento → card de detalle con la misma estructura
- *
- * Google Calendar: vinculación directa via OAuth 2.0 (sin .ics)
- * Búsqueda: por orden, proceso o fecha con selector de modo
+ * CORRECCIONES:
+ *  1. Se conecta con useProductions para generar automáticamente eventos desde
+ *     las órdenes reales: fechas de entrega, creación y cambios de estado.
+ *  2. El buscador en modo "fecha" acepta YYYY-MM-DD y DD/MM/YYYY, y al pulsar
+ *     Enter navega al mes correspondiente.
+ *  3. La navegación al detalle de orden usa /layout/produccion/detalle/:id.
+ *  4. Todos los botones usan color único #E91E8C (sin gradientes).
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProductions } from "../hooks/useProduction";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GOOGLE CALENDAR CONFIG
@@ -62,6 +61,30 @@ const formatDateES = (dateStr) => {
   if (!dateStr) return "—";
   const [y, m, d] = dateStr.split("-");
   return `${d}/${m}/${y}`;
+};
+
+/**
+ * Convierte DD/MM/YYYY o YYYY-MM-DD → YYYY-MM-DD.
+ * Devuelve null si el formato no es reconocido.
+ */
+const ddmmyyyyToISO = (str) => {
+  if (!str) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const parts = str.split("/");
+  if (parts.length === 3) return `${parts[2]}-${pad(Number(parts[1]))}-${pad(Number(parts[0]))}`;
+  return null;
+};
+
+/**
+ * Mapea el status de historial de producción al tipo de evento del calendario.
+ */
+const statusToEventType = (status = "") => {
+  const s = status.toLowerCase();
+  if (s.includes("diseño") || s.includes("ficha"))          return "diseno";
+  if (s.includes("corte"))                                   return "corte";
+  if (s.includes("calidad") || s.includes("recepción") || s.includes("compras")) return "calidad";
+  if (s.includes("entregado") || s.includes("entrega"))     return "entrega";
+  return "inicio";
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -119,6 +142,8 @@ const createGCalEvent = async (token, event) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const ProductionCalendarPage = () => {
   const navigate = useNavigate();
+  // Órdenes de producción reales — fuente de eventos automáticos
+  const { Productions: productions = [] } = useProductions();
 
   // Calendario
   const [currentDate, setCurrentDate] = useState(() => {
@@ -146,6 +171,52 @@ const ProductionCalendarPage = () => {
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
+
+  // ── Generar eventos automáticos desde las órdenes de producción ───────────
+  /**
+   * Cada vez que cambia productions se recrean los eventos derivados:
+   *   - Fecha de entrega (deliveryDate) → tipo "entrega"
+   *   - Cada entrada del historial (history[]) → tipo mapeado por statusToEventType
+   * Los eventos manuales del usuario (id numérico, no "auto-…") se conservan.
+   */
+  useEffect(() => {
+    if (!productions.length) return;
+    const generated = [];
+    productions.forEach((prod) => {
+      const orderId  = prod.id;
+      const orderNum = prod.orderNumber;
+      // Fecha de entrega
+      const entregaISO = ddmmyyyyToISO(prod.deliveryDate);
+      if (entregaISO) {
+        generated.push({
+          id: `auto-${orderId}-entrega`,
+          date: entregaISO,
+          type: "entrega",
+          title: `Entrega orden #${orderNum}`,
+          orderId,
+          notes: `Cliente: ${prod.client || "—"}`,
+        });
+      }
+      // Cambios de estado (historial)
+      (prod.history || []).forEach((h, idx) => {
+        const dateISO = ddmmyyyyToISO(h.date);
+        if (!dateISO) return;
+        generated.push({
+          id: `auto-${orderId}-hist-${idx}`,
+          date: dateISO,
+          type: statusToEventType(h.status),
+          title: `${h.status} — #${orderNum}`,
+          orderId,
+          notes: h.motivo || "",
+        });
+      });
+    });
+    // Combinar: conservar manuales + reemplazar automáticos
+    setEvents(prev => {
+      const manual = prev.filter(e => !String(e.id).startsWith("auto-"));
+      return [...manual, ...generated];
+    });
+  }, [productions]);
 
   // ── Google Calendar ───────────────────────────────────────────────────────
   const showToast = (msg, type = "success") => {
@@ -191,9 +262,14 @@ const ProductionCalendarPage = () => {
     const q = search.toLowerCase().trim();
     if (searchMode === "orden")   return String(ev.orderId || "").includes(q) || ev.title.toLowerCase().includes(`#${q}`);
     if (searchMode === "proceso") return (EVENT_TYPES[ev.type]?.label?.toLowerCase() || "").includes(q) || ev.type.toLowerCase().includes(q);
-    if (searchMode === "fecha")   return ev.date.includes(q);
-    return ev.title.toLowerCase().includes(q) || String(ev.orderId || "").includes(q) ||
-           (EVENT_TYPES[ev.type]?.label?.toLowerCase() || "").includes(q) || ev.date.includes(q);
+    // Modo fecha: acepta YYYY-MM-DD y DD/MM/YYYY
+    if (searchMode === "fecha")   return ev.date.includes(q) || formatDateES(ev.date).includes(q);
+    // Modo todo: busca en todos los campos incluyendo fecha formateada
+    return ev.title.toLowerCase().includes(q) ||
+           String(ev.orderId || "").includes(q) ||
+           (EVENT_TYPES[ev.type]?.label?.toLowerCase() || "").includes(q) ||
+           ev.date.includes(q) ||
+           formatDateES(ev.date).includes(q);
   };
 
   const eventsForDay = (day) =>
@@ -206,6 +282,31 @@ const ProductionCalendarPage = () => {
   const filteredEvents = events.filter(e =>
     (filterType === "Todos" || e.type === filterType) && matchesSearch(e)
   );
+
+  // ── Navegación al mes desde buscador de fecha (Enter) ────────────────────
+  /**
+   * Acepta: YYYY-MM-DD, YYYY-MM, DD/MM/YYYY, MM/YYYY
+   * Navega el calendario al mes correspondiente.
+   */
+  const handleSearchKeyDown = (e) => {
+    if (e.key !== "Enter" || searchMode !== "fecha") return;
+    const q = search.trim();
+    if (!q) return;
+    let target = null;
+    if (/^\d{4}-\d{2}/.test(q)) {
+      const [y, m] = q.split("-").map(Number);
+      if (y && m) target = new Date(y, m - 1, 1);
+    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(q)) {
+      const [d, m, y] = q.split("/").map(Number);
+      target = new Date(y, m - 1, 1);
+    } else if (/^\d{2}\/\d{4}$/.test(q)) {
+      const [m, y] = q.split("/").map(Number);
+      target = new Date(y, m - 1, 1);
+    }
+    if (target && !isNaN(target.getTime())) {
+      setCurrentDate(new Date(target.getFullYear(), target.getMonth(), 1));
+    }
+  };
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const addEvent = () => {
@@ -368,7 +469,7 @@ const ProductionCalendarPage = () => {
                 <button
                   onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`); }}
                   className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
-                  style={{ background: "linear-gradient(135deg,#ec4899,#d946ef)", border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(236,72,153,0.3)" }}
+                  style={{ background: "#E91E8C", border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(233,30,140,0.3)" }}
                 >
                   Ver orden #{event.orderId} →
                 </button>
@@ -504,10 +605,10 @@ const ProductionCalendarPage = () => {
                   className="flex-2 px-6 py-2.5 rounded-xl font-bold text-sm transition"
                   style={{
                     flex: 2,
-                    background: newEvent.title.trim() ? "linear-gradient(135deg,#ec4899,#d946ef)" : "#f3f4f6",
+                    background: newEvent.title.trim() ? "#E91E8C" : "#f3f4f6",
                     color: newEvent.title.trim() ? "#fff" : "#9ca3af",
                     border: "none", cursor: newEvent.title.trim() ? "pointer" : "not-allowed",
-                    boxShadow: newEvent.title.trim() ? "0 4px 12px rgba(236,72,153,0.3)" : "none",
+                    boxShadow: newEvent.title.trim() ? "0 4px 12px rgba(233,30,140,0.25)" : "none",
                   }}>
                   Agregar evento
                 </button>
@@ -585,7 +686,8 @@ const ProductionCalendarPage = () => {
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder={searchMode === "orden" ? "Ej: 21, 22..." : searchMode === "proceso" ? "Ej: corte, diseño..." : searchMode === "fecha" ? "2026-03..." : "Buscar eventos..."}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={searchMode === "orden" ? "Ej: 21, 22..." : searchMode === "proceso" ? "Ej: corte, diseño..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar eventos..."}
                 className="border-none outline-none text-sm text-gray-700"
                 style={{ paddingLeft: 32, paddingRight: search ? 28 : 12, paddingTop: 8, paddingBottom: 8, width: 200, background: "transparent" }}
               />
