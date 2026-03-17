@@ -5,6 +5,7 @@ import DashboardIcon from '../../../../assets/icons/Dashboard';
 import UsuariosIcon from "../../../../assets/icons/Usuarios";
 import ComprasIcon from "../../../../assets/icons/Compras";
 import ProduccionIcon from "../../../../assets/icons/Produccion";
+import sedesIcon from "../../../../assets/icons/Sedes";
 import ConfigIcon from "../../../../assets/icons/Config";
 
 import logo from '../../../../assets/transparent-Photoroom.png';
@@ -51,7 +52,14 @@ const mainMenuItems = [
       { name: 'Terceros', path: 'terceros' },
       { name: 'Empleados', path: 'empleados' },
     ]
-  }
+  },
+   {
+    id: 'sedes',
+    name: 'Sedes',
+    icon: sedesIcon,
+    hasSubmenu: false,
+    path: '/layout/sedes'
+  },
 ];
 
 const bottomMenuItem = {

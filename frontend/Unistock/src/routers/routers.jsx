@@ -46,6 +46,9 @@ import EmployeesPage from "../feature/employees/pages/EmployeesPage.jsx";
 // Perfil
 import ProfilePage from "../feature/auth/pages/ProfilePage.jsx";
 
+//Sedes
+import SedesPage from "../feature/sedes/pages/sedesPage.jsx";
+
 export function RouterApp() {
   return (
     <Routes>
@@ -102,6 +105,9 @@ export function RouterApp() {
         {/* Perfil */}
         <Route path="perfil" element={<ProfilePage />} />
 
+
+         {/* sedes */}
+         <Route path="sedes" element={<SedesPage />} />
       </Route>
 
       {/* 404 */}
