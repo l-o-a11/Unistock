@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCategories } from '../hooks/useCategories';
-import Alert from '../components/Alert';
+import Alert from '../../shared/components/Alert';
 import CategoryTable from '../components/CategoryTable';
 import CategorySearch from '../components/CategorySearch';
 import AddCategoryButton from '../components/AddCategoryButton';
@@ -256,7 +256,7 @@ const CategoriesPage = () => {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 100,  // 👈 REDUCIDO de 1000 a 100
+    zIndex: 100,  
     pointerEvents: 'none'
   };
 
@@ -268,7 +268,7 @@ const CategoriesPage = () => {
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     pointerEvents: 'auto',
-    zIndex: 101,  // 👈 REDUCIDO de 1001 a 101
+    zIndex: 101,  
   };
 
   const modalContentStyle = {
@@ -283,7 +283,7 @@ const CategoriesPage = () => {
     backgroundColor: '#fff',
     borderRadius: '12px',
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    zIndex: 102,  // 👈 REDUCIDO de 1002 a 102
+    zIndex: 102,  
     pointerEvents: 'auto'
   };
 
