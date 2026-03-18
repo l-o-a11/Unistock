@@ -8,6 +8,9 @@ export const useAuth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Estado para cambio de contraseña obligatorio (primer login con clave global)
+    const [forceChange, setForceChange] = useState(null); // { userId, userName }
+
     // Alert state — usado por LoginPage para mostrar el componente Alert
     const [alert, setAlert] = useState({
         isOpen: false,
@@ -39,11 +42,33 @@ export const useAuth = () => {
         setError('');
         try {
             const data = await AuthAPI.login({ username, password });
+
+            if (data.requiresPasswordChange) {
+                // Primer login con clave global → forzar cambio antes de entrar
+                setForceChange({ userId: data.user.id, userName: data.user.nombreCompleto });
+                return;
+            }
+
             showAlert('success', '¡Bienvenido!', `Hola, ${data.user.nombreCompleto}`);
             if (onSuccess) setTimeout(onSuccess, 1200);
         } catch (err) {
             showAlert('error', 'Error al iniciar sesión', err.message);
             setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForceChangePassword = async (newPassword, onSuccess) => {
+        if (!forceChange) return;
+        setLoading(true);
+        try {
+            AuthAPI.savePersonalPassword(forceChange.userId, newPassword);
+            setForceChange(null);
+            showAlert('success', '¡Contraseña creada!', 'Ya puedes usar tu nueva contraseña.');
+            if (onSuccess) setTimeout(onSuccess, 1200);
+        } catch (err) {
+            showAlert('error', 'Error', err.message);
         } finally {
             setLoading(false);
         }
@@ -100,10 +125,12 @@ export const useAuth = () => {
         loading,
         error,
         alert,
+        forceChange,
         closeAlert,
         openModal,
         closeModal,
         handleLogin,
+        handleForceChangePassword,
         handleSendCode,
         handleVerifyCode,
         handleChangePassword,
