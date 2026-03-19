@@ -48,7 +48,7 @@ const EVENT_TYPES = {
 };
 
 /** Devuelve siempre un objeto válido aunque el tipo sea desconocido */
-const getEventType = (type) => getEventType(type);
+const getEventType = (type) => EVENT_TYPES[type] || EVENT_TYPES.creacion;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS

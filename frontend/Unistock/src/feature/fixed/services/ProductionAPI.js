@@ -120,6 +120,34 @@ const mockProductions = [
 let nextOrderNumber = 23;
 const deepCopy = (o) => JSON.parse(JSON.stringify(o));
 
+// ── LocalStorage persistence ──────────────────────────────────────────────────
+const LS_KEY = 'app_productions';
+
+const saveToLS = (list) => {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch {}
+};
+
+const loadFromLS = () => {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+
+// Inicializar mockProductions desde LS si hay datos persistidos
+(() => {
+  const stored = loadFromLS();
+  if (stored && stored.length > 0) {
+    mockProductions.length = 0;
+    stored.forEach(p => mockProductions.push(p));
+    // Recalcular nextOrderNumber para evitar duplicados
+    const maxOrder = Math.max(...stored.map(p => p.orderNumber || 0));
+    if (maxOrder >= nextOrderNumber) nextOrderNumber = maxOrder + 1;
+  } else {
+    saveToLS(mockProductions);
+  }
+})();
+
 // ── Mapa en memoria: referencia → ficha técnica ───────────────────────────────
 // Se llena al cargar la primera vez con los datos de productAPI (mock)
 const techSheetCache = {
@@ -129,7 +157,16 @@ const techSheetCache = {
 
 // ── API ───────────────────────────────────────────────────────────────────────
 export const ProductionAPI = {
-  getAll: async () => new Promise(r => setTimeout(() => r(deepCopy(mockProductions)), 300)),
+  getAll: async () => new Promise(r => setTimeout(() => {
+    const stored = loadFromLS();
+    if (stored) {
+      mockProductions.length = 0;
+      stored.forEach(p => mockProductions.push(p));
+      const maxOrder = Math.max(...stored.map(p => p.orderNumber || 0));
+      if (maxOrder >= nextOrderNumber) nextOrderNumber = maxOrder + 1;
+    }
+    r(deepCopy(mockProductions));
+  }, 300)),
 
   getById: (id) => new Promise((res, rej) => {
     setTimeout(() => {
@@ -264,13 +301,14 @@ export const ProductionAPI = {
     };
 
     mockProductions.push(newProd);
+    saveToLS(mockProductions);
     return deepCopy(newProd);
   },
 
   update: (id, data) => new Promise((res, rej) => {
     setTimeout(() => {
       const i = mockProductions.findIndex(p => p.id === id);
-      if (i !== -1) { mockProductions[i] = { ...mockProductions[i], ...data }; res(deepCopy(mockProductions[i])); }
+      if (i !== -1) { mockProductions[i] = { ...mockProductions[i], ...data }; saveToLS(mockProductions); res(deepCopy(mockProductions[i])); }
       else rej(new Error('Producción no encontrada'));
     }, 300);
   }),
@@ -285,6 +323,7 @@ export const ProductionAPI = {
           history: [...(mockProductions[i].history || []),
             { status: 'Anulada', date: today, user: getCurrentUser(), motivo }],
         };
+        saveToLS(mockProductions);
         res(deepCopy(mockProductions[i]));
       } else rej(new Error('Producción no encontrada'));
     }, 300);
@@ -293,7 +332,7 @@ export const ProductionAPI = {
   delete: (id) => new Promise((res, rej) => {
     setTimeout(() => {
       const i = mockProductions.findIndex(p => p.id === id);
-      if (i !== -1) { mockProductions.splice(i, 1); res(); }
+      if (i !== -1) { mockProductions.splice(i, 1); saveToLS(mockProductions); res(); }
       else rej(new Error('Producción no encontrada'));
     }, 300);
   }),

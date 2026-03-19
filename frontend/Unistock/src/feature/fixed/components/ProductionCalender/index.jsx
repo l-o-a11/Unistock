@@ -15,6 +15,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProductions } from "../../hooks/useProduction";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG GOOGLE CALENDAR API
@@ -56,6 +57,13 @@ const INITIAL_EVENTS = [
   { id: 4, date: "2026-03-14", type: "diseno",     title: "Diseño orden #23",       orderId: 3, notes: "" },
   { id: 5, date: "2026-03-18", type: "corte",      title: "Corte tela orden #21",   orderId: 1, notes: "" },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCALSTORAGE — eventos manuales
+// ─────────────────────────────────────────────────────────────────────────────
+const LS_MANUAL_KEY = 'production_calendar_manual_events';
+const loadManualEventsLS = () => { try { const r = localStorage.getItem(LS_MANUAL_KEY); return r ? JSON.parse(r) : []; } catch { return []; } };
+const saveManualEventsLS = (evs) => { try { localStorage.setItem(LS_MANUAL_KEY, JSON.stringify(evs.filter(e => !String(e.id).startsWith('auto-')))); } catch {} };
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAYS_FULL = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -179,7 +187,10 @@ const createGCalEvent = async (token, event) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ProduccionCalendario({ productions = [] }) {
+export default function ProduccionCalendario({ productions: productionsProp = [] }) {
+  // Use internal hook so calendar always has fresh data even without prop
+  const { Productions: productionsHook = [] } = useProductions();
+  const productions = productionsProp.length > 0 ? productionsProp : productionsHook;
   const navigate = useNavigate();
 
   const [currentDate, setCurrentDate] = useState(() => {
@@ -187,8 +198,13 @@ export default function ProduccionCalendario({ productions = [] }) {
     return new Date(t.getFullYear(), t.getMonth(), 1);
   });
   const [viewMode,      setViewMode]      = useState("mensual");
-  const [events,        setEvents]        = useState(INITIAL_EVENTS);
+  const [events,        setEvents]        = useState(() => { const m = loadManualEventsLS(); return m.length > 0 ? m : INITIAL_EVENTS; });
   const [filterType,    setFilterType]    = useState("Todos");
+
+  // Persistir eventos manuales en localStorage cuando cambian
+  useEffect(() => {
+    saveManualEventsLS(events);
+  }, [events]);
   const [search,        setSearch]        = useState("");
   const [searchMode,    setSearchMode]    = useState("todo");
 
