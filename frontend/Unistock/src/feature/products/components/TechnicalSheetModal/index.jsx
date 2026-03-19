@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TechnicalSheet from '../TechnicalSheet';
 import { useTechnicalSheet } from '../../hooks/useTechnicalSheet';
-import Alert from '../Alert';
+import Alert from '../../../shared/components/Alert';
 
 const TechnicalSheetModal = ({ product, onClose }) => {
   const { versions, currentVersion, loadVersions, deleteLastVersion } = useTechnicalSheet(product?.id);

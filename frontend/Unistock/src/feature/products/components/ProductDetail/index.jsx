@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import HoverCard from '../HoverCard';
-import Alert from '../Alert'; 
+import HoverCard from '../../../shared/components/HoverCart';
+import Alert from '../../../shared/components/Alert'; 
 
 const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
   // 🔥estado para alerta de eliminación

@@ -18,7 +18,7 @@
  *   - Se quita "Color" del bloque de Información general resumida
  */
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ProductionAPI } from "../../services/ProductionAPI";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
@@ -47,8 +47,19 @@ const TrashIcon = () => (
 );
 
 const ProductionDetailsPage = () => {
-  const { id } = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  /**
+   * Estado de navegación inyectado desde ProductionPage cuando se llega
+   * desde el flujo de productos dañados:
+   *   openTechSheet       {boolean} — abrir automáticamente el form de ficha
+   *   fromDamaged         {boolean} — mostrar banner de origen por daño
+   *   originalOrderNumber {number}  — # de la orden original anulada
+   *   originalOrderStatus {string}  — paso en que estaba la orden anulada
+   */
+  const navState = location.state || {};
 
   // ── Estado de la orden ──────────────────────────────────────────────────────
   const [production,      setProduction]      = useState(null);   // datos de la orden desde la API
@@ -92,6 +103,18 @@ const ProductionDetailsPage = () => {
     };
     load();
   }, [id]);
+
+  /**
+   * Auto-abrir formulario de ficha técnica cuando se navega desde el flujo
+   * de productos dañados con state: { openTechSheet: true }.
+   * Solo se dispara cuando la orden ya cargó y no tiene ficha.
+   */
+  useEffect(() => {
+    if (!production || production.techSpecification) return;
+    if (navState.openTechSheet) {
+      setShowTechSheetForm(true);
+    }
+  }, [production]);
 
   if (loading)     return <p className="p-6">Cargando...</p>;
   if (!production) return <p className="p-6">No se encontró la orden</p>;
@@ -348,7 +371,7 @@ const ProductionDetailsPage = () => {
                 <option>Blanco</option><option>Verde</option>
               </select>
             </div>
-            {addRefError && <p className="text-xs text-red-500 mb-3">{addRefError}</p>}
+            {addRefError && <p className="text-xs font-bold mb-3" style={{ color: "#ff4fd6" }}>{addRefError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setAddRefOpen(false); setNewRef({ cantidad: "", color: "" }); setAddRefError(""); }}
                 className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition">
@@ -391,6 +414,60 @@ const ProductionDetailsPage = () => {
             )}
             <p className="text-xs text-red-400 mt-1">Anulado por: {anuladaEntry.user}</p>
           </div>
+        </div>
+      )}
+
+      {/* ── BANNER: ORDEN DE REPOSICIÓN POR DAÑO ── */}
+      {/* Se muestra cuando se navega desde el flujo de productos dañados */}
+      {navState.fromDamaged && (
+        <div style={{
+          background: "linear-gradient(135deg, #fef3c7, #fffbeb)",
+          border: "1.5px solid #f59e0b",
+          borderRadius: 12, padding: "14px 18px",
+          marginBottom: 20,
+          display: "flex", alignItems: "flex-start", gap: 12,
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 10,
+            background: "#fde68a",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, fontSize: 18,
+          }}>
+            ⚠️
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#92400e" }}>
+              Orden de reposición por productos dañados
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "#b45309", lineHeight: 1.6 }}>
+              Esta orden fue creada a partir de artículos dañados durante el paso{" "}
+              <strong>{navState.originalOrderStatus}</strong> de la orden{" "}
+              <strong>#{navState.originalOrderNumber}</strong>.
+              {!production?.techSpecification && (
+                <span style={{ display: "block", marginTop: 6, padding: "6px 10px", background: "#fef9c3", borderRadius: 8, color: "#92400e", fontWeight: 700 }}>
+                  📋 Crea la ficha técnica de los artículos dañados para continuar el proceso de reposición.
+                </span>
+              )}
+            </p>
+          </div>
+          {!production?.techSpecification && !isAnulada && (
+            <button
+              onClick={() => setShowTechSheetForm(true)}
+              style={{
+                flexShrink: 0,
+                padding: "8px 18px", borderRadius: 10, border: "none",
+                background: "#E91E8C", color: "#fff",
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(233,30,140,0.3)",
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Crear ficha técnica
+            </button>
+          )}
         </div>
       )}
 
@@ -758,11 +835,21 @@ const ProductionDetailsPage = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header del modal de creación */}
-            <div style={{ padding: "16px 20px", borderBottom: "3px solid #E91E8C", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+            <div style={{
+              padding: "16px 20px",
+              borderBottom: `3px solid ${navState.fromDamaged ? "#f59e0b" : "#E91E8C"}`,
+              display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0,
+              background: navState.fromDamaged ? "linear-gradient(135deg, #fffbeb, #fff)" : "#fff",
+            }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>✏️ Crear ficha técnica</h4>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>
-                  Completa los datos y guarda para desbloquear el avance al siguiente paso
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
+                  {navState.fromDamaged ? "⚠️ Ficha técnica de reposición" : "✏️ Crear ficha técnica"}
+                </h4>
+                <p style={{ margin: "3px 0 0", fontSize: 11, color: navState.fromDamaged ? "#b45309" : "#9ca3af" }}>
+                  {navState.fromDamaged
+                    ? `Artículos dañados de la orden #${navState.originalOrderNumber} — paso ${navState.originalOrderStatus}`
+                    : "Completa los datos y guarda para desbloquear el avance al siguiente paso"
+                  }
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
@@ -789,13 +876,24 @@ const ProductionDetailsPage = () => {
                         techSpecification: newSpec,
                         history: [
                           ...(production.history || []),
-                          { status: "Ficha técnica creada", date: today, user: ProductionAPI.getCurrentUser(), motivo: null },
+                          {
+                            status: "Ficha técnica creada", date: today,
+                            user: ProductionAPI.getCurrentUser(), motivo: navState.fromDamaged
+                              ? `Reposición — orden #${navState.originalOrderNumber}`
+                              : null,
+                          },
                         ],
                       });
                       setProduction(saved);
                       setShowTechSheetForm(false);
                       setTechSheetDraft(null);
-                      setGlobalAlert({ open: true, type: "success", title: "Ficha guardada", message: "La ficha técnica fue creada correctamente. Ahora puedes avanzar al siguiente paso." });
+                      setGlobalAlert({
+                        open: true, type: "success",
+                        title: "Ficha guardada",
+                        message: navState.fromDamaged
+                          ? "Ficha técnica de reposición creada correctamente. Ahora puedes continuar el proceso."
+                          : "La ficha técnica fue creada correctamente. Ahora puedes avanzar al siguiente paso.",
+                      });
                     } catch (err) {
                       console.error(err);
                       setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar la ficha técnica. Intenta de nuevo." });
@@ -803,9 +901,11 @@ const ProductionDetailsPage = () => {
                   }}
                   style={{
                     padding: "7px 18px", borderRadius: 8, border: "none",
-                    background: "#E91E8C",
+                    background: navState.fromDamaged ? "#f59e0b" : "#E91E8C",
                     color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
+                    boxShadow: navState.fromDamaged
+                      ? "0 4px 12px rgba(245,158,11,0.3)"
+                      : "0 4px 12px rgba(255,79,214,0.3)",
                   }}>
                   💾 Guardar ficha
                 </button>

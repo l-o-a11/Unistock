@@ -1,35 +1,64 @@
 import { useState, useEffect } from 'react';
-import {RolesAPI} from '../services/RolesAPI';
+import { RolesAPI, MODULOS_PREDETERMINADOS, PRIVILEGIOS_PREDETERMINADOS } from '../services/RolesAPI';
 
+const STORAGE_KEY = 'app_roles';
 
+// ── Helpers de localStorage ────────────────────────────────────────────────
+const loadFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // JSON corrupto — ignorar y usar seed
+  }
+  return null;
+};
+
+const saveToStorage = (roles) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
+  } catch (e) {
+    console.error('No se pudo guardar en localStorage:', e);
+  }
+};
+// ── Hook principal ─────────────────────────────────────────────────────────
 export const useRoles = () => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modulos, setModulos] = useState([]);
-const [privilegios, setPrivilegios] = useState([]);
+  const [privilegios, setPrivilegios] = useState([]);
 
-  // Cargar roles al montar el componente
+  // Carga inicial: desde localStorage o desde la API
   useEffect(() => {
-  loadData();
-}, []);
+    const cached = loadFromStorage();
+    if (cached) {
+      setRoles(cached);
+      setLoading(false);
+    } else {
+      loadData();
+    }
+  }, []);
+
+  // Cada vez que roles cambia, persistimos en localStorage
+  useEffect(() => {
+    if (!loading) {
+      saveToStorage(roles);
+    }
+  }, [roles, loading]);
 
 const loadData = async () => {
   try {
     setLoading(true);
-
-    const [rolesData, modulosData, privilegiosData] =
-      await Promise.all([
-        RolesAPI.getAll(),
-        RolesAPI.getModulos(),
-        RolesAPI.getPrivilegios()
-      ]);
-
+    const [rolesData, modulosData, privilegiosData] = await Promise.all([
+      RolesAPI.getAll(),
+      RolesAPI.getModulos(),
+      RolesAPI.getPrivilegios()
+    ]);
     setRoles(rolesData);
     setModulos(modulosData);
     setPrivilegios(privilegiosData);
     setError(null);
-
   } catch (err) {
     setError('Error al cargar datos');
     console.error(err);
@@ -202,6 +231,11 @@ export const useRolDetail = () => {
     setIsOpen(false);
     setSelectedRol(null);
   };
+
+  const resetRoles = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setRoles(seedUsers);
+    };
 
   return {
     selectedRol,

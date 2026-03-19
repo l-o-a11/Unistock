@@ -21,7 +21,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
-import { validators, blockInput } from "../../../shared/utils/Validaciones";
+import { validators } from "../../../shared/utils/validators";
+import { blockInput } from "../../../shared/utils/blockInput";
 
 /**
  * @param {object}      props

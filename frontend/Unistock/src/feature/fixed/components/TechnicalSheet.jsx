@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import HoverCard from "../../products/components/HoverCard";
+import HoverCard from "../../shared/components/HoverCart";
 import { CupTypes, ClousereTypes, Accesories } from "../../products/types/constants";
 
 // ── Shared cell/input styles ──────────────────────────────────────────────────

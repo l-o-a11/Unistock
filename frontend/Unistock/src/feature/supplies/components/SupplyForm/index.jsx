@@ -1,7 +1,113 @@
-// supplies/components/SupplyForm.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Alert from "../../../shared/components/Alert";
+import { validateField } from "../../../shared/utils/validators";
 
+import {
+  getInputStyleBox,
+  errorStyle,
+  labelStyle,
+  requiredStar,
+  btnPrimary,
+  btnSecondary,
+} from "../../../shared/utils/validationStyles";
+
+const STORAGE_KEY = "supplyForm_draft";
+
+// ───────────────── INPUT REUTILIZABLE
+const FormInput = ({
+  label,
+  name,
+  value,
+  onChange,
+  onBlur,
+  error,
+  touched,
+  required = false,
+  type = "text",
+  placeholder = "",
+  options = null,
+  disabled = false,
+}) => {
+  const hasError = touched?.[name] && !!error;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <label style={labelStyle}>
+        {label}
+        {required && <span style={requiredStar}>*</span>}
+      </label>
+
+      {options ? (
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          style={getInputStyleBox(hasError)}
+          disabled={disabled}
+        >
+          <option value="">Seleccionar {label.toLowerCase()}</option>
+          {options.map((opt) => (
+            <option key={opt.id} value={opt.id}>
+              {opt.nombre}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          placeholder={placeholder}
+          style={getInputStyleBox(hasError)}
+          disabled={disabled}
+        />
+      )}
+
+      {hasError && <span style={errorStyle}>{error}</span>}
+    </div>
+  );
+};
+
+// ───────────────── TABLA
+const PropiedadesTable = ({ propiedades, propiedadesData = [], onDelete, error }) => {
+  if (propiedades.length === 0) {
+    return (
+      <div style={{
+        padding: 20,
+        border: "2px dashed",
+        borderColor: error ? "#ef4444" : "#d1d5db",
+        borderRadius: 8,
+        textAlign: "center",
+      }}>
+        <p style={{ fontSize: 13, color: error ? "#ef4444" : "#6b7280" }}>
+          {error ? "⚠ Debes agregar al menos una propiedad" : "No hay propiedades."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <table style={{ width: "100%", marginTop: 10 }}>
+      <tbody>
+        {propiedades.map((p) => {
+          const data = propiedadesData.find(x => x.id === p.propiedadId);
+          return (
+            <tr key={p.propiedadId}>
+              <td>{data?.nombre}</td>
+              <td>{p.valor}</td>
+              <td><button onClick={() => onDelete(p.propiedadId)}>×</button></td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+};
+
+// ───────────────── FORM PRINCIPAL
 const SupplyForm = ({
   supply,
   medidas = [],
@@ -10,100 +116,62 @@ const SupplyForm = ({
   onSubmit,
   onCancel,
 }) => {
-  const [formData, setFormData] = useState({
-    nombre: supply?.nombre || "",
-    categoriaId: supply?.categoriaId || "",
-    stock: supply?.stock || "",
-    valorMedida: supply?.valorMedida || "",
-    medidaId: supply?.medidaId || "",
-    propiedades:
-      supply?.propiedades?.map((p) => ({
-        propiedadId: p.propiedadId,
-        valor: p.valor,
-      })) || [],
-    image: supply?.image || null,
-  });
 
+  // 🔥 CARGAR DESDE LOCALSTORAGE
+  const getInitialData = () => {
+    if (supply) return supply;
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved
+      ? JSON.parse(saved)
+      : {
+          nombre: "",
+          categoriaId: "",
+          stock: "",
+          valorMedida: "",
+          medidaId: "",
+          propiedades: [],
+        };
+  };
+
+  const [formData, setFormData] = useState(getInitialData);
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [propiedadId, setPropiedadId] = useState("");
   const [valorPropiedad, setValorPropiedad] = useState("");
-  const [imagePreview, setImagePreview] = useState(supply?.image || null);
 
-  // ─── Estado único de alerta (patrón UserForm) ─────────────────────────────
-  const [alertConfig, setAlertConfig] = useState({
-    open: false,
-    type: "success",
-    message: "",
-    onConfirm: null,
-  });
-
-  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
-
-  const showAlert = ({ type, message, onConfirm = null }) => {
-    setAlertConfig({ open: true, type, message, onConfirm });
-  };
-
-  // ─── Validaciones (igual que UserForm) ───────────────────────────────────
-  const validators = {
-    required: (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
-    positiveNumber: (v) =>
-      isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
-
-    onlyLetters: (v) =>
-    v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(v)
-      ? "Solo se permiten letras"
-      : "",
-  };
-
-  const validateField = (name, value) => {
-    let error = "";
-    switch (name) {
-      case "nombre":
-        error = validators.required(value) || validators.onlyLetters(value);
-        break;
-      case "categoriaId":
-        error = validators.required(value);
-        break;
-      case "stock":
-        error = validators.required(value) || validators.positiveNumber(value);
-        break;
-      case "valorMedida":
-        error = validators.required(value) || validators.positiveNumber(value);
-        break;
-      case "medidaId":
-        error = validators.required(value);
-        break;
-      default:
-        break;
+  // 🔥 GUARDAR AUTOMÁTICO EN LOCALSTORAGE
+  useEffect(() => {
+    if (!supply) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
     }
+  }, [formData]);
+
+  // VALIDAR
+  const validateFormField = (name, value) => {
+    const error = validateField(name, value);
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
   };
-  
 
-
- const handleChange = (e) => {
+const handleChange = (e) => {
   const { name, value } = e.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-  validateField(name, value);
+  setFormData((p) => ({ ...p, [name]: value }));
+
+  if (touched[name]) {
+    validateFormField(name, value);
+  }
 };
 
   const handleBlur = (e) => {
-    const { name, value } = e.target;
-    validateField(name, value);
-  };
-  
+  const { name, value } = e.target;
+  setTouched((p) => ({ ...p, [name]: true }));
+  validateFormField(name, value);
+};
 
-  // ─── Propiedades ──────────────────────────────────────────────────────────
+  // PROPIEDADES
   const agregarPropiedad = () => {
     if (!propiedadId || !valorPropiedad) return;
-    const existe = formData.propiedades.find(
-      (p) => p.propiedadId === parseInt(propiedadId)
-    );
-    if (existe) return;
 
     setFormData((prev) => ({
       ...prev,
@@ -112,405 +180,65 @@ const SupplyForm = ({
         { propiedadId: parseInt(propiedadId), valor: valorPropiedad },
       ],
     }));
+
     setPropiedadId("");
     setValorPropiedad("");
   };
 
-  const eliminarPropiedad = (pid) => {
+  const eliminarPropiedad = (id) => {
     setFormData((prev) => ({
       ...prev,
-      propiedades: prev.propiedades.filter((p) => p.propiedadId !== pid),
+      propiedades: prev.propiedades.filter((p) => p.propiedadId !== id),
     }));
   };
 
-  // ─── Imagen ───────────────────────────────────────────────────────────────
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+  // SUBMIT
+  const handleSubmit = async () => {
+    const fields = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
+
+    let hasError = false;
+    let touchedAll = {};
+
+    fields.forEach((f) => {
+      touchedAll[f] = true;
+      const err = validateFormField(f, formData[f]);
+      if (err) hasError = true;
+    });
+
+    setTouched(touchedAll);
+
+    if (formData.propiedades.length === 0) {
+      setErrors((p) => ({ ...p, propiedades: "Agrega una propiedad" }));
+      hasError = true;
     }
+
+    if (hasError) return;
+
+    await onSubmit(formData);
+
+    // 🔥 LIMPIAR LOCALSTORAGE
+    localStorage.removeItem(STORAGE_KEY);
   };
-
-  // ─── Submit con validación y alertas (patrón UserForm) ───────────────────
-
-  const handleSubmit = (e) => {
-  e.preventDefault();
-
-  const fields = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
-  let newErrors = {};
-
-  fields.forEach((field) => {
-    const error = validateField(field, formData[field]);
-    if (error) newErrors[field] = error;
-  });
-
-  setErrors(newErrors);
-
-  if (Object.values(newErrors).some((e) => e)) {
-    showAlert({
-      type: "warning",
-      message: "Corrige los campos marcados"
-    });
-    return;
-  }
-  const dataToSubmit = {
-      ...formData,
-      categoriaId: formData.categoriaId ? parseInt(formData.categoriaId) : 0,
-      medidaId: formData.medidaId ? parseInt(formData.medidaId) : 0,
-      stock: parseFloat(formData.stock) || 0,
-      valorMedida: parseFloat(formData.valorMedida) || 0,
-    };
-
-  onSubmit(dataToSubmit);
-
-  showAlert({
-    type: "success",
-    message: supply
-      ? "Insumo actualizado correctamente"
-      : "Insumo creado correctamente"
-  });
-};
-
-
-  // ─── Cancelar con confirm — igual que UserForm ───────────────────────────
-  const handleCancel = () => {
-    showAlert({
-      type: "confirm",
-      message: "¿Seguro que deseas cancelar? Los datos ingresados se perderán.",
-      onConfirm: onCancel,
-    });
-  };
-
-  // ─── Estilos ──────────────────────────────────────────────────────────────
-  const inputStyle = (hasError) => ({
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: "6px",
-    border: `1px solid ${hasError ? "#ef4444" : "#d1d5db"}`,
-    fontSize: "14px",
-    color: "#333",
-    outline: "none",
-    transition: "border-color 0.15s",
-    boxSizing: "border-box",
-  });
-
-  const labelStyle = {
-    display: "block",
-    fontSize: "13px",
-    fontWeight: "500",
-    color: "#555",
-    marginBottom: "6px",
-  };
-
-  const errorStyle = {
-    color: "#ef4444",
-    fontSize: "12px",
-    marginTop: "4px",
-  };
-
-  const requiredStar = (
-    <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>
-  );
-
 
   return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          gap: "40px",
-          padding: "30px",
-          background: "#fff",
-          borderRadius: "10px",
-          width: "100%",
-          maxWidth: "1100px",
-         
-        }}
-      >
-        {/* COLUMNA IZQUIERDA — Formulario */}
-        <div style={{ flex: 1 }}>
-          <h2 style={{ marginBottom: "24px", fontSize: "20px", fontWeight: "600", color: "#1a1a1a" }}>
-            {supply ? "Editar insumo" : "Crear nuevo insumo"}
-          </h2>
+    <div style={{ padding: 30 }}>
+      <FormInput label="Nombre" name="nombre" value={formData.nombre} onChange={handleChange} onBlur={handleBlur} error={errors.nombre} touched={touched} required />
 
-          {/* Nombre */}
-          <div style={{ marginBottom: "20px" }}>
-            <label style={labelStyle}>Nombre {requiredStar}</label>
-            <input
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Ej. Hilo de algodón"
-              style={inputStyle(errors.nombre)}
-            />
-            {errors.nombre && <p style={errorStyle}>{errors.nombre}</p>}
-          </div>
+      <FormInput label="Categoría" name="categoriaId" value={formData.categoriaId} onChange={handleChange} onBlur={handleBlur} error={errors.categoriaId} touched={touched} options={categorias} required />
 
-          {/* Categoría + Stock */}
-          <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Categoría {requiredStar}</label>
-              <select
-                name="categoriaId"
-                value={formData.categoriaId}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                style={inputStyle(errors.categoriaId)}
-              >
-                <option value="">Seleccionar categoría</option>
-                {categorias.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                ))}
-              </select>
-              {errors.categoriaId && <p style={errorStyle}>{errors.categoriaId}</p>}
-            </div>
+      <FormInput label="Stock" name="stock" type="number" value={formData.stock} onChange={handleChange} onBlur={handleBlur} error={errors.stock} touched={touched} required />
 
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Stock {requiredStar}</label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ej. 130"
-                style={inputStyle(errors.stock)}
-              />
-              {errors.stock && <p style={errorStyle}>{errors.stock}</p>}
-            </div>
-          </div>
+      <FormInput label="Valor medida" name="valorMedida" type="number" value={formData.valorMedida} onChange={handleChange} onBlur={handleBlur} error={errors.valorMedida} touched={touched} required />
 
-          {/* Valor medida + Medida */}
-          <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Valor medida {requiredStar}</label>
-              <input
-                type="number"
-                name="valorMedida"
-                value={formData.valorMedida}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ej. 20"
-                style={inputStyle(errors.valorMedida)}
-              />
-              {errors.valorMedida && <p style={errorStyle}>{errors.valorMedida}</p>}
-            </div>
+      <FormInput label="Medida" name="medidaId" value={formData.medidaId} onChange={handleChange} onBlur={handleBlur} error={errors.medidaId} touched={touched} options={medidas} required />
 
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Medida {requiredStar}</label>
-              <select
-                name="medidaId"
-                value={formData.medidaId}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                style={inputStyle(errors.medidaId)}
-              >
-                <option value="">Seleccionar medida</option>
-                {medidas.map((m) => (
-                  <option key={m.id} value={m.id}>{m.nombre}</option>
-                ))}
-              </select>
-              {errors.medidaId && <p style={errorStyle}>{errors.medidaId}</p>}
-            </div>
-          </div>
+      <button onClick={handleSubmit} style={btnPrimary}>Guardar</button>
+      <button onClick={onCancel} style={btnSecondary}>Cancelar</button>
 
-          {/* Propiedades */}
-          <div style={{ marginBottom: "10px" }}>
-            <label style={labelStyle}>Propiedades</label>
+      <PropiedadesTable propiedades={formData.propiedades} propiedadesData={propiedades} onDelete={eliminarPropiedad} error={errors.propiedades} />
 
-            <div style={{ display: "flex", gap: "12px", marginTop: "10px", marginBottom: "20px" }}>
-              <select
-                value={propiedadId}
-                onChange={(e) => setPropiedadId(e.target.value)}
-                style={{ ...inputStyle(false), flex: 1 }}
-              >
-                <option value="">Seleccionar propiedad</option>
-                {propiedades.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
-                ))}
-              </select>
-
-              <input
-                placeholder="Valor (Ej. rojo)"
-                value={valorPropiedad}
-                onChange={(e) => setValorPropiedad(e.target.value)}
-                style={{ ...inputStyle(false), flex: 1 }}
-              />
-
-              <button
-                type="button"
-                onClick={agregarPropiedad}
-                style={{
-                  padding: "10px 24px",
-                  backgroundColor: "#ff4fd6",
-                  color: "#fff",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Agregar
-              </button>
-            </div>
-
-            {/* Sub-tabla de propiedades */}
-            {formData.propiedades.length > 0 ? (
-              <div style={{ marginTop: "16px", border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "#fdf0f7" }}>
-                      {["Propiedad", "Valor", "Acción"].map((h, i) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "10px 12px",
-                            textAlign: i === 2 ? "center" : "left",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            color: "#ff4fd6",
-                            borderBottom: "1px solid #ff4fd6",
-                            width: i === 2 ? "60px" : undefined,
-                          }}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.propiedades.map((prop, index) => {
-                      const propData = propiedades.find((p) => p.id === prop.propiedadId);
-                      const isLast = index === formData.propiedades.length - 1;
-                      const cellStyle = {
-                        padding: "10px 12px",
-                        fontSize: "13px",
-                        color: "#333",
-                        borderBottom: isLast ? "none" : "1px solid #e5e7eb",
-                        backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa",
-                      };
-                      return (
-                        <tr key={prop.propiedadId}>
-                          <td style={cellStyle}>{propData?.nombre || `Propiedad ${prop.propiedadId}`}</td>
-                          <td style={cellStyle}>{prop.valor}</td>
-                          <td style={{ ...cellStyle, textAlign: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() => eliminarPropiedad(prop.propiedadId)}
-                              style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4fd6", fontSize: "18px", fontWeight: "bold", padding: "0 4px" }}
-                              title="Eliminar propiedad"
-                            >
-                              ×
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div style={{ padding: "8px 12px", backgroundColor: "#f9f9f9", borderTop: "1px solid #e5e7eb", fontSize: "12px", color: "#666", textAlign: "right" }}>
-                  Total: {formData.propiedades.length} propiedad(es)
-                </div>
-              </div>
-            ) : (
-              <div style={{ padding: "20px", backgroundColor: "#fafafa", border: "1px dashed #e5e7eb", borderRadius: "8px", textAlign: "center", fontSize: "13px", color: "#999", marginTop: "8px" }}>
-                No hay propiedades agregadas. Utiliza el selector de arriba para agregar propiedades.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* COLUMNA DERECHA — Imagen + Botones */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "16px", backgroundColor: "#fafafa", minHeight: "250px", width: "300px", marginTop: "20%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              {imagePreview ? (
-                <div style={{ textAlign: "center", width: "100%" }}>
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    style={{ maxWidth: "100%", maxHeight: "150px", objectFit: "contain", borderRadius: "4px" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setImagePreview(null); setFormData((prev) => ({ ...prev, image: null })); }}
-                    style={{ marginTop: "10px", padding: "4px 12px", backgroundColor: "#ff4fd6", border: "1px solid #ff4fd6", borderRadius: "4px", fontSize: "12px", color: "#fff", cursor: "pointer" }}
-                  >
-                    Eliminar imagen
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
-                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-                    <line x1="8" y1="2" x2="8" y2="22" />
-                    <line x1="16" y1="2" x2="16" y2="22" />
-                    <line x1="2" y1="8" x2="22" y2="8" />
-                    <line x1="2" y1="16" x2="22" y2="16" />
-                  </svg>
-                  <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
-                    <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span>
-                    <br />o arrastra y suelta
-                  </p>
-                  <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} id="product-image-upload" />
-                  <label htmlFor="product-image-upload" style={{ marginTop: "10px", padding: "6px 16px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "12px", color: "#555", cursor: "pointer" }}>
-                    Seleccionar archivo
-                  </label>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Botones — Cancelar usa confirm, Guardar usa submit */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "15px", marginTop: "30px" }}>
-            <button
-              type="button"
-              onClick={() =>
-              showAlert({
-                open: true,
-                type: "confirm",
-                message: "¿Seguro que deseas cancelar?",
-                onConfirm: onCancel,
-              })
-            }
-              style={{ padding: "10px 32px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", color: "#555", cursor: "pointer" }}
-            >
-              Cancelar
-            </button>
-
-
-            <button
-              type="button"
-              onClick={handleSubmit}
-              style={{ padding: "11px 32px", backgroundColor: "#ff4fd6", color: "#fff", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "8px", cursor: "pointer" }}
-            >
-              {supply ? "Guardar insumo" : "Crear insumo"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── ALERTA ÚNICA (patrón UserForm) ─── */}
-      <Alert
-        isOpen={alertConfig.open}
-        type={alertConfig.type}
-        message={alertConfig.message}
-        onConfirm={() => {
-          if (alertConfig.onConfirm) alertConfig.onConfirm();
-          closeAlert();
-        }}
-        onCancel={closeAlert}
-      />
-    </>
+      <Alert />
+    </div>
   );
 };
 
