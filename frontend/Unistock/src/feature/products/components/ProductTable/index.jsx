@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import HoverCard from "../HoverCard";
-import Alert from "../Alert";
+import HoverCard from "../../../shared/components/HoverCart";
+import Alert from "../../../shared/components/Alert";
 import { StockStatus } from "../../types/constants";
 
 const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => {

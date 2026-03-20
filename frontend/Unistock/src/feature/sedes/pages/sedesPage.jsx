@@ -1,0 +1,233 @@
+import React, { useState } from "react";
+import { useSedes } from "../hooks/useSedes";
+import Alert from "../../shared/components/Alert";
+import SedeTable from "../components/SedesTable";
+import SedeForm from "../components/SedesForm";
+
+const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
+
+// ── SedesPage ──────────────────────────────────────────────────────────────
+const SedesPage = () => {
+  const { sedes, createSede, updateSede, deleteSede, toggleSede } = useSedes();
+
+  const [searchTerm, setSearchTerm]       = useState("");
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [modalType, setModalType]         = useState(null); // "create" | "edit"
+  const [editingSede, setEditingSede]     = useState(null);
+  const [selectedSede, setSelectedSede]   = useState(null);
+
+  const [alertConfig, setAlertConfig] = useState({ open: false, type: "success", title: "", message: "", onConfirm: null });
+  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
+  const showAlert  = (type, title, message, onConfirm = null) =>
+    setAlertConfig({ open: true, type, title, message, onConfirm });
+
+  // ── Filtrado ─────────────────────────────────────────────────────────────
+  const filtered = sedes.filter((s) => {
+    const t = searchTerm.toLowerCase();
+    return (
+      s.nombre?.toLowerCase().includes(t) ||
+      s.ciudad?.toLowerCase().includes(t) ||
+      s.barrio?.toLowerCase().includes(t) ||
+      s.direccion?.toLowerCase().includes(t) ||
+      s.telefono?.includes(searchTerm)
+    );
+  });
+
+  const itemsPerPage = 5;
+  const totalPages   = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const paginated    = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // ── Acciones ──────────────────────────────────────────────────────────────
+  const handleCreate = () => { setEditingSede(null); setModalType("create"); };
+  const handleEdit   = (sede) => { setEditingSede(sede); setModalType("edit"); };
+  const handleClose  = () => { setModalType(null); setEditingSede(null); };
+
+  const handleDelete = (id) => {
+    const sede = sedes.find((s) => s.id === id);
+    showAlert("password", "¿Eliminar sede?",
+      `Para eliminar "${sede?.nombre}" confirma tu contraseña de administrador.`,
+      async (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) { showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente."); return; }
+        try {
+          await deleteSede(id);
+          showAlert("success", "Sede eliminada", `"${sede?.nombre}" fue eliminada correctamente.`);
+        } catch {
+          showAlert("error", "Error", "No se pudo eliminar la sede.");
+        }
+      }
+    );
+  };
+
+  const handleToggle = (id) => {
+    const sede   = sedes.find((s) => s.id === id);
+    const accion = sede?.estado ? "inactivar" : "activar";
+    showAlert("password", `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} sede?`,
+      `Para ${accion} "${sede?.nombre}" confirma tu contraseña de administrador.`,
+      (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) { showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente."); return; }
+        toggleSede(id);
+        showAlert("success", `Sede ${accion === "activar" ? "activada" : "inactivada"}`,
+          `"${sede?.nombre}" fue ${accion === "activar" ? "activada" : "inactivada"} correctamente.`);
+      }
+    );
+  };
+
+  const handleCreateSubmit = async (data) => {
+    try {
+      await createSede(data);
+      handleClose();
+      showAlert("success", "Sede creada", `"${data.nombre}" fue creada correctamente.`);
+    } catch (error) {
+      showAlert("error", "Error al crear", error.message || "No se pudo crear la sede.");
+    }
+  };
+
+  const handleEditSubmit = async (data) => {
+    try {
+      await updateSede(editingSede.id, data);
+      handleClose();
+      showAlert("success", "Sede actualizada", `"${data.nombre}" fue actualizada correctamente.`);
+    } catch (error) {
+      showAlert("error", "Error al actualizar", error.message || "No se pudo actualizar la sede.");
+    }
+  };
+
+  // ── Paginación ────────────────────────────────────────────────────────────
+  const getPageNumbers = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [1];
+    if (currentPage > 3) pages.push("...");
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  };
+
+  const pBtn = { padding: "6px 12px", borderRadius: "6px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: "14px" };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
+
+      {/* HEADER */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "#1a1a1a" }}>Sedes</h1>
+        <div style={{ position: "relative" }}>
+          <input value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            placeholder="Buscar sede..."
+            style={{ padding: "9px 14px 9px 36px", borderRadius: "10px", border: "1.5px solid #e5e7eb", fontSize: "14px", outline: "none", width: "240px", boxSizing: "border-box" }}
+            onFocus={(e) => { e.target.style.borderColor = "#FF4FD6"; }}
+            onBlur={(e)  => { e.target.style.borderColor = "#e5e7eb"; }} />
+          <svg style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#aaa" }}
+            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+        </div>
+      </div>
+
+      {/* TOOLBAR */}
+      <div style={{ display: "flex", justifyContent: "flex-end", background: "#fff", padding: "12px 20px", borderRadius: "10px", marginBottom: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+        <button onClick={handleCreate}
+          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "50px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}>
+          <span style={{ fontSize: "18px", lineHeight: 1 }}>⊕</span> Agregar sede
+        </button>
+      </div>
+
+      {/* TABLA */}
+      <SedeTable
+        sedes={paginated}
+        onView={(sede) => setSelectedSede(sede)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onToggle={handleToggle}
+      />
+
+      {/* MODAL CREAR / EDITAR */}
+      {modalType && (
+        <div onClick={handleClose}
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.25)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px 24px", width: "100%", maxWidth: "480px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)" }}>
+            <SedeForm
+              sede={modalType === "edit" ? editingSede : null}
+              onSubmit={modalType === "edit" ? handleEditSubmit : handleCreateSubmit}
+              onCancel={handleClose}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETALLE */}
+      {selectedSede && (
+        <div onClick={() => setSelectedSede(null)}
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.25)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: "#fff", borderRadius: "16px", width: "100%", maxWidth: "440px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", overflow: "hidden" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #f0f0f0" }}>
+              <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#111" }}>Detalle de Sede</h2>
+              <button onClick={() => setSelectedSede(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: "20px" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#555")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}>×</button>
+            </div>
+
+            {/* Info */}
+            <div style={{ padding: "20px 24px 24px" }}>
+              {[
+                ["ID", selectedSede.id],
+                ["Nombre", selectedSede.nombre],
+                ["Ciudad", selectedSede.ciudad],
+                ["Barrio", selectedSede.barrio],
+                ["Dirección", selectedSede.direccion],
+                ["Teléfono", selectedSede.telefono],
+                ["Estado", selectedSede.estado !== false ? "Activa" : "Inactiva"],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f5f5f5" }}>
+                  <span style={{ fontSize: "13px", color: "#888", fontWeight: 500 }}>{label}</span>
+                  <span style={{ fontSize: "13px", color: label === "Estado" ? (selectedSede.estado !== false ? "#22c55e" : "#ef4444") : "#111", fontWeight: label === "Estado" ? 600 : 400 }}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Botón editar */}
+            <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => { setSelectedSede(null); handleEdit(selectedSede); }}
+                style={{ padding: "9px 22px", borderRadius: "50px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}>
+                Editar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAGINACIÓN */}
+      {filtered.length > 0 && (
+        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
+          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={pBtn}>‹</button>
+          {getPageNumbers().map((p, i) =>
+            p === "..." ? <span key={i} style={{ padding: "6px 10px" }}>...</span> : (
+              <button key={p} onClick={() => setCurrentPage(p)}
+                style={{ ...pBtn, background: p === currentPage ? "#FF4FD6" : "#fff", color: p === currentPage ? "#fff" : "#000", border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd" }}>
+                {p}
+              </button>
+            )
+          )}
+          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={pBtn}>›</button>
+        </div>
+      )}
+
+      {/* ALERT */}
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={(pwd) => { alertConfig.onConfirm?.(pwd); }}
+        onCancel={closeAlert}
+      />
+    </div>
+  );
+};
+
+export default SedesPage;

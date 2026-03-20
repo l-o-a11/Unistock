@@ -75,15 +75,17 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error }) => {
 };
 
 const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
-  const [formData, setFormData] = useState({
+  // Guardar valores iniciales para comparar
+  const initialData = {
     reference: product?.reference || "",
     name: product?.name || "",
     category: product?.category || "",
     price: product?.price || "",
     stock: product?.stock || "",
     image: product?.image || null,
-  });
+  };
 
+  const [formData, setFormData] = useState(initialData);
   const [errors, setErrors] = useState({
     reference: "",
     name: "",
@@ -93,13 +95,32 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   });
 
   const [touched, setTouched] = useState({});
-  const [technicalSheet, setTechnicalSheet] = useState(null);
+  const [technicalSheet, setTechnicalSheet] = useState(product?.technicalSheet || null);
   const [currentStep, setCurrentStep] = useState(1);
   const [imagePreview, setImagePreview] = useState(product?.image || null);
   
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
+
+  // 🔥 DETECTAR SI HAY CAMBIOS EN EL PRODUCTO
+  const hasProductChanges = () => {
+    if (!product) return true; // En creación siempre hay cambios potenciales
+    return (
+      formData.reference !== product.reference ||
+      formData.name !== product.name ||
+      formData.category !== product.category ||
+      formData.price !== product.price ||
+      formData.stock !== product.stock ||
+      imagePreview !== product.image
+    );
+  };
+
+  // 🔥 DETECTAR SI HAY CAMBIOS EN LA FICHA TÉCNICA
+  const hasTechnicalSheetChanges = () => {
+    if (!product) return !!technicalSheet; // En creación, hay cambios si existe technicalSheet
+    return technicalSheet !== product.technicalSheet;
+  };
 
   // 🔥 VALIDACIONES EN TIEMPO REAL
   const validateReference = (value) => {
@@ -110,7 +131,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
   const validateName = (value) => {
     if (!value.trim()) return "El nombre es obligatorio";
-    if (/\d/.test(value)) return "El nombre no puede contener números"; // 🔥 NUEVA VALIDACIÓN
+    if (/\d/.test(value)) return "El nombre no puede contener números";
     if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres";
     return "";
   };
@@ -148,13 +169,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Validar en tiempo real mientras escribe
     validateField(name, value);
   };
 
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    // Validar al salir del campo
     validateField(field, formData[field]);
   };
 
@@ -174,7 +193,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       stock: stockError,
     });
 
-    // Marcar todos como tocados
     setTouched({
       reference: true,
       name: true,
@@ -186,7 +204,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     const hasErrors = referenceError || nameError || categoryError || priceError || stockError;
     
     if (hasErrors) {
-      // Mostrar alerta con los errores
       const errorMessages = [];
       if (referenceError) errorMessages.push(referenceError);
       if (nameError) errorMessages.push(nameError);
@@ -214,6 +231,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       return;
     }
     
+    // 🔥 VALIDACIÓN DE FICHA TÉCNICA
     if (!technicalSheet) {
       onShowAlert({
         type: "warning",
@@ -221,6 +239,21 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
         message: "Debes crear la ficha técnica para poder guardar el producto"
       });
       return;
+    }
+    
+    // 🔥 VALIDACIÓN DE CAMBIOS (solo para edición)
+    if (product) {
+      const hasProductChanges_ = hasProductChanges();
+      const hasTechnicalSheetChanges_ = hasTechnicalSheetChanges();
+      
+      if (!hasProductChanges_ && !hasTechnicalSheetChanges_) {
+        onShowAlert({
+          type: "warning",
+          title: "Sin cambios",
+          message: "No has realizado ningún cambio para guardar"
+        });
+        return;
+      }
     }
     
     onSubmit({ ...formData, technicalSheet });
@@ -241,22 +274,22 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setShowVersions(false);
   };
 
-  // 🔥 FUNCIÓN CORREGIDA: SIEMPRE muestra la alerta de confirmación
+  // 🔥 AHORA USA "confirm" PARA EL DISEÑO ORIGINAL (AZUL CON ?)
   const handleCancelClick = () => {
-    console.log("🖱️ Clic en Cancelar - Mostrando alerta siempre");
-    
-    // SIEMPRE mostrar confirmación, sin importar si hay cambios o no
     onShowConfirm({
+      type: "confirm", // 👈 CAMBIADO DE "cancel" A "confirm"
       title: "¿Seguro que deseas cancelar?",
-      message: "Si cancelas, perderás todos los cambios no guardados.",
+      message: "Los cambios no guardados se perderán.",
       confirmText: "Confirmar",
       cancelText: "Cancelar",
       onConfirm: onCancel
     });
   };
 
+  // 🔥 TAMBIÉN CAMBIADO A "confirm" PARA CONSISTENCIA
   const handleDeleteVersionClick = () => {
     onShowConfirm({
+      type: "confirm", // 👈 CAMBIADO DE "cancel" A "confirm"
       title: "Confirmar eliminación",
       message: "¿Seguro que deseas eliminar esta versión?",
       confirmText: "Eliminar",
@@ -287,7 +320,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // Estilo para inputs con error
+  // 🔥 ESTILO PARA INPUTS CON ERROR - SOLO BORDE ROSA, SIN FONDO
   const getInputStyle = (field) => {
     const baseStyle = {
       width: "100%",
@@ -305,10 +338,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       return {
         ...baseStyle,
         borderBottom: "2px solid #ff4fd6",
-        backgroundColor: "#fff0f7"
       };
     }
     return baseStyle;
+  };
+
+  // 🔥 ESTILO PARA MENSAJES DE ERROR EN NEGRITA
+  const errorStyle = {
+    color: "#ff4fd6",
+    fontSize: "11px",
+    marginTop: "4px",
+    display: "block",
+    fontWeight: "bold",
   };
 
   const cellStyle = { 
@@ -387,8 +428,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.reference || formData.reference) && errors.reference && (
-                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
-                          ⚠ {errors.reference}
+                        <span style={errorStyle}>
+                          {errors.reference}
                         </span>
                       )}
                     </td>
@@ -410,8 +451,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.name || formData.name) && errors.name && (
-                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
-                          ⚠ {errors.name}
+                        <span style={errorStyle}>
+                          {errors.name}
                         </span>
                       )}
                     </td>
@@ -435,8 +476,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.category || formData.category) && errors.category && (
-                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
-                          ⚠ {errors.category}
+                        <span style={errorStyle}>
+                          {errors.category}
                         </span>
                       )}
                     </td>
@@ -460,8 +501,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.price || formData.price) && errors.price && (
-                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
-                          ⚠ {errors.price}
+                        <span style={errorStyle}>
+                          {errors.price}
                         </span>
                       )}
                     </td>
@@ -481,33 +522,14 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.stock || formData.stock) && errors.stock && (
-                        <span style={{ color: "#ff4fd6", fontSize: "11px", marginTop: "4px", display: "block" }}>
-                          ⚠ {errors.stock}
+                        <span style={errorStyle}>
+                          {errors.stock}
                         </span>
                       )}
                     </td>
                   </tr>
                 </tbody>
               </table>
-              
-              {/* Mensaje resumen si hay campos pendientes */}
-              {hasInvalidFields() && (
-                <div style={{ 
-                  marginTop: "16px", 
-                  padding: "8px 12px", 
-                  backgroundColor: "#fff0f7", 
-                  border: "1px solid #ff4fd6",
-                  borderRadius: "6px",
-                  color: "#ff4fd6", 
-                  fontSize: "13px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}>
-                  <span>⚠️</span>
-                  <span>Completa todos los campos requeridos para continuar a la ficha técnica</span>
-                </div>
-              )}
             </div>
 
             <div style={{ flex: 1 }}>
@@ -592,7 +614,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                   if (!hasInvalidFields()) {
                     setCurrentStep(2);
                   } else {
-                    // Marcar todos los campos como tocados para mostrar errores
                     setTouched({
                       reference: true,
                       name: true,
@@ -607,7 +628,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                     });
                   }
                 }}
-                disabled={hasInvalidFields()}
+                // disabled={hasInvalidFields()}  // 👈 ELIMINADO PARA QUE EL ONCLICK FUNCIONE
               >
                 {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
               </button>

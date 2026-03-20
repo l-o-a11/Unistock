@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 
 const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
-  const [formData, setFormData] = useState({
+  // Guardar los valores iniciales para comparar
+  const initialData = {
     name: category?.name || '',
     description: category?.description || '',
-  });
+  };
 
+  const [formData, setFormData] = useState(initialData);
   const [errors, setErrors] = useState({
     name: '',
     description: '',
   });
-
   const [touched, setTouched] = useState({});
+
+  // 🔥 DETECTAR SI HAY CAMBIOS
+  const hasChanges = () => {
+    if (!category) return true; // En creación siempre hay cambios potenciales
+    return formData.name !== category.name || formData.description !== category.description;
+  };
 
   // 🔥 VALIDACIONES EN TIEMPO REAL
   const validateName = (value) => {
@@ -40,13 +47,11 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Validar en tiempo real mientras escribe
     validateField(name, value);
   };
 
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    // Validar al salir del campo
     validateField(field, formData[field]);
   };
 
@@ -60,7 +65,6 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
       description: descriptionError,
     });
 
-    // Marcar todos como tocados
     setTouched({
       name: true,
       description: true
@@ -69,15 +73,10 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     const hasErrors = nameError || descriptionError;
     
     if (hasErrors) {
-      // Mostrar alerta con los errores
-      const errorMessages = [];
-      if (nameError) errorMessages.push(nameError);
-      if (descriptionError) errorMessages.push(descriptionError);
-      
       onShowAlert({
         type: "warning",
         title: "Campos inválidos",
-        message: errorMessages.join(". ")
+        message: "Corrige los campos marcados antes de continuar"
       });
       return false;
     }
@@ -88,7 +87,18 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // 🔥 VALIDACIÓN DE CAMPOS
     if (!validateForm()) return;
+    
+    // 🔥 VALIDACIÓN DE CAMBIOS (solo para edición)
+    if (category && !hasChanges()) {
+      onShowAlert({
+        type: "warning",
+        title: "Sin cambios",
+        message: "No has realizado ningún cambio para guardar"
+      });
+      return;
+    }
     
     onSubmit(formData);
   };
@@ -110,7 +120,7 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // Estilo para inputs con error
+  // Estilo para inputs con error - SOLO BORDE ROSA
   const getInputStyle = (field) => {
     const baseStyle = {
       width: '100%',
@@ -119,14 +129,13 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
       borderRadius: '8px',
       fontSize: '14px',
       outline: 'none',
-      transition: 'border-color 0.2s',
+      transition: 'border-color 0.2s, background-color 0.2s',
     };
 
     if ((touched[field] || formData[field]) && errors[field]) {
       return {
         ...baseStyle,
         borderColor: '#E91E8C',
-        backgroundColor: '#fff0f7'
       };
     }
     return baseStyle;
@@ -143,6 +152,15 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
   const requiredStar = (
     <span style={{ color: '#E91E8C', marginLeft: '2px' }}>*</span>
   );
+
+  const errorStyle = {
+    color: '#E91E8C',
+    fontSize: '11px',
+    marginLeft: '8px',
+    marginTop: '4px',
+    display: 'block',
+    fontWeight: 'bold', 
+  };
 
   return (
     <div style={{ padding: '32px' }}>
@@ -164,10 +182,9 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             style={getInputStyle('name')}
             onFocus={(e) => !errors.name && (e.target.style.borderColor = '#E91E8C')}
           />
-          {/* Mensaje de error en tiempo real */}
           {(touched.name || formData.name) && errors.name && (
-            <span style={{ color: '#E91E8C', fontSize: '11px', marginLeft: '8px', marginTop: '4px', display: 'block' }}>
-              ⚠ {errors.name}
+            <span style={errorStyle}>
+              {errors.name}
             </span>
           )}
         </div>
@@ -188,32 +205,12 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             }}
             onFocus={(e) => !errors.description && (e.target.style.borderColor = '#E91E8C')}
           />
-          {/* Mensaje de error en tiempo real */}
           {(touched.description || formData.description) && errors.description && (
-            <span style={{ color: '#E91E8C', fontSize: '11px', marginLeft: '8px', marginTop: '4px', display: 'block' }}>
-              ⚠ {errors.description}
+            <span style={errorStyle}>
+              {errors.description}
             </span>
           )}
         </div>
-
-        {/* Mensaje general si hay errores */}
-        {(errors.name || errors.description) && (
-          <div style={{ 
-            marginBottom: '20px', 
-            padding: '8px 12px', 
-            backgroundColor: '#fff0f7', 
-            border: '1px solid #E91E8C',
-            borderRadius: '6px',
-            color: '#E91E8C', 
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <span>⚠️</span>
-            <span>Corrige los campos marcados</span>
-          </div>
-        )}
 
         {/* Botones */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>

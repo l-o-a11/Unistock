@@ -1,4 +1,3 @@
-// supplies/components/SupplyForm.jsx
 import React, { useState } from "react";
 import Alert from "../../../shared/components/Alert";
 
@@ -29,37 +28,45 @@ const SupplyForm = ({
   const [valorPropiedad, setValorPropiedad] = useState("");
   const [imagePreview, setImagePreview] = useState(supply?.image || null);
 
-  // ─── Estado único de alerta (patrón UserForm) ─────────────────────────────
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: "success",
+    title: "",
     message: "",
     onConfirm: null,
   });
 
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
 
-  const showAlert = ({ type, message, onConfirm = null }) => {
-    setAlertConfig({ open: true, type, message, onConfirm });
+  const showAlert = (type, title, message, onConfirm = null) => {
+    setAlertConfig({ open: true, type, title, message, onConfirm });
   };
 
-  // ─── Validaciones (igual que UserForm) ───────────────────────────────────
+  // ── Validaciones ───────────────────────────────────────────────────────────
   const validators = {
     required: (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) =>
       isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
-
-    onlyLetters: (v) =>
-    v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]+$/.test(v)
-      ? "Solo se permiten letras"
-      : "",
+    // Permite letras, números, espacios y caracteres comunes en nombres de insumos
+    nombreValido: (v) =>
+      v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v)
+        ? "El nombre contiene caracteres no permitidos"
+        : "",
+    minLength: (v) =>
+      v && v.trim().length < 3 ? "Mínimo 3 caracteres" : "",
+    maxLength: (v) =>
+      v && v.trim().length > 100 ? "Máximo 100 caracteres" : "",
   };
 
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
       case "nombre":
-        error = validators.required(value) || validators.onlyLetters(value);
+        error =
+          validators.required(value) ||
+          validators.nombreValido(value) ||
+          validators.minLength(value) ||
+          validators.maxLength(value);
         break;
       case "categoriaId":
         error = validators.required(value);
@@ -79,37 +86,40 @@ const SupplyForm = ({
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
   };
-  
 
-
- const handleChange = (e) => {
-  const { name, value } = e.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-  validateField(name, value);
-};
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
     validateField(name, value);
   };
-  
 
-  // ─── Propiedades ──────────────────────────────────────────────────────────
+  // ── Propiedades ────────────────────────────────────────────────────────────
   const agregarPropiedad = () => {
-    if (!propiedadId || !valorPropiedad) return;
+    if (!propiedadId) {
+      showAlert("warning", "Campo requerido", "Selecciona una propiedad antes de agregar.");
+      return;
+    }
+    if (!valorPropiedad.trim()) {
+      showAlert("warning", "Campo requerido", "Ingresa un valor para la propiedad.");
+      return;
+    }
     const existe = formData.propiedades.find(
       (p) => p.propiedadId === parseInt(propiedadId)
     );
-    if (existe) return;
-
+    if (existe) {
+      showAlert("warning", "Propiedad duplicada", "Esta propiedad ya fue agregada. Edita su valor directamente en la tabla.");
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       propiedades: [
         ...prev.propiedades,
-        { propiedadId: parseInt(propiedadId), valor: valorPropiedad },
+        { propiedadId: parseInt(propiedadId), valor: valorPropiedad.trim() },
       ],
     }));
     setPropiedadId("");
@@ -123,7 +133,7 @@ const SupplyForm = ({
     }));
   };
 
-  // ─── Imagen ───────────────────────────────────────────────────────────────
+  // ── Imagen ─────────────────────────────────────────────────────────────────
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -136,57 +146,60 @@ const SupplyForm = ({
     }
   };
 
-  // ─── Submit con validación y alertas (patrón UserForm) ───────────────────
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-
-  const fields = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
-  let newErrors = {};
-
-  fields.forEach((field) => {
-    const error = validateField(field, formData[field]);
-    if (error) newErrors[field] = error;
-  });
-
-  setErrors(newErrors);
-
-  if (Object.values(newErrors).some((e) => e)) {
-    showAlert({
-      type: "warning",
-      message: "Corrige los campos marcados"
+    const fields = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
+    let newErrors = {};
+    fields.forEach((field) => {
+      const error = validateField(field, formData[field]);
+      if (error) newErrors[field] = error;
     });
-    return;
-  }
-  const dataToSubmit = {
+    setErrors(newErrors);
+
+    // Validar mínimo 1 propiedad
+    if (formData.propiedades.length === 0) {
+      newErrors.propiedades = "Debes agregar al menos una propiedad";
+      setErrors((prev) => ({ ...prev, propiedades: "Debes agregar al menos una propiedad" }));
+    }
+
+    if (Object.values(newErrors).some((e) => e)) {
+      showAlert("warning", "Campos inválidos", "Corrige los campos marcados antes de guardar.");
+      return;
+    }
+
+    const dataToSubmit = {
       ...formData,
-      categoriaId: formData.categoriaId ? parseInt(formData.categoriaId) : 0,
-      medidaId: formData.medidaId ? parseInt(formData.medidaId) : 0,
+      categoriaId: parseInt(formData.categoriaId) || 0,
+      medidaId: parseInt(formData.medidaId) || 0,
       stock: parseFloat(formData.stock) || 0,
       valorMedida: parseFloat(formData.valorMedida) || 0,
     };
 
-  onSubmit(dataToSubmit);
-
-  showAlert({
-    type: "success",
-    message: supply
-      ? "Insumo actualizado correctamente"
-      : "Insumo creado correctamente"
-  });
-};
-
-
-  // ─── Cancelar con confirm — igual que UserForm ───────────────────────────
-  const handleCancel = () => {
-    showAlert({
-      type: "confirm",
-      message: "¿Seguro que deseas cancelar? Los datos ingresados se perderán.",
-      onConfirm: onCancel,
-    });
+    try {
+      // Awaitar el onSubmit del padre — si lanza error (ej. duplicado) lo capturamos
+      await onSubmit(dataToSubmit);
+      // El padre maneja la alerta de éxito — no la mostramos aquí también
+    } catch (error) {
+      showAlert("error", "Error al guardar", error.message || "No se pudo guardar el insumo.");
+    }
   };
 
-  // ─── Estilos ──────────────────────────────────────────────────────────────
+  // ── Cancelar ───────────────────────────────────────────────────────────────
+  const handleCancel = () => {
+    showAlert(
+      "confirm",
+      "¿Cancelar?",
+      "Los datos ingresados se perderán.",
+      () => {
+        closeAlert();
+        onCancel?.();
+      }
+    );
+  };
+
+  // ── Estilos ────────────────────────────────────────────────────────────────
   const inputStyle = (hasError) => ({
     width: "100%",
     padding: "10px 14px",
@@ -207,33 +220,16 @@ const SupplyForm = ({
     marginBottom: "6px",
   };
 
-  const errorStyle = {
-    color: "#ef4444",
-    fontSize: "12px",
-    marginTop: "4px",
-  };
+  const errorStyle = { color: "#ef4444", fontSize: "12px", marginTop: "4px" };
+  const requiredStar = <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>;
 
-  const requiredStar = (
-    <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>
-  );
-
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          gap: "40px",
-          padding: "30px",
-          background: "#fff",
-          borderRadius: "10px",
-          width: "100%",
-          maxWidth: "1100px",
-         
-        }}
-      >
-        {/* COLUMNA IZQUIERDA — Formulario */}
-        <div style={{ flex: 1 }}>
+      <div style={{ display: "flex", gap: "40px", padding: "30px", background: "#fff", borderRadius: "10px", width: "100%", maxWidth: "1100px", maxHeight: "90vh", overflow: "hidden" }}>
+
+        {/* COLUMNA IZQUIERDA */}
+        <div style={{ flex: 1, overflowY: "auto", scrollbarGutter: "stable", paddingRight: "12px"}}>
           <h2 style={{ marginBottom: "24px", fontSize: "20px", fontWeight: "600", color: "#1a1a1a" }}>
             {supply ? "Editar insumo" : "Crear nuevo insumo"}
           </h2>
@@ -323,64 +319,42 @@ const SupplyForm = ({
           {/* Propiedades */}
           <div style={{ marginBottom: "10px" }}>
             <label style={labelStyle}>Propiedades</label>
-
             <div style={{ display: "flex", gap: "12px", marginTop: "10px", marginBottom: "20px" }}>
               <select
                 value={propiedadId}
                 onChange={(e) => setPropiedadId(e.target.value)}
-                style={{ ...inputStyle(false), flex: 1 }}
+                style={{ ...inputStyle(errors.propiedades ? "#ef4444" : false), flex: 1 }}
               >
                 <option value="">Seleccionar propiedad</option>
-                {propiedades.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
-                ))}
+                {propiedades
+                  .filter((p) => !formData.propiedades.find((fp) => fp.propiedadId === p.id))
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
               </select>
-
               <input
                 placeholder="Valor (Ej. rojo)"
                 value={valorPropiedad}
                 onChange={(e) => setValorPropiedad(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), agregarPropiedad())}
                 style={{ ...inputStyle(false), flex: 1 }}
               />
-
               <button
                 type="button"
                 onClick={agregarPropiedad}
-                style={{
-                  padding: "10px 24px",
-                  backgroundColor: "#ff4fd6",
-                  color: "#fff",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
+                style={{ padding: "10px 24px", backgroundColor: "#ff4fd6", color: "#fff", fontSize: "14px", fontWeight: "500", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}
               >
                 Agregar
               </button>
             </div>
 
-            {/* Sub-tabla de propiedades */}
             {formData.propiedades.length > 0 ? (
-              <div style={{ marginTop: "16px", border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#fdf0f7" }}>
                       {["Propiedad", "Valor", "Acción"].map((h, i) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "10px 12px",
-                            textAlign: i === 2 ? "center" : "left",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            color: "#ff4fd6",
-                            borderBottom: "1px solid #ff4fd6",
-                            width: i === 2 ? "60px" : undefined,
-                          }}
-                        >
+                        <th key={h} style={{ padding: "10px 12px", textAlign: i === 2 ? "center" : "left", fontSize: "12px", fontWeight: "600", color: "#ff4fd6", borderBottom: "1px solid #ff4fd6", width: i === 2 ? "60px" : undefined }}>
                           {h}
                         </th>
                       ))}
@@ -390,26 +364,13 @@ const SupplyForm = ({
                     {formData.propiedades.map((prop, index) => {
                       const propData = propiedades.find((p) => p.id === prop.propiedadId);
                       const isLast = index === formData.propiedades.length - 1;
-                      const cellStyle = {
-                        padding: "10px 12px",
-                        fontSize: "13px",
-                        color: "#333",
-                        borderBottom: isLast ? "none" : "1px solid #e5e7eb",
-                        backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa",
-                      };
+                      const cellStyle = { padding: "10px 12px", fontSize: "13px", color: "#333", borderBottom: isLast ? "none" : "1px solid #e5e7eb", backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa" };
                       return (
                         <tr key={prop.propiedadId}>
                           <td style={cellStyle}>{propData?.nombre || `Propiedad ${prop.propiedadId}`}</td>
                           <td style={cellStyle}>{prop.valor}</td>
                           <td style={{ ...cellStyle, textAlign: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() => eliminarPropiedad(prop.propiedadId)}
-                              style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4fd6", fontSize: "18px", fontWeight: "bold", padding: "0 4px" }}
-                              title="Eliminar propiedad"
-                            >
-                              ×
-                            </button>
+                            <button type="button" onClick={() => eliminarPropiedad(prop.propiedadId)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4fd6", fontSize: "18px", fontWeight: "bold", padding: "0 4px" }} title="Eliminar propiedad">×</button>
                           </td>
                         </tr>
                       );
@@ -421,8 +382,8 @@ const SupplyForm = ({
                 </div>
               </div>
             ) : (
-              <div style={{ padding: "20px", backgroundColor: "#fafafa", border: "1px dashed #e5e7eb", borderRadius: "8px", textAlign: "center", fontSize: "13px", color: "#999", marginTop: "8px" }}>
-                No hay propiedades agregadas. Utiliza el selector de arriba para agregar propiedades.
+              <div style={{ padding: "18px", backgroundColor: errors.propiedades ? "#fff5f5" : "#fafafa", border: `1px dashed ${errors.propiedades ? "#ef4444" : "#e5e7eb"}`, borderRadius: "8px", textAlign: "center", fontSize: "13px", color: errors.propiedades ? "#ef4444" : "#999", marginTop: "8px" }}>
+                {errors.propiedades ? "⚠ Debes agregar al menos una propiedad" : "No hay propiedades agregadas."}
               </div>
             )}
           </div>
@@ -434,11 +395,7 @@ const SupplyForm = ({
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "16px", backgroundColor: "#fafafa", minHeight: "250px", width: "300px", marginTop: "20%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               {imagePreview ? (
                 <div style={{ textAlign: "center", width: "100%" }}>
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    style={{ maxWidth: "100%", maxHeight: "150px", objectFit: "contain", borderRadius: "4px" }}
-                  />
+                  <img src={imagePreview} alt="Preview" style={{ maxWidth: "100%", maxHeight: "150px", objectFit: "contain", borderRadius: "4px" }} />
                   <button
                     type="button"
                     onClick={() => { setImagePreview(null); setFormData((prev) => ({ ...prev, image: null })); }}
@@ -451,14 +408,11 @@ const SupplyForm = ({
                 <>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
                     <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-                    <line x1="8" y1="2" x2="8" y2="22" />
-                    <line x1="16" y1="2" x2="16" y2="22" />
-                    <line x1="2" y1="8" x2="22" y2="8" />
-                    <line x1="2" y1="16" x2="22" y2="16" />
+                    <line x1="8" y1="2" x2="8" y2="22" /><line x1="16" y1="2" x2="16" y2="22" />
+                    <line x1="2" y1="8" x2="22" y2="8" /><line x1="2" y1="16" x2="22" y2="16" />
                   </svg>
                   <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
-                    <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span>
-                    <br />o arrastra y suelta
+                    <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span><br />o arrastra y suelta
                   </p>
                   <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
                   <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} id="product-image-upload" />
@@ -470,24 +424,15 @@ const SupplyForm = ({
             </div>
           </div>
 
-          {/* Botones — Cancelar usa confirm, Guardar usa submit */}
+          {/* Botones */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "15px", marginTop: "30px" }}>
             <button
               type="button"
-              onClick={() =>
-              showAlert({
-                open: true,
-                type: "confirm",
-                message: "¿Seguro que deseas cancelar?",
-                onConfirm: onCancel,
-              })
-            }
+              onClick={handleCancel}
               style={{ padding: "10px 32px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", color: "#555", cursor: "pointer" }}
             >
               Cancelar
             </button>
-
-
             <button
               type="button"
               onClick={handleSubmit}
@@ -499,13 +444,13 @@ const SupplyForm = ({
         </div>
       </div>
 
-      {/* ─── ALERTA ÚNICA (patrón UserForm) ─── */}
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
+        title={alertConfig.title}
         message={alertConfig.message}
         onConfirm={() => {
-          if (alertConfig.onConfirm) alertConfig.onConfirm();
+          alertConfig.onConfirm?.();
           closeAlert();
         }}
         onCancel={closeAlert}
