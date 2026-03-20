@@ -1,14 +1,21 @@
 /**
  * @file ProductionCalender/index.jsx
- * @description Calendario de producción — diseño igual al detalle de producción.
+ * @description Calendario de producción.
  *
- * - Misma estética: bg-white rounded-2xl shadow, badges pink, stepper, grids
- * - Vinculación directa con Google Calendar via OAuth 2.0 (sin descarga .ics)
- * - Búsqueda por orden, proceso y fecha
- * - Al hacer clic en un evento → card estilo "detalle de producción"
+ * CORRECCIONES:
+ *  1. Eventos visibles: `eventsForDay` ahora compara correctamente la fecha con
+ *     `toStr(year, month, day)`, y los nuevos eventos se agregan al estado global
+ *     `events` que es la fuente de verdad del calendario.
+ *  2. Buscador: el modo "fecha" ahora acepta tanto formato YYYY-MM-DD como DD/MM/YYYY
+ *     para que el usuario pueda buscar de forma natural. El modo "todo" también
+ *     busca en la fecha formateada.
+ *  3. Google Calendar: se conserva la integración OAuth 2.0 existente. Se agrega
+ *     aviso en el sidebar cuando VITE_GOOGLE_CLIENT_ID no está configurado, y se
+ *     maneja correctamente el token expirado (401 → desconectar automáticamente).
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProductions } from "../../hooks/useProduction";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG GOOGLE CALENDAR API
@@ -21,28 +28,42 @@ const GCAL_SCOPES      = "https://www.googleapis.com/auth/calendar.events";
 // CONSTANTES
 // ─────────────────────────────────────────────────────────────────────────────
 const EVENT_TYPES = {
-  inicio:  { label: "Inicio de producción", color: "#ec4899", bg: "#fdf2f8",  border: "#f9a8d4", dot: "#ec4899" },
-  calidad: { label: "Control de calidad",   color: "#d97706", bg: "#fffbeb",  border: "#fcd34d", dot: "#d97706" },
-  entrega: { label: "Fecha de entrega",      color: "#16a34a", bg: "#f0fdf4",  border: "#86efac", dot: "#16a34a" },
-  diseno:  { label: "Diseño",               color: "#7c3aed", bg: "#faf5ff",  border: "#c4b5fd", dot: "#7c3aed" },
-  corte:   { label: "Corte",                color: "#0891b2", bg: "#ecfeff",  border: "#67e8f9", dot: "#0891b2" },
+  creacion:   { label: "Creación de orden",     color: "#6366f1", bg: "#eef2ff", border: "#a5b4fc", dot: "#6366f1" },
+  diseno:     { label: "Diseño / Ficha",         color: "#7c3aed", bg: "#faf5ff", border: "#c4b5fd", dot: "#7c3aed" },
+  corte:      { label: "Corte",                  color: "#0891b2", bg: "#ecfeff", border: "#67e8f9", dot: "#0891b2" },
+  calidad:    { label: "Compras / Calidad",      color: "#d97706", bg: "#fffbeb", border: "#fcd34d", dot: "#d97706" },
+  produccion: { label: "En producción",          color: "#ec4899", bg: "#fdf2f8", border: "#f9a8d4", dot: "#ec4899" },
+  transporte: { label: "Transporte / Recepción", color: "#0d9488", bg: "#f0fdfa", border: "#5eead4", dot: "#0d9488" },
+  entrega:    { label: "Fecha de entrega",        color: "#16a34a", bg: "#f0fdf4", border: "#86efac", dot: "#16a34a" },
 };
 
 const STEPS_COLORS = {
-  "Inicio de producción": "from-pink-400 to-fuchsia-500",
-  "Control de calidad":   "from-amber-400 to-orange-500",
-  "Fecha de entrega":     "from-emerald-400 to-green-500",
-  "Diseño":               "from-violet-400 to-purple-500",
-  "Corte":                "from-cyan-400 to-sky-500",
+  "Creación de orden":     "from-indigo-400 to-blue-500",
+  "Diseño / Ficha":        "from-violet-400 to-purple-500",
+  "Corte":                 "from-cyan-400 to-sky-500",
+  "Compras / Calidad":     "from-amber-400 to-orange-500",
+  "En producción":         "from-pink-400 to-fuchsia-500",
+  "Transporte / Recepción":"from-teal-400 to-emerald-500",
+  "Fecha de entrega":      "from-emerald-500 to-green-600",
 };
 
+/** Devuelve siempre un objeto válido aunque el tipo sea desconocido */
+const getEventType = (type) => EVENT_TYPES[type] || EVENT_TYPES.creacion;
+
 const INITIAL_EVENTS = [
-  { id: 1, date: "2026-03-16", type: "inicio",  title: "Inicio producción #21", orderId: 1, notes: "Revisión inicial con el equipo de producción" },
-  { id: 2, date: "2026-03-23", type: "calidad", title: "Control calidad #21",   orderId: 1, notes: "" },
-  { id: 3, date: "2026-03-30", type: "entrega", title: "Entrega orden #22",      orderId: 2, notes: "Cliente: Sorelly Santana" },
-  { id: 4, date: "2026-03-14", type: "diseno",  title: "Diseño orden #23",       orderId: 3, notes: "" },
-  { id: 5, date: "2026-03-18", type: "corte",   title: "Corte tela orden #21",   orderId: 1, notes: "" },
+  { id: 1, date: "2026-03-16", type: "produccion", title: "Inicio producción #21", orderId: 1, notes: "Revisión inicial con el equipo de producción" },
+  { id: 2, date: "2026-03-23", type: "calidad",    title: "Control calidad #21",   orderId: 1, notes: "" },
+  { id: 3, date: "2026-03-30", type: "entrega",    title: "Entrega orden #22",      orderId: 2, notes: "Cliente: Sorelly Santana" },
+  { id: 4, date: "2026-03-14", type: "diseno",     title: "Diseño orden #23",       orderId: 3, notes: "" },
+  { id: 5, date: "2026-03-18", type: "corte",      title: "Corte tela orden #21",   orderId: 1, notes: "" },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCALSTORAGE — eventos manuales
+// ─────────────────────────────────────────────────────────────────────────────
+const LS_MANUAL_KEY = 'production_calendar_manual_events';
+const loadManualEventsLS = () => { try { const r = localStorage.getItem(LS_MANUAL_KEY); return r ? JSON.parse(r) : []; } catch { return []; } };
+const saveManualEventsLS = (evs) => { try { localStorage.setItem(LS_MANUAL_KEY, JSON.stringify(evs.filter(e => !String(e.id).startsWith('auto-')))); } catch {} };
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAYS_FULL = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -63,6 +84,35 @@ const formatDateES = (dateStr) => {
   if (!dateStr) return "—";
   const [y, m, d] = dateStr.split("-");
   return `${d}/${m}/${y}`;
+};
+
+/**
+ * Convierte una fecha en formato DD/MM/YYYY → YYYY-MM-DD (ISO).
+ * Retorna null si el formato no es reconocido.
+ */
+const ddmmyyyyToISO = (str) => {
+  if (!str) return null;
+  // Si ya es ISO (YYYY-MM-DD), devolverlo directo
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // Convertir DD/MM/YYYY → YYYY-MM-DD
+  const parts = str.split("/");
+  if (parts.length === 3) return `${parts[2]}-${pad(Number(parts[1]))}-${pad(Number(parts[0]))}`;
+  return null;
+};
+
+/**
+ * Mapea el status de un historial de producción al tipo de evento del calendario.
+ */
+const statusToEventType = (status = "") => {
+  const s = status.toLowerCase();
+  if (s.includes("diseño") || s.includes("ficha"))                              return "diseno";
+  if (s.includes("corte"))                                                        return "corte";
+  if (s.includes("compras"))                                                      return "calidad";
+  if (s.includes("producción") || s.includes("produccion") || s === "inicio")  return "produccion";
+  if (s.includes("recepción") || s.includes("recepcion") || s.includes("transporte")) return "transporte";
+  if (s.includes("entregado") || s.includes("entrega"))                          return "entrega";
+  if (s.includes("calidad"))                                                       return "calidad";
+  return "creacion";
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,7 +167,7 @@ const createGCalEvent = async (token, event) => {
   const dateStr = event.date; // YYYY-MM-DD
   const body = {
     summary:     event.title,
-    description: `Tipo: ${EVENT_TYPES[event.type]?.label || event.type}${event.orderId ? ` | Orden #${event.orderId}` : ""}${event.notes ? `\n${event.notes}` : ""}`,
+    description: `Tipo: ${getEventType(event.type).label || event.type}${event.orderId ? ` | Orden #${event.orderId}` : ""}${event.notes ? `\n${event.notes}` : ""}`,
     start: { date: dateStr },
     end:   { date: dateStr },
     colorId: event.type === "entrega" ? "10" : event.type === "calidad" ? "5" : "1",
@@ -137,7 +187,10 @@ const createGCalEvent = async (token, event) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ProduccionCalendario({ productions = [] }) {
+export default function ProduccionCalendario({ productions: productionsProp = [] }) {
+  // Use internal hook so calendar always has fresh data even without prop
+  const { Productions: productionsHook = [] } = useProductions();
+  const productions = productionsProp.length > 0 ? productionsProp : productionsHook;
   const navigate = useNavigate();
 
   const [currentDate, setCurrentDate] = useState(() => {
@@ -145,8 +198,13 @@ export default function ProduccionCalendario({ productions = [] }) {
     return new Date(t.getFullYear(), t.getMonth(), 1);
   });
   const [viewMode,      setViewMode]      = useState("mensual");
-  const [events,        setEvents]        = useState(INITIAL_EVENTS);
+  const [events,        setEvents]        = useState(() => { const m = loadManualEventsLS(); return m.length > 0 ? m : INITIAL_EVENTS; });
   const [filterType,    setFilterType]    = useState("Todos");
+
+  // Persistir eventos manuales en localStorage cuando cambian
+  useEffect(() => {
+    saveManualEventsLS(events);
+  }, [events]);
   const [search,        setSearch]        = useState("");
   const [searchMode,    setSearchMode]    = useState("todo");
 
@@ -159,13 +217,149 @@ export default function ProduccionCalendario({ productions = [] }) {
   // Modales
   const [addModal,      setAddModal]      = useState({ open: false, day: null });
   const [selectedEvent, setSelectedEvent] = useState(null); // card de detalle
-  const [newEvent,      setNewEvent]      = useState({ type: "inicio", title: "", orderId: "", notes: "" });
+  const [newEvent,      setNewEvent]      = useState({ type: "creacion", title: "", orderId: "", notes: "" });
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // ── Conectar Google Calendar ─────────────────────────────────────────────
+  // ── Generar eventos desde las órdenes de producción ──────────────────────
+  /**
+   * Cada vez que cambia el arreglo de producciones se regeneran los eventos
+   * derivados: fechas de entrega, creación y cambios de estado del historial.
+   * Los eventos creados manualmente por el usuario se preservan.
+   */
+  useEffect(() => {
+    if (!productions || productions.length === 0) return;
+
+    const generated = [];
+
+    productions.forEach((prod) => {
+      const orderId  = prod.id;
+      const orderNum = prod.orderNumber;
+      const history  = prod.history || [];
+
+      // 1. Fecha de CREACIÓN — primera entrada del historial
+      const firstEntry = history[0];
+      if (firstEntry) {
+        const creacionISO = ddmmyyyyToISO(firstEntry.date);
+        if (creacionISO) {
+          generated.push({
+            id: `auto-${orderId}-creacion`,
+            date: creacionISO,
+            type: "creacion",
+            title: `Orden #${orderNum} creada`,
+            orderId,
+            notes: `Cliente: ${prod.client || "—"} · Producto: ${prod.producto || prod.referencia || "—"}`,
+          });
+        }
+      }
+
+      // 2. Fecha de ENTREGA
+      const entregaISO = ddmmyyyyToISO(prod.deliveryDate);
+      if (entregaISO) {
+        generated.push({
+          id: `auto-${orderId}-entrega`,
+          date: entregaISO,
+          type: "entrega",
+          title: `Entrega orden #${orderNum}`,
+          orderId,
+          notes: `Cliente: ${prod.client || "—"}`,
+        });
+      }
+
+      // 3. Historial completo (skip idx 0 porque ya está como creación)
+      history.forEach((h, idx) => {
+        if (idx === 0) return;
+        const dateISO = ddmmyyyyToISO(h.date);
+        if (!dateISO) return;
+        generated.push({
+          id: `auto-${orderId}-hist-${idx}`,
+          date: dateISO,
+          type: statusToEventType(h.status),
+          title: `${h.status} — #${orderNum}`,
+          orderId,
+          notes: h.motivo || (h.user ? `Por: ${h.user}` : ""),
+        });
+      });
+
+      // 4. Estado actual — solo si no está cubierto por el historial
+      if (prod.status && prod.statusDate) {
+        const statusDateISO = ddmmyyyyToISO(prod.statusDate);
+        const alreadyCovered = history.some(
+          (h) => ddmmyyyyToISO(h.date) === statusDateISO && h.status === prod.status,
+        );
+        if (statusDateISO && !alreadyCovered) {
+          generated.push({
+            id: `auto-${orderId}-status`,
+            date: statusDateISO,
+            type: statusToEventType(prod.status),
+            title: `${prod.status} — #${orderNum}`,
+            orderId,
+            notes: `Estado actual · Cliente: ${prod.client || "—"}`,
+          });
+        }
+      }
+
+      // 5. Detalles: fecha de estado de cada referencia/corte
+      (prod.details || []).forEach((det, idx) => {
+        const detDateISO = ddmmyyyyToISO(det.statusDate);
+        if (!detDateISO || !det.status) return;
+        const alreadyCovered = generated.some(
+          (g) => g.orderId === orderId && g.date === detDateISO && g.title.startsWith(det.status),
+        );
+        if (!alreadyCovered) {
+          generated.push({
+            id: `auto-${orderId}-det-${idx}`,
+            date: detDateISO,
+            type: statusToEventType(det.status),
+            title: `${det.status} ref.${det.ref || idx + 1} — #${orderNum}`,
+            orderId,
+            notes: [det.color && `Color: ${det.color}`, det.quantity && `${det.quantity} uds`].filter(Boolean).join(" · "),
+          });
+        }
+      });
+    });
+
+    setEvents(prev => {
+      const manual = prev.filter(e => !String(e.id).startsWith("auto-"));
+      return [...manual, ...generated];
+    });
+  }, [productions]);
+
+  // ── Navegar al mes de la fecha buscada ───────────────────────────────────
+  /**
+   * handleSearchKeyDown — cuando el usuario pulsa Enter en el buscador
+   * con modo "fecha", parsea la fecha y navega el calendario a ese mes.
+   * Acepta: YYYY-MM-DD, DD/MM/YYYY, YYYY-MM, MM/YYYY.
+   */
+  const handleSearchKeyDown = (e) => {
+    if (e.key !== "Enter" || searchMode !== "fecha") return;
+    const q = search.trim();
+    if (!q) return;
+
+    let targetDate = null;
+
+    // Formato YYYY-MM-DD o YYYY-MM
+    if (/^\d{4}-\d{2}/.test(q)) {
+      const [y, m] = q.split("-").map(Number);
+      if (y && m) targetDate = new Date(y, m - 1, 1);
+    }
+    // Formato DD/MM/YYYY
+    else if (/^\d{2}\/\d{2}\/\d{4}$/.test(q)) {
+      const [d, m, y] = q.split("/").map(Number);
+      targetDate = new Date(y, m - 1, 1);
+    }
+    // Formato MM/YYYY
+    else if (/^\d{2}\/\d{4}$/.test(q)) {
+      const [m, y] = q.split("/").map(Number);
+      targetDate = new Date(y, m - 1, 1);
+    }
+
+    if (targetDate && !isNaN(targetDate.getTime())) {
+      setCurrentDate(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+    }
+  };
   const connectGoogleCalendar = async () => {
     setGcalLoading(true);
     try {
@@ -208,11 +402,23 @@ export default function ProduccionCalendario({ productions = [] }) {
   const matchesSearch = (ev) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase().trim();
+    // Modo orden: busca por ID numérico o "#número" en el título
     if (searchMode === "orden")   return String(ev.orderId || "").includes(q) || ev.title.toLowerCase().includes(`#${q}`);
-    if (searchMode === "proceso") return (EVENT_TYPES[ev.type]?.label?.toLowerCase() || "").includes(q) || ev.type.toLowerCase().includes(q);
-    if (searchMode === "fecha")   return ev.date.includes(q);
-    return ev.title.toLowerCase().includes(q) || String(ev.orderId || "").includes(q) ||
-           (EVENT_TYPES[ev.type]?.label?.toLowerCase() || "").includes(q) || ev.date.includes(q);
+    // Modo proceso: busca en la etiqueta del tipo o en el key del tipo
+    if (searchMode === "proceso") return (getEventType(ev.type).label?.toLowerCase() || "").includes(q) || ev.type.toLowerCase().includes(q);
+    // Modo fecha: acepta YYYY-MM-DD o DD/MM/YYYY para facilitar la búsqueda manual
+    if (searchMode === "fecha") {
+      const fechaFormateada = formatDateES(ev.date); // "DD/MM/YYYY"
+      return ev.date.includes(q) || fechaFormateada.includes(q);
+    }
+    // Modo todo: busca en título, orden, tipo, fecha ISO y fecha formateada
+    return (
+      ev.title.toLowerCase().includes(q) ||
+      String(ev.orderId || "").includes(q) ||
+      (getEventType(ev.type).label?.toLowerCase() || "").includes(q) ||
+      ev.date.includes(q) ||
+      formatDateES(ev.date).includes(q)
+    );
   };
 
   const eventsForDay = (day) => {
@@ -227,18 +433,21 @@ export default function ProduccionCalendario({ productions = [] }) {
   // ── CRUD eventos ─────────────────────────────────────────────────────────
   const addEvent = () => {
     if (!newEvent.title.trim()) return;
+    // Construir la fecha ISO correcta a partir del día seleccionado en el modal
+    const dateStr = toStr(year, month, addModal.day);
     const ev = {
-      id: Date.now(),
-      date: toStr(year, month, addModal.day),
+      id: Date.now(),        // ID único por timestamp
+      date: dateStr,         // YYYY-MM-DD estandarizado
       type: newEvent.type,
       title: newEvent.title,
       orderId: newEvent.orderId ? Number(newEvent.orderId) : null,
       notes: newEvent.notes,
     };
+    // Actualizar el estado global de eventos — el calendario se re-renderiza automáticamente
     setEvents(prev => [...prev, ev]);
-    setNewEvent({ type: "inicio", title: "", orderId: "", notes: "" });
+    setNewEvent({ type: "creacion", title: "", orderId: "", notes: "" });
     setAddModal({ open: false, day: null });
-    // Si está conectado a Google Calendar, ofrecer agregar
+    // Si está conectado a Google Calendar, agregar el evento automáticamente
     if (gcalConnected) addToGoogleCalendar(ev);
   };
 
@@ -263,13 +472,17 @@ export default function ProduccionCalendario({ productions = [] }) {
     return d >= 1 && d <= daysInMonth ? d : null;
   });
 
-  const upcomingEvents = [...filteredEvents].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const upcomingEvents = [...filteredEvents]
+    .filter(ev => ev.date >= todayISO)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6);
 
   // ─────────────────────────────────────────────────────────────────────────
   // CARD DE DETALLE DE EVENTO — estilo ProductionDetailsPage
   // ─────────────────────────────────────────────────────────────────────────
   const EventDetailCard = ({ event, onClose }) => {
-    const type = EVENT_TYPES[event.type] || EVENT_TYPES.inicio;
+    const type = getEventType(event.type) || EVENT_TYPES.creacion;
     const [addingToGcal, setAddingToGcal] = useState(false);
 
     const handleAddGcal = async () => {
@@ -332,7 +545,7 @@ export default function ProduccionCalendario({ productions = [] }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
                   ["Fecha",   formatDateES(event.date)],
-                  ["Proceso", EVENT_TYPES[event.type]?.label || event.type],
+                  ["Proceso", getEventType(event.type).label || event.type],
                   ["Orden #", event.orderId ? `#${event.orderId}` : "—"],
                   ["ID",      `EVT-${event.id}`],
                 ].map(([label, val]) => (
@@ -433,9 +646,10 @@ export default function ProduccionCalendario({ productions = [] }) {
                   onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`); }}
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 12, border: "none",
-                    background: "linear-gradient(135deg,#ec4899,#d946ef)",
+                    // Color único sin gradiente
+                    background: "#E91E8C",
                     color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(236,72,153,0.3)",
+                    boxShadow: "0 4px 12px rgba(233,30,140,0.3)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}
                 >
@@ -478,7 +692,9 @@ export default function ProduccionCalendario({ productions = [] }) {
   // RENDER PRINCIPAL
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ fontFamily: "sans-serif" }}>
+    <div style={{ fontFamily: "'Nunito', sans-serif" }}>
+      {/* Font Nunito — misma que ProductionDetailsPage y ProductionForm */}
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {/* ── TOAST ── */}
       {gcalToast.show && (
@@ -687,9 +903,11 @@ export default function ProduccionCalendario({ productions = [] }) {
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
                 <input value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03..." : "Buscar..."}
+                  // Al presionar Enter en modo "fecha", navega al mes buscado
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar..."}
                   style={{ paddingLeft: 28, paddingRight: search ? 26 : 10, paddingTop: 7, paddingBottom: 7, border: "none", fontSize: 12, outline: "none", width: 155, background: "transparent" }}
-                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#ec4899")}
+                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#E91E8C")}
                   onBlur={e => (e.target.parentElement.parentElement.style.borderColor = "#e5e7eb")}
                 />
                 {search && (
@@ -757,8 +975,8 @@ export default function ProduccionCalendario({ productions = [] }) {
         </div>
       </div>
 
-      {/* Navegación de mes — card blanca */}
-      <div className="bg-white rounded-2xl px-5 py-3 shadow mb-4" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* Navegación de mes — padding vertical consistente con el header card (p-5) */}
+      <div className="bg-white rounded-2xl px-5 py-4 shadow-sm mb-4" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
             style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
@@ -876,7 +1094,7 @@ export default function ProduccionCalendario({ productions = [] }) {
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                               {dayEvs.slice(0, 2).map(ev => {
-                                const t = EVENT_TYPES[ev.type];
+                                const t = getEventType(ev.type);
                                 return (
                                   <div key={ev.id}
                                     onClick={e => { e.stopPropagation(); setSelectedEvent(ev); }}
@@ -950,7 +1168,7 @@ export default function ProduccionCalendario({ productions = [] }) {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                           {dayEvs.map(ev => {
-                            const t = EVENT_TYPES[ev.type];
+                            const t = getEventType(ev.type);
                             return (
                               <div key={ev.id}
                                 onClick={e => { e.stopPropagation(); setSelectedEvent(ev); }}
@@ -1028,7 +1246,7 @@ export default function ProduccionCalendario({ productions = [] }) {
             {upcomingEvents.length === 0
               ? <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", padding: "12px 0" }}>Sin eventos</p>
               : upcomingEvents.map(ev => {
-                const t = EVENT_TYPES[ev.type];
+                const t = getEventType(ev.type);
                 return (
                   <div key={ev.id}
                     onClick={() => setSelectedEvent(ev)}

@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
-import { validators } from "../../../shared/utils/Validaciones";
+import { validators } from "../../../shared/utils/validators";
 import { EmployeeDocumentTypes, EmployeeSedes } from "../../types/constantsEmployees";
 
 const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
-    const [formData, setFormData] = useState({
+    // Inicializa directamente desde la prop — sin useEffect para evitar setState en efecto
+    const [formData, setFormData] = useState(() => employee ?? {
         documentType: "",
         documentNumber: "",
         name: "",
@@ -15,21 +16,14 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     });
 
     const [errors, setErrors] = useState({});
-    const [pendingClose, setPendingClose] = useState(false);
     const [alertConfig, setAlertConfig] = useState({
         open: false, type: "success", title: "", message: "", onConfirm: null,
     });
 
-    useEffect(() => {
-        if (employee) setFormData(employee);
-    }, [employee]);
-
-    useEffect(() => {
-        if (pendingClose && !alertConfig.open) {
-            setPendingClose(false);
-            onCancel();
-        }
-    }, [alertConfig.open, pendingClose]);
+    const closeAlert = useCallback(
+        () => setAlertConfig((prev) => ({ ...prev, open: false })),
+        []
+    );
 
     const validateField = (name, value) => {
         let error = "";
@@ -76,7 +70,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
         }
 
         onSubmit(formData);
-        setPendingClose(true);
+        // Al cerrar el toast de éxito se cierra el modal
         setAlertConfig({
             open: true, type: "success",
             title: employee ? "Empleado actualizado" : "Empleado creado",
@@ -86,6 +80,18 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
             onConfirm: null,
         });
     };
+
+    const handleCancelClick = useCallback(() => {
+        setAlertConfig({
+            open: true, type: "confirm",
+            title: "Cancelar",
+            message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
+            onConfirm: () => {
+                setAlertConfig((prev) => ({ ...prev, open: false }));
+                onCancel();
+            },
+        });
+    }, [onCancel]);
 
     return (
         <>
@@ -172,21 +178,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
 
                 {/* BOTONES */}
                 <div className="flex justify-end gap-4 mt-6">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() =>
-                            setAlertConfig({
-                                open: true, type: "confirm",
-                                title: "Cancelar",
-                                message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
-                                onConfirm: () => {
-                                    setAlertConfig((prev) => ({ ...prev, open: false }));
-                                    onCancel();
-                                },
-                            })
-                        }
-                    >
+                    <Button type="button" variant="secondary" onClick={handleCancelClick}>
                         Cancelar
                     </Button>
                     <Button type="submit" variant="primary">
@@ -202,9 +194,13 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 message={alertConfig.message}
                 onConfirm={() => {
                     if (alertConfig.onConfirm) alertConfig.onConfirm();
-                    setAlertConfig((prev) => ({ ...prev, open: false }));
+                    else closeAlert();
                 }}
-                onCancel={() => setAlertConfig((prev) => ({ ...prev, open: false }))}
+                onCancel={() => {
+                    closeAlert();
+                    // Si era toast de éxito, cerramos el modal al cerrar la alerta
+                    if (alertConfig.type === "success") onCancel();
+                }}
             />
         </>
     );

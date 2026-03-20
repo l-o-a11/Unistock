@@ -19,7 +19,7 @@ const SupplierPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 7;
 
   const [alertConfig, setAlertConfig] = useState({
     open: false,

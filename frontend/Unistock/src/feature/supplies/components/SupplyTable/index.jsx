@@ -1,5 +1,5 @@
 import React from "react";
-import HoverCard from "../HoverCard";
+import HoverCard from "../../../shared/components/HoverCart";
 
 const SupplyTable = ({
   supplies = [],

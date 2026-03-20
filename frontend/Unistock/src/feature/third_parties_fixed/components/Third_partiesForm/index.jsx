@@ -19,7 +19,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Alert from "../../../shared/components/Alert";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
-import { validators, blockInput } from "../../../shared/utils/Validaciones";
+import { validators } from "../../../shared/utils/validators";
+import { blockInput } from "../../../shared/utils/blockInput";
 
 /**
  * @param {object}      props
@@ -260,7 +261,12 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
       >
         <div
           ref={modalRef}
-          style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 860, padding: "32px 36px", boxShadow: "0 12px 48px rgba(0,0,0,0.18)", position: "relative", maxHeight: "92vh", overflowY: "auto" }}
+          style={{
+            background: "#fff", borderRadius: 16, width: "100%", maxWidth: 860,
+            // Padding estandarizado: 28px vertical, 32px horizontal — igual a SupplierForm
+            padding: "28px 32px",
+            boxShadow: "0 12px 48px rgba(0,0,0,0.18)", position: "relative", maxHeight: "92vh", overflowY: "auto",
+          }}
         >
 
           {/* Botón cerrar ✕ */}
@@ -272,13 +278,14 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
           </button>
 
           {/* Header del modal */}
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 22 }}>
+            {/* Título: 18px bold — igual a SupplierForm */}
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1f2937" }}>
               {isEdit ? "Editar tercero" : "Nuevo tercero"}
             </h2>
             {/* En edición muestra el código asignado */}
             {isEdit && Third_partie?.codigo && (
-              <span style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: "#FF4FD6", background: "#fce7f3", padding: "2px 10px", borderRadius: 20 }}>
+              <span style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: "#E91E8C", background: "#fce7f3", padding: "2px 10px", borderRadius: 20 }}>
                 Código: {Third_partie.codigo}
               </span>
             )}
@@ -291,10 +298,11 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 32px" }}>
+            {/* Gap horizontal 28px — igual a SupplierForm */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 28px" }}>
 
-              {/* ── COLUMNA IZQUIERDA ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, borderRight: "1px solid #f0f0f0", paddingRight: 28 }}>
+              {/* ── COLUMNA IZQUIERDA — gap 16px entre campos, paddingRight 24px ── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, borderRight: "1px solid #f0f0f0", paddingRight: 24 }}>
 
                 {/* Nombre empresa — texto libre, obligatorio */}
                 <Input
@@ -364,7 +372,8 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
             </div>
 
             {/* ── BOTONES ── */}
-            <div className="flex justify-end gap-4 mt-8">
+            {/* Botones — margen top 24px, gap 3 — igual a SupplierForm */}
+            <div className="flex justify-end gap-3 mt-6">
               <Button type="button" variant="secondary" onClick={handleCancelClick}>
                 Cancelar
               </Button>

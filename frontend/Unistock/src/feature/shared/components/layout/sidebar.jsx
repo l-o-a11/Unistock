@@ -36,6 +36,7 @@ const mainMenuItems = [
       { name: 'Categorías', path: 'categorias-insumos' },
       { name: 'Insumos', path: 'insumos' },
       { name: 'Proveedores', path: 'proveedores' },
+
       { name: 'Compras', path: 'compras' },
     ]
   },
@@ -74,7 +75,6 @@ export default function Sidebar() {
 
   const [activeMenu, setActiveMenu] = useState(null);
   const [activeSubItem, setActiveSubItem] = useState(null);
-  const [hoveredSub, setHoveredSub] = useState(null);
 
   const navigate = useNavigate();
   const sidebarRef = useRef(null);
