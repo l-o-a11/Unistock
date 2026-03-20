@@ -5,7 +5,7 @@ import UserTable from "../components/UserTable/index.jsx";
 import SearchInput from "../../shared/components/Search.jsx";
 import UserForm from "../components/UserForm/index.jsx";
 import AddUserButton from "../components/AddUserButton.jsx";
-import Alert from "../components/Alert/index.jsx";
+import Alert from "../../shared/components/Alert";
 import { USERS_ROLE, UserSedes } from "../types/constantsUsers.js";
 
 const UsersPage = () => {
@@ -73,9 +73,19 @@ const UsersPage = () => {
       title: "Eliminar usuario",
       message:
         "Esta acción no se puede deshacer. Ingresa la contraseña de administrador para confirmar.",
-      onConfirm: () => {
-        deleteUser(id);
-        closeAlert();
+      onConfirm: async () => {
+        try {
+          await deleteUser(id);
+          closeAlert();
+        } catch (e) {
+          setAlertConfig({
+            open: true,
+            type: "error",
+            title: "No se puede eliminar",
+            message: e.message,
+            onConfirm: null,
+          });
+        }
       },
     });
   };
@@ -92,8 +102,18 @@ const UsersPage = () => {
         ? "Para inactivar este usuario ingresa la contraseña de administrador."
         : "Para activar este usuario ingresa la contraseña de administrador.",
       onConfirm: () => {
-        toggleUser(id);
-        closeAlert();
+        try {
+          toggleUser(id);
+          closeAlert();
+        } catch (e) {
+          setAlertConfig({
+            open: true,
+            type: "error",
+            title: "No se puede cambiar el estado",
+            message: e.message,
+            onConfirm: null,
+          });
+        }
       },
     });
   };

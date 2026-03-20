@@ -1,39 +1,51 @@
+/**
+ * @file Third_partiesDetail/index.jsx
+ * @description Panel de detalle de un tercero (columna derecha de la página).
+ *
+ * CAUSA DE LA DOBLE ALERTA:
+ *   El componente padre (Third_partiesPage) ya gestiona todo el flujo de
+ *   confirmación + contraseña a través de su propio <Alert type="password">.
+ *   Cuando este componente llamaba onDelete(id) DESPUÉS de su propio flujo
+ *   de confirm→password, el Page abría OTRO modal de contraseña → doble alerta.
+ *
+ * CORRECCIÓN:
+ *   Se elimina completamente el flujo de confirm/password de este componente.
+ *   Al hacer clic en "Eliminar", se llama onDelete(id) directamente y el Page
+ *   es el único responsable de mostrar la confirmación y la contraseña.
+ *   Se conserva SOLO el aviso de bloqueo cuando el tercero tiene producciones,
+ *   usando un estado local simple sin Alert.
+ */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Alert from "../../../shared/components/Alert";
 
 const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState("info");
-  const [deleteAlert, setDeleteAlert] = useState({ open: false, step: "confirm" });
 
   if (!Third_partie) return null;
 
-  const isActive   = Third_partie.estado !== false;
+  const isActive    = Third_partie.estado !== false;
   const producciones = Third_partie.producciones || [];
-  const hasProd    = producciones.length > 0;
+  const hasProd     = producciones.length > 0;
 
+  /**
+   * handleDeleteClick — delega el flujo completo al padre.
+   * Si el tercero tiene producciones, no llama onDelete y muestra aviso inline.
+   * Si no las tiene, llama onDelete directamente para que el padre muestre
+   * su propio modal de confirmación + contraseña (sin duplicados).
+   */
   const handleDeleteClick = () => {
-    if (hasProd) {
-      // Se bloquea — mostrar error en Alert
-      setDeleteAlert({ open: true, step: "blocked" });
-    } else {
-      setDeleteAlert({ open: true, step: "confirm" });
-    }
-  };
-
-  const handleDeleteConfirmed = () => {
+    if (hasProd) return; // El botón ya está deshabilitado visualmente, pero por seguridad
     onDelete?.(Third_partie.id);
-    setDeleteAlert({ open: false, step: "confirm" });
-    onClose?.();
   };
 
   return (
     <div style={styles.card}>
-      {/* HEADER */}
+      {/* ── HEADER ── */}
       <div style={styles.header}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <span style={styles.id}>{Third_partie.codigo || `#${Third_partie.id}`}</span>
+          {/* Badge de estado — verde activo / gris inactivo */}
           <span style={{
             padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
             backgroundColor: isActive ? "#dcfce7" : "#f3f4f6",
@@ -46,18 +58,38 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
         <p style={styles.subtitle}>{Third_partie.nombreContacto || Third_partie.contacto}</p>
       </div>
 
-      {/* TABS */}
+      {/* ── AVISO DE BLOQUEO inline (sin Alert) ── */}
+      {hasProd && (
+        <div style={{
+          margin: "12px 0", padding: "10px 14px", borderRadius: 10,
+          background: "#fff7ed", border: "1px solid #fed7aa",
+          fontSize: 12, color: "#c2410c", fontWeight: 600,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Este tercero tiene {producciones.length} producción(es). Desvincula primero antes de eliminar.
+        </div>
+      )}
+
+      {/* ── TABS ── */}
       <div style={styles.tabs}>
         {["info", "prod"].map(t => (
           <button key={t}
             onClick={() => setTab(t)}
-            style={{ ...styles.tab, borderBottom: tab === t ? "2px solid #E91E8C" : "2px solid transparent", color: tab === t ? "#E91E8C" : "#555" }}>
+            style={{
+              ...styles.tab,
+              borderBottom: tab === t ? "2px solid #E91E8C" : "2px solid transparent",
+              color: tab === t ? "#E91E8C" : "#555",
+            }}>
             {t === "info" ? "Información general" : `Producciones${hasProd ? ` (${producciones.length})` : ""}`}
           </button>
         ))}
       </div>
 
-      {/* INFO */}
+      {/* ── PESTAÑA INFO ── */}
       {tab === "info" && (
         <div style={styles.infoGrid}>
           <LV label="NIT"       value={Third_partie.nit} />
@@ -68,7 +100,8 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
             <>
               <div style={styles.label}>Sitio web</div>
               <div style={styles.value}>
-                <a href={Third_partie.sitioweb || Third_partie.sitioWeb} target="_blank" rel="noreferrer"
+                <a href={Third_partie.sitioweb || Third_partie.sitioWeb}
+                  target="_blank" rel="noreferrer"
                   style={{ color: "#E91E8C", textDecoration: "none", fontSize: 13 }}>
                   {Third_partie.sitioweb || Third_partie.sitioWeb}
                 </a>
@@ -78,7 +111,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
         </div>
       )}
 
-      {/* PRODUCCIONES */}
+      {/* ── PESTAÑA PRODUCCIONES ── */}
       {tab === "prod" && (
         <div style={{ marginTop: 20 }}>
           {producciones.length === 0 ? (
@@ -131,49 +164,31 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
         </div>
       )}
 
-      {/* ACTIONS */}
+      {/* ── ACCIONES ── */}
       <div style={styles.actions}>
-        <button style={{ ...styles.deleteBtn, opacity: hasProd ? 0.5 : 1 }} onClick={handleDeleteClick}>
+        {/* Eliminar: deshabilitado si tiene producciones, color único sin gradiente */}
+        <button
+          style={{
+            ...styles.deleteBtn,
+            opacity: hasProd ? 0.4 : 1,
+            cursor: hasProd ? "not-allowed" : "pointer",
+          }}
+          onClick={handleDeleteClick}
+          disabled={hasProd}
+          title={hasProd ? "Desvincular producciones primero" : "Eliminar tercero"}
+        >
           Eliminar
         </button>
+        {/* Editar: color único #E91E8C sin gradiente */}
         <button style={styles.editBtn} onClick={() => onEdit?.(Third_partie)}>
           Editar
         </button>
       </div>
-
-      {/* Alert: bloqueado por producciones */}
-      <Alert
-        isOpen={deleteAlert.open && deleteAlert.step === "blocked"}
-        type="error"
-        title="No se puede eliminar"
-        message={`Este tercero tiene ${producciones.length} producción(es) asignada(s). Desvincula las producciones antes de eliminarlo.`}
-        onConfirm={() => setDeleteAlert({ open: false, step: "confirm" })}
-        onCancel={() => setDeleteAlert({ open: false, step: "confirm" })}
-      />
-
-      {/* Paso 1: confirmar intención */}
-      <Alert
-        isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
-        type="confirm"
-        title="Eliminar tercero"
-        message="¿Seguro que deseas eliminar este tercero? Esta acción no se puede deshacer."
-        onConfirm={() => setDeleteAlert({ open: true, step: "password" })}
-        onCancel={() => setDeleteAlert({ open: false, step: "confirm" })}
-      />
-
-      {/* Paso 2: contraseña */}
-      <Alert
-        isOpen={deleteAlert.open && deleteAlert.step === "password"}
-        type="password"
-        title="Confirmar eliminación"
-        message="Ingresa la contraseña de administrador para eliminar."
-        onConfirm={handleDeleteConfirmed}
-        onCancel={() => setDeleteAlert({ open: false, step: "confirm" })}
-      />
     </div>
   );
 };
 
+/** Par label / valor para la grilla de información */
 const LV = ({ label, value }) => (
   <>
     <div style={styles.label}>{label}</div>
@@ -182,12 +197,12 @@ const LV = ({ label, value }) => (
 );
 
 const styles = {
-  card:     { padding: "28px 32px" },
+  card:     { padding: "24px 28px" },
   header:   { marginBottom: 14 },
   id:       { fontSize: 11, color: "#E91E8C", fontWeight: 700, background: "#fce7f3", padding: "2px 8px", borderRadius: 6, display: "inline-block", marginBottom: 6 },
   title:    { margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: "#1f2937" },
   subtitle: { margin: "4px 0 0", fontSize: 13, color: "#9ca3af" },
-  tabs:     { display: "flex", gap: 20, marginTop: 16, borderBottom: "1px solid #f0f0f0", paddingBottom: 0 },
+  tabs:     { display: "flex", gap: 20, marginTop: 16, borderBottom: "1px solid #f0f0f0" },
   tab: {
     background: "none", border: "none", borderBottom: "2px solid transparent",
     cursor: "pointer", padding: "8px 0", fontSize: 13, fontWeight: 600,
@@ -197,9 +212,11 @@ const styles = {
   value:    { fontSize: 13, color: "#1f2937" },
   th:       { textAlign: "left", fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", padding: "0 0 8px", borderBottom: "1px solid #f0f0f0" },
   td:       { padding: "11px 0", fontSize: 13, color: "#333", borderBottom: "1px solid #f8f8f8" },
-  actions:  { marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 10 },
-  deleteBtn: { background: "#f3f4f6", color: "#ef4444", border: "none", padding: "9px 20px", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 13 },
-  editBtn:   { background: "linear-gradient(135deg,#E91E8C,#FF4FD6)", color: "#fff", border: "none", padding: "9px 24px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13 },
+  actions:  { marginTop: 28, display: "flex", justifyContent: "flex-end", gap: 10 },
+  // Botón eliminar: color único rojo, sin gradiente
+  deleteBtn: { background: "#fef2f2", color: "#ef4444", border: "1px solid #fecaca", padding: "9px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13 },
+  // Botón editar: color único #E91E8C, sin gradiente
+  editBtn:   { background: "#E91E8C", color: "#fff", border: "none", padding: "9px 24px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13 },
 };
 
 export default Third_partieDetail;

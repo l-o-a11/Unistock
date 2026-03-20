@@ -244,7 +244,7 @@ const ProductionDetailsPage = () => {
                 <option>Blanco</option><option>Verde</option>
               </select>
             </div>
-            {addRefError && <p className="text-xs text-red-500 mb-3">{addRefError}</p>}
+            {addRefError && <p className="text-xs font-bold mb-3" style={{ color: "#ff4fd6" }}>{addRefError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setAddRefOpen(false); setNewRef({ cantidad: "", color: "" }); setAddRefError(""); }}
                 className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition">
@@ -574,3 +574,4 @@ const ProductionDetailsPage = () => {
 };
 
 export default ProductionDetailsPage;
+//no se usa pero no borrar 

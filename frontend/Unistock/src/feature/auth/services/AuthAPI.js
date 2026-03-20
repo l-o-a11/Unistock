@@ -5,11 +5,26 @@ const EMAILJS_TEMPLATE_ID = "template_rgm176v";
 const EMAILJS_PUBLIC_KEY = "5IVlWdQ53cSfiS0i_";
 
 const STORAGE_KEY = "app_users";
-
-let pendingCode = null; // { email, code, expiresAt }
+const PENDING_CODE_KEY = "auth_pending_code";
+const GLOBAL_KEY = "12345678";
 
 const generateCode = () =>
     Math.floor(100000 + Math.random() * 900000).toString();
+
+const getPendingCode = () => {
+    try {
+        const raw = sessionStorage.getItem(PENDING_CODE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+};
+
+const setPendingCode = (value) => {
+    if (value === null) {
+        sessionStorage.removeItem(PENDING_CODE_KEY);
+    } else {
+        sessionStorage.setItem(PENDING_CODE_KEY, JSON.stringify(value));
+    }
+};
 
 // Carga los usuarios desde localStorage (igual que mockUsers)
 const getStoredUsers = () => {
@@ -42,9 +57,16 @@ export const AuthAPI = {
         if (found.estado === false)
             throw new Error("Tu cuenta está desactivada. Contacta al administrador.");
 
-        // Como no hay contraseñas reales en mockUsers, cualquier contraseña
-        // no vacía se acepta. Cuando tengas backend real, aquí va la validación.
-        // Por ahora puedes poner una contraseña fija por usuario si lo necesitas.
+        // --- Lógica de contraseña ---
+        // Si ya tiene contraseña personal, debe usarla (no puede volver a la global)
+        if (found.password) {
+            if (password !== found.password)
+                throw new Error("Contraseña incorrecta.");
+        } else {
+            // Sin contraseña personal → solo acepta la clave global
+            if (password !== GLOBAL_KEY)
+                throw new Error("Contraseña incorrecta.");
+        }
 
         // Guarda la sesión en localStorage
         localStorage.setItem("session_user", JSON.stringify({
@@ -55,7 +77,27 @@ export const AuthAPI = {
             sede: found.sede,
         }));
 
-        return { user: found };
+        // Si entró con la clave global, avisar para forzar cambio
+        const requiresPasswordChange = !found.password;
+        return { user: found, requiresPasswordChange };
+    },
+
+    // Guarda la contraseña personal del usuario (primera vez o cambio forzado)
+    savePersonalPassword: (userId, newPassword) => {
+        const users = getStoredUsers();
+        const updated = users.map((u) =>
+            String(u.id) === String(userId)
+                ? { ...u, password: newPassword }
+                : u
+        );
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+        // Actualizar sesión activa
+        const raw = localStorage.getItem("session_user");
+        if (raw) {
+            const session = JSON.parse(raw);
+            localStorage.setItem("session_user", JSON.stringify(session));
+        }
     },
 
     // Valida que el correo exista en los usuarios antes de enviar el código
@@ -73,7 +115,7 @@ export const AuthAPI = {
 
         const code = generateCode();
         const expiresAt = Date.now() + 10 * 60 * 1000;
-        pendingCode = { email: email.toLowerCase(), code, expiresAt };
+        setPendingCode({ email: email.toLowerCase(), code, expiresAt });
 
         await emailjs.send(
             EMAILJS_SERVICE_ID,
@@ -86,6 +128,7 @@ export const AuthAPI = {
     },
 
     verifyCode: async (email, code) => {
+        const pendingCode = getPendingCode();
         if (!pendingCode)
             throw new Error("No hay código pendiente. Solicita uno nuevo.");
 
@@ -93,7 +136,7 @@ export const AuthAPI = {
             throw new Error("El correo no coincide.");
 
         if (Date.now() > pendingCode.expiresAt) {
-            pendingCode = null;
+            setPendingCode(null);
             throw new Error("El código expiró. Solicita uno nuevo.");
         }
 
@@ -105,8 +148,13 @@ export const AuthAPI = {
 
     changePassword: async (email, code, newPassword) => {
         await AuthAPI.verifyCode(email, code);
-        // Aquí conectarías con tu backend para guardar la nueva contraseña
-        pendingCode = null;
+        // Guardar la nueva contraseña en el usuario correspondiente
+        const users = getStoredUsers();
+        const found = users.find((u) => u.correo?.toLowerCase() === email.toLowerCase());
+        if (found) {
+            AuthAPI.savePersonalPassword(found.id, newPassword);
+        }
+        setPendingCode(null);
         return { success: true };
     },
 

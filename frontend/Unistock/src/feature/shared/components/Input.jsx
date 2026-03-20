@@ -16,10 +16,10 @@ function Input({
     "w-full border rounded-lg px-3 py-2 text-sm outline-none transition";
 
   const normal =
-    "border-gray-300 focus:border-[#E91E8C]";
+    "border-gray-300 focus:border-[#ff4fd6]";
 
   const errorStyle =
-    "border-red-500 focus:border-red-500";
+    "border-[#ff4fd6] focus:border-[#ff4fd6]";
 
   const Component = as;
 
@@ -44,7 +44,7 @@ function Input({
       </Component>
 
       {error && (
-        <span className="text-red-500 text-xs mt-1">
+        <span className="text-xs mt-1 font-bold" style={{ color: "#ff4fd6" }}>
           {error}
         </span>
       )}
