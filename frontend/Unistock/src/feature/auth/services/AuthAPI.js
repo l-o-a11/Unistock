@@ -59,8 +59,7 @@ const getStoredUsers = () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
-    // eslint-disable-next-line no-undef
-    console.warn("Error leyendo usuarios:", e);
+    // error leyendo localStorage
   }
   return [];
 };
@@ -79,21 +78,19 @@ export const AuthAPI = {
    * Llamar desde UserForm al crear un usuario nuevo.
    * Parámetros: { email, nombreCompleto, loginUrl }
    */
+  // Genera la contraseña — llamar ANTES de crear el usuario
+  prepareWelcome: (email) => {
+    const password = generatePassword();
+    return { email, password };
+  },
+
+  // Envía el correo de bienvenida — la contraseña ya viene generada desde afuera
   sendWelcomeEmail: async ({
     email,
     nombreCompleto,
+    password,
     loginUrl = window.location.origin + "/login",
   }) => {
-    const password = generatePassword();
-
-    // Guardar la contraseña generada en el usuario correspondiente
-    const users = getStoredUsers();
-    const updated = users.map((u) =>
-      u.correo?.toLowerCase() === email.toLowerCase() ? { ...u, password } : u,
-    );
-    saveUsers(updated);
-
-    // Enviar correo de bienvenida
     await emailjs.send(
       EMAILJS_SERVICE_ID,
       EMAILJS_WELCOME_TEMPLATE,
@@ -107,7 +104,7 @@ export const AuthAPI = {
       EMAILJS_PUBLIC_KEY,
     );
 
-    return { success: true, password }; // password solo para debug, no mostrar en UI
+    return { success: true };
   },
 
   // ── Login ──────────────────────────────────────────────────────────────

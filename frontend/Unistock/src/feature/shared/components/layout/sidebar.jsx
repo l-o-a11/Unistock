@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DashboardIcon from "../../../../assets/icons/Dashboard";
@@ -72,17 +72,20 @@ export default function Sidebar() {
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const [activeSubItem, setActiveSubItem] = useState(null);
   const navigate = useNavigate();
-  const sidebarRef = useRef(null);
+  const leaveTimer = useRef(null);
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
-        setOpenSubmenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const handleMouseEnter = () => {
+    clearTimeout(leaveTimer.current);
+    setExpanded(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Small delay so accidental mouse-outs don't flicker
+    leaveTimer.current = setTimeout(() => {
+      setExpanded(false);
+      setOpenSubmenu(null);
+    }, 120);
+  };
 
   const handleMenuClick = (item) => {
     if (!item.hasSubmenu) {
@@ -106,12 +109,9 @@ export default function Sidebar() {
   return (
     <>
       <style>{`
-        .sidebar-wrap {
-          will-change: width;
-        }
-        .sidebar-wrap * {
-          font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
-        }
+        .sidebar-wrap { will-change: width; }
+        .sidebar-wrap * { font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif; }
+
         .sb-btn {
           border: none;
           cursor: pointer;
@@ -135,15 +135,10 @@ export default function Sidebar() {
           white-space: nowrap;
           overflow: hidden;
           flex: 1;
-          /* width-based clip so text clips as sidebar narrows */
           max-width: 200px;
           transition: max-width 0.18s ease, opacity 0.18s ease;
         }
-        .sb-label.hidden {
-          max-width: 0;
-          opacity: 0;
-          pointer-events: none;
-        }
+        .sb-label.hidden { max-width: 0; opacity: 0; pointer-events: none; }
         .sb-label.active { color: #ec4899; font-weight: 700; }
 
         .sb-chevron {
@@ -153,11 +148,6 @@ export default function Sidebar() {
         }
         .sb-chevron.hidden { opacity: 0; pointer-events: none; }
         .sb-chevron.open { transform: rotate(180deg); }
-
-        .sb-toggle-icon {
-          transition: transform 0.18s ease;
-        }
-        .sb-toggle-icon.collapsed { transform: rotate(180deg); }
 
         .sb-submenu {
           overflow: hidden;
@@ -185,8 +175,9 @@ export default function Sidebar() {
       `}</style>
 
       <div
-        ref={sidebarRef}
         className="sidebar-wrap"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{
           width: expanded ? 224 : 72,
           transition: "width 0.2s ease",
@@ -251,57 +242,6 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Toggle */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            paddingBottom: 8,
-          }}
-        >
-          <button
-            onClick={() => {
-              setExpanded((v) => !v);
-              if (expanded) setOpenSubmenu(null);
-            }}
-            style={{
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              color: "#9ca3af",
-              transition: "background 0.12s, color 0.12s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#fce7f3";
-              e.currentTarget.style.color = "#ec4899";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-              e.currentTarget.style.color = "#9ca3af";
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`sb-toggle-icon${expanded ? "" : " collapsed"}`}
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-        </div>
-
         <div
           style={{
             width: "65%",
@@ -344,13 +284,11 @@ export default function Sidebar() {
                       transition: "color 0.12s ease",
                     }}
                   />
-
                   <span
                     className={`sb-label${expanded ? "" : " hidden"}${isActive ? " active" : ""}`}
                   >
                     {item.name}
                   </span>
-
                   {item.hasSubmenu && (
                     <svg
                       width="13"
@@ -368,7 +306,6 @@ export default function Sidebar() {
                   )}
                 </button>
 
-                {/* Submenu */}
                 {item.hasSubmenu && (
                   <div
                     className="sb-submenu"
@@ -398,15 +335,6 @@ export default function Sidebar() {
                             onClick={() => handleSubitemClick(subitem, key)}
                             className={`sb-subitem${isSubActive ? " active" : ""}`}
                           >
-                            <span
-                              style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: "50%",
-                                background: isSubActive ? "#ec4899" : "#f9a8d4",
-                                flexShrink: 0,
-                              }}
-                            />
                             {subitem.name}
                           </button>
                         );

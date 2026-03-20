@@ -127,15 +127,20 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
     try {
       setSending(true);
 
-      // 1. Guarda el usuario en localStorage
-      onSubmit(formData);
-
-      // 2. Solo al CREAR → enviar correo con contraseña generada
       if (!user) {
+        // 1. Generar contraseña ANTES de guardar el usuario
+        const { password } = await AuthAPI.prepareWelcome(formData.email);
+        // 2. Guardar usuario CON la contraseña ya incluida
+        await Promise.resolve(onSubmit({ ...formData, password }));
+        // 3. Enviar correo de bienvenida
         await AuthAPI.sendWelcomeEmail({
           email: formData.email,
           nombreCompleto: formData.name,
+          password,
         });
+      } else {
+        // Editar: solo guardar sin correo
+        await Promise.resolve(onSubmit(formData));
       }
 
       setAlertConfig({

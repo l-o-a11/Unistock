@@ -105,8 +105,8 @@ const Navbar = () => {
           width: 280px;
           background: #fff;
           border-radius: 18px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
-          border: 1px solid #f3f4f6;
+          box-shadow: 0 16px 48px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);
+          border: 1px solid #e5e7eb;
           z-index: 100;
           overflow: hidden;
           animation: dropIn 0.18s cubic-bezier(0.4,0,0.2,1);
