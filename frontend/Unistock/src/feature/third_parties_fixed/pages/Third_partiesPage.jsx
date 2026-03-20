@@ -93,8 +93,11 @@ const Third_partiePage = () => {
   };
 
   return (
-    <div style={{ padding: 0, background: '#F7F7F9', minHeight: '100vh' }}>
-      {/* Alerts globales */}
+    <div style={{ padding: "24px", background: "#f9fafb", minHeight: "100vh", fontFamily: "'Nunito', sans-serif" }}>
+      {/* Font Nunito — misma que todas las páginas de producción */}
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+      {/* Alerts globales — solo el Page maneja el flujo completo */}
       <Alert isOpen={deleteAlert.open} type="password" title="Eliminar tercero"
         message="Esta acción no se puede deshacer. Ingresa la contraseña de administrador."
         onConfirm={confirmDelete} onCancel={() => setDeleteAlert({ open: false, id: null })}
@@ -104,23 +107,30 @@ const Third_partiePage = () => {
         onCancel={() => setErrorAlert({ open: false, message: '' })}
       />
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 600, color: '#1E1E1E' }}>Gestión de terceros</h1>
+      {/* ── Header: título + buscador — mismo patrón que ProductionPage ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        {/* Título estandarizado: 24px bold text-gray-800 — igual a Orden #XX */}
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1f2937', margin: 0 }}>Gestión de terceros</h1>
         <Third_partieSearch value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por código, nombre, contacto..." />
       </div>
 
-      {/* Tabs */}
+      {/* ── Tabs de navegación — color único #E91E8C, sin gradiente ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <button onClick={() => navigate('/Layout/produccion')} style={{ background: '#F1F1F1', color: '#666', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>Producciones</button>
-        <button onClick={() => navigate('/Layout/terceros')}   style={{ background: '#FF4FD6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>Terceros</button>
+        <button onClick={() => navigate('/Layout/produccion')}
+          style={{ background: '#f3f4f6', color: '#6b7280', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          Producciones
+        </button>
+        <button onClick={() => navigate('/Layout/terceros')}
+          style={{ background: '#E91E8C', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          Terceros
+        </button>
       </div>
 
-      {/* Layout 2 columnas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
-        {/* Izquierda */}
-        <div style={{ background: '#fff', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      {/* ── Layout 2 columnas: tabla izquierda / detalle derecha ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+        {/* ── Tabla — card estandarizada: bg-white rounded-2xl shadow-sm ── */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
             <AddThird_partieButton onClick={handleAdd} />
           </div>
 
@@ -134,26 +144,28 @@ const Third_partiePage = () => {
           />
 
           {filtered.length > 0 && (
-            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center' }}>
+            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center' }}>
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} style={pgBtn}>‹</button>
               {getPages().map((p, i) => p === '...' ? <span key={i} style={{ padding: '6px 4px' }}>…</span> : (
                 <button key={p} onClick={() => setCurrentPage(p)}
-                  style={{ ...pgBtn, background: p === currentPage ? '#FF4FD6' : '#fff', color: p === currentPage ? '#fff' : '#333', border: `1px solid ${p === currentPage ? '#FF4FD6' : '#ddd'}` }}>{p}</button>
+                  style={{ ...pgBtn, background: p === currentPage ? '#E91E8C' : '#fff', color: p === currentPage ? '#fff' : '#374151', border: `1px solid ${p === currentPage ? '#E91E8C' : '#e5e7eb'}` }}>
+                  {p}
+                </button>
               ))}
               <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} style={pgBtn}>›</button>
             </div>
           )}
         </div>
 
-        {/* Derecha — detalle */}
-        <div style={{ background: '#fff', borderRadius: 10, minHeight: 400, alignSelf: 'start' }}>
+        {/* ── Panel de detalle — misma card ── */}
+        <div style={{ background: '#fff', borderRadius: 16, minHeight: 400, alignSelf: 'start', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           {selectedThird_partie
             ? <Third_partieDetail Third_partie={selectedThird_partie} onEdit={handleEdit} onDelete={handleDelete} onClose={() => setSelectedThird_partie(null)} />
-            : <p style={{ color: '#999', textAlign: 'center', marginTop: 40 }}>Selecciona un tercero</p>}
+            : <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: 40, fontSize: 13 }}>Selecciona un tercero</p>}
         </div>
       </div>
 
-      {/* Modal form */}
+      {/* Modal de formulario */}
       {showForm && (
         <Third_partieForm Third_partie={editingThird_partie} onSubmit={handleFormSubmit} onCancel={() => setShowForm(false)} />
       )}
@@ -161,6 +173,6 @@ const Third_partiePage = () => {
   );
 };
 
-const pgBtn = { padding: '6px 12px', borderRadius: 6, border: '1px solid #ddd', background: '#fff', cursor: 'pointer' };
+const pgBtn = { padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151' };
 
 export default Third_partiePage;

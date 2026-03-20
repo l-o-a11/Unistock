@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
-import { validators } from "../../../shared/utils/Validaciones";
+import { validators } from "../../../shared/utils/validators";
 
 const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
   const modalRef = useRef(null);

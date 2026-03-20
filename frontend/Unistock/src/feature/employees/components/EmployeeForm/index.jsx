@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
-import { validators } from "../../../shared/utils/Validaciones";
+import { validators } from "../../../shared/utils/validators";
 import { EmployeeDocumentTypes, EmployeeSedes } from "../../types/constantsEmployees";
 
 const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
