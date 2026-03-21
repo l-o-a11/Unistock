@@ -6,11 +6,17 @@ import SearchInput from "../../shared/components/Search.jsx";
 import UserForm from "../components/UserForm/index.jsx";
 import AddUserButton from "../components/AddUserButton.jsx";
 import Alert from "../../shared/components/Alert";
-import { USERS_ROLE, UserSedes } from "../types/constantsUsers.js";
+import { useRoles } from "../../roles/hooks/useRoles";
+import { useSedes } from "../../sedes/hooks/useSedes";
 
 const UsersPage = () => {
   const { users, createUser, updateUser, deleteUser, toggleUser } = useUsers();
   const { searchTerm, handleSearch } = useUserSearch();
+
+  const { roles } = useRoles();
+  const { sedes } = useSedes();
+  const rolesActivos = roles.filter((r) => r.estado !== false).map((r) => r.nombre);
+  const sedesActivas = sedes.filter((s) => s.estado !== false).map((s) => s.nombre);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
@@ -199,8 +205,8 @@ const UsersPage = () => {
       {/* ➕ FORM CREAR */}
       {showCreate && (
         <UserForm
-          roles={USERS_ROLE}
-          sedes={UserSedes}
+          roles={rolesActivos}
+          sedes={sedesActivas}
           onSubmit={handleCreateSubmit}
           onCancel={() => setShowCreate(false)}
         />
@@ -210,8 +216,8 @@ const UsersPage = () => {
       {editUser && (
         <UserForm
           user={editUser}
-          roles={USERS_ROLE}
-          sedes={UserSedes}
+          roles={rolesActivos}
+          sedes={sedesActivas}
           onSubmit={handleEditSubmit}
           onCancel={() => setEditUser(null)}
         />

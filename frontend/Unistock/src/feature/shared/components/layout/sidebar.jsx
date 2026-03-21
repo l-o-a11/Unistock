@@ -1,235 +1,391 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
-import DashboardIcon from '../../../../assets/icons/Dashboard';
+import DashboardIcon from "../../../../assets/icons/Dashboard";
 import UsuariosIcon from "../../../../assets/icons/Usuarios";
 import ComprasIcon from "../../../../assets/icons/Compras";
 import ProduccionIcon from "../../../../assets/icons/Produccion";
-import sedesIcon from "../../../../assets/icons/Sedes";
+import SedesIcon from "../../../../assets/icons/sedes";
 import ConfigIcon from "../../../../assets/icons/Config";
-
-import logo from '../../../../assets/transparent-Photoroom.png';
+import logo from "../../../../assets/transparent-Photoroom.png";
 
 const mainMenuItems = [
   {
-    id: 'dashboard',
-    name: 'Dashboard',
+    id: "dashboard",
+    name: "Dashboard",
     icon: DashboardIcon,
     hasSubmenu: false,
-    path: '/layout/dashboard'
+    path: "/layout/dashboard",
   },
-
   {
-    id: 'usuarios',
-    name: 'Usuarios',
+    id: "usuarios",
+    name: "Usuarios",
     icon: UsuariosIcon,
     hasSubmenu: false,
-    path: '/layout/usuarios'
+    path: "/layout/usuarios",
   },
-
   {
-    id: 'compras',
-    name: 'Compras',
+    id: "compras",
+    name: "Compras",
     icon: ComprasIcon,
     hasSubmenu: true,
     submenu: [
-      { name: 'Categorías', path: 'categorias-insumos' },
-      { name: 'Insumos', path: 'insumos' },
-      { name: 'Proveedores', path: 'proveedores' },
-
-      { name: 'Compras', path: 'compras' },
-    ]
+      { name: "Categorías", path: "categorias-insumos" },
+      { name: "Insumos", path: "insumos" },
+      { name: "Proveedores", path: "proveedores" },
+      { name: "Compras", path: "compras" },
+    ],
   },
-
   {
-    id: 'produccion',
-    name: 'Producción',
+    id: "produccion",
+    name: "Producción",
     icon: ProduccionIcon,
     hasSubmenu: true,
     submenu: [
-      { name: 'Categorías', path: 'categorias' },
-      { name: 'Productos', path: 'productos' },
-      { name: 'Producción', path: 'produccion' },
-      { name: 'Terceros', path: 'terceros' },
-      { name: 'Empleados', path: 'empleados' },
-    ]
+      { name: "Categorías", path: "categorias" },
+      { name: "Productos", path: "productos" },
+      { name: "Producción", path: "produccion" },
+      { name: "Terceros", path: "terceros" },
+      { name: "Empleados", path: "empleados" },
+    ],
   },
-   {
-    id: 'sedes',
-    name: 'Sedes',
-    icon: sedesIcon,
+  {
+    id: "sedes",
+    name: "Sedes",
+    icon: SedesIcon,
     hasSubmenu: false,
-    path: '/layout/sedes'
+    path: "/layout/sedes",
   },
 ];
 
 const bottomMenuItem = {
-  id: 'configuracion',
-  name: 'Roles',
+  id: "configuracion",
+  name: "Roles",
   icon: ConfigIcon,
   hasSubmenu: false,
-  path: '/layout/roles'
+  path: "/layout/roles",
 };
 
 export default function Sidebar() {
-
+  const [expanded, setExpanded] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [openSubmenu, setOpenSubmenu] = useState(null);
   const [activeSubItem, setActiveSubItem] = useState(null);
-
   const navigate = useNavigate();
-  const sidebarRef = useRef(null);
+  const leaveTimer = useRef(null);
 
-  useEffect(() => {
+  const handleMouseEnter = () => {
+    clearTimeout(leaveTimer.current);
+    setExpanded(true);
+  };
 
-    const handleClickOutside = (event) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-        setActiveMenu(null);
-        setActiveSubItem(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-
-  }, []);
+  const handleMouseLeave = () => {
+    // Small delay so accidental mouse-outs don't flicker
+    leaveTimer.current = setTimeout(() => {
+      setExpanded(false);
+      setOpenSubmenu(null);
+    }, 120);
+  };
 
   const handleMenuClick = (item) => {
-
     if (!item.hasSubmenu) {
       setActiveMenu(item.id);
+      setOpenSubmenu(null);
       setActiveSubItem(null);
       navigate(item.path);
-      return;
+    } else {
+      setActiveMenu(item.id);
+      setOpenSubmenu((prev) => (prev === item.id ? null : item.id));
     }
-
-    setActiveMenu(prev => prev === item.id ? null : item.id);
-    setActiveSubItem(null);
   };
 
-  const handleSubitemClick = (subitem) => {
-    navigate(`/layout/${subitem.path}`);
+  const handleSubitemClick = (subitem, key) => {
+    setActiveSubItem(key);
+    navigate("/layout/" + subitem.path);
   };
 
-  const allItems = [...mainMenuItems, bottomMenuItem];
-  const activeItem = allItems.find(m => m.id === activeMenu);
-  const isPanelOpen = !!activeMenu && !!activeItem?.hasSubmenu;
+  const iconColor = (active) => (active ? "#ec4899" : "#111827");
 
   return (
-    <div ref={sidebarRef} className="flex h-screen">
+    <>
+      <style>{`
+        .sidebar-wrap { will-change: width; }
+        .sidebar-wrap * { font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif; }
 
-      <div className="w-30 bg-white border-r border-gray-100 flex flex-col items-center py-6 gap-1 shadow-sm z-10">
+        .sb-btn {
+          border: none;
+          cursor: pointer;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: transparent;
+          transition: background 0.12s ease;
+          text-align: left;
+        }
+        .sb-btn:hover { background: #fdf2f8; }
+        .sb-btn.active { background: #fdf2f8; }
 
-        <div className="w-20 h-20 overflow-hidden flex items-center justify-center">
-          <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+        .sb-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+          white-space: nowrap;
+          overflow: hidden;
+          flex: 1;
+          max-width: 200px;
+          transition: max-width 0.18s ease, opacity 0.18s ease;
+        }
+        .sb-label.hidden { max-width: 0; opacity: 0; pointer-events: none; }
+        .sb-label.active { color: #ec4899; font-weight: 700; }
+
+        .sb-chevron {
+          flex-shrink: 0;
+          transition: transform 0.18s ease, opacity 0.18s ease;
+          opacity: 1;
+        }
+        .sb-chevron.hidden { opacity: 0; pointer-events: none; }
+        .sb-chevron.open { transform: rotate(180deg); }
+
+        .sb-submenu {
+          overflow: hidden;
+          transition: max-height 0.2s ease, opacity 0.15s ease;
+        }
+
+        .sb-subitem {
+          border: none;
+          cursor: pointer;
+          background: transparent;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 12px;
+          width: 100%;
+          text-align: left;
+          font-size: 13px;
+          color: #9ca3af;
+          font-weight: 500;
+          transition: background 0.1s ease, color 0.1s ease;
+        }
+        .sb-subitem:hover { background: #fdf2f8; color: #ec4899; font-weight: 600; }
+        .sb-subitem.active { background: #fdf2f8; color: #ec4899; font-weight: 700; }
+      `}</style>
+
+      <div
+        className="sidebar-wrap"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          width: expanded ? 224 : 72,
+          transition: "width 0.2s ease",
+          height: "100vh",
+          background: "#fff",
+          borderRight: "1px solid #f3f4f6",
+          boxShadow: "2px 0 10px rgba(0,0,0,0.04)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          flexShrink: 0,
+        }}
+      >
+        {/* Logo */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "18px 16px 10px",
+            gap: 10,
+            minHeight: 68,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              overflow: "hidden",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+          <div
+            style={{
+              overflow: "hidden",
+              maxWidth: expanded ? 140 : 0,
+              opacity: expanded ? 1 : 0,
+              transition: "max-width 0.18s ease, opacity 0.18s ease",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#111827",
+                margin: 0,
+                lineHeight: 1.2,
+              }}
+            >
+              Putongas
+            </p>
+          </div>
         </div>
 
-        <div className="w-10 h-px bg-gray-100 mb-2" />
+        <div
+          style={{
+            width: "65%",
+            height: 1,
+            background: "#f3f4f6",
+            margin: "0 auto 6px",
+          }}
+        />
 
-        {mainMenuItems.map((item) => {
+        {/* Nav */}
+        <nav
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            padding: "0 8px",
+          }}
+        >
+          {mainMenuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeMenu === item.id;
+            const isOpen = openSubmenu === item.id;
 
-          const Icon = item.icon;
-          const isActive = activeMenu === item.id;
+            return (
+              <div key={item.id}>
+                <button
+                  onClick={() => handleMenuClick(item)}
+                  title={!expanded ? item.name : undefined}
+                  className={`sb-btn${isActive ? " active" : ""}`}
+                >
+                  <Icon
+                    style={{
+                      width: 32,
+                      height: 32,
+                      flexShrink: 0,
+                      color: iconColor(isActive),
+                      transition: "color 0.12s ease",
+                    }}
+                  />
+                  <span
+                    className={`sb-label${expanded ? "" : " hidden"}${isActive ? " active" : ""}`}
+                  >
+                    {item.name}
+                  </span>
+                  {item.hasSubmenu && (
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={isActive ? "#ec4899" : "#9ca3af"}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`sb-chevron${expanded ? "" : " hidden"}${isOpen ? " open" : ""}`}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  )}
+                </button>
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleMenuClick(item)}
-              className={`relative w-18 h-18 rounded-2xl flex flex-col items-center justify-center gap-1
-              transition-colors duration-150 border-none cursor-pointer group
-              ${isActive ? 'bg-pink-400 text-white' : 'bg-transparent hover:bg-pink-100'}`}
-            >
+                {item.hasSubmenu && (
+                  <div
+                    className="sb-submenu"
+                    style={{
+                      maxHeight:
+                        isOpen && expanded
+                          ? item.submenu.length * 40 + "px"
+                          : "0px",
+                      opacity: isOpen && expanded ? 1 : 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        marginLeft: 12,
+                        borderLeft: "3px solid #f9a8d4",
+                        paddingLeft: 6,
+                        marginTop: 2,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {item.submenu.map((subitem, i) => {
+                        const key = item.id + "-" + i;
+                        const isSubActive = activeSubItem === key;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleSubitemClick(subitem, key)}
+                            className={`sb-subitem${isSubActive ? " active" : ""}`}
+                          >
+                            {subitem.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
 
-              <Icon className={isActive ? 'text-white w-8 h-8' : 'text-gray-800 group-hover:text-pink-500 w-8 h-8'} />
-
-              <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-white' : 'text-gray-900'}`}>
-                {item.name}
-              </span>
-
-            </button>
-          );
-        })}
-
-        <div className="mt-auto">
-
-          <div className="w-10 h-px bg-gray-100 mb-2" />
-
+        {/* Roles */}
+        <div style={{ padding: "0 8px 18px" }}>
+          <div
+            style={{
+              width: "65%",
+              height: 1,
+              background: "#f3f4f6",
+              margin: "0 auto 6px",
+            }}
+          />
           {(() => {
-
             const item = bottomMenuItem;
             const Icon = item.icon;
             const isActive = activeMenu === item.id;
-
             return (
               <button
                 onClick={() => handleMenuClick(item)}
-                className={`relative w-18 h-18 rounded-2xl flex flex-col items-center justify-center gap-1
-                transition-colors duration-150 border-none cursor-pointer group
-                ${isActive ? 'bg-pink-400 text-white' : 'bg-transparent hover:bg-pink-100'}`}
+                title={!expanded ? item.name : undefined}
+                className={`sb-btn${isActive ? " active" : ""}`}
               >
-
-                <Icon className={isActive ? 'text-white w-8 h-8' : 'text-gray-800 group-hover:text-pink-500 w-8 h-8'} />
-
-                <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                <Icon
+                  style={{
+                    width: 32,
+                    height: 32,
+                    flexShrink: 0,
+                    color: iconColor(isActive),
+                    transition: "color 0.12s ease",
+                  }}
+                />
+                <span
+                  className={`sb-label${expanded ? "" : " hidden"}${isActive ? " active" : ""}`}
+                >
                   {item.name}
                 </span>
-
               </button>
             );
           })()}
-
         </div>
-
       </div>
-
-      {/* Panel Submenu */}
-
-      <div className={`bg-gradient-to-b from-white to-gray-50 border-r border-gray-100 flex flex-col overflow-hidden
-      transition-all duration-300 ease-in-out
-      ${isPanelOpen ? 'w-56 opacity-100 shadow-2xl' : 'w-0 opacity-0'}`}>
-
-        {activeItem?.hasSubmenu && (
-
-          <div className="flex flex-col h-full">
-
-            <div className="px-5 py-4 border-b border-gray-100 bg-white">
-              <h3 className="text-sm font-bold text-gray-900">{activeItem.name}</h3>
-            </div>
-
-            <div className="flex flex-col flex-1 py-3 px-3 space-y-2 overflow-y-auto">
-
-              {activeItem.submenu.map((subitem, i) => {
-
-                const key = `${activeItem.id}-${i}`;
-                const isActive = activeSubItem === key;
-
-                return (
-
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setActiveSubItem(key);
-                      handleSubitemClick(subitem);
-                    }}
-                    className={`w-full px-4 py-3 text-left text-sm font-medium rounded-xl
-                    ${isActive ? 'bg-pink-500 text-white' : 'bg-white text-gray-700 hover:bg-pink-50'}`}
-                  >
-
-                    {subitem.name}
-
-                  </button>
-
-                );
-              })}
-
-            </div>
-
-          </div>
-
-        )}
-
-      </div>
-
-    </div>
+    </>
   );
 }
