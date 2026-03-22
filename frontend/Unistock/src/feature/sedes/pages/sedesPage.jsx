@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useSedes } from "../hooks/useSedes";
+import { useSedesSearch } from "../hooks/useSedesSearch";
 import Alert from "../../shared/components/Alert";
 import AddSedesButton from "../components/AddSedesButton";
 import SedesSearch from "../components/SedesSearch";
@@ -73,6 +74,8 @@ const SedesPage = () => {
       }
     );
   };
+
+    const handleAddSede = () => setModalType("create");
 
   const handleCreateSubmit = async (data) => {
     try {

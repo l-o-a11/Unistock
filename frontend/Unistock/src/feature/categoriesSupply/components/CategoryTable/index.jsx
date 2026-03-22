@@ -87,14 +87,14 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                   </td>
                   {/* NOMBRE - CON HOVER si tiene más de 12 caracteres */}
                   <td style={tdStyle}>
-                    {needsHover(category.name) ? (
+                    {needsHover(category.nombre) ? (
                       <HoverCard
                         content={
                           <div>
                             <p style={{ fontWeight: '600', marginBottom: '6px', color: '#333' }}>
                               Nombre completo
                             </p>
-                            <p style={{ fontSize: '13px', color: '#555' }}>{category.name}</p>
+                            <p style={{ fontSize: '13px', color: '#555' }}>{category.nombre}</p>
                             <p style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>
                               ID: {category.id}
                             </p>
@@ -107,12 +107,12 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                           fontWeight: '500',
                           cursor: 'help' 
                         }}>
-                          {category.name}
+                          {category.nombre}
                         </span>
                       </HoverCard>
                     ) : (
                       <span style={{ color: '#333', fontSize: '14px', fontWeight: '500' }}>
-                        {category.name}
+                        {category.nombre}
                       </span>
                     )}
                   </td>

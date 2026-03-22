@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Alert from '../../../shared/components/Alert';
 
-
 // ─────────────────────────────────────────────────
 // Datos
 // ─────────────────────────────────────────────────
@@ -229,7 +228,14 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
       return;
     }
 
-    onSubmit(formData);
+    // Normalizar nombre: primera letra mayúscula, resto minúscula
+    const dataNormalizada = {
+      ...formData,
+      nombre: formData.nombre.trim()
+        ? formData.nombre.trim().charAt(0).toUpperCase() + formData.nombre.trim().slice(1).toLowerCase()
+        : formData.nombre,
+    };
+    onSubmit(dataNormalizada);
   };
 
   // ── Cancelar ─────────────────────────────────────
@@ -320,7 +326,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
                   <button
                     type="button"
                     onClick={() => handleEliminarModulo(index)}
-                    style={{ padding: '4px 8px', background: 'none', border: '1px solid #e5e7eb', borderRadius: '10px', color: '#ef4444', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ padding: '4px 8px', background: 'none', border: '1px solid #e5e7eb', borderRadius: '4px', color: '#ef4444', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
                   >
@@ -395,7 +401,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
           <button
             type="button"
             onClick={handleAgregarModulo}
-            style={{ padding: '8px 16px', background: 'white', border: '1px solid #8b5cf6', borderRadius: '10px', color: '#8b5cf6', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
+            style={{ padding: '8px 16px', background: 'white', border: '1px solid #8b5cf6', borderRadius: '6px', color: '#8b5cf6', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
             onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f3ff'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
           >
