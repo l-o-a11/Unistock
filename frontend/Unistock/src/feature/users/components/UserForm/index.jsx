@@ -3,34 +3,42 @@ import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
 import { validators } from "../../../shared/utils/validators";
+import { AuthAPI } from "../../../auth/services/AuthAPI";
 
 const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
   const modalRef = useRef(null);
 
-  // Inicializa directamente desde la prop — sin useEffect para evitar setState en efecto
-  const [formData, setFormData] = useState(() => user ?? {
-    documentType:   "",
-    documentNumber: "",
-    name:           "",
-    email:          "",
-    role:           "",
-    sede:           "",
-  });
+  const [formData, setFormData] = useState(
+    () =>
+      user ?? {
+        documentType: "",
+        documentNumber: "",
+        name: "",
+        email: "",
+        role: "",
+        sede: "",
+      },
+  );
 
-  const [errors,      setErrors]      = useState({});
+  const [errors, setErrors] = useState({});
+  const [sending, setSending] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
-    open: false, type: "confirm", title: "", message: "", onConfirm: null,
+    open: false,
+    type: "confirm",
+    title: "",
+    message: "",
+    onConfirm: null,
   });
 
   const closeAlert = useCallback(
     () => setAlertConfig((prev) => ({ ...prev, open: false })),
-    []
+    [],
   );
 
-  // Declarado con useCallback ANTES del useEffect del ESC para evitar "used before declared"
   const handleCancelClick = useCallback(() => {
     setAlertConfig({
-      open: true, type: "confirm",
+      open: true,
+      type: "confirm",
       title: "Cancelar",
       message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
       onConfirm: () => {
@@ -40,29 +48,42 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
     });
   }, [onCancel]);
 
-  /* Cerrar con ESC — handleCancelClick ya está declarado arriba */
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === "Escape") handleCancelClick(); };
+    const handleEsc = (e) => {
+      if (e.key === "Escape") handleCancelClick();
+    };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [handleCancelClick]);
 
-  /* Cerrar clic afuera del modal */
   const handleOverlayClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
+    if (modalRef.current && !modalRef.current.contains(e.target))
+      handleCancelClick();
   };
 
-  /* ── Validación por campo ─────────────────────────────────────────────── */
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
-      case "documentType":   error = validators.required(value); break;
-      case "documentNumber": error = validators.required(value) || validators.numbers(value); break;
-      case "name":           error = validators.required(value); break;
-      case "email":          error = validators.required(value) || validators.email(value); break;
-      case "role":           error = validators.required(value); break;
-      case "sede":           error = validators.required(value); break;
-      default: break;
+      case "documentType":
+        error = validators.required(value);
+        break;
+      case "documentNumber":
+        error = validators.required(value) || validators.numbers(value);
+        break;
+      case "name":
+        error = validators.required(value);
+        break;
+      case "email":
+        error = validators.required(value) || validators.email(value);
+        break;
+      case "role":
+        error = validators.required(value);
+        break;
+      case "sede":
+        error = validators.required(value);
+        break;
+      default:
+        break;
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
@@ -89,12 +110,13 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
   };
 
   /* ── Submit ───────────────────────────────────────────────────────────── */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateAll()) {
       setAlertConfig({
-        open: true, type: "warning",
+        open: true,
+        type: "warning",
         title: "Campos incompletos",
         message: "Corrige los campos marcados antes de continuar.",
         onConfirm: null,
@@ -103,22 +125,44 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
     }
 
     try {
-      onSubmit(formData);
+      setSending(true);
+
+      if (!user) {
+        // 1. Generar contraseña ANTES de guardar el usuario
+        const { password } = await AuthAPI.prepareWelcome(formData.email);
+        // 2. Guardar usuario CON la contraseña ya incluida
+        await Promise.resolve(onSubmit({ ...formData, password }));
+        // 3. Enviar correo de bienvenida
+        await AuthAPI.sendWelcomeEmail({
+          email: formData.email,
+          nombreCompleto: formData.name,
+          password,
+        });
+      } else {
+        // Editar: solo guardar sin correo
+        await Promise.resolve(onSubmit(formData));
+      }
+
       setAlertConfig({
-        open: true, type: "success",
+        open: true,
+        type: "success",
         title: user ? "Usuario actualizado" : "Usuario creado",
         message: user
           ? "El usuario fue actualizado correctamente."
-          : "El usuario fue creado correctamente.",
+          : `Usuario creado. Se envió un correo a ${formData.email} con las credenciales de acceso.`,
         onConfirm: null,
       });
     } catch {
       setAlertConfig({
-        open: true, type: "error",
+        open: true,
+        type: "error",
         title: "Error al guardar",
-        message: "No se pudo guardar el usuario. Intenta de nuevo.",
+        message:
+          "El usuario fue creado pero no se pudo enviar el correo. Verifica la conexión.",
         onConfirm: null,
       });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -135,18 +179,19 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
         }}
         onCancel={() => {
           closeAlert();
-          // Si era toast de éxito, cerramos el modal al cerrar la alerta
           if (alertConfig.type === "success") onCancel();
         }}
       />
 
-      {/* Overlay con cierre al hacer clic afuera */}
       <div
         onClick={handleOverlayClick}
         style={{
-          position: "fixed", inset: 0,
+          position: "fixed",
+          inset: 0,
           backgroundColor: "rgba(0,0,0,0.5)",
-          display: "flex", justifyContent: "center", alignItems: "center",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
           zIndex: 50,
         }}
       >
@@ -155,19 +200,25 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
           style={{
             backgroundColor: "#fff",
             borderRadius: "16px",
-            width: "100%", maxWidth: "560px",
+            width: "100%",
+            maxWidth: "560px",
             padding: "36px 40px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             position: "relative",
           }}
         >
-          {/* Botón cerrar ✕ */}
           <button
             onClick={handleCancelClick}
             style={{
-              position: "absolute", top: "16px", right: "16px",
-              width: "32px", height: "32px", borderRadius: "50%",
-              border: "none", backgroundColor: "#f3f4f6", cursor: "pointer",
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              border: "none",
+              backgroundColor: "#f3f4f6",
+              cursor: "pointer",
               fontSize: "14px",
             }}
           >
@@ -179,8 +230,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
           </h2>
 
           <form onSubmit={handleSubmit}>
-
-            {/* DOCUMENTO */}
             <div className="grid grid-cols-2 gap-6 mb-6">
               <Input
                 label="Tipo de documento *"
@@ -206,7 +255,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               />
             </div>
 
-            {/* NOMBRE */}
             <div className="mb-6">
               <Input
                 label="Nombre completo *"
@@ -218,7 +266,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               />
             </div>
 
-            {/* CORREO */}
             <div className="mb-6">
               <Input
                 type="email"
@@ -231,7 +278,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               />
             </div>
 
-            {/* ROL */}
             <div className="mb-6">
               <Input
                 label="Rol *"
@@ -244,12 +290,13 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               >
                 <option value="">Seleccionar rol</option>
                 {roles.map((r) => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
                 ))}
               </Input>
             </div>
 
-            {/* SEDE */}
             <div className="mb-6">
               <Input
                 label="Sede *"
@@ -262,18 +309,23 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               >
                 <option value="">Seleccionar sede</option>
                 {sedes.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </Input>
             </div>
 
-            {/* BOTONES */}
             <div className="flex justify-end gap-4 mt-6">
-              <Button type="button" variant="secondary" onClick={handleCancelClick}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCancelClick}
+              >
                 Cancelar
               </Button>
-              <Button type="submit" variant="primary">
-                Guardar Usuario
+              <Button type="submit" variant="primary" disabled={sending}>
+                {sending ? "Enviando correo..." : "Guardar Usuario"}
               </Button>
             </div>
           </form>
