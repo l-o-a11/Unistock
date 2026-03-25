@@ -7,7 +7,7 @@ const mockUsers = [
         tipoDocumento: 'CC',
         numeroDocumento: '856127435',
         nombreCompleto: 'Sofía Osorio',
-        correo: 'sofiaosorio@gmail.com',
+        correo: 'cuentarandom00a0@gmail.com',
         rol: 1,
         sede: 1,
         estado: true
