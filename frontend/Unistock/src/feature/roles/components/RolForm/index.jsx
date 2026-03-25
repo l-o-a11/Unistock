@@ -1,25 +1,7 @@
 import React, { useState } from 'react';
 import Alert from '../../../shared/components/Alert';
+import { MODULOS_PREDETERMINADOS, PRIVILEGIOS_PREDETERMINADOS } from '../../services/RolesAPI';
 
-// ─────────────────────────────────────────────────
-// Datos
-// ─────────────────────────────────────────────────
-const MODULOS_PREDETERMINADOS = [
-  { id: 1, nombre: 'Usuarios' },
-  { id: 2, nombre: 'Productos' },
-  { id: 3, nombre: 'Insumos' },
-  { id: 4, nombre: 'Compras' },
-  { id: 5, nombre: 'Proveedores' },
-  { id: 6, nombre: 'Terceros' },
-  { id: 8, nombre: 'Producción' },
-];
-
-const PRIVILEGIOS_PREDETERMINADOS = [
-  { id: 1, nombre: 'Leer',      key: 'leer' },
-  { id: 2, nombre: 'Crear',     key: 'crear' },
-  { id: 3, nombre: 'Actualizar',key: 'actualizar' },
-  { id: 4, nombre: 'Eliminar',  key: 'eliminar' },
-];
 
 // ─────────────────────────────────────────────────
 // Validaciones

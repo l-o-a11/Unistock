@@ -130,14 +130,18 @@ export const AuthAPI = {
 
     if (password !== found.password) throw new Error("Contraseña incorrecta.");
 
+    // Guardar rolId y sedeId — el nombre se resuelve en AuthContext
+    const rolId  = found.rolId  ?? (typeof found.rol  === "number" ? found.rol  : null);
+    const sedeId = found.sedeId ?? (typeof found.sede === "number" ? found.sede : null);
+
     localStorage.setItem(
       "session_user",
       JSON.stringify({
-        id: found.id,
+        id:     found.id,
         nombre: found.nombreCompleto,
         correo: found.correo,
-        rol: found.rol,
-        sede: found.sede,
+        rolId,   // ID numérico del rol
+        sedeId,  // ID numérico de la sede
       }),
     );
 

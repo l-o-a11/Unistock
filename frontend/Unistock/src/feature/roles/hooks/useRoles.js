@@ -234,7 +234,7 @@ export const useRolDetail = () => {
 
   const resetRoles = () => {
         localStorage.removeItem(STORAGE_KEY);
-        setRoles(seedUsers);
+        setRoles(seedRoles);
     };
 
   return {
