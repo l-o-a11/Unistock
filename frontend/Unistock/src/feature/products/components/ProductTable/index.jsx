@@ -56,14 +56,20 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     return text && text.length > 12;
   };
 
+  // Función para truncar texto
+  const truncateText = (text, maxLength) => {
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+
   return (
     <>
-      <div style={{ 
-        backgroundColor: "#fff", 
-        borderRadius: "12px", 
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)", 
+      <div style={{
+        backgroundColor: "#fff",
+        borderRadius: "12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}>
-        <div style={{ 
+        <div style={{
           overflowX: "visible",
         }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -92,44 +98,48 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                   >
                     {/* Imagen */}
                     <td style={tdStyle}>
-                      <HoverCard content={
-                        <div>
-                          <p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del producto</p>
-                          {product.image ? (
-                            <img 
-                              src={product.image} 
-                              alt={product.name} 
-                              style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} 
-                            />
-                          ) : (
-                            <div style={{ 
-                              width: "128px", 
-                              height: "128px", 
-                              backgroundColor: "#f5f5f5", 
-                              borderRadius: "8px", 
-                              border: "1px solid #eee",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#999",
-                              fontSize: "14px"
-                            }}>
-                              Sin imagen
-                            </div>
-                          )}
-                          <p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>REF: {product.reference}</p>
-                        </div>
-                      }>
+                      <HoverCard
+                        title="Imagen del producto"
+                        position="right"
+                        fields={[
+                          {
+                            label: "Imagen",
+                            value: product.image ? (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: "128px",
+                                height: "128px",
+                                backgroundColor: "#f5f5f5",
+                                borderRadius: "8px",
+                                border: "1px solid #eee",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#999",
+                                fontSize: "14px"
+                              }}>
+                                Sin imagen
+                              </div>
+                            ),
+                            highlight: true
+                          },
+                        ]}
+                      >
                         <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
                           {product.image ? (
                             <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : (
-                            <div style={{ 
-                              width: "100%", 
-                              height: "100%", 
-                              backgroundColor: "#f0f0f0", 
-                              display: "flex", 
-                              alignItems: "center", 
+                            <div style={{
+                              width: "100%",
+                              height: "100%",
+                              backgroundColor: "#f0f0f0",
+                              display: "flex",
+                              alignItems: "center",
                               justifyContent: "center",
                               color: "#aaa",
                               fontSize: "10px"
@@ -144,20 +154,35 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     {/* Referencia */}
                     <td style={tdStyle}>
                       {needsHover(product.reference) ? (
-                        <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Referencia completa</p><p style={{ fontSize: "13px", color: "#555" }}>{product.reference}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Código: {product.id}</p></div>}>
-                          <span style={{ cursor: "help", color: "#333" }}>{product.reference}</span>
+                        <HoverCard
+                          title="Referencia completa"
+                          position="right"
+                          fields={[
+                            { label: "Referencia", value: product.reference, highlight: true },
+                            { label: "ID", value: product.id, type: "badge" }
+                          ]}
+                        >
+                          <span style={{ cursor: "help", color: "#333" }}>
+                            {truncateText(product.reference, 15)}
+                          </span>
                         </HoverCard>
                       ) : (
                         <span style={{ color: "#333" }}>{product.reference}</span>
                       )}
                     </td>
 
-                    {/* Nombre */}
+                    {/* Nombre - SOLO EL NOMBRE COMPLETO */}
                     <td style={tdStyle}>
                       {needsHover(product.name) ? (
-                        <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Información del producto</p><p style={{ fontSize: "13px", color: "#555" }}>{product.name}</p><p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>Categoría: <strong>{product.category}</strong></p><p style={{ fontSize: "11px", color: "#999" }}>Versiones: <strong>{product.technicalSheetVersions || 1}</strong></p></div>}>
+                        <HoverCard
+                          title="Información producto"
+                          position="right"
+                          fields={[
+                            { label: "Nombre", value: product.name, highlight: true }
+                          ]}
+                        >
                           <span style={{ cursor: "help" }}>
-                            {product.name && product.name.length > 12 ? product.name.slice(0, 12) + "..." : product.name}
+                            {truncateText(product.name, 12)}
                           </span>
                         </HoverCard>
                       ) : (
@@ -168,8 +193,16 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     {/* Categoría */}
                     <td style={tdStyle}>
                       {needsHover(product.category) ? (
-                        <HoverCard content={<div><p style={{ fontWeight: "600", marginBottom: "6px", color: "#333" }}>Categoría</p><p style={{ fontSize: "13px", color: "#555" }}>{product.category}</p></div>}>
-                          <span style={{ cursor: "help" }}>{product.category}</span>
+                        <HoverCard
+                          title="Categoría"
+                          position="right"
+                          fields={[
+                            { label: "Categoría", value: product.category, highlight: true }
+                          ]}
+                        >
+                          <span style={{ cursor: "help" }}>
+                            {truncateText(product.category, 12)}
+                          </span>
                         </HoverCard>
                       ) : (
                         <span>{product.category}</span>
@@ -186,7 +219,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                       <span>{product.stock}</span>
                     </td>
 
-                    {/* 🔥 ACCIONES - CORREGIDAS */}
+                    {/* ACCIONES */}
                     <td style={tdStyle}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
@@ -203,7 +236,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                           </svg>
                         </button>
 
-                        {/* ✏️ edit - EDITAR PRODUCTO (ABRE MODAL) */}
+                        {/* ✏️ edit - EDITAR PRODUCTO */}
                         <button onClick={() => onEdit(product)} title="Editar producto"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
@@ -230,7 +263,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                           </svg>
                         </button>
 
-                        {/* 🔥 SWITCH - ABRE ALERTA */}
+                        {/* SWITCH - ABRE ALERTA */}
                         <button
                           onClick={() => {
                             setSelectedId(product.id);
@@ -270,7 +303,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
         </div>
       </div>
 
-      {/* 🔥 ALERTA DE CONFIRMACIÓN DE CAMBIO DE ESTADO */}
+      {/* ALERTA DE CONFIRMACIÓN DE CAMBIO DE ESTADO */}
       <Alert
         isOpen={showToggleAlert}
         type="password"
