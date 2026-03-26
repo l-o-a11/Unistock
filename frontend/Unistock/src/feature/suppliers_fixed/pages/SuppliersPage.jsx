@@ -8,6 +8,7 @@ import SupplierTable from "../components/SupplierTable";
 import AddSupplierButton from "../components/AddSupplierButton";
 import SupplierDetail from "../components/SupplierDetail";
 import Alert from "../../shared/components/Alert";
+import SearchInput from "../../shared/components/SearchInput";
 
 const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
@@ -171,32 +172,7 @@ const SupplierPage = () => {
           Proveedores
         </h1>
 
-        {/* Buscador unificado */}
-        <div style={{ position: "relative" }}>
-          <input
-            value={searchTerm}
-            onChange={(e) => { handleSearch(e.target.value); setCurrentPage(1); }}
-            placeholder="Buscar proveedor..."
-            style={{
-              padding: "9px 14px 9px 36px",
-              borderRadius: "10px",
-              border: "1.5px solid #e5e7eb",
-              fontSize: "14px",
-              outline: "none",
-              width: "260px",
-              boxSizing: "border-box",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={(e) => { e.target.style.borderColor = "#FF4FD6"; }}
-            onBlur={(e)  => { e.target.style.borderColor = "#e5e7eb"; }}
-          />
-          <svg
-            style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#aaa" }}
-            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-        </div>
+        <SearchInput value={searchTerm} onChange={(v) => { handleSearch(v); setCurrentPage(1); }} placeholder="Buscar proveedor..." />
       </div>
 
       {/* TOOLBAR */}
@@ -212,24 +188,50 @@ const SupplierPage = () => {
         }}
       >
         <button
-          onClick={handleAddSupplier}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "9px 20px",
-            borderRadius: "50px",
-            border: "none",
-            background: "#FF4FD6",
-            color: "#fff",
-            fontSize: "14px",
-            fontWeight: 700,
-            cursor: "pointer",
-            boxShadow: "0 4px 12px #FF4FD644",
-          }}
-        >
-          <span style={{ fontSize: "18px", lineHeight: 1 }}>⊕</span> Agregar proveedor
-        </button>
+  onClick={handleAddSupplier}
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 22px",
+    borderRadius: "999px",
+    border: "none",
+    background: "#FF4FD6",
+    color: "#fff",
+    fontSize: "14px",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(255, 79, 214, 0.3)",
+    transition: "all 0.25s ease",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "#e043be";
+    e.currentTarget.style.transform = "translateY(-1px)";
+    e.currentTarget.style.boxShadow = "0 6px 16px rgba(255, 79, 214, 0.4)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "#FF4FD6";
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 79, 214, 0.3)";
+  }}
+>
+  <span style={{ fontSize: "16px", display: "flex" }}>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  </span>
+  Agregar proveedor
+</button>
       </div>
 
       {/* TABLA */}

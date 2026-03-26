@@ -163,8 +163,8 @@ const ProductionAlerts = ({
   const assignmentsValid =
     assignments.length > 0 &&
     assignments.every((a) => !!a.option && Number(a.cantidad) >= 1) &&
-    totalAsignado <= totalUnidades &&
-    totalAsignado > 0;
+    totalAsignado === totalUnidades &&
+    totalUnidades > 0;
 
   const canConfirm =
     (isAssign                       && assignmentsValid)      ||
@@ -238,8 +238,8 @@ const ProductionAlerts = ({
               </span>
               <span style={{
                 fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                background: totalAsignado > totalUnidades ? "#fee2e2" : totalAsignado === totalUnidades ? "#d1fae5" : "#fdf0fa",
-                color: totalAsignado > totalUnidades ? "#dc2626" : totalAsignado === totalUnidades ? "#065f46" : "#9d174d",
+                background: totalAsignado > totalUnidades ? "#fee2e2" : totalAsignado === totalUnidades ? "#d1fae5" : "#fef3c7",
+                color: totalAsignado > totalUnidades ? "#dc2626" : totalAsignado === totalUnidades ? "#065f46" : "#92400e",
               }}>
                 {totalAsignado} / {totalUnidades} uds
               </span>
@@ -271,10 +271,15 @@ const ProductionAlerts = ({
               </p>
             )}
 
-            {/* Aviso unidades sin asignar */}
+            {/* Error: unidades faltantes — bloquea confirmar */}
             {totalAsignado > 0 && totalAsignado < totalUnidades && (
-              <p style={{ fontSize: 11, color: "#92400e", marginTop: 4 }}>
-                ⚠ Quedan {totalUnidades - totalAsignado} unidades sin asignar.
+              <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 }}>
+                ⛔ Debes asignar las {totalUnidades} unidades. Faltan {totalUnidades - totalAsignado}.
+              </p>
+            )}
+            {totalAsignado === 0 && totalUnidades > 0 && (
+              <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 }}>
+                ⛔ Debes asignar las {totalUnidades} unidades de la orden para continuar.
               </p>
             )}
 
