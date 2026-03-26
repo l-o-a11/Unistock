@@ -49,7 +49,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
           {/* Header */}
           <div
             style={{
-              background: "linear-gradient(135deg, #E91E8C, #FF4FD6)",
+              background: "linear-gradient(135deg, #E91E8C, #E91E8C)",
               borderRadius: "12px 12px 0 0",
               padding: "20px 24px",
               display: "flex",
@@ -188,7 +188,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
                 padding: "8px 20px",
                 border: "none",
                 borderRadius: "8px",
-                background: "linear-gradient(135deg, #E91E8C, #FF4FD6)",
+                background: "linear-gradient(135deg, #E91E8C, #E91E8C)",
                 color: "#fff",
                 fontSize: "14px",
                 cursor: "pointer",

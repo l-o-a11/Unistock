@@ -28,9 +28,9 @@ import {
 const getInputStyle = (err) => getInputStyleBox(err);
 
 const typeBox = (active) => ({
-  flex: 1, border: active ? '2px solid #ff4fd6' : '1.5px solid #e5e7eb',
+  flex: 1, border: active ? '2px solid #E91E8C' : '1.5px solid #e5e7eb',
   borderRadius: 12, padding: 14, cursor: 'pointer',
-  background: active ? '#fff0fb' : '#fafafa', transition: 'all 0.15s',
+  background: active ? '#fce7f3' : '#fafafa', transition: 'all 0.15s',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {} }) => (
     background: '#fff8fe', border: '1px solid #f9a8d4',
     borderRadius: 10, padding: '12px 12px 10px', marginBottom: 8, position: 'relative',
   }}>
-    <span style={{ position: 'absolute', top: 7, left: 12, fontSize: 10, color: '#ff4fd6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+    <span style={{ position: 'absolute', top: 7, left: 12, fontSize: 10, color: '#E91E8C', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
       Artículo #{index + 2}
     </span>
     <div style={{ flex: 1, marginTop: 20 }}>
@@ -72,7 +72,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {} }) => (
       {errors.fecha && <span style={errMsg}>{errors.fecha}</span>}
     </div>
     <button type="button" onClick={() => onRemove(index)}
-      style={{ marginTop: 36, width: 28, height: 28, borderRadius: '50%', background: '#fff0fb', border: '1px solid #ff4fd6', color: '#ff4fd6', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      style={{ marginTop: 36, width: 28, height: 28, borderRadius: '50%', background: '#fce7f3', border: '1px solid #E91E8C', color: '#E91E8C', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       ×
     </button>
   </div>
@@ -270,7 +270,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
             <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: damageNotice ? '#f59e0b' : '#ff4fd6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: damageNotice ? '#f59e0b' : '#E91E8C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {damageNotice ? (
                   <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
                     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
@@ -301,7 +301,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 {[['produccion','Producción','Artículo con ficha técnica existente'],['diseno','Diseño','Nuevo diseño o boceto a crear']].map(([val, label, desc]) => (
                   <div key={val} style={typeBox(type === val)} onClick={() => setType(val)}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${type === val ? '#ff4fd6' : '#d1d5db'}`, background: type === val ? '#ff4fd6' : 'transparent', flexShrink: 0 }} />
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${type === val ? '#E91E8C' : '#d1d5db'}`, background: type === val ? '#E91E8C' : 'transparent', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, fontSize: 13, color: '#1f2937' }}>{label}</span>
                     </div>
                     <small style={{ fontSize: 11, color: '#9ca3af', display: 'block', paddingLeft: 24 }}>{desc}</small>
@@ -330,7 +330,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   <label style={labelStyle}>
                     Cantidad
                     {extraRefs.length > 0 && totalCantidad > 0 && (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#ff4fd6', background: '#fff0fb', padding: '2px 8px', borderRadius: 10, marginLeft: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#E91E8C', background: '#fce7f3', padding: '2px 8px', borderRadius: 10, marginLeft: 6 }}>
                         Total: {totalCantidad}
                       </span>
                     )}
@@ -413,14 +413,14 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               )}
 
               {extraRefs.length > 0 && (
-                <div style={{ background: '#fff0fb', border: '1px solid #f9a8d4', borderRadius: 8, padding: '9px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: '#fce7f3', border: '1px solid #f9a8d4', borderRadius: 8, padding: '9px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: '#6b7280' }}>Total ({1 + extraRefs.length} artículos)</span>
-                  <span style={{ fontWeight: 800, color: '#ff4fd6', fontSize: 15 }}>{totalCantidad} uds</span>
+                  <span style={{ fontWeight: 800, color: '#E91E8C', fontSize: 15 }}>{totalCantidad} uds</span>
                 </div>
               )}
 
               <button type="button" onClick={addExtraRef}
-                style={{ background: 'none', border: '1.5px dashed #f9a8d4', borderRadius: 8, color: '#ff4fd6', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '8px 14px', marginBottom: 20, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                style={{ background: 'none', border: '1.5px dashed #f9a8d4', borderRadius: 8, color: '#E91E8C', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '8px 14px', marginBottom: 20, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 + Agregar otro artículo a la orden
               </button>
 
@@ -466,7 +466,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 16, padding: 26, width: 460, maxWidth: '92%', boxShadow: '0 24px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: damageNotice ? '#fef3c7' : '#fff0fb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: damageNotice ? '#fef3c7' : '#fce7f3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                 {damageNotice ? '⚠️' : '📋'}
               </div>
               <div>
@@ -499,7 +499,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               ].map(([label, value, hl]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span style={{ color: '#9ca3af', fontSize: 12 }}>{label}</span>
-                  <span style={{ fontWeight: 700, color: hl ? '#ff4fd6' : '#1f2937', fontSize: 13 }}>{value}</span>
+                  <span style={{ fontWeight: 700, color: hl ? '#E91E8C' : '#1f2937', fontSize: 13 }}>{value}</span>
                 </div>
               ))}
             </div>

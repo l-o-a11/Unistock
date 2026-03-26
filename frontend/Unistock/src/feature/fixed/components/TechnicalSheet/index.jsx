@@ -42,7 +42,7 @@ const AddRowBtn = ({ onClick }) => (
       alignItems: "center",
       padding: "4px 0",
     }}
-    onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
+    onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
     onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
   >
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -703,7 +703,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                     style={{
                       marginTop: "10px",
                       padding: "4px 12px",
-                      backgroundColor: "#ff4fd6",
+                      backgroundColor: "#E91E8C",
                       border: "none",
                       borderRadius: "4px",
                       fontSize: "12px",
@@ -734,7 +734,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
                   {isEditing ? (
                     <>
-                      <span style={{ color: "#ff4fd6", fontWeight: "500", cursor: "pointer" }}>
+                      <span style={{ color: "#E91E8C", fontWeight: "500", cursor: "pointer" }}>
                         Sube una imagen
                       </span>
                       <br />

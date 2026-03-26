@@ -167,7 +167,10 @@ const ProductionDetailsPage = () => {
   const isLocked = safeStepIndex > stepsReal.indexOf("Corte");
   const isOnFichaStep = production.status === "Ficha Técnica";
   const hasTechSheet = !!production.techSpecification;
-  const fichaBloquea = isOnFichaStep && !hasTechSheet;
+  // Si la producción fue creada desde "diseño", no bloquear el avance por ficha —
+  // solo mostrar confirmación. Se detecta por el campo tipo o por fromDamaged ausente + techSheet nulo.
+  const isDiseno = production.tipo === "diseno";
+  const fichaBloquea = isOnFichaStep && !hasTechSheet && !isDiseno;
 
   const totalUnidades = (production.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
 
@@ -479,6 +482,16 @@ const ProductionDetailsPage = () => {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
                     Siguiente
                   </button>
+                ) : isOnFichaStep && !hasTechSheet && isDiseno ? (
+                  <button className="pd-btn-primary"
+                    onClick={() => openProductionAlert({
+                      type: "advance",
+                      targetStep: nextStep,
+                      customTitle: "Continuar sin ficha técnica",
+                      customMessage: `Esta orden fue creada desde diseño y no tiene ficha técnica aún. ¿Deseas continuar al estado "${nextStep}" sin ella? Podrás crearla más adelante.`,
+                    })}>
+                    Siguiente →
+                  </button>
                 ) : (
                   <button className="pd-btn-primary"
                     onClick={() => openProductionAlert({ type: getAlertType(production.status, nextStep), targetStep: nextStep, customTitle: `Avanzar a "${nextStep}"`, customMessage: `¿Confirmas el avance al estado "${nextStep}"?` })}>
@@ -529,6 +542,12 @@ const ProductionDetailsPage = () => {
             <div style={{ background: "#fffbeb", border: "1px solid #fbbf24", borderRadius: 9, padding: "7px 12px", marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 13 }}>⚠️</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e" }}>Crea la ficha técnica para poder avanzar al siguiente paso</span>
+            </div>
+          )}
+          {isOnFichaStep && !hasTechSheet && isDiseno && (
+            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 9, padding: "7px 12px", marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13 }}>ℹ️</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#1e40af" }}>Esta orden fue creada desde diseño. Puedes crear la ficha técnica o continuar sin ella.</span>
             </div>
           )}
         </div>

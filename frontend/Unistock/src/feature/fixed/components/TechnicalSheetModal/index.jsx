@@ -117,10 +117,10 @@ const TechnicalSheetModal = ({ product, onClose }) => {
                       padding: '6px 12px',
                       borderRadius: '20px',
                       backgroundColor: '#fdf0f7',
-                      border: '1px solid #ff4fd6'
+                      border: '1px solid #E91E8C'
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#ff4fd6' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#E91E8C' }}>
                       Versión {currentVersionObj?.version || 1}
                     </span>
                     <svg
@@ -171,7 +171,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
                               padding: '10px 16px',
                               cursor: 'pointer',
                               backgroundColor: version.id === currentVersionObj?.id ? '#fdf0f7' : 'transparent',
-                              color: version.id === currentVersionObj?.id ? '#ff4fd6' : '#333',
+                              color: version.id === currentVersionObj?.id ? '#E91E8C' : '#333',
                               borderBottom: '1px solid #f0f0f0',
                               fontSize: '14px'
                             }}
@@ -258,7 +258,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
 const styles = {
   deleteBtn: {
     padding: '10px 32px',
-    backgroundColor: '#ff4fd6',
+    backgroundColor: '#E91E8C',
     border: 'none',
     borderRadius: '8px',
     fontSize: '14px',

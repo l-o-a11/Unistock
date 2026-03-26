@@ -219,9 +219,9 @@ const ProductionsPage = () => {
               onChange={(e) => { setCancelModal(p => ({ ...p, motivo: e.target.value })); setMotivoError(''); }}
               placeholder="Describe el motivo..."
               rows={3}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box', border: motivoError ? '2px solid #ff4fd6' : '1.5px solid #d1d5db', fontSize: 13, resize: 'vertical', outline: 'none' }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box', border: motivoError ? '2px solid #E91E8C' : '1.5px solid #d1d5db', fontSize: 13, resize: 'vertical', outline: 'none' }}
             />
-            {motivoError && <p style={{ color: '#ff4fd6', fontSize: 11, marginTop: 4, fontWeight: 'bold' }}>{motivoError}</p>}
+            {motivoError && <p style={{ color: '#E91E8C', fontSize: 11, marginTop: 4, fontWeight: 'bold' }}>{motivoError}</p>}
             <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button onClick={closeCancelModal} style={{ border: 'none', background: '#f3f4f6', color: '#555', fontWeight: 500, cursor: 'pointer', padding: '8px 16px', borderRadius: 8, fontSize: 13 }}>Cancelar</button>
               <button onClick={confirmCancel} style={{ border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 18px', borderRadius: 8 }}>Confirmar anulación</button>
@@ -259,7 +259,7 @@ const ProductionsPage = () => {
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {['producciones', 'terceros'].map(tab => (
           <button key={tab} onClick={() => tab === 'terceros' ? navigate('/Layout/terceros') : setActiveTab(tab)}
-            style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeTab === tab ? '#ff4fd6' : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor: 'pointer', fontWeight: 500, fontSize: 13, textTransform: 'capitalize' }}>
+            style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeTab === tab ? '#E91E8C' : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor: 'pointer', fontWeight: 500, fontSize: 13, textTransform: 'capitalize' }}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
@@ -276,17 +276,17 @@ const ProductionsPage = () => {
             style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #e5e7eb', background: '#fafafa', fontSize: 12, cursor: 'pointer', minWidth: 0 }}>
             {uniqueClients.map((c, i) => <option key={i} value={c}>{c === 'Todos' ? 'Cliente: Todos' : c}</option>)}
           </select>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: hasDateFilter ? '1px solid #FF4FD6' : '1px solid #e5e7eb', background: hasDateFilter ? '#fff0fb' : '#fafafa', borderRadius: 7, padding: '4px 8px' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasDateFilter ? '#FF4FD6' : '#aaa'} strokeWidth="2" strokeLinecap="round">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: hasDateFilter ? '1px solid #E91E8C' : '1px solid #e5e7eb', background: hasDateFilter ? '#fff0fb' : '#fafafa', borderRadius: 7, padding: '4px 8px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasDateFilter ? '#E91E8C' : '#aaa'} strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
             <input type="date" value={filterDateFrom} onChange={(e) => { setFilterDateFrom(e.target.value); setCurrentPage(1); }} title="Fecha desde" style={{ border: 'none', background: 'transparent', fontSize: 12, outline: 'none', cursor: 'pointer', width: 120 }} />
             <span style={{ fontSize: 11, color: '#bbb', fontWeight: 500 }}>→</span>
             <input type="date" value={filterDateTo} onChange={(e) => { setFilterDateTo(e.target.value); setCurrentPage(1); }} title="Fecha hasta" style={{ border: 'none', background: 'transparent', fontSize: 12, outline: 'none', cursor: 'pointer', width: 120 }} />
-            {hasDateFilter && <button onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#FF4FD6', fontSize: 15, lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>}
+            {hasDateFilter && <button onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#E91E8C', fontSize: 15, lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>}
           </div>
           {(searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter) && (
-            <span style={{ fontSize: 11, color: '#FF4FD6', fontWeight: 700, whiteSpace: 'nowrap' }}>{filteredProductions.length} resultado{filteredProductions.length !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 11, color: '#E91E8C', fontWeight: 700, whiteSpace: 'nowrap' }}>{filteredProductions.length} resultado{filteredProductions.length !== 1 ? 's' : ''}</span>
           )}
         </div>
         <div style={{ flexShrink: 0 }}>
@@ -305,7 +305,7 @@ const ProductionsPage = () => {
         {getPageNumbers().map((p, i) =>
           p === '...'
             ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
-            : <button key={p} onClick={() => setCurrentPage(p)} style={{ ...pageBtn, background: p === currentPage ? '#ff4fd6' : '#fff', color: p === currentPage ? '#fff' : '#333', border: p === currentPage ? '1px solid #ff4fd6' : '1px solid #ddd' }}>{p}</button>
+            : <button key={p} onClick={() => setCurrentPage(p)} style={{ ...pageBtn, background: p === currentPage ? '#E91E8C' : '#fff', color: p === currentPage ? '#fff' : '#333', border: p === currentPage ? '1px solid #E91E8C' : '1px solid #ddd' }}>{p}</button>
         )}
         <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} style={pageBtn}>›</button>
       </div>

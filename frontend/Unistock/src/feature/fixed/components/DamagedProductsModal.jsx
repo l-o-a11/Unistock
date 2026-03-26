@@ -408,7 +408,7 @@ const DamagedProductsModal = ({
                   style={{
                     flex: 1, padding: "11px 16px", borderRadius: 12,
                     border: "none",
-                    background: "linear-gradient(135deg, #E91E8C, #ff4fd6)",
+                    background: "linear-gradient(135deg, #E91E8C, #E91E8C)",
                     color: "#fff", cursor: "pointer",
                     fontSize: 13, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 7,

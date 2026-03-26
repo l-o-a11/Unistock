@@ -244,7 +244,7 @@ const ProductionDetailsPage = () => {
                 <option>Blanco</option><option>Verde</option>
               </select>
             </div>
-            {addRefError && <p className="text-xs font-bold mb-3" style={{ color: "#ff4fd6" }}>{addRefError}</p>}
+            {addRefError && <p className="text-xs font-bold mb-3" style={{ color: "#E91E8C" }}>{addRefError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setAddRefOpen(false); setNewRef({ cantidad: "", color: "" }); setAddRefError(""); }}
                 className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition">
@@ -476,7 +476,7 @@ const ProductionDetailsPage = () => {
       <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.07)", overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #f3f4f6" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#FF4FD6,#c026d3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#E91E8C,#c026d3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
               </svg>
@@ -529,7 +529,7 @@ const ProductionDetailsPage = () => {
               <p style={{ margin: 0, fontSize: 13, color: "#9ca3af" }}>
                 Sin ficha técnica.{" "}
                 {production.tipo === 'diseno' && !isAnulada
-                  ? <span style={{ color: "#FF4FD6", fontWeight: 600 }}>Crea una en el formulario de diseño.</span>
+                  ? <span style={{ color: "#E91E8C", fontWeight: 600 }}>Crea una en el formulario de diseño.</span>
                   : null}
               </p>
             </div>
