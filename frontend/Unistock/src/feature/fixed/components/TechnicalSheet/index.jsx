@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { CupTypes, ClousereTypes, Accesories } from "../../../products/types/constants";
 
 // ── Shared cell/input styles ──────────────────────────────────────────────────
 const cellStyle = {
