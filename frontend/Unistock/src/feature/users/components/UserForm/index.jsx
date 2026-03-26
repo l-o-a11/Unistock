@@ -22,6 +22,7 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: "confirm",
@@ -34,6 +35,14 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
     () => setAlertConfig((prev) => ({ ...prev, open: false })),
     [],
   );
+
+  // Cierra el modal después de que el Alert de éxito se cierre
+  useEffect(() => {
+    if (pendingClose && !alertConfig.open) {
+      setPendingClose(false);
+      onCancel();
+    }
+  }, [alertConfig.open, pendingClose, onCancel]);
 
   const handleCancelClick = useCallback(() => {
     setAlertConfig({
@@ -143,6 +152,7 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
         await Promise.resolve(onSubmit(formData));
       }
 
+      setPendingClose(true);
       setAlertConfig({
         open: true,
         type: "success",
@@ -179,7 +189,6 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
         }}
         onCancel={() => {
           closeAlert();
-          if (alertConfig.type === "success") onCancel();
         }}
       />
 

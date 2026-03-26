@@ -15,8 +15,12 @@ const UsersPage = () => {
 
   const { roles } = useRoles();
   const { sedes } = useSedes();
-  const rolesActivos = roles.filter((r) => r.estado !== false).map((r) => r.nombre);
-  const sedesActivas = sedes.filter((s) => s.estado !== false).map((s) => s.nombre);
+  const rolesActivos = roles
+    .filter((r) => r.estado !== false)
+    .map((r) => r.nombre);
+  const sedesActivas = sedes
+    .filter((s) => s.estado !== false)
+    .map((s) => s.nombre);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
@@ -130,7 +134,8 @@ const UsersPage = () => {
 
   const handleEditSubmit = async (userData) => {
     await updateUser(editUser.id, userData);
-    setEditUser(null);
+    // No cerrar aqui: UserForm muestra la alerta de exito
+    // y se cierra solo al aceptarla (via pendingClose + onCancel)
   };
 
   // 🔢 PAGINACIÓN VISUAL
