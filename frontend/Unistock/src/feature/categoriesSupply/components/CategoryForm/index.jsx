@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const CategoryForm = ({ category, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: category?.name || '',
+    nombre: category?.nombre || '',
   });
 
   const handleChange = (e) => {
@@ -12,7 +12,13 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    const normalizado = {
+      ...formData,
+      nombre: formData.nombre.trim()
+        ? formData.nombre.trim().charAt(0).toUpperCase() + formData.nombre.trim().slice(1).toLowerCase()
+        : formData.nombre,
+    };
+    onSubmit(normalizado);
   };
 
   const inputStyle = {
@@ -49,8 +55,8 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
           <label style={labelStyle}>Nombre {requiredStar}</label>
           <input
             type="text"
-            name="name"
-            value={formData.name}
+            name="nombre"
+            value={formData.nombre}
             onChange={handleChange}
             placeholder="Ej. Tela"
             style={inputStyle}

@@ -15,8 +15,13 @@ const UsersPage = () => {
 
   const { roles } = useRoles();
   const { sedes } = useSedes();
-  const rolesActivos = roles.filter((r) => r.estado !== false).map((r) => r.nombre);
-  const sedesActivas = sedes.filter((s) => s.estado !== false).map((s) => s.nombre);
+  // Pasar objetos completos para guardar por ID
+  const rolesActivos = roles.filter((r) => r.estado !== false).map((r) => ({ id: r.id, nombre: r.nombre }));
+  const sedesActivas = sedes.filter((s) => s.estado !== false).map((s) => ({ id: s.id, nombre: s.nombre }));
+
+  // Resolver nombre desde ID — igual que getCategoriaNombre en supplies
+  const getRolNombre = (rolId) => roles.find((r) => r.id === parseInt(rolId))?.nombre ?? "—";
+  const getSedeNombre = (sedeId) => sedes.find((s) => s.id === parseInt(sedeId))?.nombre ?? "—";
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
@@ -66,8 +71,8 @@ const UsersPage = () => {
       documentNumber: user.numeroDocumento,
       name: user.nombreCompleto,
       email: user.correo,
-      role: user.rol,
-      sede: user.sede,
+      role: user.rolId,   // ID del rol
+      sede: user.sedeId,  // ID de la sede
     });
   };
 
@@ -197,6 +202,8 @@ const UsersPage = () => {
       {/* 📋 TABLA */}
       <UserTable
         users={paginatedUsers}
+        getRolNombre={getRolNombre}
+        getSedeNombre={getSedeNombre}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggle={handleToggle}

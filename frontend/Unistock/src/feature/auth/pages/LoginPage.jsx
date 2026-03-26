@@ -1,4 +1,5 @@
 import { useAuth } from "../hooks/useAuth";
+import { useAuthContext } from "../../shared/AuthContext";
 import LoginForm from "../components/LoginForm";
 import RecoverPasswordModal from "../components/RecoverPasswordModal";
 import VerifyCodeModal from "../components/VerifyCodeModal";
@@ -11,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login: ctxLogin } = useAuthContext();
 
   const {
     activeModal,
@@ -48,7 +50,7 @@ const LoginPage = () => {
         {/* Panel derecho */}
         <div className="flex-1 flex items-center justify-center px-5 sm:px-10">
           <LoginForm
-            onLogin={(u, p) => handleLogin(u, p, () => navigate("/Layout"))}
+            onLogin={(u, p) => handleLogin(u, p, ctxLogin, () => navigate("/Layout"))}
             onForgotPassword={() => openModal(AUTH_MODALS.RECOVER_PASSWORD)}
             loading={loading && activeModal === AUTH_MODALS.NONE}
             error={activeModal === AUTH_MODALS.NONE ? error : ""}
