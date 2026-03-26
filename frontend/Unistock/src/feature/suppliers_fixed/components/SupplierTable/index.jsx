@@ -1,0 +1,144 @@
+import React, { useState } from "react";
+import HoverCard from "../../../shared/components/HoverCart";
+import Alert from "../../../shared/components/Alert";
+
+const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) => {
+
+  const [showToggleAlert, setShowToggleAlert] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const [newStatus, setNewStatus]   = useState(null);
+
+  const truncate = (text, max = 18) => {
+    if (!text) return "";
+    return text.length > max ? text.slice(0, max) + "..." : text;
+  };
+
+  const thStyle = {
+    padding: "14px 20px", textAlign: "left", fontSize: "13px",
+    fontWeight: "500", color: "#888", borderBottom: "1px solid #f0f0f0",
+    whiteSpace: "nowrap", backgroundColor: "#f5f5f5",
+  };
+  const tdStyle = {
+    padding: "14px 20px", fontSize: "14px", color: "#333",
+    borderBottom: "1px solid #f5f5f5", whiteSpace: "nowrap",
+  };
+
+  if (suppliers.length === 0) {
+    return (
+      <div style={{ backgroundColor: "#fff", borderRadius: "12px", padding: "64px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div style={{ fontSize: "48px", marginBottom: "16px" }}>📦</div>
+        <p style={{ color: "#999", fontSize: "15px", margin: 0 }}>No hay proveedores para mostrar</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>NIT</th>
+                <th style={thStyle}>Nombre de empresa</th>
+                <th style={thStyle}>Nombre de contacto</th>
+                <th style={thStyle}>Dirección</th>
+                <th style={thStyle}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suppliers.map((supplier) => {
+                const isActive = supplier.estado !== false;
+                return (
+                  <tr key={supplier.id}
+                    style={{ transition: "background 0.15s", cursor: "pointer" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    onClick={() => onView?.(supplier)}
+                  >
+                    <td style={tdStyle}>
+                      <HoverCard title="Información proveedor" fields={[{ label: "NIT", value: supplier.nit, highlight: true }]}>
+                        {truncate(supplier.nit)}
+                      </HoverCard>
+                    </td>
+                    <td style={tdStyle}>
+                      <HoverCard title="Información proveedor" fields={[{ label: "Empresa", value: supplier.nombreEmpresa, highlight: true }]}>
+                        {truncate(supplier.nombreEmpresa)}
+                      </HoverCard>
+                    </td>
+                    <td style={tdStyle}>
+                      <HoverCard title="Información proveedor" fields={[{ label: "Contacto", value: supplier.nombreContacto }]}>
+                        {truncate(supplier.nombreContacto)}
+                      </HoverCard>
+                    </td>
+                    <td style={tdStyle}>
+                      <HoverCard title="Información proveedor" fields={[{ label: "Dirección", value: supplier.direccion }]}>
+                        {truncate(supplier.direccion)}
+                      </HoverCard>
+                    </td>
+                    <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+
+                        {/* VER */}
+                        <button onClick={(e) => { e.stopPropagation(); onView?.(supplier); }} title="Ver detalle"
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5"/><line x1="12" y1="12" x2="12" y2="16"/>
+                          </svg>
+                        </button>
+
+                        {/* EDITAR */}
+                        <button onClick={(e) => { e.stopPropagation(); onEdit?.(supplier); }} title="Editar proveedor"
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </button>
+
+                        {/* ELIMINAR */}
+                        <button onClick={(e) => { e.stopPropagation(); onDelete?.(supplier.id); }} title="Eliminar proveedor"
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                          </svg>
+                        </button>
+
+                        {/* SWITCH */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedId(supplier.id); setNewStatus(!isActive); setShowToggleAlert(true); }}
+                          style={{ position: "relative", width: "44px", height: "24px", borderRadius: "20px", border: "none", backgroundColor: isActive ? "#22c55e" : "#d1d5db", cursor: "pointer" }}>
+                          <span style={{ position: "absolute", top: "2px", left: isActive ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s" }} />
+                        </button>
+
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <Alert
+        isOpen={showToggleAlert}
+        type="password"
+        title={newStatus ? "Activar proveedor" : "Inactivar proveedor"}
+        message={newStatus ? "Para activar este proveedor ingresa la contraseña de administrador" : "Para inactivar este proveedor ingresa la contraseña de administrador"}
+        onCancel={() => setShowToggleAlert(false)}
+        onConfirm={() => { onToggle?.(selectedId, newStatus); setShowToggleAlert(false); }}
+      />
+    </>
+  );
+};
+
+export default SupplierTable;
