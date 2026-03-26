@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import HoverCard from "../../../products/components/HoverCard";
-import { CupTypes, ClousereTypes, Accesories } from "../../../products/types/constants";
 
 // ── Shared cell/input styles ──────────────────────────────────────────────────
 const cellStyle = {

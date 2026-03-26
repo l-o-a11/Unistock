@@ -3,7 +3,7 @@
  * @description Componente de botón reutilizable con variantes de color estandarizadas.
  *
  * VARIANTES DISPONIBLES:
- *   primary   — Rosa corporativo (#FF4FD6) — acciones principales (guardar, crear)
+ *   primary   — Rosa corporativo (#E91E8C) — acciones principales (guardar, crear)
  *   secondary — Gris neutro — acciones secundarias (cancelar, volver)
  *   success   — Verde — confirmaciones exitosas
  *   danger    — Rojo — acciones destructivas (eliminar, anular)
@@ -39,7 +39,7 @@ function Button({
   /**
    * Paleta de colores por variante.
    * Todos los colores siguen el sistema de diseño del proyecto:
-   *   - primary  : rosa corporativo #FF4FD6
+   *   - primary  : rosa corporativo #FF53D7
    *   - secondary: gris Tailwind-200
    *   - success  : verde Tailwind-500
    *   - danger   : rojo Tailwind-500
@@ -48,7 +48,7 @@ function Button({
    */
   const variants = {
     primary:
-      "bg-[#FF4FD6] hover:bg-[#e636ba] active:bg-[#c026d3] text-white",
+      "bg-[#FF53D7] hover:bg-[#FF53D7] active:bg-[#c026d3] text-white",
     secondary:
       "bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800",
     success:

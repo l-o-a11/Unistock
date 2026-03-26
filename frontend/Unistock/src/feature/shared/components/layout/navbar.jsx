@@ -11,9 +11,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
+import Alert from "../Alert";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -36,6 +38,12 @@ const Navbar = () => {
   }, []);
 
   const cerrarSesion = () => {
+    setOpen(false);
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmarCerrarSesion = () => {
+    setShowLogoutConfirm(false);
     AuthAPI.logout();
     navigate("/");
   };
@@ -365,6 +373,16 @@ const Navbar = () => {
           )}
         </div>
       </nav>
+
+      {/* Alert de confirmación para cerrar sesión */}
+      <Alert
+        isOpen={showLogoutConfirm}
+        type="confirm"
+        title="Cerrar Sesión"
+        message="¿Seguro que deseas cerrar sesión?"
+        onConfirm={confirmarCerrarSesion}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </>
   );
 };

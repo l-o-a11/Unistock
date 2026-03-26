@@ -285,7 +285,7 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
             </h2>
             {/* En edición muestra el código asignado */}
             {isEdit && Third_partie?.codigo && (
-              <span style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: "#E91E8C", background: "#fce7f3", padding: "2px 10px", borderRadius: 20 }}>
+              <span style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: "#FF4FD6", background: "#fce7f3", padding: "2px 10px", borderRadius: 20 }}>
                 Código: {Third_partie.codigo}
               </span>
             )}

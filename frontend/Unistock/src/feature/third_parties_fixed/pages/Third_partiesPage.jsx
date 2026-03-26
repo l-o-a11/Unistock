@@ -60,21 +60,31 @@ const Third_partiePage = () => {
 
   const handleDelete = (id) => {
     const t = Third_parties.find(x => x.id === id);
+    // Bloquear si está activo
+    if (t?.estado === true) {
+      setErrorAlert({ open: true, message: `El tercero "${t.nombreEmpresa}" está activo. Inactívalo primero antes de eliminarlo.` });
+      return;
+    }
     if (t?.producciones?.length > 0) {
       setErrorAlert({ open: true, message: `Este tercero tiene ${t.producciones.length} producción(es) asignada(s) y no puede eliminarse.` });
       return;
     }
-    setDeleteAlert({ open: true, id });
+    setDeleteAlert({ open: true, id, name: t?.nombreEmpresa || '' });
   };
 
   const confirmDelete = () => {
+    const name = deleteAlert.name;
     try {
       deleteThird_partie(deleteAlert.id);
       if (selectedThird_partie?.id === deleteAlert.id) setSelectedThird_partie(null);
+      setDeleteAlert({ open: false, id: null, name: '' });
+      setTimeout(() => {
+        setErrorAlert({ open: true, type: 'success', title: 'Tercero eliminado', message: `El tercero "${name}" fue eliminado correctamente.` });
+      }, 100);
     } catch (e) {
+      setDeleteAlert({ open: false, id: null, name: '' });
       setErrorAlert({ open: true, message: e?.message || 'No se puede eliminar.' });
     }
-    setDeleteAlert({ open: false, id: null });
   };
 
   const handleFormSubmit = async (data) => {
@@ -99,12 +109,12 @@ const Third_partiePage = () => {
 
       {/* Alerts globales — solo el Page maneja el flujo completo */}
       <Alert isOpen={deleteAlert.open} type="password" title="Eliminar tercero"
-        message="Esta acción no se puede deshacer. Ingresa la contraseña de administrador."
-        onConfirm={confirmDelete} onCancel={() => setDeleteAlert({ open: false, id: null })}
+        message={`¿Estás seguro de eliminar a "${deleteAlert.name}"? Esta acción no se puede deshacer. Ingresa la contraseña de administrador.`}
+        onConfirm={confirmDelete} onCancel={() => setDeleteAlert({ open: false, id: null, name: '' })}
       />
-      <Alert isOpen={errorAlert.open} type="error" title="No se puede eliminar" message={errorAlert.message}
-        onConfirm={() => setErrorAlert({ open: false, message: '' })}
-        onCancel={() => setErrorAlert({ open: false, message: '' })}
+      <Alert isOpen={errorAlert.open} type={errorAlert.type || "error"} title={errorAlert.title || "No se puede eliminar"} message={errorAlert.message}
+        onConfirm={() => setErrorAlert({ open: false, message: '', type: undefined, title: undefined })}
+        onCancel={() => setErrorAlert({ open: false, message: '', type: undefined, title: undefined })}
       />
 
       {/* ── Header: título + buscador — mismo patrón que ProductionPage ── */}
@@ -114,14 +124,14 @@ const Third_partiePage = () => {
         <Third_partieSearch value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por código, nombre, contacto..." />
       </div>
 
-      {/* ── Tabs de navegación — color único #E91E8C, sin gradiente ── */}
+      {/* ── Tabs de navegación — color único #FF4FD6, sin gradiente ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button onClick={() => navigate('/Layout/produccion')}
           style={{ background: '#f3f4f6', color: '#6b7280', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Producciones
         </button>
         <button onClick={() => navigate('/Layout/terceros')}
-          style={{ background: '#E91E8C', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          style={{ background: '#FF4FD6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Terceros
         </button>
       </div>
@@ -148,7 +158,7 @@ const Third_partiePage = () => {
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} style={pgBtn}>‹</button>
               {getPages().map((p, i) => p === '...' ? <span key={i} style={{ padding: '6px 4px' }}>…</span> : (
                 <button key={p} onClick={() => setCurrentPage(p)}
-                  style={{ ...pgBtn, background: p === currentPage ? '#E91E8C' : '#fff', color: p === currentPage ? '#fff' : '#374151', border: `1px solid ${p === currentPage ? '#E91E8C' : '#e5e7eb'}` }}>
+                  style={{ ...pgBtn, background: p === currentPage ? '#FF4FD6' : '#fff', color: p === currentPage ? '#fff' : '#374151', border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}` }}>
                   {p}
                 </button>
               ))}

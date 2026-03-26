@@ -395,7 +395,7 @@ const DamagedProductsModal = ({
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                     transition: "all 0.15s",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#E91E8C"; e.currentTarget.style.color = "#E91E8C"; e.currentTarget.style.background = "#fff0fb"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#FF4FD6"; e.currentTarget.style.color = "#FF4FD6"; e.currentTarget.style.background = "#fff0fb"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#374151"; e.currentTarget.style.background = "#fff"; }}
                 >
                   <FileIcon />
@@ -408,15 +408,15 @@ const DamagedProductsModal = ({
                   style={{
                     flex: 1, padding: "11px 16px", borderRadius: 12,
                     border: "none",
-                    background: "linear-gradient(135deg, #E91E8C, #ff4fd6)",
+                    background: "linear-gradient(135deg, #FF4FD6, #ff4fd6)",
                     color: "#fff", cursor: "pointer",
                     fontSize: 13, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                    boxShadow: "0 4px 14px rgba(233,30,140,0.35)",
+                    boxShadow: "0 4px 14px rgba(255,79,214,0.3)",
                     transition: "all 0.15s",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 18px rgba(233,30,140,0.45)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(233,30,140,0.35)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 18px rgba(255,79,214,0.3)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(255,79,214,0.3)"; }}
                 >
                   <PlusIcon />
                   Nueva orden de producción

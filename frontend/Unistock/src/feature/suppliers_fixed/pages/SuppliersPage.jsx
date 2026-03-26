@@ -5,13 +5,16 @@ import { useSupplierDetail } from "../hooks/useSupplierDetail";
 
 import SupplierForm from "../components/SupplierForm";
 import SupplierTable from "../components/SupplierTable";
-import SupplierSearch from "../components/SupplierSearch";
 import AddSupplierButton from "../components/AddSupplierButton";
 import SupplierDetail from "../components/SupplierDetail";
 import Alert from "../../shared/components/Alert";
+import SearchInput from "../../shared/components/SearchInput";
+
+const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
 const SupplierPage = () => {
-  const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } = useSuppliers();
+  const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } =
+    useSuppliers();
   const { searchTerm, handleSearch } = useSupplierSearch();
   const { selectedSupplier, isOpen, openDetail, closeDetail } = useSupplierDetail();
 
@@ -29,11 +32,13 @@ const SupplierPage = () => {
     onConfirm: null,
   });
 
+  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
+  const showAlert = (type, title, message, onConfirm = null) =>
+    setAlertConfig({ open: true, type, title, message, onConfirm });
+
   const filteredSuppliers = useMemo(() => {
     if (!suppliers) return [];
-
     const term = searchTerm.toLowerCase();
-
     return suppliers.filter((supplier) =>
       Object.values(supplier).some((value) =>
         value?.toString().toLowerCase().includes(term)
@@ -42,30 +47,64 @@ const SupplierPage = () => {
   }, [suppliers, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSuppliers.length / itemsPerPage));
-
   const startIndex = (currentPage - 1) * itemsPerPage;
-
-  const paginatedSupplier = filteredSuppliers.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedSupplier = filteredSuppliers.slice(startIndex, startIndex + itemsPerPage);
 
   const handleView = (supplier) => openDetail(supplier);
 
   const handleDelete = (id) => {
-    setAlertConfig({
-      open: true,
-      type: "password",
-      title: "Eliminar proveedor",
-      message: "Esta acción no se puede deshacer. Ingresa la contraseña de administrador para confirmar.",
-      onConfirm: () => {
-        deleteSupplier(id);
-        setAlertConfig((prev) => ({ ...prev, open: false }));
-      },
-    });
+    const supplier = suppliers.find((s) => s.id === id);
+
+    // ── Validación: no se puede eliminar un proveedor activo ──────────────
+    if (supplier?.estado === true) {
+      showAlert(
+        "error",
+        "No se puede eliminar",
+        `"${supplier?.nombreEmpresa}" está activo. Primero inactívalo para poder eliminarlo.`
+      );
+      return;
+    }
+
+    showAlert(
+      "password",
+      "Eliminar proveedor",
+      `Para eliminar "${supplier?.nombreEmpresa}" ingresa la contraseña de administrador.`,
+      async (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) {
+          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+          return;
+        }
+        try {
+          await deleteSupplier(id);
+          showAlert("success", "Proveedor eliminado", `"${supplier?.nombreEmpresa}" fue eliminado correctamente.`);
+        } catch {
+          showAlert("error", "Error al eliminar", "No se pudo eliminar el proveedor. Intenta nuevamente.");
+        }
+      }
+    );
   };
 
-  const handleToggle = (id) => toggleSupplier?.(id);
+  const handleToggle = (id) => {
+    const supplier = suppliers.find((s) => s.id === id);
+    const accion = supplier?.estado ? "inactivar" : "activar";
+    showAlert(
+      "password",
+      `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} proveedor?`,
+      `Para ${accion} "${supplier?.nombreEmpresa}" confirma tu contraseña de administrador.`,
+      (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) {
+          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+          return;
+        }
+        toggleSupplier(id);
+        showAlert(
+          "success",
+          `Proveedor ${accion === "activar" ? "activado" : "inactivado"}`,
+          `"${supplier?.nombreEmpresa}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`
+        );
+      }
+    );
+  };
 
   const handleEdit = (supplier) => {
     setEditingSupplier(supplier);
@@ -78,20 +117,25 @@ const SupplierPage = () => {
   };
 
   const handleFormSubmit = async (data) => {
-    if (editingSupplier) {
-      await updateSupplier(editingSupplier.id, data);
-    } else {
-      await createSupplier(data);
+    try {
+      if (editingSupplier) {
+        await updateSupplier(editingSupplier.id, data);
+        setShowForm(false);
+        showAlert("success", "Proveedor actualizado", `"${data.nombreEmpresa}" fue actualizado correctamente.`);
+      } else {
+        await createSupplier(data);
+        setShowForm(false);
+        showAlert("success", "Proveedor creado", `"${data.nombreEmpresa}" fue creado correctamente.`);
+      }
+    } catch (error) {
+      showAlert("error", "Error", error.message || "No se pudo completar la operación.");
     }
   };
 
   const getPageNumbers = () => {
     if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
-
     const pages = [1];
-
     if (currentPage > 3) pages.push("...");
-
     for (
       let i = Math.max(2, currentPage - 1);
       i <= Math.min(totalPages - 1, currentPage + 1);
@@ -99,25 +143,23 @@ const SupplierPage = () => {
     ) {
       pages.push(i);
     }
-
     if (currentPage < totalPages - 2) pages.push("...");
-
     pages.push(totalPages);
-
     return pages;
   };
 
   return (
-    <div style={{ padding: "24px 32px" }}>
+    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
         onConfirm={alertConfig.onConfirm}
-        onCancel={() => setAlertConfig((prev) => ({ ...prev, open: false }))}
+        onCancel={closeAlert}
       />
 
+      {/* HEADER */}
       <div
         style={{
           display: "flex",
@@ -126,25 +168,73 @@ const SupplierPage = () => {
           marginBottom: "20px",
         }}
       >
-        <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Proveedores</h1>
+        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "#1a1a1a" }}>
+          Proveedores
+        </h1>
 
-        <div style={{ width: "260px" }}>
-          <SupplierSearch value={searchTerm} onChange={handleSearch} />
-        </div>
+        <SearchInput value={searchTerm} onChange={(v) => { handleSearch(v); setCurrentPage(1); }} placeholder="Buscar proveedor..." />
       </div>
 
+      {/* TOOLBAR */}
       <div
         style={{
-          backgroundColor: "#FFFFFF",
           display: "flex",
           justifyContent: "flex-end",
+          background: "#fff",
+          padding: "12px 20px",
+          borderRadius: "10px",
           marginBottom: "20px",
-          padding: "12px 16px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         }}
       >
-        <AddSupplierButton onClick={handleAddSupplier} />
+        <button
+  onClick={handleAddSupplier}
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 22px",
+    borderRadius: "999px",
+    border: "none",
+    background: "#FF4FD6",
+    color: "#fff",
+    fontSize: "14px",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(255, 79, 214, 0.3)",
+    transition: "all 0.25s ease",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "#e043be";
+    e.currentTarget.style.transform = "translateY(-1px)";
+    e.currentTarget.style.boxShadow = "0 6px 16px rgba(255, 79, 214, 0.4)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "#FF4FD6";
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 79, 214, 0.3)";
+  }}
+>
+  <span style={{ fontSize: "16px", display: "flex" }}>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  </span>
+  Agregar proveedor
+</button>
       </div>
 
+      {/* TABLA */}
       <SupplierTable
         suppliers={paginatedSupplier}
         onView={handleView}
@@ -153,6 +243,7 @@ const SupplierPage = () => {
         onToggle={handleToggle}
       />
 
+      {/* MODAL DETALLE */}
       {isOpen && (
         <SupplierDetail
           supplier={selectedSupplier}
@@ -161,6 +252,7 @@ const SupplierPage = () => {
         />
       )}
 
+      {/* PAGINACIÓN */}
       {filteredSuppliers.length > 0 && (
         <div
           style={{
@@ -180,9 +272,7 @@ const SupplierPage = () => {
 
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>
-                ...
-              </span>
+              <span key={i} style={{ padding: "6px 10px" }}>...</span>
             ) : (
               <button
                 key={p}
@@ -191,10 +281,7 @@ const SupplierPage = () => {
                   ...paginationBtn,
                   backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
                   color: p === currentPage ? "#fff" : "#333",
-                  border:
-                    p === currentPage
-                      ? "1px solid #FF4FD6"
-                      : "1px solid #ddd",
+                  border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
                 }}
               >
                 {p}
@@ -211,6 +298,7 @@ const SupplierPage = () => {
         </div>
       )}
 
+      {/* FORMULARIO */}
       {showForm && (
         <SupplierForm
           supplier={editingSupplier}
@@ -228,6 +316,7 @@ const paginationBtn = {
   border: "1px solid #ddd",
   background: "#fff",
   cursor: "pointer",
+  fontSize: "14px",
 };
 
 export default SupplierPage;
