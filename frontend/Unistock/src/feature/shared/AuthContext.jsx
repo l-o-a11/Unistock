@@ -63,8 +63,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = (session) => {
+    // Actualizar usuario Y permisos juntos para que el re-render
+    // los reciba en el mismo ciclo — evita que el sidebar vea
+    // por un instante al usuario anterior con los permisos del nuevo.
+    const roles  = getRolesFromStorage();
+    const idNum  = parseInt(session.rolId);
+    const rol    = roles.find((r) => r.id === idNum);
+    const ids    = rol?.modulos?.map((m) => m.moduloId) ?? [];
     setUser(session);
-    cargarPermisos(session.rolId);
+    setPermisos(ids);
   };
 
   const logout = () => {

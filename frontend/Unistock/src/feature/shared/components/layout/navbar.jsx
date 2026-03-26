@@ -10,19 +10,21 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { AuthAPI } from "../../../auth/services/AuthAPI";
+import { useAuthContext } from "../../AuthContext";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  const session = AuthAPI.getSession();
+  // FIX: leer del contexto React, no de localStorage directo.
+  // Así el Navbar se re-renderiza automáticamente al cambiar de sesión.
+  const { user: session, logout: ctxLogout } = useAuthContext();
   const user = {
-    name: session?.nombre ?? "Usuario",
+    name:  session?.nombre ?? "Usuario",
     email: session?.correo ?? "",
-    rol: session?.rol ?? "",
-    sede: session?.sede ?? "",
+    rol:   session?.rol    ?? "",
+    sede:  session?.sede   ?? "",
   };
 
   useEffect(() => {
@@ -36,7 +38,9 @@ const Navbar = () => {
   }, []);
 
   const cerrarSesion = () => {
-    AuthAPI.logout();
+    // FIX: usar logout del contexto — limpia user y permisos en React
+    // además de eliminar la sesión de localStorage.
+    ctxLogout();
     navigate("/");
   };
 
