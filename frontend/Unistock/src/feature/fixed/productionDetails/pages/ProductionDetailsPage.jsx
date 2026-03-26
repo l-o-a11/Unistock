@@ -102,7 +102,7 @@ const dotColor = (status = "") => {
   const s = status.toLowerCase();
   if (s.includes("finaliz") || s.includes("list") || s.includes("aprobad")) return "#10b981";
   if (s.includes("anulad")) return "#ef4444";
-  return "#E91E8C";
+  return "#FF4FD6";
 };
 
 /* ══════════════════════════════════════════════════════════════ */
@@ -147,7 +147,7 @@ const ProductionDetailsPage = () => {
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="text-center">
-        <div style={{ width: 40, height: 40, border: "3px solid #E91E8C", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+        <div style={{ width: 40, height: 40, border: "3px solid #FF4FD6", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
         <p style={{ color: "#9ca3af", fontSize: 13 }}>Cargando orden...</p>
       </div>
     </div>
@@ -167,10 +167,7 @@ const ProductionDetailsPage = () => {
   const isLocked = safeStepIndex > stepsReal.indexOf("Corte");
   const isOnFichaStep = production.status === "Ficha Técnica";
   const hasTechSheet = !!production.techSpecification;
-  // Si la producción fue creada desde "diseño", no bloquear el avance por ficha —
-  // solo mostrar confirmación. Se detecta por el campo tipo o por fromDamaged ausente + techSheet nulo.
-  const isDiseno = production.tipo === "diseno";
-  const fichaBloquea = isOnFichaStep && !hasTechSheet && !isDiseno;
+  const fichaBloquea = isOnFichaStep && !hasTechSheet;
 
   const totalUnidades = (production.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
 
@@ -269,15 +266,15 @@ const ProductionDetailsPage = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
         .pd-card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); }
-        .pd-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#E91E8C; margin-bottom:3px; }
+        .pd-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#FF4FD6; margin-bottom:3px; }
         .pd-value { font-size:13px; font-weight:600; color:#1a1a2e; }
-        .pd-step-done { background:#E91E8C; border-color:#E91E8C; color:#fff; }
-        .pd-step-active { background:#fff; border-color:#E91E8C; color:#E91E8C; box-shadow:0 0 0 3px rgba(233,30,140,0.12); }
+        .pd-step-done { background:#FF4FD6; border-color:#FF4FD6; color:#fff; }
+        .pd-step-active { background:#fff; border-color:#FF4FD6; color:#FF4FD6; box-shadow:0 0 0 3px rgba(255,79,214,0.15); }
         .pd-step-idle { background:#fff; border-color:#e5e7eb; color:#d1d5db; }
         .pd-btn-nav { border:1.5px solid #e5e7eb; background:#fff; color:#374151; border-radius:9px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s; }
-        .pd-btn-nav:hover { border-color:#E91E8C; color:#E91E8C; }
-        .pd-btn-primary { background:#E91E8C; color:#fff; border:none; border-radius:9px; padding:7px 16px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 4px 12px rgba(233,30,140,0.25); transition:all 0.15s; }
-        .pd-btn-primary:hover { background:#c91578; transform:translateY(-1px); }
+        .pd-btn-nav:hover { border-color:#FF4FD6; color:#FF4FD6; }
+        .pd-btn-primary { background:#FF4FD6; color:#fff; border:none; border-radius:9px; padding:7px 16px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 4px 12px rgba(255,79,214,0.3); transition:all 0.15s; }
+        .pd-btn-primary:hover { background:#d93db8; transform:translateY(-1px); }
         .pd-btn-danger { border:1.5px solid #fca5a5; background:#fff5f5; color:#ef4444; border-radius:9px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
         .pd-btn-danger:hover { background:#fee2e2; }
         .pd-table th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#9ca3af; padding-bottom:8px; }
@@ -290,7 +287,7 @@ const ProductionDetailsPage = () => {
         .pd-action-btn:hover.edit { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
         .pd-action-btn:hover.del { border-color:#ef4444; color:#ef4444; background:#fff5f5; }
         .pd-input { width:100%; border:1.5px solid #e5e7eb; border-radius:9px; padding:8px 12px; font-size:13px; color:#374151; outline:none; transition:border 0.15s; box-sizing:border-box; }
-        .pd-input:focus { border-color:#E91E8C; box-shadow:0 0 0 3px rgba(233,30,140,0.08); }
+        .pd-input:focus { border-color:#FF4FD6; box-shadow:0 0 0 3px rgba(255,79,214,0.1); }
         .pd-stat-card { border-radius:11px; padding:13px 15px; }
       `}</style>
 
@@ -307,6 +304,7 @@ const ProductionDetailsPage = () => {
         customMessage={productionAlert.customMessage}
         onAccept={handleProductionAlertConfirm}
         onCancel={closeProductionAlert}
+        totalUnidades={totalUnidades}
       />
       <AlertEditProduction
         isOpen={editAlert.isOpen}
@@ -382,7 +380,7 @@ const ProductionDetailsPage = () => {
           onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}>
           <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: "16px 20px", borderBottom: "3px solid #E91E8C", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "3px solid #FF4FD6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>✏️ Crear ficha técnica</h4>
                 <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Completa los datos y guarda para desbloquear el avance al siguiente paso</p>
@@ -482,16 +480,6 @@ const ProductionDetailsPage = () => {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
                     Siguiente
                   </button>
-                ) : isOnFichaStep && !hasTechSheet && isDiseno ? (
-                  <button className="pd-btn-primary"
-                    onClick={() => openProductionAlert({
-                      type: "advance",
-                      targetStep: nextStep,
-                      customTitle: "Continuar sin ficha técnica",
-                      customMessage: `Esta orden fue creada desde diseño y no tiene ficha técnica aún. ¿Deseas continuar al estado "${nextStep}" sin ella? Podrás crearla más adelante.`,
-                    })}>
-                    Siguiente →
-                  </button>
                 ) : (
                   <button className="pd-btn-primary"
                     onClick={() => openProductionAlert({ type: getAlertType(production.status, nextStep), targetStep: nextStep, customTitle: `Avanzar a "${nextStep}"`, customMessage: `¿Confirmas el avance al estado "${nextStep}"?` })}>
@@ -513,13 +501,13 @@ const ProductionDetailsPage = () => {
                   <div style={{
                     width: 26, height: 26, borderRadius: "50%", border: "2px solid",
                     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700,
-                    ...(done ? { background: "#E91E8C", borderColor: "#E91E8C", color: "#fff" }
-                      : active ? { background: "#fff", borderColor: "#E91E8C", color: "#E91E8C", boxShadow: "0 0 0 4px rgba(233,30,140,0.1)" }
+                    ...(done ? { background: "#FF4FD6", borderColor: "#FF4FD6", color: "#fff" }
+                      : active ? { background: "#fff", borderColor: "#FF4FD6", color: "#FF4FD6", boxShadow: "0 0 0 4px rgba(255,79,214,0.12)" }
                       : { background: "#fff", borderColor: "#e5e7eb", color: "#d1d5db" })
                   }}>
                     {done ? <CheckIcon /> : i + 1}
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, textAlign: "center", lineHeight: 1.2, color: active ? "#E91E8C" : done ? "#6b7280" : "#d1d5db" }}>
+                  <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, textAlign: "center", lineHeight: 1.2, color: active ? "#FF4FD6" : done ? "#6b7280" : "#d1d5db" }}>
                     {step}
                     <div style={{ fontSize: 8, fontWeight: 400, color: active ? "#9ca3af" : done ? "#9ca3af" : "#e5e7eb" }}>
                       {active ? "En proceso" : done ? "Finalizado" : "Pendiente"}
@@ -533,21 +521,15 @@ const ProductionDetailsPage = () => {
           {/* Progress bar + % */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
             <div style={{ flex: 1, background: "#f3f4f6", borderRadius: 99, height: 4 }}>
-              <div style={{ width: `${progressPercent}%`, height: 4, background: "#E91E8C", borderRadius: 99, transition: "width 0.4s ease" }} />
+              <div style={{ width: `${progressPercent}%`, height: 4, background: "#FF4FD6", borderRadius: 99, transition: "width 0.4s ease" }} />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: "#E91E8C", flexShrink: 0 }}>{progressPercent}%</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: "#FF4FD6", flexShrink: 0 }}>{progressPercent}%</span>
           </div>
 
           {fichaBloquea && (
             <div style={{ background: "#fffbeb", border: "1px solid #fbbf24", borderRadius: 9, padding: "7px 12px", marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 13 }}>⚠️</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e" }}>Crea la ficha técnica para poder avanzar al siguiente paso</span>
-            </div>
-          )}
-          {isOnFichaStep && !hasTechSheet && isDiseno && (
-            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 9, padding: "7px 12px", marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 13 }}>ℹ️</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#1e40af" }}>Esta orden fue creada desde diseño. Puedes crear la ficha técnica o continuar sin ella.</span>
             </div>
           )}
         </div>
@@ -566,11 +548,11 @@ const ProductionDetailsPage = () => {
               width: 96, height: 120, borderRadius: 10, flexShrink: 0, overflow: "hidden",
               background: "linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 14px rgba(233,30,140,0.12)"
+              boxShadow: "0 4px 14px rgba(255,79,214,0.15)"
             }}>
               {production.imageUrl
                 ? <img src={production.imageUrl} alt={production.producto} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E91E8C" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
+                : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
                     <circle cx="12" cy="7" r="3" /><path d="M8 21v-2a4 4 0 018 0v2" /><path d="M5 21h14" />
                   </svg>
               }
@@ -686,7 +668,7 @@ const ProductionDetailsPage = () => {
                   <strong style={{ color: "#6b7280" }}>{(production.details || []).length}</strong> refs
                 </span>
                 <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                  Total: <strong style={{ color: "#E91E8C" }}>{totalUnidades.toLocaleString("es-CO")} uds</strong>
+                  Total: <strong style={{ color: "#FF4FD6" }}>{totalUnidades.toLocaleString("es-CO")} uds</strong>
                 </span>
               </div>
             )}

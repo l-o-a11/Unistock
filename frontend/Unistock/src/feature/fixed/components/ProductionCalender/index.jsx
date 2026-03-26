@@ -32,7 +32,7 @@ const EVENT_TYPES = {
   diseno:     { label: "Diseño / Ficha",         color: "#7c3aed", bg: "#faf5ff", border: "#c4b5fd", dot: "#7c3aed" },
   corte:      { label: "Corte",                  color: "#0891b2", bg: "#ecfeff", border: "#67e8f9", dot: "#0891b2" },
   calidad:    { label: "Compras / Calidad",      color: "#d97706", bg: "#fffbeb", border: "#fcd34d", dot: "#d97706" },
-  produccion: { label: "En producción",          color: "#E91E8C", bg: "#fdf2f8", border: "#f9a8d4", dot: "#E91E8C" },
+  produccion: { label: "En producción",          color: "#ec4899", bg: "#fdf2f8", border: "#f9a8d4", dot: "#ec4899" },
   transporte: { label: "Transporte / Recepción", color: "#0d9488", bg: "#f0fdfa", border: "#5eead4", dot: "#0d9488" },
   entrega:    { label: "Fecha de entrega",        color: "#16a34a", bg: "#f0fdf4", border: "#86efac", dot: "#16a34a" },
 };
@@ -647,9 +647,9 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 12, border: "none",
                     // Color único sin gradiente
-                    background: "#E91E8C",
+                    background: "#FF4FD6",
                     color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(233,30,140,0.3)",
+                    boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}
                 >
@@ -789,7 +789,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                         onKeyDown={e => e.key === "Enter" && field === "title" && addEvent()}
                         placeholder={placeholder}
                         style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #e5e7eb", borderRadius: 10, fontSize: 13, outline: "none", boxSizing: "border-box" }}
-                        onFocus={e => (e.target.style.borderColor = "#E91E8C")}
+                        onFocus={e => (e.target.style.borderColor = "#ec4899")}
                         onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
                       />
                     )}
@@ -813,7 +813,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                 <button onClick={addEvent} disabled={!newEvent.title.trim()}
                   style={{
                     flex: 2, padding: "10px", borderRadius: 12, border: "none",
-                    background: newEvent.title.trim() ? "linear-gradient(135deg,#E91E8C,#d946ef)" : "#f3f4f6",
+                    background: newEvent.title.trim() ? "linear-gradient(135deg,#ec4899,#d946ef)" : "#f3f4f6",
                     color: newEvent.title.trim() ? "#fff" : "#9ca3af",
                     fontSize: 13, fontWeight: 700, cursor: newEvent.title.trim() ? "pointer" : "not-allowed",
                     boxShadow: newEvent.title.trim() ? "0 4px 12px rgba(236,72,153,0.3)" : "none",
@@ -851,7 +851,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                 transition: "all 0.15s", flexShrink: 0,
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "#E91E8C";
+                e.currentTarget.style.borderColor = "#ec4899";
                 e.currentTarget.style.background = "#fdf2f8";
               }}
               onMouseLeave={e => {
@@ -867,7 +867,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
 
             <div style={{
               width: 44, height: 44, borderRadius: 12,
-              background: "linear-gradient(135deg,#E91E8C,#c026d3)",
+              background: "linear-gradient(135deg,#FF4FD6,#c026d3)",
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: "0 4px 12px rgba(255,79,214,0.35)",
             }}>
@@ -907,7 +907,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                   onKeyDown={handleSearchKeyDown}
                   placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar..."}
                   style={{ paddingLeft: 28, paddingRight: search ? 26 : 10, paddingTop: 7, paddingBottom: 7, border: "none", fontSize: 12, outline: "none", width: 155, background: "transparent" }}
-                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#E91E8C")}
+                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#FF4FD6")}
                   onBlur={e => (e.target.parentElement.parentElement.style.borderColor = "#e5e7eb")}
                 />
                 {search && (
@@ -922,7 +922,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                 <button key={v} onClick={() => setViewMode(v)}
                   style={{
                     padding: "7px 14px", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
-                    background: viewMode === v ? "#E91E8C" : "#fff",
+                    background: viewMode === v ? "#ec4899" : "#fff",
                     color: viewMode === v ? "#fff" : "#6b7280",
                     transition: "all 0.15s",
                   }}>
@@ -980,7 +980,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
             style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = "#E91E8C"}
+            onMouseEnter={e => e.currentTarget.style.borderColor = "#ec4899"}
             onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}>
             <svg width="13" height="13" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
           </button>
@@ -989,7 +989,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
           </h3>
           <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
             style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = "#E91E8C"}
+            onMouseEnter={e => e.currentTarget.style.borderColor = "#ec4899"}
             onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}>
             <svg width="13" height="13" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
           </button>
@@ -1002,9 +1002,9 @@ export default function ProduccionCalendario({ productions: productionsProp = []
               onClick={() => setFilterType("Todos")}
               style={{
                 padding: "4px 10px", borderRadius: 20, border: "1px solid",
-                borderColor: filterType === "Todos" ? "#E91E8C" : "#e5e7eb",
+                borderColor: filterType === "Todos" ? "#ec4899" : "#e5e7eb",
                 background: filterType === "Todos" ? "#fdf2f8" : "#fff",
-                color: filterType === "Todos" ? "#E91E8C" : "#9ca3af",
+                color: filterType === "Todos" ? "#ec4899" : "#9ca3af",
                 fontSize: 10, fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
               }}>
               Todos
@@ -1046,7 +1046,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
               <div key={d} style={{
                 textAlign: "center", padding: "10px 0",
                 fontSize: 11, fontWeight: 700,
-                color: i >= 5 ? "#E91E8C" : "#9ca3af",
+                color: i >= 5 ? "#ec4899" : "#9ca3af",
                 background: "#fafafa",
               }}>
                 {d}
@@ -1082,8 +1082,8 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                               <span style={{
                                 display: "inline-flex", alignItems: "center", justifyContent: "center",
                                 width: 24, height: 24, borderRadius: "50%",
-                                background: todayD ? "#E91E8C" : "transparent",
-                                color: todayD ? "#fff" : isWeekend ? "#E91E8C" : "#374151",
+                                background: todayD ? "#ec4899" : "transparent",
+                                color: todayD ? "#fff" : isWeekend ? "#ec4899" : "#374151",
                                 fontSize: 12, fontWeight: todayD ? 800 : 500,
                               }}>
                                 {day}
@@ -1116,7 +1116,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                                 );
                               })}
                               {dayEvs.length > 2 && (
-                                <span style={{ fontSize: 9, color: "#E91E8C", fontWeight: 700, paddingLeft: 6 }}>
+                                <span style={{ fontSize: 9, color: "#ec4899", fontWeight: 700, paddingLeft: 6 }}>
                                   +{dayEvs.length - 2} más
                                 </span>
                               )}
@@ -1159,7 +1159,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                           <span style={{
                             display: "inline-flex", alignItems: "center", justifyContent: "center",
                             width: 30, height: 30, borderRadius: "50%",
-                            background: todayD ? "#E91E8C" : "transparent",
+                            background: todayD ? "#ec4899" : "transparent",
                             color: todayD ? "#fff" : "#374151",
                             fontSize: 15, fontWeight: todayD ? 800 : 600,
                           }}>

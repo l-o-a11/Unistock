@@ -184,8 +184,8 @@ const FC_STYLES = `
   .fc .fc-toolbar { padding: 12px 16px; background: #fff; border-bottom: 1px solid #f0f0f0; margin: 0 !important; }
   .fc .fc-toolbar-title { font-size: 16px !important; font-weight: 800 !important; color: #1f2937; }
   .fc .fc-button-primary { background: #fff !important; border: 1.5px solid #e5e7eb !important; color: #555 !important; border-radius: 8px !important; font-size: 12px !important; font-weight: 700 !important; padding: 6px 12px !important; box-shadow: none !important; transition: all 0.15s !important; }
-  .fc .fc-button-primary:hover { border-color: #E91E8C !important; color: #E91E8C !important; background: #fff0fb !important; }
-  .fc .fc-button-primary:not(:disabled).fc-button-active { background: #E91E8C !important; border-color: #E91E8C !important; color: #fff !important; }
+  .fc .fc-button-primary:hover { border-color: #FF4FD6 !important; color: #FF4FD6 !important; background: #fff0fb !important; }
+  .fc .fc-button-primary:not(:disabled).fc-button-active { background: #FF4FD6 !important; border-color: #FF4FD6 !important; color: #fff !important; }
   .fc .fc-today-button { background: #fdf2f8 !important; border-color: #f9a8d4 !important; color: #ec4899 !important; border-radius: 20px !important; font-size: 11px !important; padding: 4px 12px !important; }
   .fc .fc-col-header-cell-cushion { font-size: 11px !important; font-weight: 700 !important; color: #9ca3af !important; text-transform: uppercase !important; text-decoration: none !important; padding: 10px 0 !important; }
   .fc .fc-col-header-cell { background: #fafafa; border-color: #f0f0f0 !important; }
@@ -528,7 +528,7 @@ const ProductionCalendarPage = () => {
               {event.orderId && (
                 <button
                   onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`); }}
-                  style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', background: '#E91E8C', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 12px rgba(233,30,140,0.3)' }}>
+                  style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', background: '#FF4FD6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 12px rgba(255,79,214,0.3)' }}>
                   Ver orden #{event.orderId} →
                 </button>
               )}
@@ -629,7 +629,7 @@ const ProductionCalendarPage = () => {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setAddModal({ open: false, dateStr: null })} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fff', fontSize: 13, color: '#6b7280', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
                 <button onClick={addEvent} disabled={!newEvent.title.trim()}
-                  style={{ flex: 2, padding: '10px', borderRadius: 12, border: 'none', background: newEvent.title.trim() ? '#E91E8C' : '#f3f4f6', color: newEvent.title.trim() ? '#fff' : '#9ca3af', cursor: newEvent.title.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, boxShadow: newEvent.title.trim() ? '0 4px 12px rgba(233,30,140,0.25)' : 'none' }}>
+                  style={{ flex: 2, padding: '10px', borderRadius: 12, border: 'none', background: newEvent.title.trim() ? '#FF4FD6' : '#f3f4f6', color: newEvent.title.trim() ? '#fff' : '#9ca3af', cursor: newEvent.title.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, boxShadow: newEvent.title.trim() ? '0 4px 12px rgba(255,79,214,0.3)' : 'none' }}>
                   Agregar evento
                 </button>
               </div>

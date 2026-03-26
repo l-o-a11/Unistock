@@ -9,7 +9,7 @@ function AddSuppliersButton({ onClick, label = "Agregar nuevo proveedor" }) {
         alignItems: 'center',
         gap: '8px',
         padding: '10px 20px',
-        backgroundColor: '#E91E8C',
+        backgroundColor: '#FF4FD6',
         color: '#ffffff',
         fontSize: '14px',
         fontWeight: '500',
@@ -19,8 +19,9 @@ function AddSuppliersButton({ onClick, label = "Agregar nuevo proveedor" }) {
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#c9106e'}
-      >
+      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#C9187A'}
+      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FF4FD6'}
+    >
       
       <svg
         width="18"

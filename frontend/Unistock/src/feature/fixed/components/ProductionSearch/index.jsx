@@ -47,7 +47,7 @@ const ProductionSearch = ({ value, onChange, placeholder = "Buscar..." }) => {
           boxSizing: 'border-box',
           transition: 'border-color 0.2s',
         }}
-        onFocus={(e) => (e.target.style.borderColor = '#E91E8C')}
+        onFocus={(e) => (e.target.style.borderColor = '#FF4FD6')}
         onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
       />
     </div>

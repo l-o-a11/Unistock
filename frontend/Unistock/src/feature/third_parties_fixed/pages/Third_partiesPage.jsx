@@ -124,14 +124,14 @@ const Third_partiePage = () => {
         <Third_partieSearch value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por código, nombre, contacto..." />
       </div>
 
-      {/* ── Tabs de navegación — color único #E91E8C, sin gradiente ── */}
+      {/* ── Tabs de navegación — color único #FF4FD6, sin gradiente ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button onClick={() => navigate('/Layout/produccion')}
           style={{ background: '#f3f4f6', color: '#6b7280', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Producciones
         </button>
         <button onClick={() => navigate('/Layout/terceros')}
-          style={{ background: '#E91E8C', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          style={{ background: '#FF4FD6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Terceros
         </button>
       </div>
@@ -158,7 +158,7 @@ const Third_partiePage = () => {
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} style={pgBtn}>‹</button>
               {getPages().map((p, i) => p === '...' ? <span key={i} style={{ padding: '6px 4px' }}>…</span> : (
                 <button key={p} onClick={() => setCurrentPage(p)}
-                  style={{ ...pgBtn, background: p === currentPage ? '#E91E8C' : '#fff', color: p === currentPage ? '#fff' : '#374151', border: `1px solid ${p === currentPage ? '#E91E8C' : '#e5e7eb'}` }}>
+                  style={{ ...pgBtn, background: p === currentPage ? '#FF4FD6' : '#fff', color: p === currentPage ? '#fff' : '#374151', border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}` }}>
                   {p}
                 </button>
               ))}

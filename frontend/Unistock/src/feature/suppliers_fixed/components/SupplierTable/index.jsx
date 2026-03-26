@@ -82,7 +82,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         {/* VER */}
                         <button onClick={(e) => { e.stopPropagation(); onView?.(supplier); }} title="Ver detalle"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5"/><line x1="12" y1="12" x2="12" y2="16"/>
@@ -92,7 +92,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         {/* EDITAR */}
                         <button onClick={(e) => { e.stopPropagation(); onEdit?.(supplier); }} title="Editar proveedor"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

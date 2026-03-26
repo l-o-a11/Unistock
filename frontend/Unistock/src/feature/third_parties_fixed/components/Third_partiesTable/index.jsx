@@ -70,7 +70,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
                       background: isSelected
                         ? "linear-gradient(90deg,#fff0fb,#fce7f3)"
                         : "transparent",
-                      borderLeft: isSelected ? "3px solid #E91E8C" : "3px solid transparent",
+                      borderLeft: isSelected ? "3px solid #FF4FD6" : "3px solid transparent",
                       transition: "all 0.12s",
                     }}
                     onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "#fafafa"; }}
@@ -80,7 +80,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
                     {/* CÓDIGO */}
                     <td style={tdStyle}>
                       <span style={{
-                        fontWeight: 700, color: isSelected ? "#E91E8C" : "#be185d",
+                        fontWeight: 700, color: isSelected ? "#FF4FD6" : "#be185d",
                         background: isSelected ? "#fce7f3" : "#fdf2f8",
                         padding: "3px 8px", borderRadius: 6, fontSize: 12,
                       }}>
@@ -123,7 +123,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
                         {/* Ver detalle */}
                         <button onClick={(e) => { e.stopPropagation(); onView?.(t); }} title="Ver detalle"
                           style={iconBtn}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}>
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -133,7 +133,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
                         {/* Editar */}
                         <button onClick={(e) => { e.stopPropagation(); onEdit?.(t); }} title="Editar"
                           style={iconBtn}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

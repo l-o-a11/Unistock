@@ -125,7 +125,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: 44, height: 26, borderRadius: 7,
                       background: isAnulada ? '#fee2e2' : '#fdf4ff',
-                      color: '#E91E8C',
+                      color: '#FF4FD6',
                       fontSize: 12, fontWeight: 800, letterSpacing: '0.02em',
                     }}>#{prod.orderNumber}</span>
                   </td>
@@ -207,7 +207,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                           color: '#6b7280', cursor: 'pointer', fontSize: 11, fontWeight: 600,
                           transition: 'all 0.15s',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#E91E8C'; e.currentTarget.style.borderColor = '#E91E8C'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
                       >
                         <IconEye />
@@ -243,7 +243,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                           padding: '5px 8px', borderRadius: 7,
                           border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
                           background: isOpen ? '#fffff4' : '#fff',
-                          color: isOpen ? '#E91E8C' : '#6b7280',
+                          color: isOpen ? '#FF4FD6' : '#6b7280',
                           cursor: 'pointer', fontSize: 10, fontWeight: 700,
                           transition: 'all 0.15s',
                         }}
@@ -254,7 +254,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                         {(prod.details || []).length > 0 && (
                           <span style={{
                             minWidth: 16, height: 16, borderRadius: 8,
-                            background: isOpen ? '#E91E8C' : '#e5e7eb',
+                            background: isOpen ? '#FF4FD6' : '#e5e7eb',
                             color: isOpen ? '#fff' : '#6b7280',
                             fontSize: 9, fontWeight: 700,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -281,12 +281,12 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                         borderBottom: '1px solid #f3e8ff',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 4, height: 16, borderRadius: 2, background: '#E91E8C' }} />
+                          <div style={{ width: 4, height: 16, borderRadius: 2, background: '#FF4FD6' }} />
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', letterSpacing: '0.04em' }}>
                             ARTÍCULOS DE LA ORDEN #{prod.orderNumber}
                           </span>
                           <span style={{
-                            fontSize: 10, fontWeight: 700, color: '#E91E8C',
+                            fontSize: 10, fontWeight: 700, color: '#FF4FD6',
                             background: '#fff', border: '1px solid #f5d0fe',
                             padding: '1px 7px', borderRadius: 10,
                           }}>
@@ -306,7 +306,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                             style={{
                               display: 'flex', alignItems: 'center', gap: 5,
                               padding: '5px 12px', borderRadius: 7,
-                              border: 'none', background: '#E91E8C',
+                              border: 'none', background: '#FF4FD6',
                               color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700,
                             }}>
                             <IconEye />

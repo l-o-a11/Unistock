@@ -117,10 +117,10 @@ const TechnicalSheetModal = ({ product, onClose }) => {
                       padding: '6px 12px',
                       borderRadius: '20px',
                       backgroundColor: '#fdf0f7',
-                      border: '1px solid #E91E8C'
+                      border: '1px solid #ff4fd6'
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#E91E8C' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#ff4fd6' }}>
                       Versión {currentVersionObj?.version || 1}
                     </span>
                     <svg
@@ -128,7 +128,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
                       height="16"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#E91E8C"
+                      stroke="#FF4FD6"
                       strokeWidth="2"
                       style={{
                         transform: showVersions ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -171,7 +171,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
                               padding: '10px 16px',
                               cursor: 'pointer',
                               backgroundColor: version.id === currentVersionObj?.id ? '#fdf0f7' : 'transparent',
-                              color: version.id === currentVersionObj?.id ? '#E91E8C' : '#333',
+                              color: version.id === currentVersionObj?.id ? '#ff4fd6' : '#333',
                               borderBottom: '1px solid #f0f0f0',
                               fontSize: '14px'
                             }}
@@ -258,7 +258,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
 const styles = {
   deleteBtn: {
     padding: '10px 32px',
-    backgroundColor: '#E91E8C',
+    backgroundColor: '#ff4fd6',
     border: 'none',
     borderRadius: '8px',
     fontSize: '14px',
