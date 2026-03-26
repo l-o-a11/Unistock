@@ -69,10 +69,10 @@ const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
             disabled={!cantidad || !color}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition
               ${cantidad && color
-                /* Botón Guardar: color único #E91E8C sin gradiente */
+                /* Botón Guardar: color único #FF4FD6 sin gradiente */
                 ? 'text-white hover:opacity-90 shadow-sm'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              style={cantidad && color ? { backgroundColor: '#E91E8C' } : {}}
+              style={cantidad && color ? { backgroundColor: '#FF4FD6' } : {}}
           >
             Guardar
           </button>

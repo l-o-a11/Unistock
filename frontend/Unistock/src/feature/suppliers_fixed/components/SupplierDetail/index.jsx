@@ -49,7 +49,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
           {/* Header */}
           <div
             style={{
-              background: "linear-gradient(135deg, #E91E8C, #FF4FD6)",
+              background: "linear-gradient(135deg, #FF4FD6, #FF4FD6)",
               borderRadius: "12px 12px 0 0",
               padding: "20px 24px",
               display: "flex",
@@ -129,7 +129,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
                 <span style={labelStyle}>Sitio web</span>
                 <p style={valueStyle}>
                   {supplier.sitioWeb || supplier.sitioweb
-                    ? <a href={supplier.sitioWeb || supplier.sitioweb} target="_blank" rel="noreferrer" style={{ color: "#E91E8C" }}>{supplier.sitioWeb || supplier.sitioweb}</a>
+                    ? <a href={supplier.sitioWeb || supplier.sitioweb} target="_blank" rel="noreferrer" style={{ color: "#FF4FD6" }}>{supplier.sitioWeb || supplier.sitioweb}</a>
                     : "—"
                   }
                 </p>
@@ -188,7 +188,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
                 padding: "8px 20px",
                 border: "none",
                 borderRadius: "8px",
-                background: "linear-gradient(135deg, #E91E8C, #FF4FD6)",
+                background: "linear-gradient(135deg, #FF4FD6, #FF4FD6)",
                 color: "#fff",
                 fontSize: "14px",
                 cursor: "pointer",

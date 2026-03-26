@@ -647,9 +647,9 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 12, border: "none",
                     // Color único sin gradiente
-                    background: "#E91E8C",
+                    background: "#FF4FD6",
                     color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(233,30,140,0.3)",
+                    boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}
                 >
@@ -907,7 +907,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                   onKeyDown={handleSearchKeyDown}
                   placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar..."}
                   style={{ paddingLeft: 28, paddingRight: search ? 26 : 10, paddingTop: 7, paddingBottom: 7, border: "none", fontSize: 12, outline: "none", width: 155, background: "transparent" }}
-                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#E91E8C")}
+                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#FF4FD6")}
                   onBlur={e => (e.target.parentElement.parentElement.style.borderColor = "#e5e7eb")}
                 />
                 {search && (

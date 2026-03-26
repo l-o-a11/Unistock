@@ -180,7 +180,7 @@ const ProductionsPage = () => {
       {creatingNewOrder && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 16, padding: '24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ width: 40, height: 40, border: '3px solid #f3f4f6', borderTopColor: '#E91E8C', borderRadius: '50%', animation: 'pSpin 0.7s linear infinite' }} />
+            <div style={{ width: 40, height: 40, border: '3px solid #f3f4f6', borderTopColor: '#FF4FD6', borderRadius: '50%', animation: 'pSpin 0.7s linear infinite' }} />
             <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#374151' }}>Creando orden de reposición...</p>
             <style>{`@keyframes pSpin { to { transform: rotate(360deg); }}`}</style>
           </div>

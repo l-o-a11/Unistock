@@ -128,7 +128,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
                       height="16"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#E91E8C"
+                      stroke="#FF4FD6"
                       strokeWidth="2"
                       style={{
                         transform: showVersions ? 'rotate(180deg)' : 'rotate(0deg)',
