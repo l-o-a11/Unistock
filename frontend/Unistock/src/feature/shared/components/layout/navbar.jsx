@@ -379,7 +379,7 @@ const Navbar = () => {
         isOpen={showLogoutConfirm}
         type="confirm"
         title="Cerrar Sesión"
-        message="¿Seguro que deseas cerrar sesión? Se perderán los cambios."
+        message="¿Seguro que deseas cerrar sesión?"
         onConfirm={confirmarCerrarSesion}
         onCancel={() => setShowLogoutConfirm(false)}
       />
