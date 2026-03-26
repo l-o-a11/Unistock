@@ -15,13 +15,13 @@ const ProductsPage = () => {
   const { products, createProduct, updateProduct, deleteProduct, toggleProduct } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showTechnicalSheet, setShowTechnicalSheet] = useState(false);
   const [selectedProductForSheet, setSelectedProductForSheet] = useState(null);
-  
+
   // Alertas separadas por tipo
   const [successAlert, setSuccessAlert] = useState({
     open: false,
@@ -65,22 +65,22 @@ const ProductsPage = () => {
   // 🔥 FILTRO MEJORADO - busca en TODOS los campos
   const filteredProducts = products.filter(product => {
     const searchLower = searchTerm.toLowerCase();
-    
+
     // Buscar por nombre
-    const matchesName = product.name.toLowerCase().includes(searchLower);
-    
+    const matchesName = product.name?.toLowerCase().includes(searchLower);
+
     // Buscar por referencia
-    const matchesReference = product.reference.toLowerCase().includes(searchLower);
-    
+    const matchesReference = product.reference?.toLowerCase().includes(searchLower);
+
     // Buscar por categoría
-    const matchesCategory = product.category.toLowerCase().includes(searchLower);
-    
+    const matchesCategory = product.category?.toLowerCase().includes(searchLower);
+
     // Buscar por precio (convertir número a string)
     const matchesPrice = product.price?.toString().includes(searchTerm);
-    
+
     // Buscar por stock (convertir número a string)
     const matchesStock = product.stock?.toString().includes(searchTerm);
-    
+
     return matchesName || matchesReference || matchesCategory || matchesPrice || matchesStock;
   });
 
@@ -100,6 +100,10 @@ const ProductsPage = () => {
           title,
           message
         });
+        // Cerrar automáticamente después de 3 segundos
+        setTimeout(() => {
+          setSuccessAlert(prev => ({ ...prev, open: false }));
+        }, 3000);
       }, 50);
     } else if (type === "error") {
       setErrorAlert({ open: false, key: Date.now() });
@@ -110,6 +114,9 @@ const ProductsPage = () => {
           title,
           message
         });
+        setTimeout(() => {
+          setErrorAlert(prev => ({ ...prev, open: false }));
+        }, 3000);
       }, 50);
     } else if (type === "warning") {
       setWarningAlert({ open: false, key: Date.now() });
@@ -120,8 +127,6 @@ const ProductsPage = () => {
           title,
           message
         });
-        
-        // 🔥 FORZAR CIERRE DESPUÉS DE 3 SEGUNDOS
         setTimeout(() => {
           setWarningAlert(prev => ({ ...prev, open: false }));
         }, 3000);
@@ -228,6 +233,19 @@ const ProductsPage = () => {
   };
 
   const handleDeleteClick = (id) => {
+    // Buscar el producto para verificar si tiene dependencias
+    const product = products.find(p => p.id === id);
+
+    // Si tiene una ficha técnica asociada, mostrar advertencia
+    if (product?.technicalSheet) {
+      handleShowAlert({
+        type: "warning",
+        title: "No se puede eliminar",
+        message: `El producto "${product.name}" tiene una ficha técnica asociada. Elimina primero la ficha técnica.`
+      });
+      return;
+    }
+
     setDeleteAlert({
       open: true,
       step: "password",
@@ -235,7 +253,7 @@ const ProductsPage = () => {
       key: Date.now()
     });
   };
-  
+
   const handleDownload = () => {
     try {
       const data = filteredProducts.map(p => ({
@@ -248,7 +266,7 @@ const ProductsPage = () => {
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
-      
+
       const columnWidths = [
         { wch: 15 },
         { wch: 30 },
@@ -264,7 +282,7 @@ const ProductsPage = () => {
 
       const fecha = new Date().toISOString().split('T')[0];
       XLSX.writeFile(workbook, `productos_${fecha}.xlsx`);
-      
+
       handleShowAlert({
         type: "success",
         title: "¡Éxito!",
@@ -340,14 +358,14 @@ const ProductsPage = () => {
   };
 
   return (
-    <div style={{ 
+    <div style={{
       position: 'relative',
       minHeight: '100vh',
       backgroundColor: '#f5f5f5',
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '0', 
-      padding: '24px 32px' 
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0',
+      padding: '24px 32px'
     }}>
 
       <div style={{
@@ -527,7 +545,7 @@ const ProductsPage = () => {
           onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
         />
 
-        {/* Alerta de advertencia - AHORA SE CIERRA AUTOMÁTICAMENTE */}
+        {/* Alerta de advertencia */}
         <Alert
           key={`warning-${warningAlert.key}`}
           isOpen={warningAlert.open}
