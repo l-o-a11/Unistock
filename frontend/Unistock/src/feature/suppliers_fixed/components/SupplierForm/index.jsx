@@ -34,6 +34,14 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
 
   const modalRef = useRef(null);
 
+  // ── Verificar si el NIT está bloqueado (el proveedor ya tiene compras) ──
+  const nitBloqueado = Boolean(supplier) && (() => {
+    try {
+      const compras = JSON.parse(localStorage.getItem("app_shoppings") || "[]");
+      return compras.some((c) => c.proveedorId === supplier.id || c.proveedorId === String(supplier.id));
+    } catch { return false; }
+  })();
+
   // ── Estado del formulario ─────────────────────────────────────────────────
   const [formData, setFormData] = useState({
     nombreEmpresa:  "",
@@ -322,14 +330,23 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
                 />
 
                 {/* NIT — solo dígitos (bloqueado + validado) */}
-                <Input
-                  label="NIT * (solo dígitos, 8-12 caracteres)"
-                  name="nit"
-                  value={formData.nit}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.nit}
-                />
+                <div>
+                  <Input
+                    label={`NIT * (solo dígitos, 8-12 caracteres)${nitBloqueado ? " 🔒" : ""}`}
+                    name="nit"
+                    value={formData.nit}
+                    onChange={nitBloqueado ? undefined : handleChange}
+                    onBlur={nitBloqueado ? undefined : handleBlur}
+                    error={errors.nit}
+                    disabled={nitBloqueado}
+                    style={nitBloqueado ? { backgroundColor: "#f3f4f6", cursor: "not-allowed", color: "#9ca3af" } : {}}
+                  />
+                  {nitBloqueado && (
+                    <p style={{ fontSize: 11, color: "#f59e0b", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                      ⚠️ El NIT no puede editarse porque este proveedor ya tiene compras asociadas.
+                    </p>
+                  )}
+                </div>
 
                 {/* Dirección — texto libre */}
                 <Input

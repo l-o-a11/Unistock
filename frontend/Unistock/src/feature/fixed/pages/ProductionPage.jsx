@@ -19,6 +19,7 @@ import ProductionSearch from '../components/ProductionSearch';
 import AddProductionButton from '../components/AddProductionButton';
 import ProductionForm from '../components/ProductionForm';
 import DamagedProductsModal from '../components/DamagedProductsModal';
+import Alert from '../../shared/components/Alert';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
 
@@ -80,6 +81,8 @@ const ProductionsPage = () => {
   const openCancelModal  = (id) => { setCancelModal({ open: true, id, motivo: '' }); setMotivoError(''); };
   const closeCancelModal = ()   => { setCancelModal({ open: false, id: null, motivo: '' }); setMotivoError(''); };
 
+  const [cancelAlert, setCancelAlert] = useState({ open: false, type: 'success', title: '', message: '' });
+
   const confirmCancel = async () => {
     if (!cancelModal.motivo.trim()) { setMotivoError('El motivo es obligatorio'); return; }
     const prodBefore = (productions || []).find(p => p.id === cancelModal.id);
@@ -87,8 +90,13 @@ const ProductionsPage = () => {
     try {
       const updated = await cancelProduction(cancelModal.id, cancelModal.motivo.trim());
       closeCancelModal();
+      setCancelAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${prodBefore?.orderNumber || ''} fue anulada correctamente.` });
       if (wasDamaged) setDamagedModal({ open: true, production: updated || { ...prodBefore, status: 'Anulada' } });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      closeCancelModal();
+      setCancelAlert({ open: true, type: 'error', title: 'Error al anular', message: 'No se pudo anular la orden. Intenta de nuevo.' });
+    }
   };
 
   // ── Desde dañados: nueva ORDEN ───────────────────────────────────────────
@@ -175,6 +183,16 @@ const ProductionsPage = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f6f6f8', padding: '24px 28px', fontFamily: 'sans-serif' }}>
+
+      {/* Alert anulación éxito/error */}
+      <Alert
+        isOpen={cancelAlert.open}
+        type={cancelAlert.type}
+        title={cancelAlert.title}
+        message={cancelAlert.message}
+        onConfirm={() => setCancelAlert(p => ({ ...p, open: false }))}
+        onCancel={() => setCancelAlert(p => ({ ...p, open: false }))}
+      />
 
       {/* Spinner creando orden */}
       {creatingNewOrder && (
