@@ -130,6 +130,11 @@ const ProductionDetailsPage = () => {
 
   const [globalAlert, setGlobalAlert] = useState({ open: false, type: "success", title: "", message: "" });
 
+  // Imagen del producto terminado / diseño
+  const [showImageModal, setShowImageModal]         = useState(false);
+  const [selectedImageIdx, setSelectedImageIdx]     = useState(0);
+  const [pendingFinishedImg, setPendingFinishedImg] = useState(null); // base64 provisional
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -192,10 +197,56 @@ const ProductionDetailsPage = () => {
   };
 
   const handleProductionAlertConfirm = async (motivo = "") => {
-    const { targetStep, onConfirmOverride } = productionAlert;
+    const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
+
+    // Anular orden
+    if (onConfirmOverride && type === "anular") {
+      try {
+        await onConfirmOverride(motivo);
+        setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente." });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    // Otras acciones con override (anular artículo, etc.)
     if (onConfirmOverride) { onConfirmOverride(motivo); return; }
-    if (targetStep) await applyStepChange(targetStep);
+
+    // Asignar tercero
+    if (type === "third") {
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Tercero asignado", message: `El tercero fue asignado y la orden avanzó a "${targetStep}".` });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al asignar tercero", message: "No se pudo asignar el tercero. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    // Asignar sede — al pasar de Producción solicitar imagen del producto terminado
+    if (type === "assignSede") {
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
+        // Solicitar imagen del producto terminado
+        setTimeout(() => setPendingFinishedImg("request"), 800);
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al asignar sede", message: "No se pudo asignar la sede. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    // Cambio de estado general (advance)
+    if (targetStep) {
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Estado actualizado", message: `La orden avanzó al estado "${targetStep}" correctamente.` });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al cambiar estado", message: "No se pudo actualizar el estado. Intenta de nuevo." });
+      }
+    }
   };
 
   const handleEditConfirm = async (updatedDetail) => {
@@ -247,6 +298,36 @@ const ProductionDetailsPage = () => {
         const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const currentUser = ProductionAPI.getCurrentUser();
         const newDetails = (production.details || []).filter(x => x !== d);
+
+        // Si quedan 0 referencias, preguntar si se desea anular la orden completa
+        if (newDetails.length === 0) {
+          const saved = await ProductionAPI.update(production.id, {
+            ...production, quantity: 0, details: newDetails,
+            techSpecification: recalcCosts(newDetails, production.techSpecification),
+            history: [...(production.history || []), { status: "Artículo anulado", date: today, user: currentUser, motivo: `Ref: ${d.ref} | Color: ${d.color} | Cantidad: ${d.quantity} uds | Ref_corte: ${d.refCorte}` }]
+          });
+          setProduction(saved);
+          setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado. La orden quedó sin referencias.` });
+          // Preguntar si anular la orden completa
+          setTimeout(() => {
+            openProductionAlert({
+              type: "anular",
+              customTitle: "¿Anular orden completa?",
+              customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
+              onConfirmOverride: async (motivo) => {
+                try {
+                  const cancelled = await ProductionAPI.cancel(saved.id, motivo || "Sin referencias");
+                  setProduction(cancelled);
+                  setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
+                } catch {
+                  setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+                }
+              }
+            });
+          }, 800);
+          return;
+        }
+
         const saved = await ProductionAPI.update(production.id, {
           ...production, quantity: newDetails.reduce((s, x) => s + x.quantity, 0), details: newDetails,
           techSpecification: recalcCosts(newDetails, production.techSpecification),
@@ -349,6 +430,111 @@ const ProductionDetailsPage = () => {
                 Guardar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Galería de Imágenes ──────────────────────────────────────── */}
+      {showImageModal && (() => {
+        const designImages = production.designImages || [];
+        const finishedImg  = production.finishedImageUrl || null;
+        const allImages    = finishedImg
+          ? [{ src: finishedImg, label: "Producto terminado" }, ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }))]
+          : designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }));
+        const current = allImages[selectedImageIdx] || allImages[0];
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+            onClick={() => setShowImageModal(false)}>
+            <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}
+              onClick={e => e.stopPropagation()}>
+              {/* Botón cerrar */}
+              <button onClick={() => setShowImageModal(false)}
+                style={{ position: "absolute", top: -36, right: 0, background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+              {/* Imagen principal */}
+              <img src={current?.src} alt={current?.label}
+                style={{ maxWidth: "80vw", maxHeight: "65vh", borderRadius: 12, objectFit: "contain", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }} />
+              <p style={{ color: "#fff", fontSize: 12, fontWeight: 600, margin: 0, background: "rgba(0,0,0,0.45)", padding: "4px 12px", borderRadius: 20 }}>{current?.label}</p>
+              {/* Miniaturas */}
+              {allImages.length > 1 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  {allImages.map((img, i) => (
+                    <div key={i} onClick={() => setSelectedImageIdx(i)}
+                      style={{ width: 52, height: 52, borderRadius: 8, overflow: "hidden", cursor: "pointer", border: i === selectedImageIdx ? "2.5px solid #FF4FD6" : "2px solid rgba(255,255,255,0.3)", transition: "border 0.15s" }}>
+                      <img src={img.src} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Navegación */}
+              {allImages.length > 1 && (
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setSelectedImageIdx(i => (i - 1 + allImages.length) % allImages.length)}
+                    style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>‹ Anterior</button>
+                  <button onClick={() => setSelectedImageIdx(i => (i + 1) % allImages.length)}
+                    style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>Siguiente ›</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Modal Subir Foto Producto Terminado ───────────────────────────── */}
+      {pendingFinishedImg === "request" && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => setPendingFinishedImg(null)}>
+          <div style={{ background: "#fff", borderRadius: 18, padding: "28px 28px 24px", width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: "#fce7f3", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#111827" }}>Foto del producto terminado</p>
+                <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>Opcional — se mostrará en el detalle de la orden</p>
+              </div>
+            </div>
+            <label style={{
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
+              border: "2px dashed #f9a8d4", borderRadius: 12, padding: "24px 16px", cursor: "pointer",
+              background: "#fdf4ff", marginBottom: 16, transition: "border 0.15s",
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#9333ea" }}>Seleccionar imagen</span>
+              <span style={{ fontSize: 11, color: "#9ca3af" }}>JPG, PNG — máx. 5MB</span>
+              <input type="file" accept="image/*" style={{ display: "none" }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = async (ev) => {
+                    const base64 = ev.target.result;
+                    try {
+                      const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+                      const saved = await ProductionAPI.update(production.id, {
+                        ...production,
+                        finishedImageUrl: base64,
+                        history: [...(production.history || []), { status: "Foto producto terminado", date: today, user: ProductionAPI.getCurrentUser(), motivo: null }]
+                      });
+                      setProduction(saved);
+                      setPendingFinishedImg(null);
+                      setGlobalAlert({ open: true, type: "success", title: "Foto guardada", message: "La imagen del producto terminado fue guardada correctamente." });
+                    } catch {
+                      setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar la imagen." });
+                      setPendingFinishedImg(null);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }} />
+            </label>
+            <button onClick={() => setPendingFinishedImg(null)}
+              style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#6b7280", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Omitir por ahora
+            </button>
           </div>
         </div>
       )}
@@ -543,20 +729,66 @@ const ProductionDetailsPage = () => {
 
           {/* Product top section */}
           <div style={{ padding: "18px 20px", display: "flex", gap: 18, alignItems: "flex-start" }}>
-            {/* Image */}
-            <div style={{
-              width: 96, height: 120, borderRadius: 10, flexShrink: 0, overflow: "hidden",
-              background: "linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 14px rgba(255,79,214,0.15)"
-            }}>
-              {production.imageUrl
-                ? <img src={production.imageUrl} alt={production.producto} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
-                    <circle cx="12" cy="7" r="3" /><path d="M8 21v-2a4 4 0 018 0v2" /><path d="M5 21h14" />
-                  </svg>
-              }
-            </div>
+            {/* Image — shows design images OR finished product image */}
+            {(() => {
+              const designImages = production.designImages || [];
+              const finishedImg  = production.finishedImageUrl || null;
+              const allImages    = finishedImg
+                ? [{ src: finishedImg, label: "Producto terminado" }, ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }))]
+                : designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }));
+
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                  {/* Imagen principal */}
+                  <div
+                    onClick={() => { if (allImages.length > 0) { setSelectedImageIdx(0); setShowImageModal(true); } }}
+                    style={{
+                      width: 96, height: 120, borderRadius: 10, overflow: "hidden",
+                      background: "linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 4px 14px rgba(255,79,214,0.15)",
+                      cursor: allImages.length > 0 ? "pointer" : "default",
+                      position: "relative",
+                    }}
+                  >
+                    {allImages.length > 0
+                      ? <img src={allImages[0].src} alt={allImages[0].label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : production.imageUrl
+                        ? <img src={production.imageUrl} alt={production.producto} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
+                            <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                          </svg>
+                    }
+                    {allImages.length > 1 && (
+                      <div style={{ position: "absolute", bottom: 4, right: 4, background: "rgba(0,0,0,0.55)", borderRadius: 6, padding: "1px 5px", fontSize: 9, color: "#fff", fontWeight: 700 }}>
+                        +{allImages.length}
+                      </div>
+                    )}
+                    {allImages.length > 0 && (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.18)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0)"}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" style={{ opacity: 0.9 }}>
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {/* Miniaturas si hay más de 1 */}
+                  {allImages.length > 1 && (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {allImages.slice(1, 4).map((img, i) => (
+                        <div key={i}
+                          onClick={() => { setSelectedImageIdx(i + 1); setShowImageModal(true); }}
+                          style={{ width: 28, height: 28, borderRadius: 5, overflow: "hidden", cursor: "pointer", border: "1.5px solid #f9a8d4" }}>
+                          <img src={img.src} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Info */}
             <div style={{ flex: 1, minWidth: 0 }}>

@@ -295,6 +295,8 @@ export const ProductionAPI = {
       referencia: formData.referencia,
       color: formData.color,
       tipo: formData.tipo,
+      designImages: formData.designImages || [],
+      finishedImageUrl: null,
       details: details.map(d => ({ ...d, status: initialStatus, statusDate: today })),
       history: initialHistory,
       techSpecification: techSpec,
