@@ -1,175 +1,175 @@
 import { useState, useEffect } from "react";
+import { userAPI } from "../services/usersAPI";
 
 const STORAGE_KEY = "app_users";
 
-// Usuarios iniciales — solo se cargan la primera vez que no hay nada en localStorage
-const seedUsers = [
-  {
-    id: 1,
-    tipoDocumento: "CC",
-    numeroDocumento: "856127435",
-    nombreCompleto: "Sofía Osorio Ramírez",
-    correo: "sofia.osorio@gmail.com",
-    rol: "Empleado",
-    sede: "Parque Berrio",
-    estado: true,
-  },
-  {
-    id: 2,
-    tipoDocumento: "CC",
-    numeroDocumento: "684217935",
-    nombreCompleto: "Miguel Ángel Torres",
-    correo: "miguel.torres@gmail.com",
-    rol: "Empleado",
-    sede: "Parque Berrio",
-    estado: true,
-  },
-  {
-    id: 3,
-    tipoDocumento: "CC",
-    numeroDocumento: "1023456789",
-    nombreCompleto: "Laura Marcela Gómez",
-    correo: "laura.gomez@gmail.com",
-    rol: "Administrador",
-    sede: "Parque Berrio",
-    estado: true,
-  },
-];
-
 // ── Helpers de localStorage ────────────────────────────────────────────────
 const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // Si el JSON está corrupto, ignoramos y usamos seed
-  }
-  return null;
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch {
+        // Si el JSON está corrupto, ignoramos y usamos seed
+    }
+    return null;
 };
 
 const saveToStorage = (users) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-  } catch (e) {
-    console.error("No se pudo guardar en localStorage:", e);
-  }
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    } catch (e) {
+        console.error("No se pudo guardar en localStorage:", e);
+    }
 };
 
 // ── Hook principal ─────────────────────────────────────────────────────────
 export const useUsers = () => {
-  // Carga inicial directa — sin useEffect para evitar cascading renders
-  const [users, setUsers] = useState(() => loadFromStorage() ?? seedUsers);
-  const loading = false;
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  // Cada vez que users cambia, persistimos en localStorage
-  useEffect(() => {
-    if (!loading) {
-      saveToStorage(users);
-    }
-  }, [users, loading]);
+    // Carga inicial: desde localStorage o desde API
+    useEffect(() => {
+        const cached = loadFromStorage();
+        if (cached) {
+            setUsers(cached);
+            setLoading(false);
+        } else {
+            loadData();
+        }
+    }, []);
 
-  // ── CRUD ───────────────────────────────────────────────────────────────
+    // Cada vez que users cambia, persistimos en localStorage
+    useEffect(() => {
+        if (!loading) {
+            saveToStorage(users);
+        }
+    }, [users, loading]);
 
-  const createUser = async (userData) => {
-    const exists = users.find(
-      (u) =>
-        u.numeroDocumento === userData.documentNumber ||
-        u.correo === userData.email,
-    );
-    if (exists) {
-      throw new Error("Ya existe un usuario con ese documento o correo");
-    }
-
-    const newUser = {
-      id: Date.now(),
-      tipoDocumento: userData.documentType,
-      numeroDocumento: userData.documentNumber,
-      nombreCompleto: userData.name,
-      correo: userData.email,
-      rol: userData.role,
-      sede: userData.sede,
-      estado: true,
-      ...(userData.password ? { password: userData.password } : {}),
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const data = await userAPI.getAll();
+            // Normalizar campos del seed: rol→rolId, sede→sedeId
+            const normalized = data.map((u) => ({
+                ...u,
+                estado: u.estado ?? true,
+                rolId: u.rolId ?? (typeof u.rol === "number" ? u.rol : parseInt(u.rol)) ?? null,
+                sedeId: u.sedeId ?? (typeof u.sede === "number" ? u.sede : parseInt(u.sede)) ?? null,
+            }));
+            setUsers(normalized);
+        } catch (e) {
+            console.error("Error al cargar usuarios:", e);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    setUsers((prev) => [...prev, newUser]);
-    return newUser;
-  };
+    // ── CRUD ───────────────────────────────────────────────────────────────
 
-  const updateUser = async (id, userData) => {
-    const exists = users.find(
-      (u) =>
-        String(u.id) !== String(id) &&
-        (u.numeroDocumento === userData.documentNumber ||
-          u.correo === userData.email),
-    );
-    if (exists) {
-      throw new Error("Ya existe otro usuario con ese documento o correo");
-    }
+    const createUser = async (userData) => {
+        const exists = users.find(
+            (u) =>
+                u.numeroDocumento === userData.documentNumber ||
+                u.correo === userData.email
+        );
+        if (exists) {
+            throw new Error("Ya existe un usuario con ese documento o correo");
+        }
 
-    setUsers((prev) =>
-      prev.map((u) =>
-        String(u.id) === String(id)
-          ? {
-              ...u,
-              tipoDocumento: userData.documentType,
-              numeroDocumento: userData.documentNumber,
-              nombreCompleto: userData.name,
-              correo: userData.email,
-              rol: userData.role,
-              sede: userData.sede,
+        const newUser = {
+            id: Date.now(),
+            tipoDocumento: userData.documentType,
+            numeroDocumento: userData.documentNumber,
+            nombreCompleto: userData.name,
+            correo: userData.email,
+            rolId: parseInt(userData.role),
+            sedeId: parseInt(userData.sede),
+            password: userData.password || null,
+            estado: true,
+        };
+
+        setUsers((prev) => [...prev, newUser]);
+        return newUser;
+    };
+
+    const updateUser = async (id, userData) => {
+        const exists = users.find(
+            (u) =>
+                String(u.id) !== String(id) &&
+                (
+                    u.numeroDocumento === userData.documentNumber ||
+                    u.correo === userData.email
+                )
+        );
+        if (exists) {
+            throw new Error("Ya existe otro usuario con ese documento o correo");
+        }
+
+        setUsers((prev) =>
+            prev.map((u) =>
+                String(u.id) === String(id)
+                    ? {
+                        ...u,
+                        tipoDocumento: userData.documentType,
+                        numeroDocumento: userData.documentNumber,
+                        nombreCompleto: userData.name,
+                        correo: userData.email,
+                        rolId: parseInt(userData.role),
+                        sedeId: parseInt(userData.sede),
+                    }
+                    : u
+            )
+        );
+    };
+
+    const deleteUser = async (id) => {
+        const userToDelete = users.find((u) => u.id === id);
+        if (!userToDelete) return;
+
+        if (userToDelete.rolId === 2 && userToDelete.estado) {
+            throw new Error("No se puede eliminar un administrador activo");
+        }
+
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+    };
+
+    const toggleUser = (id) => {
+        const userToToggle = users.find((u) => u.id === id);
+        if (!userToToggle) return;
+
+        const isActive = userToToggle.estado !== false;
+
+        // Proteger al único administrador activo — usa rolId: 2
+        if (userToToggle.rolId === 2 && isActive) {
+            const activeAdmins = users.filter(
+                (u) => u.rolId === 2 && u.estado !== false
+            );
+            if (activeAdmins.length <= 1) {
+                throw new Error("No se puede desactivar el único administrador activo");
             }
-          : u,
-      ),
-    );
-  };
+        }
 
-  const deleteUser = async (id) => {
-    const userToDelete = users.find((u) => u.id === id);
-    if (!userToDelete) return;
+        setUsers((prev) =>
+            prev.map((u) =>
+                u.id === id ? { ...u, estado: !u.estado } : u
+            )
+        );
+    };
 
-    if (userToDelete.rol === "Administrador" && userToDelete.estado) {
-      throw new Error("No se puede eliminar un administrador activo");
-    }
+    const resetUsers = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        loadData();
+    };
 
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-  };
-
-  const toggleUser = (id) => {
-    const userToToggle = users.find((u) => u.id === id);
-    if (!userToToggle) return;
-
-    const isActive = userToToggle.estado !== false;
-
-    if (userToToggle.rol === "Administrador" && isActive) {
-      const activeAdmins = users.filter(
-        (u) => u.rol === "Administrador" && u.estado !== false,
-      );
-      if (activeAdmins.length <= 1) {
-        throw new Error("No se puede desactivar el único administrador activo");
-      }
-    }
-
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, estado: !u.estado } : u)),
-    );
-  };
-
-  // Util: resetear al seed original (útil para desarrollo/testing)
-  const resetUsers = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setUsers(seedUsers);
-  };
-
-  return {
-    users,
-    loading,
-    createUser,
-    updateUser,
-    deleteUser,
-    toggleUser,
-    resetUsers,
-  };
+    return {
+        users,
+        loading,
+        createUser,
+        updateUser,
+        deleteUser,
+        toggleUser,
+        resetUsers,
+    };
 };
 
 export default useUsers;

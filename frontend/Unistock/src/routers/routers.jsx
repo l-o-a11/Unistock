@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../feature/auth/pages/LoginPage.jsx";
 import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
 import AppLayout from "../layout/AppLayout.jsx";
+import PrivateRoute from "../feature/shared/PrivateRoute.jsx";
 
 // Roles
 import RolesPage from "../feature/roles/pages/RolesPage";
@@ -13,18 +14,17 @@ import EditRolPage from "../feature/roles/pages/EditRolPage.jsx";
 // Insumos
 import SuppliesPage from "../feature/supplies/pages/SuppliesPage.jsx";
 
-
 // Categorías
 import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
 import CategoriesSupplyPage from "../feature/categoriesSupply/pages/CategoriesSupplyPage.jsx";
 
 // Productos
 import ProductsPage from "../feature/products/pages/ProductsPage.jsx";
- 
+
 // Proveedores
 import SuppliersPage from "../feature/suppliers_fixed/pages/SuppliersPage.jsx";
-//compras
 
+// Compras
 import ShoppingsPage from "../feature/shopping/pages/ShoppingsPage.jsx";
 
 // Terceros
@@ -39,75 +39,105 @@ import ProductForm from "../feature/fixed/components/ProductionForm/index.jsx";
 import ProductionDetailsPage from "../feature/fixed/productionDetails/pages/ProductionDetailsPage.jsx";
 import ProductionCalendarPage from "../feature/fixed/components/ProductionCalender";
 
-
 // Empleados
 import EmployeesPage from "../feature/employees/pages/EmployeesPage.jsx";
 
 // Perfil
 import ProfilePage from "../feature/auth/pages/ProfilePage.jsx";
 
-//Sedes
+// Sedes
 import SedesPage from "../feature/sedes/pages/sedesPage.jsx";
 
 export function RouterApp() {
   return (
     <Routes>
 
-      {/* Login */}
+      {/* Login — público */}
       <Route path="/" element={<Login />} />
 
-      {/* Layout principal */}
-      <Route path="/layout" element={<AppLayout />}>
-
-        {/* Dashboard */}
+      {/* Layout principal — requiere sesión */}
+      <Route path="/layout" element={
+        <PrivateRoute>
+          <AppLayout />
+        </PrivateRoute>
+      }>
         <Route index element={<ProductionDashboard />} />
         <Route path="dashboard" element={<ProductionDashboard />} />
 
-        {/* Roles */}
-        <Route path="roles" element={<RolesPage />} />
-        <Route path="roles/crear" element={<CreateRolPage />} />
-        <Route path="roles/editar/:id" element={<EditRolPage />} />
+        {/* Usuarios */}
+        <Route path="usuarios" element={
+          <PrivateRoute modulo="usuarios"><UsersPage /></PrivateRoute>
+        } />
 
-        {/* Categorías productos */}
-        <Route path="categorias" element={<CategoriesPage />} />
+        {/* Roles / Configuración */}
+        <Route path="roles" element={
+          <PrivateRoute modulo="roles"><RolesPage /></PrivateRoute>
+        } />
+        <Route path="roles/crear" element={
+          <PrivateRoute modulo="roles"><CreateRolPage /></PrivateRoute>
+        } />
+        <Route path="roles/editar/:id" element={
+          <PrivateRoute modulo="roles"><EditRolPage /></PrivateRoute>
+        } />
 
-        {/* Categorías insumos */}
-        <Route path="categorias-insumos" element={<CategoriesSupplyPage />} />
+        {/* Sedes */}
+        <Route path="sedes" element={
+          <PrivateRoute modulo="sedes"><SedesPage /></PrivateRoute>
+        } />
 
         {/* Insumos */}
-        <Route path="insumos" element={<SuppliesPage />} />
-
-        {/* Productos */}
-        <Route path="productos" element={<ProductsPage />} />
+        <Route path="insumos" element={
+          <PrivateRoute modulo="insumos"><SuppliesPage /></PrivateRoute>
+        } />
+        <Route path="categorias-insumos" element={
+          <PrivateRoute modulo="categorias-insumos"><CategoriesSupplyPage /></PrivateRoute>
+        } />
 
         {/* Proveedores */}
-        <Route path="proveedores" element={<SuppliersPage />} />
+        <Route path="proveedores" element={
+          <PrivateRoute modulo="proveedores"><SuppliersPage /></PrivateRoute>
+        } />
 
         {/* Compras */}
-        <Route path="compras" element={<ShoppingsPage />} />
+        <Route path="compras" element={
+          <PrivateRoute modulo="compras"><ShoppingsPage /></PrivateRoute>
+        } />
 
-        {/* Producciones */}
-        <Route path="produccion" element={<ProductionsPage />} />
-        <Route path="produccion/detalle/:id" element={<ProductionDetailsPage />} />
-        <Route path="/layout/produccion/calendario" element={<ProductionCalendarPage />} />
-        {/* Crear ficha técnica */}
-        <Route path="productos/crear" element={<ProductForm />} />
+        {/* Productos */}
+        <Route path="productos" element={
+          <PrivateRoute modulo="productos"><ProductsPage /></PrivateRoute>
+        } />
+        <Route path="categorias" element={
+          <PrivateRoute modulo="categorias"><CategoriesPage /></PrivateRoute>
+        } />
+        <Route path="productos/crear" element={
+          <PrivateRoute modulo="productos"><ProductForm /></PrivateRoute>
+        } />
+
+        {/* Producción */}
+        <Route path="produccion" element={
+          <PrivateRoute modulo="produccion"><ProductionsPage /></PrivateRoute>
+        } />
+        <Route path="produccion/detalle/:id" element={
+          <PrivateRoute modulo="produccion"><ProductionDetailsPage /></PrivateRoute>
+        } />
+        <Route path="/layout/produccion/calendario" element={
+          <PrivateRoute modulo="produccion"><ProductionCalendarPage /></PrivateRoute>
+        } />
 
         {/* Terceros */}
-        <Route path="terceros" element={<ThirdPartiesPage />} />
-
-        {/* Usuarios */}
-        <Route path="usuarios" element={<UsersPage />} />
+        <Route path="terceros" element={
+          <PrivateRoute modulo="terceros"><ThirdPartiesPage /></PrivateRoute>
+        } />
 
         {/* Empleados */}
-        <Route path="empleados" element={<EmployeesPage />} />
+        <Route path="empleados" element={
+          <PrivateRoute modulo="empleados"><EmployeesPage /></PrivateRoute>
+        } />
 
-        {/* Perfil */}
+        {/* Perfil — siempre accesible */}
         <Route path="perfil" element={<ProfilePage />} />
 
-
-         {/* sedes */}
-         <Route path="sedes" element={<SedesPage />} />
       </Route>
 
       {/* 404 */}
