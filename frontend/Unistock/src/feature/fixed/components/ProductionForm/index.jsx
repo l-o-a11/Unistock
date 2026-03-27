@@ -104,6 +104,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [loadingSheet,  setLoadingSheet] = useState(false);
   const [savedColors,   setSavedColors]  = useState([]);
   const [savedClients,  setSavedClients] = useState([]);
+  const [designImages,  setDesignImages] = useState([]); // base64 strings para tipo diseño
 
   const [formData, setFormData] = useState({
     referencia:     initialData?.referencia     || '',
@@ -215,6 +216,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     onSubmit({
       tipo: type, ...formData, referencias: extraRefs,
       techSheet: type === 'diseno' ? techSheetData : null,
+      designImages: type === 'diseno' ? designImages : [],
       ...(damageNotice ? { fromDamaged: true, originalOrderNumber: damageNotice.originalOrderNumber } : {}),
     });
     setShowConfirm(false);
@@ -396,14 +398,61 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               )}
 
               {type === 'diseno' && (
-                <div style={{ background: '#fdf4ff', border: '1.5px dashed #e879f9', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 700, color: '#9333ea' }}>Ficha técnica</p>
-                      <p style={{ margin: 0, fontSize: 11, color: '#a78bfa' }}>{techSheetData ? '✓ Ficha técnica creada' : 'Opcional: crea la ficha del nuevo diseño'}</p>
+                <div style={{ background: '#fdf4ff', border: '1.5px dashed #e879f9', borderRadius: 10, padding: '14px', marginBottom: 14 }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#9333ea' }}>
+                    📸 Imágenes del diseño
+                    <span style={{ fontWeight: 400, color: '#a78bfa', marginLeft: 6 }}>— Sube bocetos o referencias visuales (opcional)</span>
+                  </p>
+
+                  {/* Miniaturas de imágenes ya cargadas */}
+                  {designImages.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      {designImages.map((src, i) => (
+                        <div key={i} style={{ position: 'relative', width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: '2px solid #f0abfc' }}>
+                          <img src={src} alt={`Diseño ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button
+                            type="button"
+                            onClick={() => setDesignImages(prev => prev.filter((_, idx) => idx !== i))}
+                            style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                            ×
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <Button variant="primary" type="button" onClick={() => setShowTechSheet(true)}>{techSheetData ? 'Ver / Editar' : 'Crear ficha técnica'}</Button>
-                  </div>
+                  )}
+
+                  {/* Botón subir */}
+                  <label style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '8px 16px', borderRadius: 9,
+                    border: '1.5px solid #e879f9', background: '#fff',
+                    color: '#9333ea', fontWeight: 700, fontSize: 12,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    {designImages.length > 0 ? 'Agregar más imágenes' : 'Subir imágenes del diseño'}
+                    <input
+                      type="file" accept="image/*" multiple style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        files.forEach(file => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setDesignImages(prev => [...prev, ev.target.result]);
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  {designImages.length > 0 && (
+                    <span style={{ marginLeft: 10, fontSize: 11, color: '#9ca3af' }}>
+                      {designImages.length} imagen{designImages.length !== 1 ? 'es' : ''} seleccionada{designImages.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
               )}
 
