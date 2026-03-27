@@ -78,6 +78,19 @@ const resolveSedeId = (user) => {
   return null;
 };
 
+// ── Usuario de emergencia ──────────────────────────────────────────────────
+// Siempre disponible, independiente del localStorage.
+// Usar para recuperar acceso cuando los datos se pierdan o corrompan.
+const EMERGENCY_USER = {
+  id: "emergency-1",
+  nombreCompleto: "Admin Emergencia",
+  correo: "admin@admin.com",
+  password: "Admin123",
+  rolId: 1,   // Gerente — acceso total
+  sedeId: 1,
+  estado: true,
+};
+
 // ── API ────────────────────────────────────────────────────────────────────
 export const AuthAPI = {
 /**
@@ -107,6 +120,27 @@ export const AuthAPI = {
   login: async ({ username, password }) => {
     if (!username || !password)
       throw new Error("Por favor completa todos los campos.");
+
+    // Primero verificar el usuario de emergencia (siempre disponible)
+    const isEmergency =
+      username.toLowerCase() === EMERGENCY_USER.correo.toLowerCase() ||
+      username.toLowerCase() === EMERGENCY_USER.nombreCompleto.toLowerCase();
+
+    if (isEmergency) {
+      if (password !== EMERGENCY_USER.password)
+        throw new Error("Contraseña incorrecta.");
+      localStorage.setItem(
+        "session_user",
+        JSON.stringify({
+          id:     EMERGENCY_USER.id,
+          nombre: EMERGENCY_USER.nombreCompleto,
+          correo: EMERGENCY_USER.correo,
+          rolId:  EMERGENCY_USER.rolId,
+          sedeId: EMERGENCY_USER.sedeId,
+        }),
+      );
+      return { user: { ...EMERGENCY_USER } };
+    }
 
     const users = getStoredUsers();
 

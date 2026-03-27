@@ -123,14 +123,21 @@ export const useUsers = () => {
     };
 
     const deleteUser = async (id) => {
-        const userToDelete = users.find((u) => u.id === id);
+        const userToDelete = users.find((u) => String(u.id) === String(id));
         if (!userToDelete) return;
 
-        if (userToDelete.rolId === 2 && userToDelete.estado) {
-            throw new Error("No se puede eliminar un administrador activo");
+        // Se puede eliminar sin importar si está activo o inactivo
+        // Solo se protege al único administrador activo
+        if (userToDelete.rolId === 2) {
+            const activeAdmins = users.filter(
+                (u) => u.rolId === 2 && u.estado !== false
+            );
+            if (activeAdmins.length <= 1 && userToDelete.estado !== false) {
+                throw new Error("No se puede eliminar el único administrador activo");
+            }
         }
 
-        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setUsers((prev) => prev.filter((u) => String(u.id) !== String(id)));
     };
 
     const toggleUser = (id) => {

@@ -12,7 +12,17 @@ const mockUsers = [
         sede: 1,
         estado: true
     },
-    
+    {
+        id: '2',
+        tipoDocumento: 'CC',
+        numeroDocumento: '1000000001',
+        nombreCompleto: 'Admin General',
+        correo: 'admin@admin.com',
+        password: 'admin123',
+        rol: 2,        // Administrador — rolId 2
+        sede: 1,
+        estado: true
+    },
 ];
 
 export const userAPI = {
