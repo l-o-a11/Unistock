@@ -38,15 +38,19 @@ const Third_partiePage = () => {
   const filtered = useMemo(() => {
     if (!searchTerm.trim()) return Third_parties;
     const q = searchTerm.toLowerCase();
-    return Third_parties.filter(t =>
-      t.codigo?.toLowerCase().includes(q) ||
-      t.nombreEmpresa?.toLowerCase().includes(q) ||
-      t.nombreContacto?.toLowerCase().includes(q) ||
-      t.nit?.toString().includes(q) ||
-      t.telefono?.toString().includes(q) ||
-      t.email?.toLowerCase().includes(q) ||
-      t.correo?.toLowerCase().includes(q)
-    );
+    return Third_parties.filter(t => {
+      const estadoLabel = t.estado === true ? "activo" : t.estado === false ? "inactivo" : "";
+      return (
+        t.codigo?.toLowerCase().includes(q) ||
+        t.nombreEmpresa?.toLowerCase().includes(q) ||
+        t.nombreContacto?.toLowerCase().includes(q) ||
+        t.nit?.toString().includes(q) ||
+        t.telefono?.toString().includes(q) ||
+        t.email?.toLowerCase().includes(q) ||
+        t.correo?.toLowerCase().includes(q) ||
+        estadoLabel.includes(q)
+      );
+    });
   }, [Third_parties, searchTerm]);
 
   const ITEMS = 7;

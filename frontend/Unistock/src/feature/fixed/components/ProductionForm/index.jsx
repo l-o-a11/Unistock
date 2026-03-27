@@ -49,7 +49,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {} }) => (
       <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
       <input
         type="text" inputMode="numeric" value={data.cantidad}
-        onChange={e => { if (!blockInput.onlyNumbers(e)) return; onChange(index, 'cantidad', e.target.value); }}
+        onChange={e => { if (!blockInput.onlyNumbers(e)) return; if (e.target.value === "0") return; onChange(index, 'cantidad', e.target.value); }}
         style={getInputStyle(errors.cantidad)} placeholder="Ej: 100"
       />
       {errors.cantidad && <span style={errMsg}>{errors.cantidad}</span>}
@@ -339,7 +339,11 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   <input
                     name="cantidad" type="text" inputMode="numeric"
                     value={formData.cantidad}
-                    onChange={e => { if (!blockInput.onlyNumbers(e)) return; handleChange(e); }}
+                    onChange={e => {
+                      if (!blockInput.onlyNumbers(e)) return;
+                      if (e.target.value === "0") return; // no permitir 0
+                      handleChange(e);
+                    }}
                     style={getInputStyle(errors.cantidad)} placeholder="Ej: 100"
                   />
                   {errors.cantidad && <span style={errMsg}>⚠ {errors.cantidad}</span>}

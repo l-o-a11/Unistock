@@ -192,10 +192,54 @@ const ProductionDetailsPage = () => {
   };
 
   const handleProductionAlertConfirm = async (motivo = "") => {
-    const { targetStep, onConfirmOverride } = productionAlert;
+    const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
+
+    // Anular orden
+    if (onConfirmOverride && type === "anular") {
+      try {
+        await onConfirmOverride(motivo);
+        setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente." });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    // Otras acciones con override (anular artículo, etc.)
     if (onConfirmOverride) { onConfirmOverride(motivo); return; }
-    if (targetStep) await applyStepChange(targetStep);
+
+    // Asignar tercero
+    if (type === "third") {
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Tercero asignado", message: `El tercero fue asignado y la orden avanzó a "${targetStep}".` });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al asignar tercero", message: "No se pudo asignar el tercero. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    // Asignar sede
+    if (type === "assignSede") {
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al asignar sede", message: "No se pudo asignar la sede. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    // Cambio de estado general (advance)
+    if (targetStep) {
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Estado actualizado", message: `La orden avanzó al estado "${targetStep}" correctamente.` });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al cambiar estado", message: "No se pudo actualizar el estado. Intenta de nuevo." });
+      }
+    }
   };
 
   const handleEditConfirm = async (updatedDetail) => {
