@@ -15,13 +15,13 @@ const ProductsPage = () => {
   const { products, createProduct, updateProduct, deleteProduct, toggleProduct } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
-
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showTechnicalSheet, setShowTechnicalSheet] = useState(false);
   const [selectedProductForSheet, setSelectedProductForSheet] = useState(null);
-
+  
   // Alertas separadas por tipo
   const [successAlert, setSuccessAlert] = useState({
     open: false,
@@ -62,26 +62,47 @@ const ProductsPage = () => {
     key: Date.now()
   });
 
-  // 🔥 FILTRO MEJORADO - busca en TODOS los campos
+  // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
   const filteredProducts = products.filter(product => {
-    const searchLower = searchTerm.toLowerCase();
-
-    // Buscar por nombre
-    const matchesName = product.name?.toLowerCase().includes(searchLower);
-
-    // Buscar por referencia
-    const matchesReference = product.reference?.toLowerCase().includes(searchLower);
-
-    // Buscar por categoría
-    const matchesCategory = product.category?.toLowerCase().includes(searchLower);
-
-    // Buscar por precio (convertir número a string)
-    const matchesPrice = product.price?.toString().includes(searchTerm);
-
-    // Buscar por stock (convertir número a string)
-    const matchesStock = product.stock?.toString().includes(searchTerm);
-
-    return matchesName || matchesReference || matchesCategory || matchesPrice || matchesStock;
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Si no hay término de búsqueda, mostrar todos
+    if (!searchLower) return true;
+    
+    // 🔥 BUSCAR POR ESTADO - BÚSQUEDA EXACTA
+    const estaActivo = product.active !== false;
+    
+    // Verificar si el término de búsqueda coincide con "activo" o sus variantes
+    const esBusquedaActivo = searchLower === "activo" || searchLower === "act" || searchLower === "acti" || searchLower === "activ";
+    const esBusquedaInactivo = searchLower === "inactivo" || searchLower === "inac" || searchLower === "inact" || searchLower === "inacti";
+    
+    // Si está buscando activo y el producto está activo
+    if (esBusquedaActivo && estaActivo) {
+      return true;
+    }
+    // Si está buscando inactivo y el producto está inactivo
+    if (esBusquedaInactivo && !estaActivo) {
+      return true;
+    }
+    
+    // Si NO está buscando por estado, buscar en los demás campos
+    if (!esBusquedaActivo && !esBusquedaInactivo) {
+      // Buscar por nombre
+      const matchesName = product.name?.toLowerCase().includes(searchLower);
+      // Buscar por referencia
+      const matchesReference = product.reference?.toLowerCase().includes(searchLower);
+      // Buscar por categoría
+      const matchesCategory = product.category?.toLowerCase().includes(searchLower);
+      // Buscar por precio (convertir número a string)
+      const matchesPrice = product.price?.toString().includes(searchTerm);
+      // Buscar por stock (convertir número a string)
+      const matchesStock = product.stock?.toString().includes(searchTerm);
+      
+      return matchesName || matchesReference || matchesCategory || matchesPrice || matchesStock;
+    }
+    
+    // Si es búsqueda de estado pero no coincide con el estado del producto
+    return false;
   });
 
   const itemsPerPage = 7;
@@ -100,7 +121,6 @@ const ProductsPage = () => {
           title,
           message
         });
-        // Cerrar automáticamente después de 3 segundos
         setTimeout(() => {
           setSuccessAlert(prev => ({ ...prev, open: false }));
         }, 3000);
@@ -233,10 +253,8 @@ const ProductsPage = () => {
   };
 
   const handleDeleteClick = (id) => {
-    // Buscar el producto para verificar si tiene dependencias
     const product = products.find(p => p.id === id);
-
-    // Si tiene una ficha técnica asociada, mostrar advertencia
+    
     if (product?.technicalSheet) {
       handleShowAlert({
         type: "warning",
@@ -245,7 +263,7 @@ const ProductsPage = () => {
       });
       return;
     }
-
+    
     setDeleteAlert({
       open: true,
       step: "password",
@@ -253,7 +271,7 @@ const ProductsPage = () => {
       key: Date.now()
     });
   };
-
+  
   const handleDownload = () => {
     try {
       const data = filteredProducts.map(p => ({
@@ -262,11 +280,11 @@ const ProductsPage = () => {
         'Categoría': p.category,
         'Precio': p.price,
         'Stock': p.stock,
-        'Estado': p.active ? 'Activo' : 'Inactivo'
+        'Estado': p.active !== false ? 'Activo' : 'Inactivo'
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
-
+      
       const columnWidths = [
         { wch: 15 },
         { wch: 30 },
@@ -282,7 +300,7 @@ const ProductsPage = () => {
 
       const fecha = new Date().toISOString().split('T')[0];
       XLSX.writeFile(workbook, `productos_${fecha}.xlsx`);
-
+      
       handleShowAlert({
         type: "success",
         title: "¡Éxito!",
@@ -358,14 +376,14 @@ const ProductsPage = () => {
   };
 
   return (
-    <div style={{
+    <div style={{ 
       position: 'relative',
       minHeight: '100vh',
       backgroundColor: '#f5f5f5',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0',
-      padding: '24px 32px'
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '0', 
+      padding: '24px 32px' 
     }}>
 
       <div style={{
@@ -392,7 +410,7 @@ const ProductsPage = () => {
       }}>
         <button
           onClick={handleDownload}
-          title="Exportar productos"
+          title="Descargar productos"
           style={{
             background: 'none',
             border: 'none',
@@ -400,14 +418,15 @@ const ProductsPage = () => {
             color: '#555',
             display: 'flex',
             alignItems: 'center',
-            padding: '4px',
+            gap: '8px',
+            padding: '4px 8px',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
           onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
         >
           <svg
-            width="22"
-            height="22"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -419,6 +438,7 @@ const ProductsPage = () => {
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
+          <span style={{ fontSize: '14px', fontWeight: '500' }}>Descargar productos</span>
         </button>
 
         <AddProductButton onClick={handleAddProduct} />
@@ -525,7 +545,6 @@ const ProductsPage = () => {
 
       {/* Alertas */}
       <div style={{ position: 'relative', zIndex: 9999 }}>
-        {/* Alerta de éxito */}
         <Alert
           key={`success-${successAlert.key}`}
           isOpen={successAlert.open}
@@ -535,7 +554,6 @@ const ProductsPage = () => {
           onConfirm={() => setSuccessAlert({ ...successAlert, open: false })}
         />
 
-        {/* Alerta de error */}
         <Alert
           key={`error-${errorAlert.key}`}
           isOpen={errorAlert.open}
@@ -545,7 +563,6 @@ const ProductsPage = () => {
           onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
         />
 
-        {/* Alerta de advertencia */}
         <Alert
           key={`warning-${warningAlert.key}`}
           isOpen={warningAlert.open}
@@ -555,7 +572,6 @@ const ProductsPage = () => {
           onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
         />
 
-        {/* Alerta de confirmación */}
         <Alert
           key={`confirm-${confirmAlert.key}`}
           isOpen={confirmAlert.open}
@@ -573,7 +589,6 @@ const ProductsPage = () => {
           onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}
         />
 
-        {/* Alerta de eliminación */}
         <Alert
           key={`delete-password-${deleteAlert.key}`}
           isOpen={deleteAlert.open && deleteAlert.step === "password"}
