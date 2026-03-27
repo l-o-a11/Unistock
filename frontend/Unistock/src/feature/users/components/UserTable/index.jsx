@@ -12,10 +12,12 @@ const HEADERS = [
   "Acciones",
 ];
 
-const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
+const UserTable = ({ users = [], getRolNombre, getSedeNombre, onEdit, onDelete, onToggle }) => {
 
   const renderRow = (user) => {
     const isActive = user.estado !== false;
+    const rolNombre  = getRolNombre?.(user.rolId)   ?? user.rol  ?? "—";
+    const sedeNombre = getSedeNombre?.(user.sedeId) ?? user.sede ?? "—";
 
     return (
       <tr key={user.id} className="transition-colors duration-150 hover:bg-gray-50">
@@ -29,8 +31,8 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
             fields={[
               { label: "Nombre completo", value: user.nombreCompleto, highlight: true },
               { label: "Documento",       value: `${user.tipoDocumento} ${user.numeroDocumento}`, highlight: true },
-              { label: "Rol",             value: user.rol,  type: "badge"   },
-              { label: "Sede",            value: user.sede                  },
+              { label: "Rol",             value: rolNombre,  type: "badge"   },
+              { label: "Sede",            value: sedeNombre                  },
               { label: "Estado",          value: isActive ? "Activo" : "Inactivo", type: "status" },
             ]}
           >
@@ -39,8 +41,8 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
         </td>
 
         <td className={tdClass} title={user.correo}>{truncateText(user.correo)}</td>
-        <td className={tdClass}>{user.rol}</td>
-        <td className={tdClass} title={user.sede}>{truncateText(user.sede)}</td>
+        <td className={tdClass}>{rolNombre}</td>
+        <td className={tdClass}>{sedeNombre}</td>
 
         <td className={tdClass}>
           <div className="flex items-center gap-2.5">
@@ -78,27 +80,18 @@ const UserTable = ({ users = [], onEdit, onDelete, onToggle }) => {
               onClick={() => onToggle(user.id)}
               title={isActive ? "Desactivar usuario" : "Activar usuario"}
               style={{
-                position: "relative",
-                width: "44px",
-                height: "24px",
-                borderRadius: "20px",
-                border: "none",
+                position: "relative", width: "44px", height: "24px",
+                borderRadius: "20px", border: "none",
                 backgroundColor: isActive ? "#22c55e" : "#d1d5db",
                 cursor: "pointer",
               }}
             >
-              <span
-                style={{
-                  position: "absolute",
-                  top: "2px",
-                  left: isActive ? "22px" : "2px",
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  backgroundColor: "#fff",
-                  transition: "0.2s",
-                }}
-              />
+              <span style={{
+                position: "absolute", top: "2px",
+                left: isActive ? "22px" : "2px",
+                width: "20px", height: "20px",
+                borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s",
+              }} />
             </button>
 
           </div>

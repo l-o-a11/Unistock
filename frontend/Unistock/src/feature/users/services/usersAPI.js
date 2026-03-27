@@ -7,31 +7,22 @@ const mockUsers = [
         tipoDocumento: 'CC',
         numeroDocumento: '856127435',
         nombreCompleto: 'Sofía Osorio',
-        correo: 'sofiaosorio@gmail.com',
-        rol: 'Empleado',
-        sede: 'Parque del Río',
-        activo: true
+        correo: 'cuentarandom00a0@gmail.com',
+        rol: 1,
+        sede: 1,
+        estado: true
     },
     {
         id: '2',
         tipoDocumento: 'CC',
-        numeroDocumento: '684217935',
-        nombreCompleto: 'Miguel Ángel',
-        correo: 'miguelangel@gmail.com',
-        rol: 'Empleado',
-        sede: 'Parque del Río',
-        activo: true
+        numeroDocumento: '1000000001',
+        nombreCompleto: 'Admin General',
+        correo: 'admin@admin.com',
+        password: 'admin123',
+        rol: 2,        // Administrador — rolId 2
+        sede: 1,
+        estado: true
     },
-    {
-        id: '3',
-        tipoDocumento: 'CC',
-        numeroDocumento: '1234785624',
-        nombreCompleto: 'Mía Flórez',
-        correo: 'miaflorez@gmail.com',
-        rol: 'Empleado',
-        sede: 'Parque del Río',
-        activo: false
-    }
 ];
 
 export const userAPI = {
@@ -65,7 +56,7 @@ export const userAPI = {
             setTimeout(() => {
                 const newUser = {
                     id: Date.now().toString(),
-                    activo: true,
+                    estado: true,
                     ...userData
                 };
                 mockUsers.push(newUser);
@@ -110,7 +101,7 @@ export const userAPI = {
             setTimeout(() => {
                 const user = mockUsers.find(u => u.id === id);
                 if (user) {
-                    user.activo = !user.activo;
+                    user.estado = !user.estado;
                     resolve({ ...user });
                 } else {
                     reject(new Error('Usuario no encontrado'));

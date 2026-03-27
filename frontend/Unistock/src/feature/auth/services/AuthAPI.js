@@ -1,15 +1,14 @@
 import emailjs from "@emailjs/browser";
 
-const EMAILJS_SERVICE_ID = "service_nokqz2k";
-const EMAILJS_TEMPLATE_ID = "template_rgm176v"; // recuperación (ya existente)
-const EMAILJS_WELCOME_TEMPLATE = "template_7pb7ues"; // ← nueva plantilla de bienvenida
-const EMAILJS_PUBLIC_KEY = "5IVlWdQ53cSfiS0i_";
+const EMAILJS_SERVICE_ID     = "service_nokqz2k";
+const EMAILJS_TEMPLATE_ID    = "template_rgm176v";
+const EMAILJS_WELCOME_TEMPLATE = "template_7pb7ues";
+const EMAILJS_PUBLIC_KEY     = "5IVlWdQ53cSfiS0i_";
 
-const STORAGE_KEY = "app_users";
+const STORAGE_KEY     = "app_users";
 const PENDING_CODE_KEY = "auth_pending_code";
 
 // ── Generadores ────────────────────────────────────────────────────────────
-
 const generateCode = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -19,12 +18,11 @@ const generateCode = () =>
  * Ejemplo: "aR7kXm2P"
  */
 const generatePassword = () => {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const upper   = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower   = "abcdefghjkmnpqrstuvwxyz";
   const numbers = "23456789";
-  const all = upper + lower + numbers;
-
-  // Garantiza al menos 1 de cada tipo
+  const all     = upper + lower + numbers;
+    // Garantiza al menos 1 de cada tipo
   const pick = (str) => str[Math.floor(Math.random() * str.length)];
   const required = [pick(upper), pick(lower), pick(numbers)];
 
@@ -36,14 +34,11 @@ const generatePassword = () => {
 };
 
 // ── localStorage helpers ───────────────────────────────────────────────────
-
 const getPendingCode = () => {
   try {
     const raw = sessionStorage.getItem(PENDING_CODE_KEY);
     return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 };
 
 const setPendingCode = (value) => {
@@ -58,9 +53,7 @@ const getStoredUsers = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {
-    // error leyendo localStorage
-  }
+  } catch { /* JSON corrupto */ }
   return [];
 };
 
@@ -68,10 +61,39 @@ const saveUsers = (users) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
 };
 
-// ── API ────────────────────────────────────────────────────────────────────
+// ── Normalizar rolId desde cualquier forma en que esté guardado ────────────
+// El UserForm guarda el campo como `role` (string del <select>).
+// El hook mockUsers lo mapea a `rolId` (número) al crear/editar.
+// Esta función cubre ambos casos.
+const resolveRolId = (user) => {
+  if (user.rolId != null) return parseInt(user.rolId);
+  if (user.role  != null) return parseInt(user.role);
+  if (typeof user.rol === "number") return user.rol;
+  return null;
+};
 
+const resolveSedeId = (user) => {
+  if (user.sedeId != null) return parseInt(user.sedeId);
+  if (user.sede   != null && typeof user.sede === "number") return user.sede;
+  return null;
+};
+
+// ── Usuario de emergencia ──────────────────────────────────────────────────
+// Siempre disponible, independiente del localStorage.
+// Usar para recuperar acceso cuando los datos se pierdan o corrompan.
+const EMERGENCY_USER = {
+  id: "emergency-1",
+  nombreCompleto: "Admin Emergencia",
+  correo: "admin@admin.com",
+  password: "Admin123",
+  rolId: 1,   // Gerente — acceso total
+  sedeId: 1,
+  estado: true,
+};
+
+// ── API ────────────────────────────────────────────────────────────────────
 export const AuthAPI = {
-  /**
+/**
    * Genera contraseña aleatoria, la guarda en el usuario y
    * envía el correo de bienvenida con EmailJS.
    *
@@ -83,27 +105,14 @@ export const AuthAPI = {
     const password = generatePassword();
     return { email, password };
   },
-
-  // Envía el correo de bienvenida — la contraseña ya viene generada desde afuera
-  sendWelcomeEmail: async ({
-    email,
-    nombreCompleto,
-    password,
-    loginUrl = window.location.origin + "/login",
-  }) => {
+// Envía el correo de bienvenida — la contraseña ya viene generada desde afuera
+  sendWelcomeEmail: async ({ email, nombreCompleto, password, loginUrl = window.location.origin + "/login" }) => {
     await emailjs.send(
       EMAILJS_SERVICE_ID,
       EMAILJS_WELCOME_TEMPLATE,
-      {
-        to_email: email,
-        to_name: nombreCompleto,
-        user_email: email,
-        password,
-        login_url: loginUrl,
-      },
-      EMAILJS_PUBLIC_KEY,
+      { to_email: email, to_name: nombreCompleto, user_email: email, password, login_url: loginUrl },
+      EMAILJS_PUBLIC_KEY
     );
-
     return { success: true };
   },
 
@@ -112,36 +121,64 @@ export const AuthAPI = {
     if (!username || !password)
       throw new Error("Por favor completa todos los campos.");
 
+    // Primero verificar el usuario de emergencia (siempre disponible)
+    const isEmergency =
+      username.toLowerCase() === EMERGENCY_USER.correo.toLowerCase() ||
+      username.toLowerCase() === EMERGENCY_USER.nombreCompleto.toLowerCase();
+
+    if (isEmergency) {
+      if (password !== EMERGENCY_USER.password)
+        throw new Error("Contraseña incorrecta.");
+      localStorage.setItem(
+        "session_user",
+        JSON.stringify({
+          id:     EMERGENCY_USER.id,
+          nombre: EMERGENCY_USER.nombreCompleto,
+          correo: EMERGENCY_USER.correo,
+          rolId:  EMERGENCY_USER.rolId,
+          sedeId: EMERGENCY_USER.sedeId,
+        }),
+      );
+      return { user: { ...EMERGENCY_USER } };
+    }
+
     const users = getStoredUsers();
 
     const found = users.find(
       (u) =>
-        u.correo?.toLowerCase() === username.toLowerCase() ||
-        u.nombreCompleto?.toLowerCase() === username.toLowerCase(),
+        u.correo?.toLowerCase()         === username.toLowerCase() ||
+        u.nombreCompleto?.toLowerCase()  === username.toLowerCase(),
     );
 
     if (!found) throw new Error("Usuario no encontrado. Verifica tus datos.");
-
     if (found.estado === false)
       throw new Error("Tu cuenta está desactivada. Contacta al administrador.");
-
     if (!found.password)
       throw new Error("Tu cuenta aún no ha sido activada. Revisa tu correo.");
+    if (password !== found.password)
+      throw new Error("Contraseña incorrecta.");
 
-    if (password !== found.password) throw new Error("Contraseña incorrecta.");
+    // FIX 4: usar resolveRolId/resolveSedeId para no depender
+    // del nombre exacto del campo.
+    const rolId  = resolveRolId(found);
+    const sedeId = resolveSedeId(found);
+
+    if (rolId === null || isNaN(rolId)) {
+      throw new Error("Este usuario no tiene un rol asignado. Contacta al administrador.");
+    }
 
     localStorage.setItem(
       "session_user",
       JSON.stringify({
-        id: found.id,
-        nombre: found.nombreCompleto,
+        id:     found.id,
+        nombre: found.nombreCompleto ?? found.name,
         correo: found.correo,
-        rol: found.rol,
-        sede: found.sede,
+        rolId,
+        sedeId,
       }),
     );
 
-    return { user: found };
+    return { user: { ...found, rolId, sedeId } };
   },
 
   // ── Guardar contraseña personal ────────────────────────────────────────
@@ -156,54 +193,34 @@ export const AuthAPI = {
   // ── Recuperación de contraseña ─────────────────────────────────────────
   sendRecoveryCode: async (email) => {
     const users = getStoredUsers();
-    const found = users.find(
-      (u) => u.correo?.toLowerCase() === email.toLowerCase(),
-    );
-
+    const found = users.find((u) => u.correo?.toLowerCase() === email.toLowerCase());
     if (!found) throw new Error("No existe ningún usuario con ese correo.");
-
-    if (found.estado === false)
-      throw new Error("Esta cuenta está desactivada.");
+    if (found.estado === false) throw new Error("Esta cuenta está desactivada.");
 
     const code = generateCode();
     const expiresAt = Date.now() + 10 * 60 * 1000;
     setPendingCode({ email: email.toLowerCase(), code, expiresAt });
 
-    await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,
-      { email, code },
-      EMAILJS_PUBLIC_KEY,
-    );
-
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { email, code }, EMAILJS_PUBLIC_KEY);
     return { success: true };
   },
 
   verifyCode: async (email, code) => {
     const pendingCode = getPendingCode();
-    if (!pendingCode)
-      throw new Error("No hay código pendiente. Solicita uno nuevo.");
-
-    if (pendingCode.email !== email.toLowerCase())
-      throw new Error("El correo no coincide.");
-
+    if (!pendingCode) throw new Error("No hay código pendiente. Solicita uno nuevo.");
+    if (pendingCode.email !== email.toLowerCase()) throw new Error("El correo no coincide.");
     if (Date.now() > pendingCode.expiresAt) {
       setPendingCode(null);
       throw new Error("El código expiró. Solicita uno nuevo.");
     }
-
-    if (pendingCode.code !== code)
-      throw new Error("Código incorrecto. Inténtalo de nuevo.");
-
+    if (pendingCode.code !== code) throw new Error("Código incorrecto. Inténtalo de nuevo.");
     return { success: true };
   },
 
   changePassword: async (email, code, newPassword) => {
     await AuthAPI.verifyCode(email, code);
     const users = getStoredUsers();
-    const found = users.find(
-      (u) => u.correo?.toLowerCase() === email.toLowerCase(),
-    );
+    const found = users.find((u) => u.correo?.toLowerCase() === email.toLowerCase());
     if (found) AuthAPI.savePersonalPassword(found.id, newPassword);
     setPendingCode(null);
     return { success: true };
@@ -217,8 +234,6 @@ export const AuthAPI = {
     try {
       const raw = localStorage.getItem("session_user");
       return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   },
 };
