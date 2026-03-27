@@ -4,7 +4,6 @@ import LoginForm from "../components/LoginForm";
 import RecoverPasswordModal from "../components/RecoverPasswordModal";
 import VerifyCodeModal from "../components/VerifyCodeModal";
 import ChangePasswordModal from "../components/ChangePasswordModal";
-import ForceChangePasswordModal from "../components/ForceChangePasswordModal";
 import { AUTH_MODALS } from "../types/constants";
 import Alert from "../../shared/components/Alert.jsx";
 import logo from "../../../assets/Login.jpeg";

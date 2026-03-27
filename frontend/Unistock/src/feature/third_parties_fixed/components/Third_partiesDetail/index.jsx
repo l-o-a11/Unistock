@@ -81,8 +81,8 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
             onClick={() => setTab(t)}
             style={{
               ...styles.tab,
-              borderBottom: tab === t ? "2px solid #E91E8C" : "2px solid transparent",
-              color: tab === t ? "#E91E8C" : "#555",
+              borderBottom: tab === t ? "2px solid #FF4FD6" : "2px solid transparent",
+              color: tab === t ? "#FF4FD6" : "#555",
             }}>
             {t === "info" ? "Información general" : `Producciones${hasProd ? ` (${producciones.length})` : ""}`}
           </button>
@@ -102,7 +102,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
               <div style={styles.value}>
                 <a href={Third_partie.sitioweb || Third_partie.sitioWeb}
                   target="_blank" rel="noreferrer"
-                  style={{ color: "#E91E8C", textDecoration: "none", fontSize: 13 }}>
+                  style={{ color: "#FF4FD6", textDecoration: "none", fontSize: 13 }}>
                   {Third_partie.sitioweb || Third_partie.sitioWeb}
                 </a>
               </div>
@@ -131,7 +131,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
                 {producciones.map((prod, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f5f5f5" }}>
                     <td style={styles.td}>
-                      <span style={{ fontWeight: 700, color: "#E91E8C", fontSize: 13 }}>
+                      <span style={{ fontWeight: 700, color: "#FF4FD6", fontSize: 13 }}>
                         #{prod.orden || prod.orderNumber}
                       </span>
                     </td>
@@ -142,7 +142,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
                           onClick={() => navigate(`/layout/produccion/detalle/${prod.produccionId}`)}
                           style={{
                             background: "none", border: "none", cursor: "pointer",
-                            color: "#E91E8C", fontSize: 12, fontWeight: 600,
+                            color: "#FF4FD6", fontSize: 12, fontWeight: 600,
                             display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
@@ -179,7 +179,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
         >
           Eliminar
         </button>
-        {/* Editar: color único #E91E8C sin gradiente */}
+        {/* Editar: color único #FF4FD6 sin gradiente */}
         <button style={styles.editBtn} onClick={() => onEdit?.(Third_partie)}>
           Editar
         </button>
@@ -199,7 +199,7 @@ const LV = ({ label, value }) => (
 const styles = {
   card:     { padding: "24px 28px" },
   header:   { marginBottom: 14 },
-  id:       { fontSize: 11, color: "#E91E8C", fontWeight: 700, background: "#fce7f3", padding: "2px 8px", borderRadius: 6, display: "inline-block", marginBottom: 6 },
+  id:       { fontSize: 11, color: "#FF4FD6", fontWeight: 700, background: "#fce7f3", padding: "2px 8px", borderRadius: 6, display: "inline-block", marginBottom: 6 },
   title:    { margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: "#1f2937" },
   subtitle: { margin: "4px 0 0", fontSize: 13, color: "#9ca3af" },
   tabs:     { display: "flex", gap: 20, marginTop: 16, borderBottom: "1px solid #f0f0f0" },
@@ -215,8 +215,8 @@ const styles = {
   actions:  { marginTop: 28, display: "flex", justifyContent: "flex-end", gap: 10 },
   // Botón eliminar: color único rojo, sin gradiente
   deleteBtn: { background: "#fef2f2", color: "#ef4444", border: "1px solid #fecaca", padding: "9px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13 },
-  // Botón editar: color único #E91E8C, sin gradiente
-  editBtn:   { background: "#E91E8C", color: "#fff", border: "none", padding: "9px 24px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13 },
+  // Botón editar: color único #FF4FD6, sin gradiente
+  editBtn:   { background: "#FF4FD6", color: "#fff", border: "none", padding: "9px 24px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13 },
 };
 
 export default Third_partieDetail;

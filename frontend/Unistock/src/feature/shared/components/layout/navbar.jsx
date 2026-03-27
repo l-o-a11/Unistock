@@ -10,21 +10,21 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { useAuthContext } from "../../AuthContext";
+import { AuthAPI } from "../../../auth/services/AuthAPI";
+import Alert from "../Alert";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  // FIX: leer del contexto React, no de localStorage directo.
-  // Así el Navbar se re-renderiza automáticamente al cambiar de sesión.
-  const { user: session, logout: ctxLogout } = useAuthContext();
+  const session = AuthAPI.getSession();
   const user = {
-    name:  session?.nombre ?? "Usuario",
+    name: session?.nombre ?? "Usuario",
     email: session?.correo ?? "",
-    rol:   session?.rol    ?? "",
-    sede:  session?.sede   ?? "",
+    rol: session?.rol ?? "",
+    sede: session?.sede ?? "",
   };
 
   useEffect(() => {
@@ -38,9 +38,13 @@ const Navbar = () => {
   }, []);
 
   const cerrarSesion = () => {
-    // FIX: usar logout del contexto — limpia user y permisos en React
-    // además de eliminar la sesión de localStorage.
-    ctxLogout();
+    setOpen(false);
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmarCerrarSesion = () => {
+    setShowLogoutConfirm(false);
+    AuthAPI.logout();
     navigate("/");
   };
 
@@ -369,6 +373,16 @@ const Navbar = () => {
           )}
         </div>
       </nav>
+
+      {/* Alert de confirmación para cerrar sesión */}
+      <Alert
+        isOpen={showLogoutConfirm}
+        type="confirm"
+        title="Cerrar Sesión"
+        message="¿Seguro que deseas cerrar sesión?"
+        onConfirm={confirmarCerrarSesion}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </>
   );
 };
