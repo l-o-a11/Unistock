@@ -227,7 +227,7 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
             onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.08)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; }}
           >
-            {sede ? "Guardar cambios" : "Guardar Categoría"}
+            {sede ? "Guardar cambios" : "Guardar sede"}
           </button>
         </div>
       </div>

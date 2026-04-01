@@ -195,14 +195,44 @@ const ShoppingsPage = () => {
     <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
 
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-        <h1>Compras</h1>
+      
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a1a" }}>Compras</h1>
         <ShoppingSearch value={searchTerm} onChange={handleSearch} />
       </div>
 
       {/* TOOLBAR */}
       <div style={{ display: "flex", justifyContent: "space-between", background: "#fff", padding: "12px 20px", borderRadius: "10px", marginBottom: "20px" }}>
-        <button onClick={handleDownload}>Exportar</button>
+       <button
+          onClick={handleDownload}
+          title="Exportar insumos"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#555',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '4px',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </button>
         <AddShoppingButton onClick={handleAddShopping} />
       </div>
 

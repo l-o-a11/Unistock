@@ -1,67 +1,36 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCategories } from '../hooks/useCategories';
 import CategoryTable from '../components/CategoryTable';
 import CategorySearch from '../components/CategorySearch';
 import AddCategoryButton from '../components/AddCategorySupplyButton';
 import CategoryForm from '../components/CategoryForm';
+import Alert from '../../shared/components/Alert';
+import { useSupplies } from '../../supplies/hooks/useSupplies';
 
 const CategoriesSupplyPage = () => {
-  const navigate = useNavigate();
   const { categories, createCategory, updateCategory, deleteCategory } = useCategories();
+  const { supplies } = useSupplies();
+
+  // Cuenta insumos enlazados a una categoría
+  const getInsumosPorCategoria = (categoriaId) =>
+    supplies.filter((s) => s.categoriaId === categoriaId).length;
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  // Estados para alertas
-    const [successAlert, setSuccessAlert] = useState({
-      open: false,
-      key: Date.now(),
-      title: "",
-      message: "",
-    });
-  
-    const [errorAlert, setErrorAlert] = useState({
-      open: false,
-      key: Date.now(),
-      title: "",
-      message: "",
-    });
-  
-    const [warningAlert, setWarningAlert] = useState({
-      open: false,
-      key: Date.now(),
-      title: "",
-      message: "",
-    });
-  
-    const [confirmAlert, setConfirmAlert] = useState({
-      open: false,
-      key: Date.now(),
-      title: "",
-      message: "",
-      confirmText: "Confirmar",
-      cancelText: "Cancelar",
-      onConfirm: null,
-    });
-  
-    const [deleteAlert, setDeleteAlert] = useState({
-      open: false,
-      step: "confirm",
-      categoryId: null,
-      categoryName: "",
-      productCount: 0,
-      key: Date.now()
-    });
-  
+  const [alertConfig, setAlertConfig] = useState({ open: false, type: "success", title: "", message: "", onConfirm: null });
+  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
+  const showAlert  = (type, title, message, onConfirm = null) =>
+    setAlertConfig({ open: true, type, title, message, onConfirm });
+
 
   const itemsPerPage = 7;
 
   // Filtrar categorías por búsqueda
   const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cat.id.toString().includes(searchTerm)
+    cat.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cat.id?.toString().includes(searchTerm)
   );
 
   // Paginación
@@ -103,8 +72,9 @@ const CategoriesSupplyPage = () => {
     try {
       await createCategory(categoryData);
       handleCloseForm();
+      showAlert("success", "Categoría creada", `"${categoryData.nombre}" fue creada correctamente.`);
     } catch (error) {
-      console.error('Error al crear categoría:', error);
+      showAlert("error", "Error al crear", error.message || "No se pudo crear la categoría.");
     }
   };
 
@@ -112,51 +82,39 @@ const CategoriesSupplyPage = () => {
     try {
       await updateCategory(editingCategory.id, categoryData);
       handleCloseForm();
+      showAlert("success", "Categoría actualizada", `"${categoryData.nombre}" fue actualizada correctamente.`);
     } catch (error) {
-      console.error('Error al actualizar categoría:', error);
+      showAlert("error", "Error al actualizar", error.message || "No se pudo actualizar la categoría.");
     }
   };
 
-  const handleDelete = async (id) => {
-    const supply = supplies.find(s => s.id === id);
-    if (supply.supplyCount > 0) {
-      alert('No se puede eliminar una categoría con insumos asociados');
+  const handleDelete = (id) => {
+    const category = categories.find((c) => c.id === id);
+    const enlazados = getInsumosPorCategoria(id);
+
+    // Bloquear si tiene insumos enlazados
+    if (enlazados > 0) {
+      showAlert(
+        "error",
+        "No se puede eliminar",
+        `La categoría "${category?.nombre}" está asignada a ${enlazados} insumo${enlazados > 1 ? "s" : ""}. Reasígnalos antes de eliminarla.`
+      );
       return;
     }
-    if (window.confirm('¿Estás seguro de eliminar esta categoría?')) {
-      try {
-        await deleteCategory(id);
-      } catch (error) {
-        alert(error.message);
-      }
-    }
 
-    setDeleteAlert({
-      open: true,
-      step: "confirm",
-      categoryId: id,
-      categoryName: category.name,
-      productCount: category.productCount,
-      key: Date.now()
-    });
-  };
-  const handleDeleteConfirm = async () => {
-    try {
-      await deleteCategory(deleteAlert.categoryId);
-      setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() });
-      handleShowAlert({
-        type: "success",
-        title: "¡Éxito!",
-        message: "Categoría eliminada correctamente"
-      });
-    } catch (error) {
-      handleShowAlert({
-        type: "error",
-        title: "¡Error!",
-        message: error.message || "Error al eliminar categoría"
-      });
-      setDeleteAlert({ open: false, step: "confirm", categoryId: null, categoryName: "", productCount: 0, key: Date.now() });
-    }
+    showAlert(
+      "confirm",
+      "¿Eliminar categoría?",
+      `La categoría "${category?.nombre}" será eliminada permanentemente.`,
+      async () => {
+        try {
+          await deleteCategory(id);
+          showAlert("success", "Categoría eliminada", `"${category?.nombre}" fue eliminada correctamente.`);
+        } catch (error) {
+          showAlert("error", "Error al eliminar", error.message || "No se pudo eliminar la categoría.");
+        }
+      }
+    );
   };
 
 
@@ -188,7 +146,7 @@ const CategoriesSupplyPage = () => {
         marginBottom: '20px',
       }}>
         <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#1a1a1a' }}>
-          Categorías
+          Categorías de insumos
         </h1>
         <CategorySearch value={searchTerm} onChange={setSearchTerm} />
       </div>
@@ -304,6 +262,16 @@ const CategoriesSupplyPage = () => {
           </div>
         </div>
       )}
+
+      {/* ── Alert ── */}
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={(pwd) => { alertConfig.onConfirm?.(pwd); }}
+        onCancel={closeAlert}
+      />
 
       {/* ── Pagination ── */}
       {filteredCategories.length > 0 && (

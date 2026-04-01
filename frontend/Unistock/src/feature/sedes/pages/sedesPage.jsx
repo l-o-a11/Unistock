@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useSedes } from "../hooks/useSedes";
+import { useSedesSearch } from "../hooks/useSedesSearch";
 import Alert from "../../shared/components/Alert";
+import AddSedesButton from "../components/AddSedesButton";
+import SedesSearch from "../components/SedesSearch";
 import SedeTable from "../components/SedesTable";
 import SedeForm from "../components/SedesForm";
 
@@ -10,7 +13,7 @@ const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 const SedesPage = () => {
   const { sedes, createSede, updateSede, deleteSede, toggleSede } = useSedes();
 
-  const [searchTerm, setSearchTerm]       = useState("");
+   const { searchTerm, handleSearch } = useSedesSearch();
   const [currentPage, setCurrentPage]     = useState(1);
   const [modalType, setModalType]         = useState(null); // "create" | "edit"
   const [editingSede, setEditingSede]     = useState(null);
@@ -72,6 +75,8 @@ const SedesPage = () => {
     );
   };
 
+    const handleAddSede = () => setModalType("create");
+
   const handleCreateSubmit = async (data) => {
     try {
       await createSede(data);
@@ -106,30 +111,16 @@ const SedesPage = () => {
   const pBtn = { padding: "6px 12px", borderRadius: "6px", border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: "14px" };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
-
-      {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "#1a1a1a" }}>Sedes</h1>
-        <div style={{ position: "relative" }}>
-          <input value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            placeholder="Buscar sede..."
-            style={{ padding: "9px 14px 9px 36px", borderRadius: "10px", border: "1.5px solid #e5e7eb", fontSize: "14px", outline: "none", width: "240px", boxSizing: "border-box" }}
-            onFocus={(e) => { e.target.style.borderColor = "#FF4FD6"; }}
-            onBlur={(e)  => { e.target.style.borderColor = "#e5e7eb"; }} />
-          <svg style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#aaa" }}
-            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-        </div>
+   <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a1a" }}>Sedes</h1>
+        <SedesSearch value={searchTerm} onChange={handleSearch} />
       </div>
 
-      {/* TOOLBAR */}
-      <div style={{ display: "flex", justifyContent: "flex-end", background: "#fff", padding: "12px 20px", borderRadius: "10px", marginBottom: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-        <button onClick={handleCreate}
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "50px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}>
-          <span style={{ fontSize: "18px", lineHeight: 1 }}>⊕</span> Agregar sede
-        </button>
+      {/* Botón */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", backgroundColor: "#ffffff", borderRadius: "10px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "12px 20px", marginBottom: "20px" }}>
+        <AddSedesButton onClick={handleAddSede} />
       </div>
 
       {/* TABLA */}

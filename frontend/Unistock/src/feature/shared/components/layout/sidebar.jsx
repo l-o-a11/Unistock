@@ -277,8 +277,8 @@ export default function Sidebar() {
                 >
                   <Icon
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: 24,
+                      height: 24,
                       flexShrink: 0,
                       color: iconColor(isActive),
                       transition: "color 0.12s ease",
@@ -369,8 +369,8 @@ export default function Sidebar() {
               >
                 <Icon
                   style={{
-                    width: 32,
-                    height: 32,
+                    width: 24,
+                    height: 24,
                     flexShrink: 0,
                     color: iconColor(isActive),
                     transition: "color 0.12s ease",
