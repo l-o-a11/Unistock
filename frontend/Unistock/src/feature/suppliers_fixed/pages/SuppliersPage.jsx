@@ -40,9 +40,13 @@ const SupplierPage = () => {
     if (!suppliers) return [];
     const term = searchTerm.toLowerCase();
     return suppliers.filter((supplier) =>
-      Object.values(supplier).some((value) =>
-        value?.toString().toLowerCase().includes(term)
-      )
+      Object.entries(supplier).some(([key, value]) => {
+        if (key === "estado") {
+          const label = value === true ? "activo" : value === false ? "inactivo" : "";
+          return label.includes(term);
+        }
+        return value?.toString().toLowerCase().includes(term);
+      })
     );
   }, [suppliers, searchTerm]);
 
@@ -55,13 +59,13 @@ const SupplierPage = () => {
   const handleDelete = (id) => {
     const supplier = suppliers.find((s) => s.id === id);
 
-    // ── Validación: no se puede eliminar un proveedor activo ──────────────
-    if (supplier?.estado === true) {
-      showAlert(
-        "error",
-        "No se puede eliminar",
-        `"${supplier?.nombreEmpresa}" está activo. Primero inactívalo para poder eliminarlo.`
-      );
+    // ── Bloquear si tiene compras asociadas ────────────────────────────────
+    const shoppingsRaw = (() => {
+      try { return JSON.parse(localStorage.getItem("app_shoppings") || "[]"); } catch { return []; }
+    })();
+    const tieneCompras = shoppingsRaw.some((c) => c.proveedorId === id || c.proveedorId === String(id));
+    if (tieneCompras) {
+      showAlert("error", "No se puede eliminar", `"${supplier?.nombreEmpresa}" tiene compras asociadas y no puede ser eliminado.`);
       return;
     }
 
