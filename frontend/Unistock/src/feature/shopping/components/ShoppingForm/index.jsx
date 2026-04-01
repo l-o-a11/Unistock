@@ -169,12 +169,12 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
   // ── Estilos ──────────────────────────────────────────────────────────────
   const inp = (hasError) => ({
     width: "100%", padding: "9px 12px", borderRadius: "6px",
-    border: `1px solid ${hasError ? "#ef4444" : "#e5e7eb"}`,
+    border: `1px solid ${hasError ? '#E91E8C' : '#d1d5db'}`,
     fontSize: "13px", color: "#333", outline: "none",
     boxSizing: "border-box", backgroundColor: "#fff", transition: "border-color 0.15s",
   });
   const lbl  = { display: "block", fontSize: "12px", fontWeight: "600", color: "#555", marginBottom: "5px" };
-  const errS = { color: "#ef4444", fontSize: "11px", marginTop: "3px" };
+  const errS = { color: "#E91E8C", fontWeight: 'bold',fontSize: "11px", marginTop: "3px" };
   const req  = <span style={{ color: "#FF4FD6" }}> *</span>;
   const onFocus = (e) => { e.target.style.borderColor = "#FF4FD6"; e.target.style.boxShadow = "0 0 0 3px #FF4FD620"; };
   const onBlurS = (e) => { e.target.style.borderColor = "#e5e7eb";  e.target.style.boxShadow = "none"; };

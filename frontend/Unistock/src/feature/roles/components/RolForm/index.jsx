@@ -15,10 +15,10 @@ const MODULOS_PREDETERMINADOS = [
 ];
 
 const PRIVILEGIOS_PREDETERMINADOS = [
-  { id: 1, nombre: 'Leer',      key: 'leer' },
-  { id: 2, nombre: 'Crear',     key: 'crear' },
-  { id: 3, nombre: 'Actualizar',key: 'actualizar' },
-  { id: 4, nombre: 'Eliminar',  key: 'eliminar' },
+  { id: 1, nombre: 'Leer',       key: 'leer' },
+  { id: 2, nombre: 'Crear',      key: 'crear' },
+  { id: 3, nombre: 'Actualizar', key: 'actualizar' },
+  { id: 4, nombre: 'Eliminar',   key: 'eliminar' },
 ];
 
 // ─────────────────────────────────────────────────
@@ -35,17 +35,17 @@ const validators = {
 };
 
 // ─────────────────────────────────────────────────
-// Estilos de campo
+// Estilos
 // ─────────────────────────────────────────────────
 const fieldStyle = (hasError) => ({
   width: '100%',
-  padding: '10px 12px',
-  border: `1px solid ${hasError ? '#ef4444' : '#e5e7eb'}`,
+  padding: '10px 14px',
+  border: `1px solid ${hasError ? '#E91E8C' : '#d1d5db'}`,
   borderRadius: '8px',
   fontSize: '14px',
   outline: 'none',
   boxSizing: 'border-box',
-  transition: 'all 0.2s',
+  transition: 'border-color 0.2s, background-color 0.2s',
   backgroundColor: 'white',
   resize: 'vertical',
   fontFamily: 'inherit',
@@ -53,31 +53,25 @@ const fieldStyle = (hasError) => ({
 
 const labelStyle = {
   display: 'block',
-  marginBottom: '6px',
-  fontSize: '14px',
+  fontSize: '13px',
   fontWeight: '500',
-  color: '#374151',
+  color: '#555',
+  marginBottom: '6px',
 };
 
 const errorStyle = {
-  fontSize: '12px',
-  color: '#ef4444',
+  color: '#E91E8C',
+  fontWeight: 'bold',
+  fontSize: '11px',
   marginTop: '4px',
+  display: 'block',
 };
-
-// ─────────────────────────────────────────────────
-// CONTRASEÑA ADMIN SIMULADA
-// En producción esto lo valida el backend
-// ─────────────────────────────────────────────────
-const ADMIN_PASSWORD = 'admin123';
+const req  = <span style={{ color: "#FF4FD6" }}> *</span>;
 
 // ─────────────────────────────────────────────────
 // RolForm
 // ─────────────────────────────────────────────────
 const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
-  // usuariosEnlazados: número de usuarios que tienen este rol asignado
-  // Se pasa desde el padre (RolesPage) al abrir edit/delete
-
   const [formData, setFormData] = useState({
     nombre: rol?.nombre || '',
     descripcion: rol?.descripcion || '',
@@ -91,6 +85,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: 'success',
+    title: '',
     message: '',
     onConfirm: null,
   });
@@ -98,8 +93,8 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   // ── Helpers ──────────────────────────────────────
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
 
-  const showAlert = (type, message, onConfirm) =>
-    setAlertConfig({ open: true, type, message, onConfirm: onConfirm || closeAlert });
+  const showAlert = (type, title, message, onConfirm) =>
+    setAlertConfig({ open: true, type, title, message, onConfirm: onConfirm || closeAlert });
 
   const getModuloNombre = (id) =>
     MODULOS_PREDETERMINADOS.find((m) => m.id === id)?.nombre || 'Módulo desconocido';
@@ -165,11 +160,11 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
 
   const handleAgregarModulo = () => {
     if (!moduloSeleccionado) {
-      showAlert('warning', 'Debes seleccionar un módulo antes de agregarlo.');
+      showAlert('warning', 'Campo requerido', 'Debes seleccionar un módulo antes de agregarlo.');
       return;
     }
     if (privilegiosSeleccionados.length === 0) {
-      showAlert('warning', 'Debes seleccionar al menos un privilegio para el módulo.');
+      showAlert('warning', 'Campo requerido', 'Debes seleccionar al menos un privilegio para el módulo.');
       return;
     }
 
@@ -177,7 +172,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
       (m) => m.moduloId === parseInt(moduloSeleccionado)
     );
     if (yaExiste) {
-      showAlert('warning', 'Este módulo ya está agregado al rol. Edita sus privilegios directamente en la lista.');
+      showAlert('warning', 'Módulo duplicado', 'Este módulo ya está agregado al rol. Edita sus privilegios directamente en la lista.');
       return;
     }
 
@@ -197,8 +192,13 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     const nuevosModulos = formData.modulos.map((m, i) => {
       if (i !== moduloIndex) return m;
       const yaIncluye = m.privilegios.includes(privilegioId);
-      return { ...m, privilegios: yaIncluye ? m.privilegios.filter((p) => p !== privilegioId) : [...m.privilegios, privilegioId] };
-    }).filter((m) => m.privilegios.length > 0); // si queda sin privilegios, se elimina
+      return {
+        ...m,
+        privilegios: yaIncluye
+          ? m.privilegios.filter((p) => p !== privilegioId)
+          : [...m.privilegios, privilegioId],
+      };
+    }).filter((m) => m.privilegios.length > 0);
 
     setFormData((prev) => ({ ...prev, modulos: nuevosModulos }));
   };
@@ -206,6 +206,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   const handleEliminarModulo = (moduloIndex) => {
     showAlert(
       'confirm',
+      'Eliminar módulo',
       `¿Eliminar el módulo "${getModuloNombre(formData.modulos[moduloIndex].moduloId)}" del rol?`,
       () => {
         setFormData((prev) => ({
@@ -224,11 +225,10 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     const isValid = validateAll();
 
     if (!isValid) {
-      showAlert('warning', 'Corrige los campos marcados antes de guardar.');
+      showAlert('warning', 'Campos incompletos', 'Corrige los campos marcados antes de guardar.');
       return;
     }
 
-    // Normalizar nombre: primera letra mayúscula, resto minúscula
     const dataNormalizada = {
       ...formData,
       nombre: formData.nombre.trim()
@@ -240,7 +240,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
 
   // ── Cancelar ─────────────────────────────────────
   const handleCancel = () => {
-    showAlert('confirm', '¿Seguro que deseas cancelar? Los cambios no guardados se perderán.', () => {
+    showAlert('confirm', '¿Cancelar?', '¿Seguro que deseas cancelar? Los cambios no guardados se perderán.', () => {
       closeAlert();
       onCancel?.();
     });
@@ -260,7 +260,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         {/* NOMBRE */}
         <div style={{ marginBottom: '20px' }}>
           <label htmlFor="nombre" style={labelStyle}>
-            Nombre del rol *
+            Nombre del rol{req}
           </label>
           <input
             type="text"
@@ -271,11 +271,11 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
             onBlur={handleBlur}
             style={fieldStyle(!!errors.nombre)}
             onFocus={(e) => {
-              e.target.style.borderColor = '#8b5cf6';
+              e.target.style.borderColor = '#e91e8c';
               e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
             }}
           />
-          {errors.nombre && <p style={errorStyle}>{errors.nombre}</p>}
+          {errors.nombre && <span style={errorStyle}>{errors.nombre}</span>}
         </div>
 
         {/* DESCRIPCIÓN */}
@@ -295,12 +295,12 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
             rows="3"
             style={fieldStyle(!!errors.descripcion)}
             onFocus={(e) => {
-              e.target.style.borderColor = '#8b5cf6';
+              e.target.style.borderColor = '#e91e8c';
               e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
             }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            {errors.descripcion && <p style={errorStyle}>{errors.descripcion}</p>}
+            {errors.descripcion && <span style={errorStyle}>{errors.descripcion}</span>}
             <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: 'auto' }}>
               {formData.descripcion.length}/200
             </span>
@@ -320,7 +320,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
                 style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '16px', marginBottom: '10px', border: '1px solid #e5e7eb' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <h5 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#8b5cf6' }}>
+                  <h5 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#e91e8c' }}>
                     {getModuloNombre(modulo.moduloId)}
                   </h5>
                   <button
@@ -344,7 +344,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
                         type="checkbox"
                         checked={modulo.privilegios.includes(priv.id)}
                         onChange={() => handleTogglePrivilegioModulo(index, priv.id)}
-                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#8b5cf6' }}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#e91e8c' }}
                       />
                       {priv.nombre}
                     </label>
@@ -357,21 +357,21 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
 
         {/* ERROR MÓDULOS */}
         {errors.modulos && (
-          <p style={{ ...errorStyle, marginBottom: '12px' }}>{errors.modulos}</p>
+          <span style={{ ...errorStyle, marginBottom: '12px' }}>{errors.modulos}</span>
         )}
 
         {/* AGREGAR MÓDULO */}
         <div style={{ marginBottom: '24px', backgroundColor: '#fafafa', border: '1px dashed #d1d5db', borderRadius: '10px', padding: '16px' }}>
           <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-            Agregar módulo *
+            Agregar módulo {req}
           </h4>
 
           <select
             value={moduloSeleccionado}
             onChange={handleModuloChange}
             style={{ ...fieldStyle(false), marginBottom: '12px', cursor: 'pointer' }}
-            onFocus={(e) => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; }}
-            onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+            onFocus={(e) => { e.target.style.borderColor = '#e91e8c'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; }}
+            onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'none'; }}
           >
             <option value="">Seleccionar módulo</option>
             {MODULOS_PREDETERMINADOS.filter(
@@ -390,7 +390,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
                     type="checkbox"
                     checked={privilegiosSeleccionados.includes(priv.id)}
                     onChange={() => handlePrivilegioToggle(priv.id)}
-                    style={{ width: '16px', height: '16px', accentColor: '#8b5cf6', cursor: 'pointer' }}
+                    style={{ width: '16px', height: '16px', accentColor: '#e91e8c', cursor: 'pointer' }}
                   />
                   {priv.nombre}
                 </label>
@@ -401,7 +401,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
           <button
             type="button"
             onClick={handleAgregarModulo}
-            style={{ padding: '8px 16px', background: 'white', border: '1px solid #8b5cf6', borderRadius: '6px', color: '#8b5cf6', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
+            style={{ padding: '8px 16px', background: 'white', border: '1px solid #e91e8c', borderRadius: '6px', color: '#e91e8c', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
             onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f3ff'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
           >
@@ -430,14 +430,12 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         </div>
       </form>
 
-      {/* ALERT MODAL */}
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
+        title={alertConfig.title}
         message={alertConfig.message}
-        onConfirm={() => {
-          alertConfig.onConfirm?.();
-        }}
+        onConfirm={() => { alertConfig.onConfirm?.(); }}
         onCancel={closeAlert}
       />
     </>

@@ -146,7 +146,7 @@ const CategoriesSupplyPage = () => {
         marginBottom: '20px',
       }}>
         <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#1a1a1a' }}>
-          Categorías
+          Categorías de insumos
         </h1>
         <CategorySearch value={searchTerm} onChange={setSearchTerm} />
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Alert from "../../../shared/components/Alert";
 
+
 const SupplyForm = ({
   supply,
   medidas = [],
@@ -201,16 +202,14 @@ const SupplyForm = ({
 
   // ── Estilos ────────────────────────────────────────────────────────────────
   const inputStyle = (hasError) => ({
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: "6px",
-    border: `1px solid ${hasError ? "#ef4444" : "#d1d5db"}`,
-    fontSize: "14px",
-    color: "#333",
-    outline: "none",
-    transition: "border-color 0.15s",
-    boxSizing: "border-box",
-  });
+  width: '100%',
+  padding: '10px 14px',
+  border: `1px solid ${hasError ? '#E91E8C' : '#d1d5db'}`,
+  borderRadius: '8px',
+  fontSize: '14px',
+  outline: 'none',
+  transition: 'border-color 0.2s, background-color 0.2s',
+});
 
   const labelStyle = {
     display: "block",
@@ -219,8 +218,14 @@ const SupplyForm = ({
     color: "#555",
     marginBottom: "6px",
   };
-
-  const errorStyle = { color: "#ef4444", fontSize: "12px", marginTop: "4px" };
+ const errorStyle = {
+  color: '#E91E8C',
+   fontWeight: 'bold', 
+  fontSize: '11px',
+  marginTop: '4px',
+  display: 'block',
+};
+  
   const requiredStar = <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>;
 
   // ── Render ─────────────────────────────────────────────────────────────────
