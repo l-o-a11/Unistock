@@ -867,7 +867,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
 
             <div style={{
               width: 44, height: 44, borderRadius: 12,
-              background: "linear-gradient(135deg,#FF4FD6,#c026d3)",
+              background: "#FF4FD6",
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: "0 4px 12px rgba(255,79,214,0.35)",
             }}>

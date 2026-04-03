@@ -96,18 +96,7 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
           <LV label="Dirección" value={Third_partie.direccion} />
           <LV label="Teléfono"  value={Third_partie.telefono} />
           <LV label="Correo"    value={Third_partie.correo || Third_partie.email} />
-          {(Third_partie.sitioweb || Third_partie.sitioWeb) && (
-            <>
-              <div style={styles.label}>Sitio web</div>
-              <div style={styles.value}>
-                <a href={Third_partie.sitioweb || Third_partie.sitioWeb}
-                  target="_blank" rel="noreferrer"
-                  style={{ color: "#FF4FD6", textDecoration: "none", fontSize: 13 }}>
-                  {Third_partie.sitioweb || Third_partie.sitioWeb}
-                </a>
-              </div>
-            </>
-          )}
+
         </div>
       )}
 

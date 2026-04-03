@@ -19,6 +19,8 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
     fontSize: "14px",
     color: "#222",
     margin: 0,
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
   };
 
   const fieldBox = {
@@ -44,7 +46,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
       <div className="flex min-h-full items-center justify-center p-4">
         <div
           className="relative bg-white rounded-xl shadow-2xl"
-          style={{ width: "100%", maxWidth: "580px" }}
+          style={{ width: "100%", maxWidth: "580px", overflow: "hidden" }}
         >
           {/* Header */}
           <div
@@ -58,7 +60,11 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "20px" }}>🏢</span>
+              <span style={{ width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+              </span>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#fff" }}>
                 Detalle del Proveedor
               </h3>
@@ -90,7 +96,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
               <div>
                 <p style={{ ...labelStyle }}>Empresa</p>
-                <p style={{ ...valueStyle, fontSize: "18px", fontWeight: "700" }}>
+                <p style={{ ...valueStyle, fontSize: "18px", fontWeight: "700", wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   {supplier.nombreEmpresa}
                 </p>
               </div>
@@ -111,7 +117,12 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
             <div style={divider} />
 
             {/* Datos empresa */}
-            <p style={{ ...labelStyle, marginBottom: "12px" }}>📋 Información de la empresa</p>
+            <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:12 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
+              </svg>
+              <p style={{ ...labelStyle, margin:0 }}>Información de la empresa</p>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "4px" }}>
               <div style={fieldBox}>
                 <span style={labelStyle}>NIT</span>
@@ -127,9 +138,13 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
               </div>
               <div style={fieldBox}>
                 <span style={labelStyle}>Sitio web</span>
-                <p style={valueStyle}>
+                <p style={{ ...valueStyle, wordBreak:"break-all", overflowWrap:"anywhere" }}>
                   {supplier.sitioWeb || supplier.sitioweb
-                    ? <a href={supplier.sitioWeb || supplier.sitioweb} target="_blank" rel="noreferrer" style={{ color: "#FF4FD6" }}>{supplier.sitioWeb || supplier.sitioweb}</a>
+                    ? <a href={supplier.sitioWeb || supplier.sitioweb} target="_blank" rel="noreferrer"
+                        style={{ color:"#FF4FD6", fontSize:12, display:"block", wordBreak:"break-all", overflowWrap:"anywhere" }}
+                        title={supplier.sitioWeb || supplier.sitioweb}>
+                        {supplier.sitioWeb || supplier.sitioweb}
+                      </a>
                     : "—"
                   }
                 </p>
@@ -139,7 +154,12 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
             <div style={divider} />
 
             {/* Datos contacto */}
-            <p style={{ ...labelStyle, marginBottom: "12px" }}>👤 Contacto</p>
+            <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:12 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <p style={{ ...labelStyle, margin:0 }}>Contacto</p>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div style={fieldBox}>
                 <span style={labelStyle}>Nombre</span>
@@ -156,46 +176,31 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
             </div>
           </div>
 
-          {/* Footer con acciones */}
+          {/* Footer — solo Cerrar */}
           <div
             style={{
               padding: "16px 24px",
               borderTop: "1px solid #f0f0f0",
               display: "flex",
               justifyContent: "flex-end",
-              gap: "12px",
               borderRadius: "0 0 12px 12px",
             }}
           >
             <button
               onClick={onClose}
               style={{
-                padding: "8px 20px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                background: "#fff",
-                color: "#555",
-                fontSize: "14px",
-                cursor: "pointer",
-                fontWeight: "500",
-              }}
-            >
-              Cerrar
-            </button>
-            <button
-              onClick={() => { onClose(); onEdit(supplier); }}
-              style={{
-                padding: "8px 20px",
+                padding: "9px 28px",
                 border: "none",
-                borderRadius: "8px",
-                background: "linear-gradient(135deg, #FF4FD6, #FF4FD6)",
+                borderRadius: "9px",
+                background: "#FF4FD6",
                 color: "#fff",
                 fontSize: "14px",
                 cursor: "pointer",
-                fontWeight: "500",
+                fontWeight: "700",
+                boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
               }}
             >
-              ✏️ Editar
+              Cerrar
             </button>
           </div>
         </div>
