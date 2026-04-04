@@ -3,9 +3,10 @@ import Alert from "../../../shared/components/Alert";
 import { useSuppliers } from "../../../suppliers_fixed/hooks/mockSuppliers";
 import { useSupplies } from "../../../supplies/hooks/useSupplies";
 import SupplyForm from "../../../supplies/components/SupplyForm";
+import SupplierForm from "../../../suppliers_fixed/components/SupplierForm";
 
 const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
-  const { suppliers } = useSuppliers();
+  const { suppliers, createSupplier } = useSuppliers();
   const { supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
 
   const [formData, setFormData] = useState({
@@ -25,6 +26,10 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
   const [insumoSearch, setInsumoSearch]   = useState("");
   const [showInsumoDD, setShowInsumoDD]   = useState(false);
   const [showCreateSupply, setShowCreateSupply] = useState(false);
+
+const [proveedorSearch, setProveedorSearch]   = useState("");
+  const [showProveedorDD, setShowProveedorDD]   = useState(false);
+  const [showCreateSupplier, setShowCreateSupplier] = useState(false);
 
   const [alertConfig, setAlertConfig] = useState({ open: false, type: "success", title: "", message: "", onConfirm: null });
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
@@ -77,6 +82,25 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
     setShowInsumoDD(false);
   };
 
+// ── Proveedor search ────────────────────────────────────────────────────────
+  const filteredSuppliers = useMemo(() => {
+    if (!proveedorSearch.trim()) return suppliers;
+    return suppliers.filter((s) =>
+      s.nombreEmpresa?.toLowerCase().includes(proveedorSearch.toLowerCase())
+    );
+  }, [suppliers, proveedorSearch]);
+
+  const handleSelectProveedor = (supplier) => {
+    setDetalleActual((prev) => ({
+      ...prev,
+      supplierId: supplier.id,
+      nombreEmpresa:   supplier.nombreEmpresa,
+    }));
+    setProveedorSearch(supplier.nombreEmpresa);
+    setShowProveedorDD(false);
+  };
+
+
   // ── Detalle handlers ─────────────────────────────────────────────────────
   const handleDetalleChange = (e) => {
     const { name, value } = e.target;
@@ -121,6 +145,20 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
 
   const handleEliminarDetalle = (id) =>
     setFormData((prev) => ({ ...prev, detalles: prev.detalles.filter((d) => d.id !== id) }));
+
+
+  // ── Crear proveedor desde el form ───────────────────────────────────────────
+  const handleCreateSupplierSubmit = async (supplierData) => {
+    try {
+      const newSupplier = await createSupplier(supplierData);
+      // Seleccionar automáticamente el proveedor recién creado
+      handleSelectProveedor(newSupplier);
+      setShowCreateSupplier(false);
+      showAlert("success", "Proveedor creado", `"${newSupplier.nombreEmpresa}" fue creado y seleccionado.`);
+    } catch (error) {
+      showAlert("error", "Error", error.message || "No se pudo crear el proveedor.");
+    }
+  };
 
   // ── Crear insumo desde el form ───────────────────────────────────────────
   const handleCreateSupplySubmit = async (supplyData) => {
@@ -179,6 +217,18 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
   const onFocus = (e) => { e.target.style.borderColor = "#FF4FD6"; e.target.style.boxShadow = "0 0 0 3px #FF4FD620"; };
   const onBlurS = (e) => { e.target.style.borderColor = "#e5e7eb";  e.target.style.boxShadow = "none"; };
 
+// ── Si está creando proveedor, mostrar SupplierForm en modal ──────────────────
+  if (showCreateSupplier) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
+        <SupplierForm
+          onSubmit={handleCreateSupplierSubmit}
+          onCancel={() => setShowCreateSupplier(false)}
+        />
+      </div>
+    );
+  }
+
   // ── Si está creando insumo, mostrar SupplyForm en modal ──────────────────
   if (showCreateSupply) {
     return (
@@ -213,7 +263,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
           </div>
 
           {/* Proveedor */}
-          <div style={{ marginBottom: "14px" }}>
+            {/*<div style={{ marginBottom: "14px" }}>
             <label style={lbl}>Proveedor{req}</label>
             <select name="proveedorId" value={formData.proveedorId} onChange={handleChange} onBlur={handleBlur}
               style={inp(errors.proveedorId)} onFocus={onFocus}>
@@ -223,7 +273,47 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
               ))}
             </select>
             {errors.proveedorId && <p style={errS}>{errors.proveedorId}</p>}
-          </div>
+          </div>*/}
+
+
+
+          <div style={{ marginBottom: "10px" }}>
+              <label style={lbl}>Proveedor</label>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <input
+                    value={proveedorSearch}
+                    onChange={(e) => { setProveedorSearch(e.target.value); setShowProveedorDD(true); }}
+                    onFocus={() => setShowProveedorDD(true)}
+                    onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)}
+                    placeholder="Buscar proveedor..."
+                    style={inp(false)}
+                  />
+                  {/* Dropdown */}
+                  {showProveedorDD && (
+                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "6px", boxShadow: "0 4px 12px rgba(0,0,0,0.10)", zIndex: 100, maxHeight: "160px", overflowY: "auto" }}>
+                      {filteredSuppliers.length > 0 ? filteredSuppliers.map((s) => (
+                        <div key={s.id} onMouseDown={() => handleSelectProveedor(s)}
+                          style={{ padding: "8px 12px", fontSize: "13px", cursor: "pointer", color: "#333", borderBottom: "1px solid #f5f5f5" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fdf0f7")}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}>
+                          {s.nombreEmpresa}
+                        </div>
+                      )) : (
+                        <div style={{ padding: "10px 12px", fontSize: "12px", color: "#999" }}>
+                          No se encontraron proveedores
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Botón + crear proveedor */}
+                <button type="button" onClick={() => setShowCreateSupplier(true)} title="Crear nuevo proveedor"
+                  style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", backgroundColor: "#FF4FD6", color: "#fff", fontSize: "20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px #FF4FD644" }}>
+                  +
+                </button>
+              </div>
+            </div>
 
           {/* Fecha */}
           <div style={{ marginBottom: "14px" }}>
@@ -342,7 +432,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
         {/* ── COLUMNA DERECHA ── */}
         <div style={{ flex: 1, backgroundColor: "#fafafa", borderLeft: "1px solid #f0f0f0", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, padding: "28px 20px", overflowY: "auto" }}>
-            <p style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: "#333" }}>Detalles de la compra</p>
+            <p style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: "#333" }}>Detalles de la compra (cada valor ya incluye IVA)</p>
 
             {formData.detalles.length > 0 ? (
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>

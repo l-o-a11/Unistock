@@ -290,20 +290,6 @@ const SupplyForm = ({
           {/* Valor medida + Medida */}
           <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Valor medida {requiredStar}</label>
-              <input
-                type="number"
-                name="valorMedida"
-                value={formData.valorMedida}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ej. 20"
-                style={inputStyle(errors.valorMedida)}
-              />
-              {errors.valorMedida && <p style={errorStyle}>{errors.valorMedida}</p>}
-            </div>
-
-            <div style={{ flex: 1 }}>
               <label style={labelStyle}>Medida {requiredStar}</label>
               <select
                 name="medidaId"
@@ -319,6 +305,21 @@ const SupplyForm = ({
               </select>
               {errors.medidaId && <p style={errorStyle}>{errors.medidaId}</p>}
             </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Valor medida {requiredStar}</label>
+              <input
+                type="number"
+                name="valorMedida"
+                value={formData.valorMedida}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Ej. 20"
+                style={inputStyle(errors.valorMedida)}
+              />
+              {errors.valorMedida && <p style={errorStyle}>{errors.valorMedida}</p>}
+            </div>
+
+            
           </div>
 
           {/* Propiedades */}
