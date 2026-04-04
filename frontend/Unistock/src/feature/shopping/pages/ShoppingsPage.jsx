@@ -14,7 +14,6 @@ const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 const ShoppingsPage = () => {
   const { suppliers } = useSuppliers();
 
-  // Resuelve el nombre del proveedor desde su ID — igual que getCategoriaNombre en supplies
   const getProveedorNombre = (proveedorId) =>
     suppliers.find((s) => s.id === parseInt(proveedorId))?.nombreEmpresa ?? "—";
 
@@ -22,8 +21,7 @@ const ShoppingsPage = () => {
     shoppings,
     createShopping,
     updateShopping,
-    deleteShopping,
-    toggleShopping,
+    anularShopping, // ← reemplaza deleteShopping y toggleShopping
   } = useShoppings();
 
   const { searchTerm, handleSearch } = useShoppingSearch();
@@ -83,46 +81,35 @@ const ShoppingsPage = () => {
 
   const handleView = (shopping) => setSelectedShopping(shopping);
 
-  const handleDelete = async (id) => {
+  // ── Anular compra (reemplaza eliminar y activar/desactivar) ────────────────
+  const handleAnular = (id) => {
     const shopping = shoppings.find((p) => p.id === id);
+
+    // Si ya está anulada, no se permite ninguna acción adicional
+    if (shopping?.anulada) {
+      showAlert("error", "Compra ya anulada", `La factura "${shopping?.numeroFactura || id}" ya fue anulada anteriormente.`);
+      return;
+    }
 
     showAlert(
       "password",
-      "¿Eliminar compra?",
-      `Para eliminar la factura "${shopping?.numeroFactura || id}" confirma tu contraseña de administrador.`,
+      "¿Anular compra?",
+      `Para anular la factura "${shopping?.numeroFactura || id}" confirma tu contraseña de administrador. Esta acción no se puede deshacer.`,
       async (pwd) => {
         if (pwd !== ADMIN_PASSWORD) {
           showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
           return;
         }
         try {
-          await deleteShopping(id);
-          showAlert("success", "Compra eliminada", `La factura "${shopping?.numeroFactura || id}" fue eliminada correctamente.`);
+          await anularShopping(id);
+          showAlert(
+            "success",
+            "Compra anulada",
+            `La factura "${shopping?.numeroFactura || id}" fue anulada correctamente.`
+          );
         } catch {
-          showAlert("error", "Error", "No se pudo eliminar la compra. Intenta nuevamente.");
+          showAlert("error", "Error", "No se pudo anular la compra. Intenta nuevamente.");
         }
-      }
-    );
-  };
-
-  const handleToggle = (id) => {
-    const shopping = shoppings.find((p) => p.id === id);
-    const accion = shopping?.estado ? "inactivar" : "activar";
-    showAlert(
-      "password",
-      `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} compra?`,
-      `Para ${accion} la factura "${shopping?.numeroFactura || id}" confirma tu contraseña de administrador.`,
-      (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
-          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
-          return;
-        }
-        toggleShopping(id);
-        showAlert(
-          "success",
-          `Compra ${accion === "activar" ? "activada" : "inactivada"}`,
-          `La factura "${shopping?.numeroFactura || id}" fue ${accion === "activar" ? "activada" : "inactivada"} correctamente.`
-        );
       }
     );
   };
@@ -152,9 +139,10 @@ const ShoppingsPage = () => {
 
   const handleDownload = () => {
     const csv = [
-      ["ID", "Fecha", "N° Factura", "Proveedor", "Observaciones", "Costo Total"],
+      ["ID", "Fecha", "N° Factura", "Proveedor", "Observaciones", "Costo Total", "Estado"],
       ...filteredShoppings.map((p) => [
         p.id, p.fecha, p.numeroFactura, p.proveedor, p.observaciones, p.costoTotal,
+        p.anulada ? "Anulada" : "Activa",
       ]),
     ]
       .map((row) => row.join(","))
@@ -195,7 +183,6 @@ const ShoppingsPage = () => {
     <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
 
       {/* HEADER */}
-      
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
         <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a1a" }}>Compras</h1>
         <ShoppingSearch value={searchTerm} onChange={handleSearch} />
@@ -203,9 +190,9 @@ const ShoppingsPage = () => {
 
       {/* TOOLBAR */}
       <div style={{ display: "flex", justifyContent: "space-between", background: "#fff", padding: "12px 20px", borderRadius: "10px", marginBottom: "20px" }}>
-       <button
+        <button
           onClick={handleDownload}
-          title="Exportar insumos"
+          title="Exportar compras"
           style={{
             background: 'none',
             border: 'none',
@@ -242,8 +229,7 @@ const ShoppingsPage = () => {
         getProveedorNombre={getProveedorNombre}
         onView={handleView}
         onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
+        onAnular={handleAnular}  // ← prop unificada, reemplaza onDelete y onToggle
       />
 
       {/* MODAL CREAR */}

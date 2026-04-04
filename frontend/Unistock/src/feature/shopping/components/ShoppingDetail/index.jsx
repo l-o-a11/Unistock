@@ -1,5 +1,22 @@
 import React from "react";
 
+const EstadoBadge = ({ anulada }) => (
+  <span
+    style={{
+      display: "inline-block",
+      padding: "3px 10px",
+      borderRadius: "20px",
+      fontSize: "11px",
+      fontWeight: 600,
+      letterSpacing: "0.03em",
+      background: anulada ? "#fde8e8" : "#e8f5e9",
+      color: anulada ? "#c0392b" : "#27ae60",
+    }}
+  >
+    {anulada ? "Anulada" : "Activa"}
+  </span>
+);
+
 const ShoppingDetail = ({ shopping, getProveedorNombre, onClose, onEdit }) => {
   if (!shopping) return null;
 
@@ -41,13 +58,18 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose, onEdit }) => {
       >
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #f0f0f0" }}>
-          <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#111" }}>
-            Detalle de Compra
-          </h2>
-          <button onClick={onClose}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#111" }}>
+              Detalle de Compra
+            </h2>
+            <EstadoBadge anulada={shopping.anulada} />
+          </div>
+          <button
+            onClick={onClose}
             style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: "20px", lineHeight: 1, padding: "2px 6px" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#555")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}>
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}
+          >
             ×
           </button>
         </div>
@@ -113,9 +135,11 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose, onEdit }) => {
                 </thead>
                 <tbody>
                   {shopping.detalles.map((d, index) => (
-                    <tr key={d.id || index}
+                    <tr
+                      key={d.id || index}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
                       <td style={tdStyle}>{d.id || index + 101}</td>
                       <td style={tdStyle}>{d.nombre}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>{d.cantidad}</td>
@@ -137,11 +161,13 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose, onEdit }) => {
           )}
         </div>
 
-        {/* Botón editar */}
-        {onEdit && (
+        {/* Botón editar — oculto si la compra está anulada */}
+        {onEdit && !shopping.anulada && (
           <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "flex-end" }}>
-            <button onClick={() => { onClose(); onEdit(shopping); }}
-              style={{ padding: "9px 22px", borderRadius: "8px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}>
+            <button
+              onClick={() => { onClose(); onEdit(shopping); }}
+              style={{ padding: "9px 22px", borderRadius: "8px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}
+            >
               Editar
             </button>
           </div>
