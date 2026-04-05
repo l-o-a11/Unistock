@@ -52,51 +52,52 @@ const AddRowBtn = ({ onClick }) => (
 );
 
 const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
-  const [formData, setFormData] = useState(
-    sheet || {
-      client: "Diego Perez",
-      date: "17/02/2026",
-      ref: "772",
-      type: "Body manga larga con cortes diagonales",
-      description: "Body manga larga, con cortes diagonales en destellante y mallatex, copa partida doble, frente inferior encarretado doble en centro y lateral, espalda abierta con cortes, lleva elástico, enviado en cuello, puños, espalda y piernas para mejor apariencia.",
+  const DEFAULT_SHEET = {
+      client: "",
+      date: new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }),
+      ref: "",
+      type: "",
+      description: "",
       image: null,
       fabrics: [
-        { name: "MALLATEX", consumption: "0.59", pieces: "34", talla: "" },
-        { name: "DESTELLANTE", consumption: "0.66", pieces: "34", talla: "" },
-        { name: "DESTELLANTE", consumption: "0,66", pieces: "", talla: "única" },
+        { name: "", consumption: "", pieces: "", talla: "" },
       ],
       cups: [
-        { type: "Copa ojo de gato straple con realce", values: ["34", "36", "38"] },
-        { type: "Copa vergara con realce", values: ["34", "36", "38"] },
+        { type: "Copa ojo de gato straple con realce", values: ["", "", ""] },
+        { type: "Copa vergara con realce", values: ["", "", ""] },
       ],
       closures: [
-        { type: "Abrochadura o gafete", values: ["1x1", "2x1", "3x1"] },
-        { type: "Elástico cargadera", values: ["10mm 0,'", "15mm", "20mm"] },
+        { type: "Abrochadura o gafete", values: ["", "", ""] },
+        { type: "Elástico cargadera", values: ["", "", ""] },
       ],
-      accessories: [
-        { name: "Varilla mi", values: ["", "", ""] },
-        { name: "Elástico envívar", values: ["", "", ""] },
-        { name: "Hiladilla", values: ["", "", ""] },
-        { name: "Broches decor", values: ["", "", ""] },
-        { name: "Aro", values: ["", "", ""] },
-        { name: "Tensor", values: ["", "", ""] },
-        { name: "Zeta", values: ["", "", ""] },
-        { name: "Cinta ilus", values: ["", "", ""] },
-        { name: "Elástico con base moi", values: ["", "", ""] },
-        { name: "Marquilla", values: ["", "", ""] },
-        { name: "Cordón redondi", values: ["", "", ""] },
-        { name: "Sesgo", values: ["", "", ""] },
-        { name: "Varilla plástic", values: ["", "", ""] },
-        { name: "Elástico senc", values: ["", "", ""] },
-      ],
+      accessories: Array(14).fill(null).map(() => ({ values: ["", "", "", "", "", ""] })),
       measurements: [
         { name: "Medidas cargaderas", values: ["", ""] },
         { name: "Medidas varillas plásticas", values: ["", ""] },
       ],
-      observations: "Conservar apariencia lisa de la prenda, no recogidos.",
-      createdBy: "Paula Andrea Builes.",
-    }
-  );
+      observations: "",
+      createdBy: "",
+    };
+  const ACCESSORY_NAMES = ["Varilla mi","Elástico envívar","Hiladilla","Broches decor","Aro","Tensor","Zeta","Cinta ilus","Elástico con base moi","Marquilla","Cordón redondi","Sesgo","Varilla plástic","Elástico senc"];
+
+  // Merge incoming sheet with defaults to ensure all arrays exist
+  const mergeSheet = (s) => {
+    if (!s) return { ...DEFAULT_SHEET };
+    return {
+      ...DEFAULT_SHEET,
+      ...s,
+      fabrics:      (s.fabrics      && s.fabrics.length      > 0) ? s.fabrics      : DEFAULT_SHEET.fabrics,
+      cups:         (s.cups         && s.cups.length         > 0) ? s.cups         : DEFAULT_SHEET.cups,
+      closures:     (s.closures     && s.closures.length     > 0) ? s.closures     : DEFAULT_SHEET.closures,
+      accessories:  (s.accessories  && s.accessories.length  > 0) ? s.accessories  : DEFAULT_SHEET.accessories,
+      measurements: (s.measurements && s.measurements.length > 0) ? s.measurements : DEFAULT_SHEET.measurements,
+    };
+  };
+
+  const [formData, setFormData] = useState(() => mergeSheet(sheet));
+  // If sheet prop changes (e.g. loaded asynchronously), re-sync
+  React.useEffect(() => { setFormData(mergeSheet(sheet)); }, [sheet?.ref]);
+
 
   const [imagePreview, setImagePreview] = useState(sheet?.image || null);
 
@@ -659,6 +660,32 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                       onChange={(e) => handleChange("createdBy", e.target.value)} 
                     />
                   ) : formData.createdBy}
+                </td>
+              </tr>
+              {/* ── Costos ── */}
+              <tr>
+                <td style={headerCellStyle} colSpan={2}>COSTO UNITARIO:</td>
+                <td style={cellStyle} colSpan={2}>
+                  {isEditing ? (
+                    <input
+                      style={{ ...inputStyle, textAlign: "right" }}
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.costPerUnit === 0 || formData.costPerUnit === undefined ? "" : String(formData.costPerUnit)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d]/g, "");
+                        const val = raw === "" ? 0 : parseInt(raw, 10);
+                        const totalQty = formData._totalQty || 1;
+                        const newData = { ...formData, costPerUnit: val, totalCost: val * totalQty };
+                        setFormData(newData); onChange?.(newData);
+                      }}
+                      placeholder="Ej: 35000"
+                    />
+                  ) : `$${(formData.costPerUnit || 0).toLocaleString("es-CO")}`}
+                </td>
+                <td style={headerCellStyle} colSpan={1}>TOTAL:</td>
+                <td style={{ ...cellStyle, fontWeight: 700, color: "#FF4FD6" }} colSpan={2}>
+                  ${((formData.costPerUnit || 0) * (formData._totalQty || 1)).toLocaleString("es-CO")}
                 </td>
               </tr>
             </tbody>

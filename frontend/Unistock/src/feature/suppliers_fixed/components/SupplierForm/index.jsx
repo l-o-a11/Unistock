@@ -30,7 +30,7 @@ import { blockInput } from "../../../shared/utils/blockInput";
  * @param {function}    props.onSubmit
  * @param {function}    props.onCancel
  */
-const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
+const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
 
   const modalRef = useRef(null);
 
@@ -71,8 +71,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
         nombreEmpresa:  supplier.nombreEmpresa  || "",
         nit:            supplier.nit            || "",
         direccion:      supplier.direccion      || "",
-        correoEmpresa:  supplier.correoEmpresa  || "",
-        sitioWeb:       supplier.sitioWeb       || "",
+        correoEmpresa:  supplier.correoEmpresa  || supplier.email || "",
+        sitioWeb:       supplier.sitioWeb       || supplier.sitioweb || "",
         nombreContacto: supplier.nombreContacto || "",
         telefono:       supplier.telefono       || "",
         correoContacto: supplier.correoContacto || "",
@@ -114,37 +114,61 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
    * @param {string} value — valor actual
    * @returns {string} mensaje de error o ""
    */
+  // Campos que deben ser únicos entre proveedores
+  const UNIQUE_FIELDS = {
+    nit:           (s) => s.nit,
+    correoEmpresa: (s) => s.correoEmpresa || s.email,
+    telefono:      (s) => s.telefono,
+    nombreEmpresa: (s) => (s.nombreEmpresa || "").toLowerCase().trim(),
+  };
+
+  const isDuplicate = (name, value) => {
+    if (!value || !value.trim()) return false;
+    const getter = UNIQUE_FIELDS[name];
+    if (!getter) return false;
+    const normalized = name === "nombreEmpresa" ? value.toLowerCase().trim() : value.trim();
+    return allSuppliers.some(s => {
+      // Skip the supplier being edited
+      if (supplier && s.id === supplier.id) return false;
+      const existing = name === "nombreEmpresa"
+        ? (getter(s) || "").toLowerCase().trim()
+        : (getter(s) || "").trim();
+      return existing === normalized;
+    });
+  };
+
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
       case "nombreEmpresa":
-        // Obligatorio, texto libre
         error = validators.required(value);
+        if (!error && isDuplicate("nombreEmpresa", value))
+          error = "El proveedor ya se encuentra registrado";
         break;
       case "nit":
-        // Obligatorio + solo dígitos + longitud 8-12
         error = validators.required(value) || validators.numbers(value);
         if (!error && (value.length < 8 || value.length > 12))
           error = "Debe tener entre 8 y 12 dígitos";
+        if (!error && isDuplicate("nit", value))
+          error = "El proveedor ya se encuentra registrado";
         break;
       case "direccion":
-        // Obligatorio, texto libre
         error = validators.required(value);
         break;
       case "correoEmpresa":
-        // Obligatorio + formato email
         error = validators.required(value) || validators.email(value);
+        if (!error && isDuplicate("correoEmpresa", value))
+          error = "El proveedor ya se encuentra registrado";
         break;
       case "telefono":
-        // Obligatorio + solo dígitos + exactamente 10 caracteres
         error = validators.required(value) || validators.numbers(value);
         if (!error && value.length !== 10) error = "Debe tener exactamente 10 dígitos";
+        if (!error && isDuplicate("telefono", value))
+          error = "El proveedor ya se encuentra registrado";
         break;
       case "correoContacto":
-        // Opcional — solo valida formato si el usuario escribió algo
         error = value ? validators.email(value) : "";
         break;
-      // sitioWeb y nombreContacto son completamente opcionales
       default:
         break;
     }
@@ -196,6 +220,14 @@ const SupplierForm = ({ supplier, onSubmit, onCancel }) => {
       const error = validateField(key, formData[key]);
       if (error) newErrors[key] = error;
     });
+
+    // Check global uniqueness — if ANY unique field matches an existing supplier, show one error
+    const anyDuplicate = ["nombreEmpresa", "nit", "correoEmpresa", "telefono"].some(
+      f => isDuplicate(f, formData[f])
+    );
+    if (anyDuplicate && !Object.values(newErrors).some(e => e === "El proveedor ya se encuentra registrado")) {
+      newErrors.nombreEmpresa = "El proveedor ya se encuentra registrado";
+    }
 
     // correoContacto: opcional — solo valida si tiene valor
     if (formData.correoContacto) {

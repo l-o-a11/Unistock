@@ -474,8 +474,8 @@ const ProductionCalendarPage = () => {
           <div style={{ background: '#fff', padding: '18px 22px', borderBottom: '1px solid #f0f0f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: `linear-gradient(135deg,${t.color},${t.color}bb)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 14px ${t.color}44`, flexShrink: 0 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: `${t.color}18`, border: `1.5px solid ${t.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="2.2" strokeLinecap="round">
                     <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                   </svg>
                 </div>
@@ -527,7 +527,7 @@ const ProductionCalendarPage = () => {
               {/* Ir a la orden — navega al detalle usando production.id */}
               {event.orderId && (
                 <button
-                  onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`); }}
+                  onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`, { state: { from: 'calendar' } }); }}
                   style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', background: '#FF4FD6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 12px rgba(255,79,214,0.3)' }}>
                   Ver orden #{event.orderId} →
                 </button>

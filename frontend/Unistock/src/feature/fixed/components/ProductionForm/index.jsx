@@ -36,47 +36,65 @@ const typeBox = (active) => ({
 // ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENTE: FILA DE ARTÍCULO EXTRA
 // ─────────────────────────────────────────────────────────────────────────────
-const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {} }) => (
-  <div style={{
-    display: 'flex', gap: 10, alignItems: 'flex-start',
-    background: '#fff8fe', border: '1px solid #f9a8d4',
-    borderRadius: 10, padding: '12px 12px 10px', marginBottom: 8, position: 'relative',
-  }}>
-    <span style={{ position: 'absolute', top: 7, left: 12, fontSize: 10, color: '#ff4fd6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-      Artículo #{index + 2}
-    </span>
-    <div style={{ flex: 1, marginTop: 20 }}>
-      <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
-      <input
-        type="text" inputMode="numeric" value={data.cantidad}
-        onChange={e => { if (!blockInput.onlyNumbers(e)) return; if (e.target.value === "0") return; onChange(index, 'cantidad', e.target.value); }}
-        style={getInputStyle(errors.cantidad)} placeholder="Ej: 100"
-      />
-      {errors.cantidad && <span style={errMsg}>{errors.cantidad}</span>}
+const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors = [] }) => {
+  const [colorOpen, setColorOpen] = React.useState(false);
+  return (
+    <div style={{
+      display: 'flex', gap: 10, alignItems: 'flex-start',
+      background: '#fff8fe', border: '1px solid #f9a8d4',
+      borderRadius: 10, padding: '12px 12px 10px', marginBottom: 8, position: 'relative',
+    }}>
+      <span style={{ position: 'absolute', top: 7, left: 12, fontSize: 10, color: '#ff4fd6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        Artículo #{index + 2}
+      </span>
+      <div style={{ flex: 1, marginTop: 20 }}>
+        <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
+        <input
+          type="text" inputMode="numeric" value={data.cantidad}
+          onChange={e => { if (!blockInput.onlyNumbers(e)) return; if (e.target.value === "0") return; onChange(index, 'cantidad', e.target.value); }}
+          style={getInputStyle(errors.cantidad)} placeholder="Ej: 100"
+        />
+        {errors.cantidad && <span style={errMsg}>{errors.cantidad}</span>}
+      </div>
+      <div style={{ flex: 1, marginTop: 20, position: 'relative' }}>
+        <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
+        <input
+          type="text" value={data.color}
+          onChange={e => { if (!blockInput.onlyLetters(e)) return; onChange(index, 'color', e.target.value); setColorOpen(false); }}
+          onFocus={() => savedColors.length > 0 && setColorOpen(true)}
+          style={getInputStyle(errors.color)} placeholder="Ej: Rojo"
+          autoComplete="off"
+        />
+        {savedColors.length > 0 && (
+          <button type="button" onClick={() => setColorOpen(v => !v)}
+            style={{ position: 'absolute', right: 8, top: '62%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+              style={{ transform: colorOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        )}
+        {colorOpen && savedColors.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', overflow: 'hidden', marginTop: 2 }}>
+            {savedColors.map((c, i) => (
+              <button key={i} type="button"
+                onClick={() => { onChange(index, 'color', c); setColorOpen(false); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 12px', border: 'none', background: data.color === c ? '#fdf4ff' : '#fff', cursor: 'pointer', fontSize: 12, color: '#374151', textAlign: 'left' }}>
+                <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e5e7eb', border: '1px solid rgba(0,0,0,0.08)' }}/>
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+        {errors.color && <span style={errMsg}>{errors.color}</span>}
+      </div>
+      <button type="button" onClick={() => onRemove(index)}
+        style={{ marginTop: 36, width: 28, height: 28, borderRadius: '50%', background: '#fff0fb', border: '1px solid #ff4fd6', color: '#ff4fd6', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        ×
+      </button>
     </div>
-    <div style={{ flex: 1, marginTop: 20 }}>
-      <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
-      <input
-        type="text" value={data.color}
-        onChange={e => { if (!blockInput.onlyLetters(e)) return; onChange(index, 'color', e.target.value); }}
-        style={getInputStyle(errors.color)} placeholder="Ej: Rojo"
-      />
-      {errors.color && <span style={errMsg}>{errors.color}</span>}
-    </div>
-    <div style={{ flex: 1, marginTop: 20 }}>
-      <label style={labelStyle}>Fecha de entrega <span style={requiredStar}>*</span></label>
-      <input type="date" value={data.fecha}
-        onChange={e => onChange(index, 'fecha', e.target.value)}
-        style={getInputStyle(errors.fecha)}
-      />
-      {errors.fecha && <span style={errMsg}>{errors.fecha}</span>}
-    </div>
-    <button type="button" onClick={() => onRemove(index)}
-      style={{ marginTop: 36, width: 28, height: 28, borderRadius: '50%', background: '#fff0fb', border: '1px solid #ff4fd6', color: '#ff4fd6', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      ×
-    </button>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
@@ -104,7 +122,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [loadingSheet,  setLoadingSheet] = useState(false);
   const [savedColors,   setSavedColors]  = useState([]);
   const [savedClients,  setSavedClients] = useState([]);
-  const [designImages,  setDesignImages] = useState([]); // base64 strings para tipo diseño
+  const [designImages,  setDesignImages] = useState([]);
+
+  // ── Nueva referencia (solo tipo diseño) ───────────────────────────────────
+  const [nuevaRefOpen, setNuevaRefOpen] = useState(false);
+  const [nuevaRef, setNuevaRef] = useState({
+    reference: '', name: '', category: '', description: '',
+  });
+  const [nuevaRefErrors, setNuevaRefErrors] = useState({});
+  const [categories,    setCategories]    = useState([]);
+
+  // ── Acordeón de color ─────────────────────────────────────────────────────
+  const [colorAccordionOpen, setColorAccordionOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     referencia:     initialData?.referencia     || '',
@@ -128,6 +157,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
         setProducts([]);
       } finally {
         setLoadingProducts(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { categoryAPI } = await import('../../../categories/services/categoryAPI');
+        const cats = await categoryAPI.getAll();
+        setCategories((cats || []).map(c => c.name));
+      } catch {
+        setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
       }
     })();
   }, []);
@@ -175,7 +216,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     }
   };
 
-  const addExtraRef    = () => { setExtraRefs(p => [...p, { cantidad: '', color: '', fecha: '' }]); setExtraErrors(p => [...p, {}]); };
+  const addExtraRef    = () => { setExtraRefs(p => [...p, { cantidad: '', color: '' }]); setExtraErrors(p => [...p, {}]); };
   const removeExtraRef = (i) => { setExtraRefs(p => p.filter((_,idx) => idx !== i)); setExtraErrors(p => p.filter((_,idx) => idx !== i)); };
   const updateExtraRef = (i, f, v) => {
     setExtraRefs(p => p.map((r,idx) => idx === i ? { ...r, [f]: v } : r));
@@ -184,9 +225,25 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const totalCantidad = (Number(formData.cantidad) || 0) + extraRefs.reduce((s, r) => s + (Number(r.cantidad) || 0), 0);
 
+  const validateNuevaRef = () => {
+    const errs = {};
+    if (!nuevaRef.reference.trim()) errs.reference = 'La referencia es obligatoria';
+    if (!nuevaRef.name.trim())      errs.name      = 'El nombre es obligatorio';
+    if (!nuevaRef.category.trim())  errs.category  = 'La categoría es obligatoria';
+
+    setNuevaRefErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const validate = () => {
     const newErrors = {}; const missing = []; const newExtraErr = extraRefs.map(() => ({}));
-    if (!formData.referencia) { newErrors.referencia = 'Selecciona un producto'; missing.push('Producto / Artículo'); }
+    if (!nuevaRefOpen && !formData.referencia) { newErrors.referencia = 'Selecciona un producto'; missing.push('Producto / Artículo'); }
+    if (nuevaRefOpen) {
+      if (!nuevaRef.reference.trim()) missing.push('Nueva referencia — Código');
+      if (!nuevaRef.name.trim())      missing.push('Nueva referencia — Nombre');
+      if (!nuevaRef.category.trim())  missing.push('Nueva referencia — Categoría');
+
+    }
     const cantErr = validators.positiveInteger(formData.cantidad);
     if (cantErr) { newErrors.cantidad = cantErr; missing.push('Cantidad'); }
     const colorErr = validators.required(formData.color) || validators.onlyLetters(formData.color);
@@ -199,9 +256,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       if (ce) { newExtraErr[i].cantidad = ce; missing.push(`Artículo #${i+2} — Cantidad`); }
       const coe = validators.required(r.color) || validators.onlyLetters(r.color);
       if (coe) { newExtraErr[i].color = coe; missing.push(`Artículo #${i+2} — Color`); }
-      if (!r.fecha) { newExtraErr[i].fecha = 'Requerida'; missing.push(`Artículo #${i+2} — Fecha`); }
+
     });
     setErrors(newErrors); setExtraErrors(newExtraErr);
+    if (nuevaRefOpen) validateNuevaRef();
     if (missing.length > 0) {
       setAlertConfig({ open: true, type: 'warning', title: `Faltan ${missing.length} campo${missing.length > 1 ? 's' : ''} por completar`, message: missing.map(m => `• ${m}`).join('\n'), onConfirm: null });
       return false;
@@ -211,12 +269,40 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const handleSubmit = (e) => { e.preventDefault(); if (validate()) setShowConfirm(true); };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     saveColor(formData.color); saveClient(formData.cliente);
+    let referenciaFinal = formData.referencia;
+    let productoFinal   = formData.producto;
+
+    if (type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim()) {
+      try {
+        const { productAPI } = await import('../../../products/services/productAPI');
+        const created = await productAPI.create({
+          reference:   nuevaRef.reference.trim(),
+          name:        nuevaRef.name.trim(),
+          category:    nuevaRef.category.trim(),
+          price:       0,
+          description: nuevaRef.description.trim(),
+          stock: 0,
+        });
+        referenciaFinal = created.reference || created.id;
+        productoFinal   = created.name;
+      } catch (err) {
+        console.error('Error creando referencia:', err);
+        setAlertConfig({ open: true, type: 'error', title: 'Error al crear referencia', message: 'No se pudo registrar la nueva referencia. Intenta de nuevo.', onConfirm: null });
+        setShowConfirm(false);
+        return;
+      }
+    }
+
     onSubmit({
-      tipo: type, ...formData, referencias: extraRefs,
-      techSheet: type === 'diseno' ? techSheetData : null,
+      tipo: type, ...formData,
+      referencia:  referenciaFinal,
+      producto:    productoFinal,
+      referencias: extraRefs,
+      techSheet:   type === 'diseno' ? techSheetData : null,
       designImages: type === 'diseno' ? designImages : [],
+      nuevaRef:    type === 'diseno' && nuevaRefOpen ? nuevaRef : null,
       ...(damageNotice ? { fromDamaged: true, originalOrderNumber: damageNotice.originalOrderNumber } : {}),
     });
     setShowConfirm(false);
@@ -301,7 +387,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               {sectionTitle('Tipo de solicitud')}
               <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
                 {[['produccion','Producción','Artículo con ficha técnica existente'],['diseno','Diseño','Nuevo diseño o boceto a crear']].map(([val, label, desc]) => (
-                  <div key={val} style={typeBox(type === val)} onClick={() => setType(val)}>
+                  <div key={val} style={typeBox(type === val)} onClick={() => {
+                    setType(val);
+                    if (val !== 'diseno') { setNuevaRefOpen(false); setNuevaRef({ reference:'', name:'', category:'', description:'' }); setNuevaRefErrors({}); }
+                  }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${type === val ? '#ff4fd6' : '#d1d5db'}`, background: type === val ? '#ff4fd6' : 'transparent', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, fontSize: 13, color: '#1f2937' }}>{label}</span>
@@ -312,11 +401,156 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               </div>
 
               {sectionTitle('Artículo principal')}
+
+              {/* ── Acordeón "Nueva Referencia" (solo tipo diseño) ─────────── */}
+              {type === 'diseno' && (
+                <div style={{ marginBottom: 14 }}>
+                  {/* Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNuevaRefOpen(v => !v);
+                      if (!nuevaRefOpen) {
+                        // Al abrir, limpiar el selector existente
+                        setFormData(prev => ({ ...prev, referencia: '', producto: '' }));
+                      } else {
+                        // Al cerrar, limpiar los datos de nueva ref
+                        setNuevaRef({ reference:'', name:'', category:'', description:'' });
+                        setNuevaRefErrors({});
+                      }
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      width: '100%', padding: '10px 14px', borderRadius: 10,
+                      border: nuevaRefOpen ? '2px solid #e879f9' : '1.5px solid #e5e7eb',
+                      background: nuevaRefOpen ? '#fdf4ff' : '#fafafa',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: 6,
+                        background: nuevaRefOpen ? '#e879f9' : '#e5e7eb',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        transition: 'background 0.15s',
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                          {nuevaRefOpen
+                            ? <line x1="5" y1="12" x2="19" y2="12"/>
+                            : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>
+                          }
+                        </svg>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: nuevaRefOpen ? '#9333ea' : '#374151' }}>
+                        Nueva referencia
+                      </span>
+                      <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400 }}>
+                        — Crea un nuevo producto en el catálogo
+                      </span>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round"
+                      style={{ transform: nuevaRefOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+
+                  {/* Campos de nueva referencia */}
+                  {nuevaRefOpen && (
+                    <div style={{
+                      border: '1.5px solid #f0abfc', borderTop: 'none',
+                      borderRadius: '0 0 10px 10px', padding: '16px 14px 12px',
+                      background: '#fdf4ff', display: 'flex', flexDirection: 'column', gap: 12,
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {/* Código / Referencia — generado automáticamente */}
+                        <div>
+                          <label style={labelStyle}>Código de referencia <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400 }}>(auto-generado)</span></label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              value={nuevaRef.reference}
+                              readOnly
+                              style={{ ...getInputStyle(false), background: '#f3f4f6', color: '#6b7280', cursor: 'default', flex: 1 }}
+                              placeholder="Se generará al guardar"
+                            />
+                            <button type="button"
+                              onClick={() => {
+                                const ts = Date.now().toString().slice(-5);
+                                const prefix = nuevaRef.name ? nuevaRef.name.substring(0,2).toUpperCase() : 'NR';
+                                setNuevaRef(p => ({ ...p, reference: `${prefix}-${ts}` }));
+                              }}
+                              style={{ padding: '8px 10px', borderRadius: 9, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 11, color: '#9333ea', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              ↻ Generar
+                            </button>
+                          </div>
+                          <p style={{ margin: '3px 0 0', fontSize: 10, color: '#a78bfa' }}>El código se genera automáticamente basado en el nombre.</p>
+                        </div>
+                        {/* Nombre */}
+                        <div>
+                          <label style={labelStyle}>Nombre del producto <span style={requiredStar}>*</span></label>
+                          <input
+                            value={nuevaRef.name}
+                            onChange={e => {
+                              const nombre = e.target.value;
+                              const ts = Date.now().toString().slice(-5);
+                              const prefix = nombre ? nombre.substring(0,2).toUpperCase() : 'NR';
+                              setNuevaRef(p => ({ ...p, name: nombre, reference: `${prefix}-${ts}` }));
+                              setNuevaRefErrors(p => ({ ...p, name: undefined }));
+                            }}
+                            placeholder="Ej: Crop Top Negro"
+                            style={getInputStyle(nuevaRefErrors.name)}
+                          />
+                          {nuevaRefErrors.name && <span style={errMsg}>⚠ {nuevaRefErrors.name}</span>}
+                        </div>
+                        {/* Categoría — del catálogo existente */}
+                        <div>
+                          <label style={labelStyle}>Categoría <span style={requiredStar}>*</span></label>
+                          <select
+                            value={nuevaRef.category}
+                            onChange={e => { setNuevaRef(p => ({ ...p, category: e.target.value })); setNuevaRefErrors(p => ({ ...p, category: undefined })); }}
+                            style={getInputStyle(nuevaRefErrors.category)}
+                          >
+                            <option value="">Seleccionar categoría...</option>
+                            {categories.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                          </select>
+                          {nuevaRefErrors.category && <span style={errMsg}>⚠ {nuevaRefErrors.category}</span>}
+                        </div>
+
+                      </div>
+                      {/* Descripción */}
+                      <div>
+                        <label style={labelStyle}>Descripción <span style={{ color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
+                        <textarea
+                          value={nuevaRef.description}
+                          onChange={e => setNuevaRef(p => ({ ...p, description: e.target.value }))}
+                          placeholder="Describe brevemente el nuevo diseño..."
+                          rows={2}
+                          style={{ ...getInputStyle(false), resize: 'none', fontFamily: 'inherit' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#fff', borderRadius: 8, border: '1px solid #f0abfc' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2" strokeLinecap="round">
+                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" strokeWidth="2.5"/><line x1="12" y1="11" x2="12" y2="16"/>
+                        </svg>
+                        <span style={{ fontSize: 11, color: '#7c3aed' }}>
+                          Esta referencia se registrará automáticamente en el catálogo de productos al crear la orden.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                 <div>
-                  <label style={labelStyle}>Producto / Artículo <span style={requiredStar}>*</span></label>
-                  <select name="referencia" value={formData.referencia} onChange={handleChange} style={getInputStyle(errors.referencia)}>
-                    <option value="">{loadingProducts ? 'Cargando productos...' : 'Seleccionar producto...'}</option>
+                  <label style={labelStyle}>
+                    {type === 'diseno' && !nuevaRefOpen ? 'Producto / Artículo ' : type === 'diseno' && nuevaRefOpen ? 'Producto base (opcional) ' : 'Producto / Artículo '}
+                    {!nuevaRefOpen && <span style={requiredStar}>*</span>}
+                  </label>
+                  <select name="referencia" value={formData.referencia} onChange={handleChange}
+                    style={getInputStyle(errors.referencia)}
+                    disabled={type === 'diseno' && nuevaRefOpen}
+                  >
+                    <option value="">{loadingProducts ? 'Cargando productos...' : type === 'diseno' && nuevaRefOpen ? '— Nueva referencia —' : 'Seleccionar producto...'}</option>
                     {products.map(p => (
                       <option key={p.id} value={p.reference || p.id}>{p.reference} — {p.name}</option>
                     ))}
@@ -355,12 +589,40 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                 <div>
                   <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
-                  <input
-                    list="colorList" name="color" value={formData.color}
-                    onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); }}
-                    style={getInputStyle(errors.color)} placeholder="Ej: Negro, Blanco..."
-                  />
-                  <datalist id="colorList">{savedColors.map((c, i) => <option key={i} value={c} />)}</datalist>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      name="color" value={formData.color}
+                      onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); setColorAccordionOpen(false); }}
+                      onFocus={() => savedColors.length > 0 && setColorAccordionOpen(true)}
+                      style={getInputStyle(errors.color)} placeholder="Ej: Negro, Blanco..."
+                      autoComplete="off"
+                    />
+                    {savedColors.length > 0 && (
+                      <button type="button" onClick={() => setColorAccordionOpen(v => !v)}
+                        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                          style={{ transform: colorAccordionOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+                    )}
+                    {colorAccordionOpen && savedColors.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', overflow: 'hidden', marginTop: 2 }}>
+                        <p style={{ margin: 0, padding: '6px 12px', fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #f3f4f6' }}>Colores usados anteriormente</p>
+                        {savedColors.map((c, i) => (
+                          <button key={i} type="button"
+                            onClick={() => { setFormData(prev => ({ ...prev, color: c })); setColorAccordionOpen(false); if (errors.color) setErrors(prev => { const n = {...prev}; delete n.color; return n; }); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', border: 'none', background: formData.color === c ? '#fdf4ff' : '#fff', cursor: 'pointer', fontSize: 13, color: '#374151', textAlign: 'left', transition: 'background 0.1s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#fdf4ff'}
+                            onMouseLeave={e => e.currentTarget.style.background = formData.color === c ? '#fdf4ff' : '#fff'}>
+                            <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#e5e7eb', border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }}/>
+                            {c}
+                            {formData.color === c && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="3" strokeLinecap="round" style={{ marginLeft: 'auto' }}><polyline points="20 6 9 17 4 12"/></svg>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {errors.color && <span style={errMsg}>⚠ {errors.color}</span>}
                 </div>
                 <div>
@@ -376,10 +638,22 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Fecha de entrega <span style={requiredStar}>*</span></label>
+                <label style={labelStyle}>Fecha de entrega <span style={requiredStar}>*</span>
+                  <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>(mínimo 1 mes desde hoy)</span>
+                </label>
                 <input
                   type="date" name="fechaSolicitud" value={formData.fechaSolicitud}
-                  onChange={handleChange}
+                  min={(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })()}
+                  onChange={e => {
+                    const minDate = new Date(); minDate.setMonth(minDate.getMonth() + 1);
+                    const sel = new Date(e.target.value);
+                    if (sel < minDate) {
+                      setErrors(prev => ({ ...prev, fechaSolicitud: 'La fecha debe ser al menos 1 mes desde hoy' }));
+                    } else {
+                      setErrors(prev => { const n = {...prev}; delete n.fechaSolicitud; return n; });
+                    }
+                    handleChange(e);
+                  }}
                   style={{ ...getInputStyle(errors.fechaSolicitud), maxWidth: 220 }}
                 />
                 {errors.fechaSolicitud && <span style={errMsg}>⚠ {errors.fechaSolicitud}</span>}
@@ -421,38 +695,91 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     </div>
                   )}
 
-                  {/* Botón subir */}
-                  <label style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    padding: '8px 16px', borderRadius: 9,
-                    border: '1.5px solid #e879f9', background: '#fff',
-                    color: '#9333ea', fontWeight: 700, fontSize: 12,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    {designImages.length > 0 ? 'Agregar más imágenes' : 'Subir imágenes del diseño'}
-                    <input
-                      type="file" accept="image/*" multiple style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        files.forEach(file => {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            setDesignImages(prev => [...prev, ev.target.result]);
-                          };
-                          reader.readAsDataURL(file);
-                        });
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                  {designImages.length > 0 && (
-                    <span style={{ marginLeft: 10, fontSize: 11, color: '#9ca3af' }}>
-                      {designImages.length} imagen{designImages.length !== 1 ? 'es' : ''} seleccionada{designImages.length !== 1 ? 's' : ''}
-                    </span>
+                  {/* Drop zone + botón */}
+                  {designImages.length === 0 ? (
+                    <label style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      gap: 8, padding: '20px 16px', borderRadius: 10,
+                      border: '2px dashed #e879f9', background: '#fff',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.borderColor = '#c026d3'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e879f9'; }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c026d3" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#9333ea' }}>Subir imágenes del diseño</span>
+                      <span style={{ fontSize: 11, color: '#a78bfa' }}>JPG, PNG — múltiples archivos permitidos</span>
+                      <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                        onChange={e => {
+                          const files = Array.from(e.target.files || []);
+                          files.forEach(file => {
+                            const reader = new FileReader();
+                            reader.onload = ev => setDesignImages(prev => [...prev, ev.target.result]);
+                            reader.readAsDataURL(file);
+                          });
+                          e.target.value = '';
+                        }} />
+                    </label>
+                  ) : (
+                    <div>
+                      {/* Grid de miniaturas */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+                        {designImages.map((src, i) => (
+                          <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden', border: '2px solid #f0abfc', background: '#fdf4ff' }}>
+                            <img src={src} alt={`Diseño ${i+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <button type="button" onClick={() => setDesignImages(prev => prev.filter((_, idx) => idx !== i))}
+                              style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                              ×
+                            </button>
+                            <span style={{ position: 'absolute', bottom: 2, left: 3, fontSize: 9, color: '#fff', fontWeight: 700, background: 'rgba(0,0,0,0.45)', borderRadius: 4, padding: '1px 4px' }}>
+                              {i + 1}
+                            </span>
+                          </div>
+                        ))}
+                        {/* Agregar más */}
+                        <label style={{ aspectRatio: '1', borderRadius: 8, border: '2px dashed #e879f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#fff', gap: 4, transition: 'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fdf4ff'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c026d3" strokeWidth="2" strokeLinecap="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                          <span style={{ fontSize: 9, color: '#a78bfa', fontWeight: 700 }}>Más</span>
+                          <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                            onChange={e => {
+                              const files = Array.from(e.target.files || []);
+                              files.forEach(file => {
+                                const reader = new FileReader();
+                                reader.onload = ev => setDesignImages(prev => [...prev, ev.target.result]);
+                                reader.readAsDataURL(file);
+                              });
+                              e.target.value = '';
+                            }} />
+                        </label>
+                      </div>
+                      <p style={{ fontSize: 11, color: '#a78bfa', margin: 0 }}>
+                        {designImages.length} imagen{designImages.length !== 1 ? 'es' : ''} · Haz clic en × para eliminar
+                      </p>
+                    </div>
                   )}
+                </div>
+              )}
+
+              {/* Ficha técnica opcional para diseño */}
+              {type === 'diseno' && (
+                <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: techSheetData ? '#f0fdf4' : '#fafafa', border: `1.5px solid ${techSheetData ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10 }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: techSheetData ? '#16a34a' : '#374151' }}>
+                      📋 Ficha técnica {techSheetData ? '✓ Creada' : '— Opcional'}
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>
+                      {techSheetData ? 'La ficha será vinculada a esta orden' : 'Puedes crear la ficha técnica del nuevo diseño'}
+                    </p>
+                  </div>
+                  <Button variant={techSheetData ? 'ghost' : 'primary'} type="button" onClick={() => setShowTechSheet(true)}>
+                    {techSheetData ? 'Ver / Editar' : 'Crear ficha'}
+                  </Button>
                 </div>
               )}
 
@@ -460,7 +787,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 <>
                   {sectionTitle(`Artículos adicionales (${extraRefs.length})`)}
                   {extraRefs.map((ref, i) => (
-                    <ExtraRefRow key={i} index={i} data={ref} onChange={updateExtraRef} onRemove={removeExtraRef} errors={extraErrors[i] || {}} />
+                    <ExtraRefRow key={i} index={i} data={ref} onChange={updateExtraRef} onRemove={removeExtraRef} errors={extraErrors[i] || {}} savedColors={savedColors} />
                   ))}
                 </>
               )}
@@ -492,22 +819,31 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 14 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1f2937' }}>📋 Ficha Técnica</h3>
-                {type === 'produccion' && <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>Solo lectura · Se vinculará automáticamente al crear la orden</p>}
+                {type === 'produccion'
+                  ? <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>Solo lectura · Se vinculará automáticamente al crear la orden</p>
+                  : <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>Edita los campos y guarda para asociar la ficha a la orden</p>
+                }
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <Button type="button" variant="secondary" onClick={() => setShowTechSheet(false)}>Cerrar</Button>
                 {type === 'diseno' && (
                   <Button type="button" variant="primary" onClick={() => {
-                    setAlertConfig({ open: true, type: 'success', title: 'Ficha guardada', message: 'La ficha técnica fue asociada a la orden.', onConfirm: null });
                     setShowTechSheet(false);
+                    setAlertConfig({ open: true, type: 'success', title: 'Ficha guardada', message: 'La ficha técnica fue asociada a la orden.', onConfirm: null });
                   }}>
-                    Guardar ficha
+                    💾 Guardar ficha
                   </Button>
                 )}
               </div>
             </div>
             <TechnicalSheet
-              sheet={type === 'produccion' ? techSheetPreview : (techSheetData || null)}
+              sheet={type === 'produccion' ? techSheetPreview : (techSheetData && Object.keys(techSheetData).length > 0 ? techSheetData : {
+                client: formData.cliente || '',
+                ref: nuevaRefOpen ? (nuevaRef.reference || '') : (formData.referencia || ''),
+                type: nuevaRefOpen ? (nuevaRef.name || '') : (formData.producto || ''),
+                date: new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                costPerUnit: 0,
+              })}
               isEditing={type === 'diseno'}
               onChange={(data) => { if (type === 'diseno') setTechSheetData(data); }}
             />
@@ -544,9 +880,14 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </span>
               </div>
               {[
-                ['Producto',  formData.referencia ? `${formData.referencia} — ${formData.producto || ''}` : '—'],
+                ['Producto',  nuevaRefOpen && type === 'diseno'
+                  ? `${nuevaRef.reference || '—'} — ${nuevaRef.name || '—'} (nueva ref.)`
+                  : formData.referencia ? `${formData.referencia} — ${formData.producto || ''}` : '—'],
                 ['Cantidad' + (extraRefs.length > 0 ? ' total' : ''), totalCantidad > 0 ? `${totalCantidad} uds` : '—', extraRefs.length > 0],
-                ['Color',     formData.color || '—'],
+                ['Color',     (() => {
+                  const all = [formData.color, ...extraRefs.map(r => r.color)].filter(Boolean);
+                  return [...new Set(all)].join(', ') || '—';
+                })()],
                 ['Cliente',   formData.cliente || '—'],
                 ['Entrega',   formData.fechaSolicitud || '—'],
               ].map(([label, value, hl]) => (

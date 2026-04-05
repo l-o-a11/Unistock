@@ -86,20 +86,55 @@ const AddProductionButton = ({ productions = [], onCreateProduction, onFilterByD
     setShowDownloadModal(false);
     try {
       const XLSX = await import("xlsx");
+      const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+
+      // Hoja principal: órdenes
       const rows = productions.map(prod => ({
-        "Orden #":       prod.orderNumber ?? "N/A",
-        "Producto":      prod.producto ?? prod.referencia ?? "N/A",
-        "Cantidad":      prod.quantity ?? prod.cantidad ?? "N/A",
-        "Color":         prod.color ?? "N/A",
-        "Cliente":       prod.client ?? "N/A",
-        "Estado":        prod.status ?? "N/A",
-        "Fecha entrega": prod.deliveryDate ?? prod.fechaEntrega ?? "N/A",
-        "Fecha estado":  prod.statusDate ?? prod.fechaEstado ?? "N/A",
+        "# Orden":        prod.orderNumber ?? "—",
+        "Producto":       prod.producto ?? prod.referencia ?? "—",
+        "Referencia":     prod.referencia ?? "—",
+        "Cantidad (uds)": prod.quantity ?? prod.cantidad ?? "—",
+        "Color":          prod.color ?? "—",
+        "Cliente":        prod.client ?? "—",
+        "Estado":         prod.status ?? "—",
+        "Fecha entrega":  prod.deliveryDate ?? prod.fechaEntrega ?? "—",
+        "Fecha estado":   prod.statusDate ?? prod.fechaEstado ?? "—",
+        "Prioridad":      prod.prioridad ?? prod.priority ?? "—",
+        "Tipo":           prod.tipo ?? "produccion",
       }));
+
       const ws = XLSX.utils.json_to_sheet(rows);
+
+      // Anchos de columna para mejor lectura
+      ws['!cols'] = [
+        { wch: 10 }, { wch: 32 }, { wch: 14 }, { wch: 16 },
+        { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 16 },
+        { wch: 16 }, { wch: 12 }, { wch: 12 },
+      ];
+
+      // Hoja de artículos (detalles)
+      const detallesRows = [];
+      productions.forEach(prod => {
+        (prod.details || []).forEach(d => {
+          detallesRows.push({
+            "# Orden":       prod.orderNumber ?? "—",
+            "Cliente":       prod.client ?? "—",
+            "Ref_corte":     d.refCorte ?? "—",
+            "Referencia":    d.ref ?? "—",
+            "Cantidad (uds)":d.quantity ?? "—",
+            "Color":         d.color ?? "—",
+            "Estado":        d.status ?? "—",
+            "Fecha estado":  d.statusDate ?? "—",
+          });
+        });
+      });
+      const wsDetalles = XLSX.utils.json_to_sheet(detallesRows.length ? detallesRows : [{ Nota: "Sin artículos" }]);
+      wsDetalles['!cols'] = [{ wch:10 },{ wch:22 },{ wch:18 },{ wch:14 },{ wch:16 },{ wch:14 },{ wch:16 },{ wch:16 }];
+
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Producciones");
-      XLSX.writeFile(wb, "ordenes_produccion.xlsx");
+      XLSX.utils.book_append_sheet(wb, ws, "Órdenes");
+      XLSX.utils.book_append_sheet(wb, wsDetalles, "Artículos");
+      XLSX.writeFile(wb, `ordenes_produccion_${new Date().toISOString().split('T')[0]}.xlsx`);
     } catch(err){
       console.error("Error Excel:", err);
       setAlertConfig({open:true,type:"error",title:"Error al generar Excel",message:"Verifica que la librería xlsx esté instalada.",onConfirm:null});
@@ -134,7 +169,16 @@ const AddProductionButton = ({ productions = [], onCreateProduction, onFilterByD
         ><DownloadIcon /></button>
 
         {/* CALENDARIO */}
-        <Button variant="ghost" onClick={()=>navigate("/layout/produccion/calendario")} title="Ir al calendario" icon={<CalendarIcon />}>Calendario</Button>
+        <button
+          onClick={()=>navigate("/layout/produccion/calendario")}
+          title="Ir al calendario"
+          style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 13px",borderRadius:9,border:"1.5px solid #e5e7eb",background:"#fff",color:"#6b7280",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 0.15s" }}
+          onMouseEnter={e=>{ e.currentTarget.style.borderColor="#FF4FD6"; e.currentTarget.style.color="#FF4FD6"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#6b7280"; }}
+        >
+          <CalendarIcon />
+          Calendario
+        </button>
       </div>
 
       {/* MODAL PDF / EXCEL */}
