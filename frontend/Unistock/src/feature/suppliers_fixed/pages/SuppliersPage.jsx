@@ -191,51 +191,7 @@ const SupplierPage = () => {
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         }}
       >
-        <button
-  onClick={handleAddSupplier}
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "10px 22px",
-    borderRadius: "999px",
-    border: "none",
-    background: "#FF4FD6",
-    color: "#fff",
-    fontSize: "14px",
-    fontWeight: 700,
-    cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(255, 79, 214, 0.3)",
-    transition: "all 0.25s ease",
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = "#e043be";
-    e.currentTarget.style.transform = "translateY(-1px)";
-    e.currentTarget.style.boxShadow = "0 6px 16px rgba(255, 79, 214, 0.4)";
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = "#FF4FD6";
-    e.currentTarget.style.transform = "translateY(0)";
-    e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 79, 214, 0.3)";
-  }}
->
-  <span style={{ fontSize: "16px", display: "flex" }}>
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="16" />
-      <line x1="8" y1="12" x2="16" y2="12" />
-    </svg>
-  </span>
-  Agregar proveedor
-</button>
+        <AddSupplierButton onClick={handleAddSupplier} />
       </div>
 
       {/* TABLA */}
@@ -308,6 +264,7 @@ const SupplierPage = () => {
           supplier={editingSupplier}
           onSubmit={handleFormSubmit}
           onCancel={() => setShowForm(false)}
+          allSuppliers={suppliers}
         />
       )}
     </div>

@@ -1,12 +1,8 @@
 import React, { useState } from "react";
 import HoverCard from "../../../shared/components/HoverCart";
-import Alert from "../../../shared/components/Alert";
 
 const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) => {
 
-  const [showToggleAlert, setShowToggleAlert] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
-  const [newStatus, setNewStatus]   = useState(null);
 
   const truncate = (text, max = 18) => {
     if (!text) return "";
@@ -112,9 +108,9 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                           </svg>
                         </button>
 
-                        {/* SWITCH */}
+                        {/* SWITCH — delega al padre para evitar doble alerta */}
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedId(supplier.id); setNewStatus(!isActive); setShowToggleAlert(true); }}
+                          onClick={(e) => { e.stopPropagation(); onToggle?.(supplier.id, !isActive); }}
                           style={{ position: "relative", width: "44px", height: "24px", borderRadius: "20px", border: "none", backgroundColor: isActive ? "#22c55e" : "#d1d5db", cursor: "pointer" }}>
                           <span style={{ position: "absolute", top: "2px", left: isActive ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s" }} />
                         </button>
@@ -129,14 +125,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
         </div>
       </div>
 
-      <Alert
-        isOpen={showToggleAlert}
-        type="password"
-        title={newStatus ? "Activar proveedor" : "Inactivar proveedor"}
-        message={newStatus ? "Para activar este proveedor ingresa la contraseña de administrador" : "Para inactivar este proveedor ingresa la contraseña de administrador"}
-        onCancel={() => setShowToggleAlert(false)}
-        onConfirm={() => { onToggle?.(selectedId, newStatus); setShowToggleAlert(false); }}
-      />
+
     </>
   );
 };

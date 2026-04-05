@@ -16,8 +16,23 @@ import React, { useState, useEffect } from "react";
 const BRAND = "#FF4FD6";
 const BRAND_DARK = "#d93db8";
 
-const TERCEROS = ["Confección Aurora", "Sorelly Santana", "Taller Rojo", "Otro"];
-const SEDES    = ["Sede Principal", "Sede Norte", "Sede Sur", "Bodega Central"];
+// Carga terceros activos desde localStorage (igual que el módulo de terceros)
+const loadTerceros = () => {
+  try {
+    const raw = localStorage.getItem('app_third_parties');
+    const list = raw ? JSON.parse(raw) : [];
+    return list.filter(t => t.estado !== false).map(t => t.nombreEmpresa || t.nombre || t.codigo);
+  } catch { return ["Confección Aurora", "Taller Rojo"]; }
+};
+
+// Carga sedes activas desde localStorage
+const loadSedes = () => {
+  try {
+    const raw = localStorage.getItem('app_sedes');
+    const list = raw ? JSON.parse(raw) : [];
+    return list.filter(s => s.estado !== false).map(s => s.nombre);
+  } catch { return ["Sede Principal", "Sede Norte"]; }
+};
 
 /* ─── Íconos inline ──────────────────────────────────────────── */
 const IconArrow   = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>;
@@ -110,7 +125,7 @@ const ProductionAlerts = ({
   if (!isOpen) return null;
 
   const isAssign = type === "third" || type === "assignSede";
-  const options  = type === "third" ? TERCEROS : SEDES;
+  const options  = type === "third" ? loadTerceros() : loadSedes();
 
   /* ── Total ya asignado en las filas actuales ── */
   const totalAsignado = assignments.reduce((s, a) => s + (Number(a.cantidad) || 0), 0);
@@ -154,6 +169,11 @@ const ProductionAlerts = ({
       message: customMessage || "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
       icon: <IconWarn />, iconBg: "#fff5f5",
     },
+    password: {
+      title:   customTitle   || "Autorización requerida",
+      message: customMessage || "Ingresa la contraseña de administrador para continuar.",
+      icon: <IconWarn />, iconBg: "#fdf0fa",
+    },
   };
 
   const { title, message, icon, iconBg } = config[type] || config.advance;
@@ -169,6 +189,7 @@ const ProductionAlerts = ({
   const canConfirm =
     (isAssign                       && assignmentsValid)      ||
     (type === "anular"              && motivo.trim() !== "")  ||
+    (type === "password"            && motivo.trim() !== "")  ||
     type === "advance"              ||
     type === "confirm";
 
@@ -179,7 +200,7 @@ const ProductionAlerts = ({
 
   /* ── Confirmar ── */
   const handleAccept = () => {
-    if (type === "anular") { onAccept(motivo.trim()); setMotivo(""); return; }
+    if (type === "anular" || type === "password") { onAccept(motivo.trim()); setMotivo(""); return; }
     if (isAssign) {
       // Retorna el array de asignaciones al padre
       onAccept(assignments);
@@ -205,6 +226,13 @@ const ProductionAlerts = ({
         fontFamily: "'Nunito', sans-serif",
       }}>
         <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+        <style dangerouslySetInnerHTML={{__html: `
+      /* Ocultar ojo nativo del navegador en inputs de contraseña */
+      input[type="password"]::-ms-reveal,
+      input[type="password"]::-ms-clear,
+      input[type="password"]::-webkit-credentials-auto-fill-button,
+      input[type="password"]::-webkit-password-generator-button { display: none !important; }
+        `}} />
 
         {/* ── Ícono + Título ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -296,6 +324,33 @@ const ProductionAlerts = ({
               >
                 <IconPlus /> Agregar {type === "third" ? "tercero" : "sede"}
               </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Campo de contraseña para retroceder ── */}
+        {type === "password" && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>
+              Contraseña de administrador <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <input
+              type="password"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Contraseña de administrador..."
+              autoFocus
+              style={{
+                width: "100%", border: "1.5px solid #e5e7eb", borderRadius: 10,
+                padding: "9px 12px", fontSize: 13, color: "#374151",
+                outline: "none", boxSizing: "border-box",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#FF4FD6")}
+              onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+              onKeyDown={(e) => e.key === "Enter" && motivo.trim() && handleAccept()}
+            />
+            {!motivo.trim() && (
+              <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>La contraseña es obligatoria.</p>
             )}
           </div>
         )}
