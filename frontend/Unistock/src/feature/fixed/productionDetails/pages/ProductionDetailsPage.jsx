@@ -11,7 +11,8 @@
  *     y aún no se ha creado la ficha
  */
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import DamagedProductsModal from "../../components/DamagedProductsModal";
 import { ProductionAPI } from "../../services/ProductionAPI";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
@@ -109,6 +110,7 @@ const dotColor = (status = "") => {
 const ProductionDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [production, setProduction] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -130,6 +132,9 @@ const ProductionDetailsPage = () => {
 
   const [globalAlert, setGlobalAlert] = useState({ open: false, type: "success", title: "", message: "" });
 
+  // Modal productos dañados al anular desde detalle
+  const [damagedModal, setDamagedModal] = useState({ open: false, production: null });
+
   // Imagen del producto terminado / diseño
   const [showImageModal, setShowImageModal]         = useState(false);
   const [selectedImageIdx, setSelectedImageIdx]     = useState(0);
@@ -148,6 +153,15 @@ const ProductionDetailsPage = () => {
     };
     load();
   }, [id]);
+
+  // Auto-open tech sheet form if navigated with openTechSheet flag (from DamagedProductsModal)
+  useEffect(() => {
+    if (location.state?.openTechSheet) {
+      // Small delay to let production data load first
+      const t = setTimeout(() => setShowTechSheetForm(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [location.state?.openTechSheet]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -196,9 +210,26 @@ const ProductionDetailsPage = () => {
     setProduction(saved);
   };
 
+  const ADMIN_PASSWORD = "1234"; // TODO: validate from backend
+
   const handleProductionAlertConfirm = async (motivo = "") => {
     const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
+
+    // Retroceder con contraseña de seguridad
+    if (type === "password") {
+      if (motivo !== ADMIN_PASSWORD) {
+        setGlobalAlert({ open: true, type: "error", title: "Contraseña incorrecta", message: "La contraseña ingresada no es correcta. No se pudo retroceder el estado." });
+        return;
+      }
+      try {
+        await applyStepChange(targetStep);
+        setGlobalAlert({ open: true, type: "success", title: "Estado retrocedido", message: `La orden retrocedió al estado "${targetStep}" correctamente.` });
+      } catch {
+        setGlobalAlert({ open: true, type: "error", title: "Error al retroceder", message: "No se pudo retroceder el estado. Intenta de nuevo." });
+      }
+      return;
+    }
 
     // Anular orden
     if (onConfirmOverride && type === "anular") {
@@ -217,6 +248,47 @@ const ProductionDetailsPage = () => {
     // Asignar tercero
     if (type === "third") {
       try {
+        // Guardar asignaciones en la orden
+        const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+        const assignmentsList = Array.isArray(motivo) ? motivo : [];
+        // Actualizar terceros en localStorage
+        try {
+          const terceroRaw = localStorage.getItem('app_third_parties');
+          const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
+          let updated = false;
+          assignmentsList.forEach(a => {
+            const idx = tercerosList.findIndex(t => t.nombreEmpresa === a.option || t.nombre === a.option);
+            if (idx > -1) {
+              const alreadyLinked = (tercerosList[idx].producciones || []).some(p => p.produccionId === production.id);
+              if (!alreadyLinked) {
+                tercerosList[idx] = {
+                  ...tercerosList[idx],
+                  producciones: [...(tercerosList[idx].producciones || []), {
+                    orden: production.orderNumber,
+                    fecha: today,
+                    produccionId: production.id,
+                    cantidad: Number(a.cantidad) || 0,
+                  }]
+                };
+                updated = true;
+              }
+            }
+          });
+          if (updated) localStorage.setItem('app_third_parties', JSON.stringify(tercerosList));
+        } catch(e) { console.warn('Error linking tercero:', e); }
+        // Guardar distribución en la orden
+        const savedProd = await ProductionAPI.update(production.id, {
+          ...production,
+          terceroAsignaciones: assignmentsList,
+          history: [...(production.history || []), {
+            status: "Tercero asignado",
+            date: today,
+            user: ProductionAPI.getCurrentUser(),
+            motivo: assignmentsList.map(a => `${a.option}: ${a.cantidad} uds`).join(" | "),
+            distribución: assignmentsList,
+          }]
+        });
+        setProduction(savedProd);
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Tercero asignado", message: `El tercero fue asignado y la orden avanzó a "${targetStep}".` });
       } catch {
@@ -228,6 +300,33 @@ const ProductionDetailsPage = () => {
     // Asignar sede — al pasar de Producción solicitar imagen del producto terminado
     if (type === "assignSede") {
       try {
+        const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+        const assignmentsList = Array.isArray(motivo) ? motivo : [];
+
+        // Desvincula esta producción de todos los terceros que la tenían asignada
+        try {
+          const terceroRaw = localStorage.getItem('app_third_parties');
+          const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
+          const updatedTerceros = tercerosList.map(t => ({
+            ...t,
+            producciones: (t.producciones || []).filter(p => p.produccionId !== production.id),
+          }));
+          localStorage.setItem('app_third_parties', JSON.stringify(updatedTerceros));
+        } catch(e) { console.warn('Error unlinking tercero:', e); }
+
+        // Guardar distribución de sedes en la orden
+        const savedProd = await ProductionAPI.update(production.id, {
+          ...production,
+          sedeAsignaciones: assignmentsList,
+          history: [...(production.history || []), {
+            status: "Sede asignada",
+            date: today,
+            user: ProductionAPI.getCurrentUser(),
+            motivo: assignmentsList.map(a => `${a.option}: ${a.cantidad} uds`).join(" | "),
+            distribución: assignmentsList,
+          }]
+        });
+        setProduction(savedProd);
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
         // Solicitar imagen del producto terminado
@@ -387,6 +486,45 @@ const ProductionDetailsPage = () => {
         onCancel={closeProductionAlert}
         totalUnidades={totalUnidades}
       />
+      {/* Damaged Products Modal */}
+      <DamagedProductsModal
+        isOpen={damagedModal.open}
+        production={damagedModal.production}
+        onClose={() => setDamagedModal({ open: false, production: null })}
+        onNewOrder={(damagedDetails) => {
+          const source = damagedModal.production;
+          setDamagedModal({ open: false, production: null });
+          navigate('/layout/produccion', { state: { openNewOrderFromDamaged: true, source, damagedDetails } });
+        }}
+        onNewTechSheet={async (damagedDetails) => {
+          const source = damagedModal.production;
+          setDamagedModal({ open: false, production: null });
+          if (!damagedDetails.length || !source) return;
+          try {
+            const { productAPI } = await import('../../../products/services/productAPI');
+            const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const { ProductionAPI: ProdAPI } = await import('../../services/ProductionAPI');
+            const primary = damagedDetails[0];
+            const newOrder = await ProdAPI.create({
+              tipo: 'diseno',
+              referencia: source.referencia || '',
+              producto: source.producto || '',
+              cantidad: String(primary.quantity || ''),
+              color: primary.color || '',
+              cliente: source.client || '',
+              fechaSolicitud: '',
+              referencias: damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
+              fromDamaged: true,
+              originalOrderId: source.id,
+              originalOrderNumber: source.orderNumber,
+            });
+            navigate(`/layout/produccion/detalle/${newOrder.id}`, {
+              state: { openTechSheet: true, fromDamaged: true, originalOrderNumber: source.orderNumber, from: 'produccion' }
+            });
+          } catch(e) { console.error('Error creating recovery order:', e); }
+        }}
+      />
+
       <AlertEditProduction
         isOpen={editAlert.isOpen}
         detail={editAlert.detail}
@@ -437,10 +575,8 @@ const ProductionDetailsPage = () => {
       {/* ── Modal Galería de Imágenes ──────────────────────────────────────── */}
       {showImageModal && (() => {
         const designImages = production.designImages || [];
-        const finishedImg  = production.finishedImageUrl || null;
-        const allImages    = finishedImg
-          ? [{ src: finishedImg, label: "Producto terminado" }, ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }))]
-          : designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }));
+        const finishedImages  = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+        const allImages       = [...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })), ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }))];
         const current = allImages[selectedImageIdx] || allImages[0];
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
@@ -506,29 +642,32 @@ const ProductionDetailsPage = () => {
               </svg>
               <span style={{ fontSize: 13, fontWeight: 600, color: "#9333ea" }}>Seleccionar imagen</span>
               <span style={{ fontSize: 11, color: "#9ca3af" }}>JPG, PNG — máx. 5MB</span>
-              <input type="file" accept="image/*" style={{ display: "none" }}
+              <input type="file" accept="image/*" multiple style={{ display: "none" }}
                 onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = async (ev) => {
-                    const base64 = ev.target.result;
-                    try {
-                      const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-                      const saved = await ProductionAPI.update(production.id, {
-                        ...production,
-                        finishedImageUrl: base64,
-                        history: [...(production.history || []), { status: "Foto producto terminado", date: today, user: ProductionAPI.getCurrentUser(), motivo: null }]
-                      });
-                      setProduction(saved);
-                      setPendingFinishedImg(null);
-                      setGlobalAlert({ open: true, type: "success", title: "Foto guardada", message: "La imagen del producto terminado fue guardada correctamente." });
-                    } catch {
-                      setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar la imagen." });
-                      setPendingFinishedImg(null);
-                    }
-                  };
-                  reader.readAsDataURL(file);
+                  const files = Array.from(e.target.files || []);
+                  if (!files.length) return;
+                  const toBase64 = (file) => new Promise((res) => {
+                    const r = new FileReader();
+                    r.onload = (ev) => res(ev.target.result);
+                    r.readAsDataURL(file);
+                  });
+                  try {
+                    const bases = await Promise.all(files.map(toBase64));
+                    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+                    const existingFinished = Array.isArray(production.finishedImages) ? production.finishedImages : (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+                    const saved = await ProductionAPI.update(production.id, {
+                      ...production,
+                      finishedImages: [...existingFinished, ...bases],
+                      finishedImageUrl: bases[0],
+                      history: [...(production.history || []), { status: "Foto producto terminado", date: today, user: ProductionAPI.getCurrentUser(), motivo: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} agregada${bases.length !== 1 ? "s" : ""}` }]
+                    });
+                    setProduction(saved);
+                    setPendingFinishedImg(null);
+                    setGlobalAlert({ open: true, type: "success", title: "Fotos guardadas", message: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} del producto terminado guardada${bases.length !== 1 ? "s" : ""} correctamente.` });
+                  } catch {
+                    setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar las imágenes." });
+                    setPendingFinishedImg(null);
+                  }
                 }} />
             </label>
             <button onClick={() => setPendingFinishedImg(null)}
@@ -560,8 +699,8 @@ const ProductionDetailsPage = () => {
         </div>
       )}
 
-      {/* ── Tech Sheet Modal (Create) ── */}
-      {showTechSheetForm && !production.techSpecification && (
+      {/* ── Tech Sheet Modal (Create / Edit for diseño recovery) ── */}
+      {showTechSheetForm && (production.tipo === 'diseno' || !production.techSpecification) && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}>
           <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
@@ -579,7 +718,8 @@ const ProductionDetailsPage = () => {
                     if (!techSheetDraft) { setGlobalAlert({ open: true, type: "warning", title: "Ficha vacía", message: "Completa al menos los datos básicos de la ficha antes de guardar." }); return; }
                     try {
                       const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: "1", costPerUnit: 0, totalCost: 0, completed: true, createdAt: today };
+                      const costPerUnit = Number(techSheetDraft.costPerUnit) || 0;
+                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true, createdAt: today };
                       const saved = await ProductionAPI.update(production.id, {
                         ...production, techSpecification: newSpec,
                         history: [...(production.history || []), { status: "Ficha técnica creada", date: today, user: ProductionAPI.getCurrentUser(), motivo: null }]
@@ -595,7 +735,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={null} isEditing={true} onChange={(data) => setTechSheetDraft(data)} />
+              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} />
             </div>
           </div>
         </div>
@@ -604,10 +744,14 @@ const ProductionDetailsPage = () => {
       {/* ══════════════ PAGE CONTENT ══════════════ */}
 
       {/* Back button */}
-      <button onClick={() => navigate("/layout/produccion")}
+      <button onClick={() => {
+          const from = location.state?.from;
+          if (from === 'calendar') navigate('/layout/produccion/calendario');
+          else navigate('/layout/produccion');
+        }}
         style={{ display: "flex", alignItems: "center", gap: 6, color: "#6b7280", fontSize: 12, fontWeight: 600, background: "none", border: "none", cursor: "pointer", marginBottom: 18, padding: 0 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
-        Volver a Producciones
+        {location.state?.from === 'calendar' ? 'Volver al Calendario' : 'Volver a Producciones'}
       </button>
 
       {/* ── Page Header ─────────────────────────────────────── */}
@@ -629,7 +773,13 @@ const ProductionDetailsPage = () => {
             onClick={() => openProductionAlert({
               type: "anular", customTitle: "Anular orden",
               customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
-              onConfirmOverride: async (motivo) => { const saved = await ProductionAPI.cancel(production.id, motivo || "Sin motivo"); setProduction(saved); }
+              onConfirmOverride: async (motivo) => {
+                const saved = await ProductionAPI.cancel(production.id, motivo || "Sin motivo");
+                setProduction(saved);
+                if (["Corte","Producción"].includes(production.status)) {
+                  setTimeout(() => setDamagedModal({ open: true, production: saved || { ...production, status: "Anulada" } }), 400);
+                }
+              }
             })}>
             Anular orden
           </button>
@@ -654,9 +804,14 @@ const ProductionDetailsPage = () => {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>Flujo de Proceso</p>
             <div style={{ display: "flex", gap: 8 }}>
-              {prevStep && (
+              {prevStep && safeStepIndex < stepsReal.indexOf("Recepción") && (
                 <button className="pd-btn-nav"
-                  onClick={() => openProductionAlert({ type: "advance", targetStep: prevStep, customTitle: "Retroceder estado", customMessage: `¿Deseas retroceder a "${prevStep}"?` })}>
+                  onClick={() => openProductionAlert({
+                    type: "password",
+                    targetStep: prevStep,
+                    customTitle: "Autorización requerida",
+                    customMessage: `Para retroceder al estado "${prevStep}" ingresa la contraseña de administrador.`,
+                  })}>
                   ← Anterior
                 </button>
               )}
@@ -728,22 +883,23 @@ const ProductionDetailsPage = () => {
         <div className="pd-card" style={{ padding: 0, overflow: "hidden" }}>
 
           {/* Product top section */}
-          <div style={{ padding: "18px 20px", display: "flex", gap: 18, alignItems: "flex-start" }}>
+          <div style={{ padding: "18px 20px", display: "flex", gap: 18, alignItems: "flex-start", maxHeight: 240, overflow: "hidden" }}>
             {/* Image — shows design images OR finished product image */}
             {(() => {
-              const designImages = production.designImages || [];
-              const finishedImg  = production.finishedImageUrl || null;
-              const allImages    = finishedImg
-                ? [{ src: finishedImg, label: "Producto terminado" }, ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }))]
-                : designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }));
+              const designImages    = production.designImages || [];
+              const finishedImages  = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+              const allImages       = [
+                ...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })),
+                ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` })),
+              ];
 
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                  {/* Imagen principal */}
+                  {/* Imagen principal — más grande */}
                   <div
                     onClick={() => { if (allImages.length > 0) { setSelectedImageIdx(0); setShowImageModal(true); } }}
                     style={{
-                      width: 96, height: 120, borderRadius: 10, overflow: "hidden",
+                      width: 150, height: 190, borderRadius: 12, overflow: "hidden",
                       background: "linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       boxShadow: "0 4px 14px rgba(255,79,214,0.15)",
@@ -755,12 +911,12 @@ const ProductionDetailsPage = () => {
                       ? <img src={allImages[0].src} alt={allImages[0].label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : production.imageUrl
                         ? <img src={production.imageUrl} alt={production.producto} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
+                        : <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
                             <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                           </svg>
                     }
                     {allImages.length > 1 && (
-                      <div style={{ position: "absolute", bottom: 4, right: 4, background: "rgba(0,0,0,0.55)", borderRadius: 6, padding: "1px 5px", fontSize: 9, color: "#fff", fontWeight: 700 }}>
+                      <div style={{ position: "absolute", bottom: 5, right: 5, background: "rgba(0,0,0,0.6)", borderRadius: 7, padding: "2px 7px", fontSize: 10, color: "#fff", fontWeight: 700 }}>
                         +{allImages.length}
                       </div>
                     )}
@@ -768,7 +924,7 @@ const ProductionDetailsPage = () => {
                       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
                         onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.18)"}
                         onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0)"}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" style={{ opacity: 0.9 }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" style={{ opacity: 0.9 }}>
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                         </svg>
                       </div>
@@ -780,7 +936,7 @@ const ProductionDetailsPage = () => {
                       {allImages.slice(1, 4).map((img, i) => (
                         <div key={i}
                           onClick={() => { setSelectedImageIdx(i + 1); setShowImageModal(true); }}
-                          style={{ width: 28, height: 28, borderRadius: 5, overflow: "hidden", cursor: "pointer", border: "1.5px solid #f9a8d4" }}>
+                          style={{ width: 34, height: 34, borderRadius: 6, overflow: "hidden", cursor: "pointer", border: "1.5px solid #f9a8d4" }}>
                           <img src={img.src} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         </div>
                       ))}
@@ -908,7 +1064,7 @@ const ProductionDetailsPage = () => {
         </div>
 
         {/* RIGHT: Stacked side cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: 620, overflowY: "auto", paddingRight: 2 }}>
 
           {/* Ficha Técnica y Costos */}
           <div className="pd-card" style={{ padding: 16 }}>
@@ -956,6 +1112,65 @@ const ProductionDetailsPage = () => {
             )}
           </div>
 
+          {/* ── Distribución Terceros ── */}
+          {(production.terceroAsignaciones || []).length > 0 && (
+            <div className="pd-card" style={{ padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: "#fdf4ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2" strokeLinecap="round">
+                    <path d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Terceros Asignados</p>
+              </div>
+              {(production.terceroAsignaciones || []).map((a, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: i % 2 === 0 ? "#fdf4ff" : "#fff", borderRadius: 8, marginBottom: 4, border: "1px solid #f5d0fe" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6b21a8" }}>{a.option}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: "#FF4FD6" }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTop: "1px solid #f5d0fe" }}>
+                <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                  Total: <strong style={{ color: "#FF4FD6" }}>
+                    {(production.terceroAsignaciones || []).reduce((s, a) => s + (Number(a.cantidad) || 0), 0).toLocaleString("es-CO")} uds
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Distribución Sedes ── */}
+          {(production.sedeAsignaciones || []).length > 0 && (
+            <div className="pd-card" style={{ padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Distribución por Sede</p>
+              </div>
+              {(production.sedeAsignaciones || []).map((a, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: i % 2 === 0 ? "#f0fdf4" : "#fff", borderRadius: 8, marginBottom: 4, border: "1px solid #bbf7d0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d" }}>{a.option}</span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: "#16a34a" }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTop: "1px solid #bbf7d0" }}>
+                <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                  Total enviado: <strong style={{ color: "#16a34a" }}>
+                    {(production.sedeAsignaciones || []).reduce((s, a) => s + (Number(a.cantidad) || 0), 0).toLocaleString("es-CO")} uds
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Historial Operativo */}
           <div className="pd-card" style={{ padding: 16, flex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 13 }}>
@@ -970,8 +1185,38 @@ const ProductionDetailsPage = () => {
                   )}
                   <div className="pd-dot" style={{ background: dotColor(h.status), marginTop: 3 }} />
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", margin: "0 0 1px" }}>{h.status}</p>
-                    <p style={{ fontSize: 10, color: "#9ca3af", margin: 0 }}>{h.date}{h.user ? ` · ${h.user}` : ""}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", margin: "0 0 1px" }}>{h.status}</p>
+                      {h.distribución && h.distribución.length > 0 && (
+                        <div style={{ position: "relative", display: "inline-block" }}
+                          onMouseEnter={e => e.currentTarget.querySelector('.dist-tooltip').style.display = 'block'}
+                          onMouseLeave={e => e.currentTarget.querySelector('.dist-tooltip').style.display = 'none'}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round" style={{ cursor: "pointer", marginBottom: -2 }}>
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" strokeWidth="2.5"/><line x1="12" y1="11" x2="12" y2="16"/>
+                          </svg>
+                          <div className="dist-tooltip" style={{
+                            display: "none", position: "absolute", left: "100%", top: "-8px",
+                            zIndex: 200, background: "#1f2937", borderRadius: 10,
+                            padding: "10px 14px", minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                            marginLeft: 8,
+                          }}>
+                            <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em" }}>Distribución</p>
+                            {h.distribución.map((d, di) => (
+                              <div key={di} style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, color: "#fff", fontWeight: 600, whiteSpace: "nowrap" }}>{d.option}</span>
+                                <span style={{ fontSize: 11, color: "#FF4FD6", fontWeight: 700 }}>{d.cantidad} uds</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 10, color: "#9ca3af", margin: 0 }}>
+                      {h.date}
+                      {h.user && (
+                        <span style={{ color: "#6b7280", fontWeight: 600 }}> · {h.user}</span>
+                      )}
+                    </p>
                     {h.motivo && <p style={{ fontSize: 10, color: "#f59e0b", margin: "2px 0 0", fontStyle: "italic" }}>{h.motivo}</p>}
                   </div>
                 </div>
@@ -1005,7 +1250,32 @@ const ProductionDetailsPage = () => {
                 {(production.history || []).map((h, i) => (
                   <tr key={i}>
                     <td>
-                      <span className="pd-badge" style={statusStyle(h.status)}>{h.status}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span className="pd-badge" style={statusStyle(h.status)}>{h.status}</span>
+                        {h.distribución && h.distribución.length > 0 && (
+                          <div style={{ position: "relative", display: "inline-block" }}
+                            onMouseEnter={e => e.currentTarget.querySelector('.dist-tt').style.display = 'block'}
+                            onMouseLeave={e => e.currentTarget.querySelector('.dist-tt').style.display = 'none'}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round" style={{ cursor: "pointer" }}>
+                              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" strokeWidth="2.5"/><line x1="12" y1="11" x2="12" y2="16"/>
+                            </svg>
+                            <div className="dist-tt" style={{
+                              display: "none", position: "absolute", left: "100%", top: "-4px",
+                              zIndex: 300, background: "#1f2937", borderRadius: 10,
+                              padding: "10px 14px", minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                              marginLeft: 6,
+                            }}>
+                              <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase" }}>Distribución</p>
+                              {h.distribución.map((d, di) => (
+                                <div key={di} style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 3 }}>
+                                  <span style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>{d.option}</span>
+                                  <span style={{ fontSize: 11, color: "#FF4FD6", fontWeight: 700 }}>{d.cantidad} uds</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td style={{ color: "#6b7280", fontSize: 12 }}>{h.date}</td>
                     <td style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{h.user || "—"}</td>

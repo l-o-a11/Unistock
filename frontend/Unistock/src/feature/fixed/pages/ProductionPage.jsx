@@ -52,6 +52,8 @@ const ProductionsPage = () => {
     return new Date(str);
   };
 
+  const HIDDEN_STATUSES = ['Anulada', 'Entregado'];
+
   const filteredProductions = (productions || []).filter(prod => {
     const term = (searchTerm || '').toLowerCase();
     const matchesSearch = !term || [
@@ -62,6 +64,10 @@ const ProductionsPage = () => {
     || (prod?.details || []).some(d => [d?.ref, d?.refCorte, d?.color, d?.status].some(v => (v || '').toLowerCase().includes(term)))
     || (prod?.history || []).some(h => (h?.motivo || '').toLowerCase().includes(term));
     const matchesStatus = filterStatus === 'Todos' || prod?.status === filterStatus;
+    // Hide Anulada/Entregado unless explicitly filtered to those states
+    const visibleByDefault = filterStatus === 'Todos'
+      ? !HIDDEN_STATUSES.includes(prod?.status)
+      : true;
     const matchesClient = filterClient === 'Todos' || prod?.client === filterClient;
     let matchesDate = true;
     if (filterDateFrom || filterDateTo) {
@@ -70,7 +76,7 @@ const ProductionsPage = () => {
       const inRange = (d) => { if (!d) return false; if (from && to) return d >= from && d <= to; if (from) return d >= from; if (to) return d <= to; return true; };
       matchesDate = inRange(parseDate(prod?.deliveryDate)) || inRange(parseDate(prod?.statusDate));
     }
-    return matchesSearch && matchesStatus && matchesClient && matchesDate;
+    return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault;
   });
 
   const totalPages           = Math.max(1, Math.ceil(filteredProductions.length / itemsPerPage));
@@ -133,20 +139,20 @@ const ProductionsPage = () => {
     try {
       const primary = damagedDetails[0];
       const newOrder = await createProduction({
-        tipo:           'produccion',
+        tipo:           'diseno',          // diseño para poder crear nueva ficha técnica
         referencia:     source.referencia || '',
         producto:       source.producto   || '',
         cantidad:       String(primary.quantity || ''),
         color:          primary.color || '',
         cliente:        source.client || '',
         fechaSolicitud: '',
-        referencias:    damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '', fecha: '' })),
+        referencias:    damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
         fromDamaged:         true,
         originalOrderId:     source.id,
         originalOrderNumber: source.orderNumber,
         originalOrderStatus: source.status,
       });
-      // Navegar al detalle con flag para abrir la ficha técnica
+      // Navegar al detalle con flag para abrir la ficha técnica en modo diseño
       navigate(`/layout/produccion/detalle/${newOrder.id}`, {
         state: {
           openTechSheet:       true,
@@ -161,6 +167,7 @@ const ProductionsPage = () => {
       setCreatingNewOrder(false);
     }
   };
+    
 
   const handleDamagedOrderSubmit = async (data) => {
     await createProduction(data);
@@ -288,8 +295,14 @@ const ProductionsPage = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', minWidth: 0 }}>
           <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
             style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #e5e7eb', background: '#fafafa', fontSize: 12, cursor: 'pointer', minWidth: 0 }}>
-            {uniqueStatuses.map((s, i) => <option key={i} value={s}>{s === 'Todos' ? 'Estado: Todos' : s}</option>)}
+            {uniqueStatuses.map((s, i) => <option key={i} value={s}>{s === 'Todos' ? 'Estado: Activas' : s}</option>)}
           </select>
+          {filterStatus === 'Todos' && (
+            <span style={{ fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap', fontStyle: 'italic' }}>
+              Anuladas y entregadas ocultas
+            </span>
+          )}
+          
           <select value={filterClient} onChange={(e) => { setFilterClient(e.target.value); setCurrentPage(1); }}
             style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #e5e7eb', background: '#fafafa', fontSize: 12, cursor: 'pointer', minWidth: 0 }}>
             {uniqueClients.map((c, i) => <option key={i} value={c}>{c === 'Todos' ? 'Cliente: Todos' : c}</option>)}
@@ -305,6 +318,13 @@ const ProductionsPage = () => {
           </div>
           {(searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter) && (
             <span style={{ fontSize: 11, color: '#FF4FD6', fontWeight: 700, whiteSpace: 'nowrap' }}>{filteredProductions.length} resultado{filteredProductions.length !== 1 ? 's' : ''}</span>
+          )}
+          {(searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter) && (
+            <button onClick={() => { setSearchTerm(''); setFilterStatus('Todos'); setFilterClient('Todos'); setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }}
+              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:7, border:'1.5px solid #fca5a5', background:'#fff5f5', color:'#ef4444', fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Limpiar filtros
+            </button>
           )}
         </div>
         <div style={{ flexShrink: 0 }}>

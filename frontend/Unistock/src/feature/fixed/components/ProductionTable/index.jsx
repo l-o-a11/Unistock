@@ -155,16 +155,25 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                     <div style={{ fontSize: 10, color: '#9ca3af' }}>uds</div>
                   </td>
 
-                  {/* Color */}
+                  {/* Color — todos los colores de la orden */}
                   <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{
-                        width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                        background: prod.color?.toLowerCase() || '#e5e7eb',
-                        border: '1px solid rgba(0,0,0,0.1)',
-                      }} />
-                      <span style={{ fontSize: 12, color: '#4b5563' }}>{prod.color || '—'}</span>
-                    </div>
+                    {(() => {
+                      const allColors = [
+                        ...(prod.color ? [prod.color] : []),
+                        ...((prod.details || []).map(d => d.color).filter(Boolean)),
+                      ];
+                      const uniqueColors = [...new Set(allColors.map(c => c.trim()))];
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {uniqueColors.length > 0 ? uniqueColors.map((c, ci) => (
+                            <span key={ci} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 20, padding: '2px 7px', fontSize: 10, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
+                              {c}
+                            </span>
+                          )) : <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>}
+                        </div>
+                      );
+                    })()}
                   </td>
 
                   {/* Fecha entrega */}

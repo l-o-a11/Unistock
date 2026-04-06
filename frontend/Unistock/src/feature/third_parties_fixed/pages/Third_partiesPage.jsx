@@ -60,7 +60,14 @@ const Third_partiePage = () => {
   const handleView   = (t) => setSelectedThird_partie(t);
   const handleEdit   = (t) => { setEditingThird_partie(t); setShowForm(true); };
   const handleAdd    = () => { setEditingThird_partie(null); setShowForm(true); };
-  const handleToggle = (id) => toggleThird_partie?.(id);
+  const handleToggle = (id) => {
+    const t = Third_parties.find(tp => tp.id === id);
+    if (t?.producciones?.length > 0) {
+      setErrorAlert({ open: true, message: `Este tercero tiene ${t.producciones.length} producción(es) asignada(s). No se puede cambiar su estado.` });
+      return;
+    }
+    toggleThird_partie?.(id);
+  };
 
   const handleDelete = (id) => {
     const t = Third_parties.find(x => x.id === id);
