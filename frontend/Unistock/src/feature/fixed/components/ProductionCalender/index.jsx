@@ -219,6 +219,8 @@ export default function ProduccionCalendario({ productions: productionsProp = []
   const [selectedEvent, setSelectedEvent] = useState(null); // card de detalle
   const [newEvent,      setNewEvent]      = useState({ type: "creacion", title: "", orderId: "", notes: "" });
   const [confirmDelete, setConfirmDelete] = useState(null);
+  // Día seleccionado en el calendario (para mostrar sus procesos en el sidebar)
+  const [selectedDay,   setSelectedDay]   = useState(null); // { day, dateStr }
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -978,7 +980,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
       {/* Navegación de mes — padding vertical consistente con el header card (p-5) */}
       <div className="bg-white rounded-2xl px-5 py-4 shadow-sm mb-4" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+          <button onClick={() => { setCurrentDate(new Date(year, month - 1, 1)); setSelectedDay(null); }}
             style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
             onMouseEnter={e => e.currentTarget.style.borderColor = "#ec4899"}
             onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}>
@@ -987,7 +989,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1f2937", minWidth: 200, textAlign: "center" }}>
             {MONTHS[month]} <span style={{ color: "#9ca3af", fontWeight: 400 }}>{year}</span>
           </h3>
-          <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+          <button onClick={() => { setCurrentDate(new Date(year, month + 1, 1)); setSelectedDay(null); }}
             style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
             onMouseEnter={e => e.currentTarget.style.borderColor = "#ec4899"}
             onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}>
@@ -1027,7 +1029,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
           </div>
 
           <button
-            onClick={() => setCurrentDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+            onClick={() => { setCurrentDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); setSelectedDay(null); }}
             className="px-3 py-1 rounded-full border border-pink-300 bg-pink-50 text-pink-600 text-xs font-bold hover:bg-pink-100 transition">
             Hoy
           </button>
@@ -1065,16 +1067,18 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                     const isWeekend = di >= 5;
                     return (
                       <div key={di}
-                        onClick={() => day && setAddModal({ open: true, day })}
+                        onClick={() => { if (day) { const ds = toStr(year, month, day); setSelectedDay(prev => prev?.dateStr === ds ? null : { day, dateStr: ds }); } }}
                         style={{
                           minHeight: 88, padding: "6px",
                           borderRight: di < 6 ? "1px solid #f0f0f0" : "none",
                           cursor: day ? "pointer" : "default",
-                          background: day ? (todayD ? "#fff0fb" : isWeekend ? "#fafbfd" : "#fff") : "#f9fafb",
+                          background: day ? (selectedDay?.dateStr === toStr(year, month, day) ? "#fdf4ff" : todayD ? "#fff0fb" : isWeekend ? "#fafbfd" : "#fff") : "#f9fafb",
                           transition: "background 0.12s",
+                          outline: selectedDay?.dateStr === toStr(year, month, day) ? "2px solid #ec4899" : "none",
+                          outlineOffset: "-2px",
                         }}
                         onMouseEnter={e => { if (day) e.currentTarget.style.background = "#fdf4ff"; }}
-                        onMouseLeave={e => { if (day) e.currentTarget.style.background = todayD ? "#fff0fb" : isWeekend ? "#fafbfd" : "#fff"; }}
+                        onMouseLeave={e => { if (day) e.currentTarget.style.background = selectedDay?.dateStr === toStr(year, month, day) ? "#fdf4ff" : todayD ? "#fff0fb" : isWeekend ? "#fafbfd" : "#fff"; }}
                       >
                         {day && (
                           <>
@@ -1139,16 +1143,18 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                 const todayD = day && isToday(year, month, day);
                 return (
                   <div key={di}
-                    onClick={() => day && setAddModal({ open: true, day })}
+                    onClick={() => { if (day) { const ds = toStr(year, month, day); setSelectedDay(prev => prev?.dateStr === ds ? null : { day, dateStr: ds }); } }}
                     style={{
                       minHeight: 260, padding: "10px 8px",
                       borderRight: di < 6 ? "1px solid #f0f0f0" : "none",
                       cursor: day ? "pointer" : "default",
-                      background: todayD ? "#fff0fb" : "#fff",
+                      background: day ? (selectedDay?.dateStr === toStr(year, month, day) ? "#fdf4ff" : todayD ? "#fff0fb" : "#fff") : "#fff",
                       transition: "background 0.12s",
+                      outline: selectedDay?.dateStr === toStr(year, month, day) ? "2px solid #ec4899" : "none",
+                      outlineOffset: "-2px",
                     }}
                     onMouseEnter={e => { if (day) e.currentTarget.style.background = "#fdf4ff"; }}
-                    onMouseLeave={e => { if (day) e.currentTarget.style.background = todayD ? "#fff0fb" : "#fff"; }}
+                    onMouseLeave={e => { if (day) e.currentTarget.style.background = selectedDay?.dateStr === toStr(year, month, day) ? "#fdf4ff" : todayD ? "#fff0fb" : "#fff"; }}
                   >
                     {day && (
                       <>
@@ -1238,39 +1244,133 @@ export default function ProduccionCalendario({ productions: productionsProp = []
             )}
           </div>
 
-          {/* Próximos eventos */}
-          <div className="bg-white rounded-2xl shadow p-4">
-            <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {search ? "Resultados" : "Próximos"}
-            </p>
-            {upcomingEvents.length === 0
-              ? <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", padding: "12px 0" }}>Sin eventos</p>
-              : upcomingEvents.map(ev => {
-                const t = getEventType(ev.type);
-                return (
-                  <div key={ev.id}
-                    onClick={() => setSelectedEvent(ev)}
-                    style={{
-                      padding: "8px 10px", borderRadius: 10, background: t.bg,
-                      cursor: "pointer", marginBottom: 6, border: `1px solid ${t.border}`,
-                      transition: "filter 0.12s",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.filter = "brightness(0.95)"}
-                    onMouseLeave={e => e.currentTarget.style.filter = "none"}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: t.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                        {ev.orderId && "🔗 "}{ev.title}
-                      </p>
-                    </div>
-                    <p style={{ margin: "3px 0 0", fontSize: 10, color: "#9ca3af" }}>{formatDateES(ev.date)}</p>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: t.color, background: "#fff", padding: "1px 6px", borderRadius: 10, border: `1px solid ${t.border}`, display: "inline-block", marginTop: 4 }}>
-                      {t.label}
-                    </span>
+          {/* Próximos eventos / Día seleccionado */}
+          <div className="bg-white rounded-2xl shadow p-4" style={{ display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
+
+            {selectedDay ? (
+              /* ── Vista del día seleccionado ── */
+              <>
+                {/* Header del día */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {selectedDay.day} de {MONTHS[month]}
+                    </p>
+                    <p style={{ margin: "2px 0 0", fontSize: 10, color: "#9ca3af" }}>
+                      {(() => { const evs = eventsForDay(selectedDay.day); return `${evs.length} proceso${evs.length !== 1 ? "s" : ""}`; })()}
+                    </p>
                   </div>
-                );
-              })
-            }
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {/* Botón agregar evento */}
+                    <button
+                      onClick={() => setAddModal({ open: true, day: selectedDay.day })}
+                      title="Agregar proceso"
+                      style={{
+                        width: 26, height: 26, borderRadius: 8,
+                        border: "1.5px solid #ec4899", background: "#fdf2f8",
+                        color: "#ec4899", fontSize: 18, fontWeight: 700,
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        lineHeight: 1,
+                      }}>+</button>
+                    {/* Botón cerrar */}
+                    <button
+                      onClick={() => setSelectedDay(null)}
+                      title="Cerrar"
+                      style={{
+                        width: 26, height: 26, borderRadius: 8,
+                        border: "1.5px solid #e5e7eb", background: "#f9fafb",
+                        color: "#9ca3af", fontSize: 16, fontWeight: 700,
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        lineHeight: 1,
+                      }}>×</button>
+                  </div>
+                </div>
+
+                {/* Lista con scroll */}
+                <div style={{ overflowY: "auto", flex: 1, maxHeight: 380, display: "flex", flexDirection: "column", gap: 6, paddingRight: 2 }}>
+                  {eventsForDay(selectedDay.day).length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "20px 0", color: "#9ca3af", fontSize: 11 }}>
+                      <div style={{ fontSize: 24, marginBottom: 6 }}>📋</div>
+                      Sin procesos este día
+                      <div style={{ marginTop: 10 }}>
+                        <button
+                          onClick={() => setAddModal({ open: true, day: selectedDay.day })}
+                          style={{
+                            padding: "6px 14px", borderRadius: 8,
+                            border: "1.5px solid #ec4899", background: "#fdf2f8",
+                            color: "#ec4899", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                          }}>
+                          + Agregar proceso
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    eventsForDay(selectedDay.day).map(ev => {
+                      const t = getEventType(ev.type);
+                      return (
+                        <div key={ev.id}
+                          onClick={() => setSelectedEvent(ev)}
+                          style={{
+                            padding: "8px 10px", borderRadius: 10, background: t.bg,
+                            cursor: "pointer", border: `1px solid ${t.border}`,
+                            transition: "filter 0.12s", flexShrink: 0,
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.filter = "brightness(0.95)"}
+                          onMouseLeave={e => e.currentTarget.style.filter = "none"}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: t.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                              {ev.orderId && "🔗 "}{ev.title}
+                            </p>
+                          </div>
+                          {ev.notes && (
+                            <p style={{ margin: "3px 0 0", fontSize: 10, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.notes}</p>
+                          )}
+                          <span style={{ fontSize: 9, fontWeight: 700, color: t.color, background: "#fff", padding: "1px 6px", borderRadius: 10, border: `1px solid ${t.border}`, display: "inline-block", marginTop: 4 }}>
+                            {t.label}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            ) : (
+              /* ── Vista próximos eventos ── */
+              <>
+                <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {search ? "Resultados" : "Próximos"}
+                </p>
+                {upcomingEvents.length === 0
+                  ? <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", padding: "12px 0" }}>Sin eventos</p>
+                  : upcomingEvents.map(ev => {
+                    const t = getEventType(ev.type);
+                    return (
+                      <div key={ev.id}
+                        onClick={() => setSelectedEvent(ev)}
+                        style={{
+                          padding: "8px 10px", borderRadius: 10, background: t.bg,
+                          cursor: "pointer", marginBottom: 6, border: `1px solid ${t.border}`,
+                          transition: "filter 0.12s",
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.filter = "brightness(0.95)"}
+                        onMouseLeave={e => e.currentTarget.style.filter = "none"}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: t.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                            {ev.orderId && "🔗 "}{ev.title}
+                          </p>
+                        </div>
+                        <p style={{ margin: "3px 0 0", fontSize: 10, color: "#9ca3af" }}>{formatDateES(ev.date)}</p>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: t.color, background: "#fff", padding: "1px 6px", borderRadius: 10, border: `1px solid ${t.border}`, display: "inline-block", marginTop: 4 }}>
+                          {t.label}
+                        </span>
+                      </div>
+                    );
+                  })
+                }
+              </>
+            )}
           </div>
         </div>
       </div>
