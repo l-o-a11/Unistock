@@ -2,24 +2,24 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useThird_parties } from '../hooks/mockThird_parties';
 
-import Third_partieForm     from '../components/Third_partiesForm';
-import Third_partieTable    from '../components/Third_partiesTable';
-import Third_partieSearch   from '../components/Third_partiesSearch';
+import Third_partieForm from '../components/Third_partiesForm';
+import Third_partieTable from '../components/Third_partiesTable';
+import Third_partieSearch from '../components/Third_partiesSearch';
 import AddThird_partieButton from '../components/AddThird_partiesButton';
-import Third_partieDetail   from '../components/Third_partiesDetail';
-import Alert                from '../../shared/components/Alert';
+import Third_partieDetail from '../components/Third_partiesDetail';
+import Alert from '../../shared/components/Alert';
 
 const Third_partiePage = () => {
   const navigate = useNavigate();
   const { Third_parties, deleteThird_partie, toggleThird_partie, createThird_partie, updateThird_partie } = useThird_parties();
 
-  const [searchTerm,           setSearchTerm]           = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedThird_partie, setSelectedThird_partie] = useState(null);
-  const [currentPage,          setCurrentPage]          = useState(1);
-  const [showForm,             setShowForm]             = useState(false);
-  const [editingThird_partie,  setEditingThird_partie]  = useState(null);
-  const [deleteAlert,          setDeleteAlert]          = useState({ open: false, id: null });
-  const [errorAlert,           setErrorAlert]           = useState({ open: false, message: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showForm, setShowForm] = useState(false);
+  const [editingThird_partie, setEditingThird_partie] = useState(null);
+  const [deleteAlert, setDeleteAlert] = useState({ open: false, id: null });
+  const [errorAlert, setErrorAlert] = useState({ open: false, message: '' });
 
   // Auto-seleccionar primer tercero
   useEffect(() => {
@@ -36,30 +36,39 @@ const Third_partiePage = () => {
 
   // Búsqueda: Código, Nombre empresa, Contacto
   const filtered = useMemo(() => {
-    if (!searchTerm.trim()) return Third_parties;
-    const q = searchTerm.toLowerCase();
-    return Third_parties.filter(t => {
-      const estadoLabel = t.estado === true ? "activo" : t.estado === false ? "inactivo" : "";
-      return (
-        t.codigo?.toLowerCase().includes(q) ||
-        t.nombreEmpresa?.toLowerCase().includes(q) ||
-        t.nombreContacto?.toLowerCase().includes(q) ||
-        t.nit?.toString().includes(q) ||
-        t.telefono?.toString().includes(q) ||
-        t.email?.toLowerCase().includes(q) ||
-        t.correo?.toLowerCase().includes(q) ||
-        estadoLabel.includes(q)
+    if (!Third_parties) return [];
+
+    const term = searchTerm.toLowerCase().trim();
+
+    return Third_parties.filter((t) => {
+      // 🔹 Filtro rápido por estado
+      if (term === "a") return t.estado !== false;
+      if (term === "i") return t.estado === false;
+
+      // 🔹 Estado como texto
+      const estadoLabel =
+        t.estado === true
+          ? "activo"
+          : t.estado === false
+            ? "inactivo"
+            : "";
+
+      // 🔹 Buscar en todos los campos
+      const enCampos = Object.values(t).some((value) =>
+        String(value).toLowerCase().includes(term)
       );
+
+      return enCampos || estadoLabel.includes(term);
     });
   }, [Third_parties, searchTerm]);
 
   const ITEMS = 7;
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS));
-  const paginated  = filtered.slice((currentPage - 1) * ITEMS, currentPage * ITEMS);
+  const paginated = filtered.slice((currentPage - 1) * ITEMS, currentPage * ITEMS);
 
-  const handleView   = (t) => setSelectedThird_partie(t);
-  const handleEdit   = (t) => { setEditingThird_partie(t); setShowForm(true); };
-  const handleAdd    = () => { setEditingThird_partie(null); setShowForm(true); };
+  const handleView = (t) => setSelectedThird_partie(t);
+  const handleEdit = (t) => { setEditingThird_partie(t); setShowForm(true); };
+  const handleAdd = () => { setEditingThird_partie(null); setShowForm(true); };
   const handleToggle = (id) => {
     const t = Third_parties.find(tp => tp.id === id);
     if (t?.producciones?.length > 0) {
@@ -129,10 +138,48 @@ const Third_partiePage = () => {
       />
 
       {/* ── Header: título + buscador — mismo patrón que ProductionPage ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        {/* Título estandarizado: 24px bold text-gray-800 — igual a Orden #XX */}
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1f2937', margin: 0 }}>Gestión de terceros</h1>
-        <Third_partieSearch value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por código, nombre, contacto..." />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 20,
+        }}
+      >
+        <h1
+          style={{
+            fontSize: 26,
+            fontWeight: 600,
+            color: "#1f2937",
+            margin: 0,
+          }}
+        >
+          Gestión de terceros
+        </h1>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
+          <div style={{ width: "260px" }}>
+            <Third_partieSearch
+              value={searchTerm}
+              onChange={(v) => {
+                setSearchTerm(v);
+                setCurrentPage?.(1); // por si tienes paginación
+              }}
+              placeholder="Buscar terceros..."
+            />
+          </div>
+
+          <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+            Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+          </span>
+        </div>
       </div>
 
       {/* ── Tabs de navegación — color único #FF4FD6, sin gradiente ── */}

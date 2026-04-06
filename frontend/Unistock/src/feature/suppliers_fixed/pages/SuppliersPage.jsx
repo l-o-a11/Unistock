@@ -38,16 +38,32 @@ const SupplierPage = () => {
 
   const filteredSuppliers = useMemo(() => {
     if (!suppliers) return [];
-    const term = searchTerm.toLowerCase();
-    return suppliers.filter((supplier) =>
-      Object.entries(supplier).some(([key, value]) => {
-        if (key === "estado") {
-          const label = value === true ? "activo" : value === false ? "inactivo" : "";
-          return label.includes(term);
-        }
-        return value?.toString().toLowerCase().includes(term);
-      })
-    );
+
+    const term = searchTerm.toLowerCase().trim();
+
+    return suppliers.filter((supplier) => {
+      // 🔹 Filtro rápido por estado con tecla
+      if (term === "a") return supplier.estado !== false;
+      if (term === "i") return supplier.estado === false;
+
+      // 🔹 Estado como texto (activo/inactivo)
+      const estadoTexto =
+        supplier.estado === true
+          ? "activo"
+          : supplier.estado === false
+            ? "inactivo"
+            : "";
+
+      // 🔹 Buscar en todos los campos
+      const enCampos = Object.values(supplier).some((value) =>
+        String(value).toLowerCase().includes(term)
+      );
+
+      // 🔹 Buscar también en estado como palabra
+      const enEstado = estadoTexto.includes(term);
+
+      return enCampos || enEstado;
+    });
   }, [suppliers, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSuppliers.length / itemsPerPage));
@@ -172,11 +188,33 @@ const SupplierPage = () => {
           marginBottom: "20px",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "#1a1a1a" }}>
+        <h1 style={{ fontSize: "26px", fontWeight: 600 }}>
           Proveedores
         </h1>
 
-        <SearchInput value={searchTerm} onChange={(v) => { handleSearch(v); setCurrentPage(1); }} placeholder="Buscar proveedor..." />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
+          <div style={{ width: "260px" }}>
+            <SearchInput
+              value={searchTerm}
+              onChange={(v) => {
+                handleSearch(v);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar proveedor..."
+            />
+          </div>
+
+          <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+            Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+          </span>
+        </div>
       </div>
 
       {/* TOOLBAR */}
