@@ -29,7 +29,9 @@ export const useAuth = () => {
     setActiveModal(AUTH_MODALS.NONE);
   };
 
-  const handleLogin = async (username, password, onSuccess) => {
+  // FIX: recibe ctxLogin (del AuthContext) para actualizar el estado React
+  // en el mismo instante del login, sin esperar un refresh.
+  const handleLogin = async (username, password, ctxLogin, onSuccess) => {
     setLoading(true);
     setError("");
     try {
@@ -42,6 +44,9 @@ export const useAuth = () => {
         });
         return;
       }
+
+      // Notificar al contexto con la sesión recién creada
+      if (ctxLogin) ctxLogin(data.user);
 
       showAlert("success", "¡Bienvenido!", `Hola, ${data.user.nombreCompleto}`);
       if (onSuccess) setTimeout(onSuccess, 1200);

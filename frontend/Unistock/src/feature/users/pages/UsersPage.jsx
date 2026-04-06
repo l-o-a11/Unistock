@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useUsers } from "../hooks/mockUsers";
 import { useUserSearch } from "../hooks/useUserSearch";
 import UserTable from "../components/UserTable/index.jsx";
-import SearchInput from "../../shared/components/Search.jsx";
+import SearchInput from "../../shared/components/SearchInput";
 import UserForm from "../components/UserForm/index.jsx";
 import AddUserButton from "../components/AddUserButton.jsx";
 import Alert from "../../shared/components/Alert";
@@ -17,10 +17,10 @@ const UsersPage = () => {
   const { sedes } = useSedes();
   const rolesActivos = roles
     .filter((r) => r.estado !== false)
-    .map((r) => r.nombre);
+    .map((r) => ({ id: r.id, nombre: r.nombre }));
   const sedesActivas = sedes
     .filter((s) => s.estado !== false)
-    .map((s) => s.nombre);
+    .map((s) => ({ id: s.id, nombre: s.nombre }));
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
@@ -37,30 +37,43 @@ const UsersPage = () => {
 
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
 
-  // 🔎 FILTRO
+  // ── Alerta de resultado (éxito / error) ──────────────────────────────────
+  const showResult = (type, title, message) => {
+    setAlertConfig({ open: true, type, title, message, onConfirm: null });
+  };
+
+  // 🔎 FILTRO — busca por nombre, documento, correo, rol, sede
+  //    y además filtra por estado: "a" → activos, "i" → inactivos
   const filteredUsers = useMemo(() => {
     if (!users) return [];
 
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase().trim();
 
-    return users.filter((user) =>
-      Object.values(user).some((value) =>
-        value?.toString().toLowerCase().includes(term),
-      ),
-    );
-  }, [users, searchTerm]);
+    return users.filter((user) => {
+      // Filtro por estado con tecla rápida
+      if (term === "a") return user.estado !== false;
+      if (term === "i") return user.estado === false;
+
+      // Resolver nombres de rol y sede para incluirlos en la búsqueda
+      const rolNombre = roles.find((r) => r.id === parseInt(user.rolId ?? user.rol))?.nombre ?? "";
+      const sedeNombre = sedes.find((s) => s.id === parseInt(user.sedeId ?? user.sede))?.nombre ?? "";
+
+      // Filtro general por texto en campos del usuario + nombres resueltos
+      const enCampos = Object.values(user).some((value) =>
+        value?.toString().toLowerCase().includes(term)
+      );
+      const enRol = rolNombre.toLowerCase().includes(term);
+      const enSede = sedeNombre.toLowerCase().includes(term);
+
+      return enCampos || enRol || enSede;
+    });
+  }, [users, searchTerm, roles, sedes]);
 
   // 📄 PAGINACIÓN
   const itemsPerPage = 5;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / itemsPerPage),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
   // 🎯 ACCIONES
   const handleEdit = (user) => {
@@ -70,37 +83,32 @@ const UsersPage = () => {
       documentNumber: user.numeroDocumento,
       name: user.nombreCompleto,
       email: user.correo,
-      role: user.rol,
-      sede: user.sede,
+      role: user.rolId ?? user.rol ?? "",
+      sede: user.sedeId ?? user.sede ?? "",
     });
   };
 
-  // 🗑️ ELIMINAR CON CONTRASEÑA
+  // 🗑️ ELIMINAR — pide contraseña de admin, luego éxito/error
   const handleDelete = (id) => {
+    const target = users.find((u) => String(u.id) === String(id));
     setAlertConfig({
       open: true,
       type: "password",
       title: "Eliminar usuario",
-      message:
-        "Esta acción no se puede deshacer. Ingresa la contraseña de administrador para confirmar.",
+      message: `Para eliminar a "${target?.nombreCompleto}" ingresa la contraseña de administrador. Esta acción no se puede deshacer.`,
       onConfirm: async () => {
+        closeAlert();
         try {
           await deleteUser(id);
-          closeAlert();
+          showResult("success", "Usuario eliminado", "El usuario fue eliminado correctamente.");
         } catch (e) {
-          setAlertConfig({
-            open: true,
-            type: "error",
-            title: "No se puede eliminar",
-            message: e.message,
-            onConfirm: null,
-          });
+          showResult("error", "No se pudo eliminar", e.message);
         }
       },
     });
   };
 
-  // 🔁 ACTIVAR / DESACTIVAR CON CONTRASEÑA
+  // 🔁 ACTIVAR / DESACTIVAR — pide contraseña de admin, luego éxito/error
   const handleToggle = (id) => {
     const user = users.find((u) => String(u.id) === String(id));
     const isActive = user?.estado !== false;
@@ -109,20 +117,21 @@ const UsersPage = () => {
       type: "password",
       title: isActive ? "Inactivar usuario" : "Activar usuario",
       message: isActive
-        ? "Para inactivar este usuario ingresa la contraseña de administrador."
-        : "Para activar este usuario ingresa la contraseña de administrador.",
+        ? `Para inactivar a "${user?.nombreCompleto}" ingresa la contraseña de administrador.`
+        : `Para activar a "${user?.nombreCompleto}" ingresa la contraseña de administrador.`,
       onConfirm: () => {
+        closeAlert();
         try {
           toggleUser(id);
-          closeAlert();
+          showResult(
+            "success",
+            isActive ? "Usuario inactivado" : "Usuario activado",
+            isActive
+              ? "El usuario fue inactivado correctamente."
+              : "El usuario fue activado correctamente."
+          );
         } catch (e) {
-          setAlertConfig({
-            open: true,
-            type: "error",
-            title: "No se puede cambiar el estado",
-            message: e.message,
-            onConfirm: null,
-          });
+          showResult("error", "No se pudo cambiar el estado", e.message);
         }
       },
     });
@@ -134,8 +143,6 @@ const UsersPage = () => {
 
   const handleEditSubmit = async (userData) => {
     await updateUser(editUser.id, userData);
-    // No cerrar aqui: UserForm muestra la alerta de exito
-    // y se cierra solo al aceptarla (via pendingClose + onCancel)
   };
 
   // 🔢 PAGINACIÓN VISUAL
@@ -177,12 +184,17 @@ const UsersPage = () => {
         }}
       >
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Usuarios</h1>
-        <div style={{ width: "260px" }}>
-          <SearchInput
-            value={searchTerm}
-            onChange={handleSearch}
-            placeholder="Buscar usuario"
-          />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+          <div style={{ width: "260px" }}>
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearch}
+              placeholder='Buscar'
+            />
+          </div>
+          <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+            Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+          </span>
         </div>
       </div>
 
@@ -205,6 +217,8 @@ const UsersPage = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggle={handleToggle}
+        getRolNombre={(id) => roles.find((r) => r.id === parseInt(id))?.nombre ?? "—"}
+        getSedeNombre={(id) => sedes.find((s) => s.id === parseInt(id))?.nombre ?? "—"}
       />
 
       {/* ➕ FORM CREAR */}
@@ -264,7 +278,7 @@ const UsersPage = () => {
               >
                 {p}
               </button>
-            ),
+            )
           )}
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}

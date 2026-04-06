@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import logo from "../../../../assets/transparent-Photoroom.png";
 
 const EyeIcon = ({ open }) => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,10 +54,19 @@ const LoginForm = ({ onLogin, onForgotPassword, loading, error }) => {
 
     return (
         <div className="w-full max-w-sm bg-white rounded-xl shadow-xl p-6 sm:p-8">
-            <h1 className="text-3xl font-extrabold text-black mb-1">Bienvenido</h1>
-            <p className="text-gray-500 text-sm font-medium mb-6">
-                Accede a tu panel de administración.
-            </p>
+
+            {/* Logo + Título juntos centrados */}
+            <div className="flex flex-col items-center mb-6">
+                <img
+                    src={logo}
+                    alt="Logo"
+                    style={{ height: "72px", objectFit: "contain", marginBottom: "10px" }}
+                />
+                <h1 className="text-3xl font-extrabold text-black">Bienvenido</h1>
+                <p className="text-gray-500 text-sm font-medium mt-1 text-center">
+                    Accede a tu panel de administración.
+                </p>
+            </div>
 
             <form onSubmit={handleSubmit} noValidate>
                 {/* Usuario / correo */}

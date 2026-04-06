@@ -17,6 +17,9 @@ import { UserAPI } from "../services/userAPI";
 // ─────────────────────────────────────────────────
 const ADMIN_PASSWORD = "admin123";
 
+// Roles que no se pueden modificar ni eliminar
+const ROLES_PROTEGIDOS = ["Administrador", "Gerente"];
+
 const RolesPage = () => {
   const { roles, createRol, updateRol, deleteRol, toggleRol } = useRoles();
 
@@ -71,13 +74,23 @@ const RolesPage = () => {
   const handleViewDetails = (rol) => openDetail(rol);
 
   const handleEdit = (rol) => {
+    if (ROLES_PROTEGIDOS.includes(rol?.nombre)) {
+      showAlert("error", "Rol protegido", `El rol "${rol?.nombre}" no se puede modificar.`);
+      return;
+    }
     setEditingRol(rol);
     setModalType("edit");
   };
 
   const handleDelete = async (id) => {
-    const enlazados = await getUsuariosEnlazados(id);
     const rol = roles.find((r) => r.id === id);
+
+    if (ROLES_PROTEGIDOS.includes(rol?.nombre)) {
+      showAlert("error", "Rol protegido", `El rol "${rol?.nombre}" no se puede eliminar.`);
+      return;
+    }
+
+    const enlazados = await getUsuariosEnlazados(id);
 
     // ✅ Bloquear si tiene usuarios enlazados
     if (enlazados > 0) {
@@ -113,8 +126,14 @@ const RolesPage = () => {
   };
 
   const handleToggle = async (id) => {
-    const enlazados = await getUsuariosEnlazados(id);
     const rol = roles.find((r) => r.id === id);
+
+    if (ROLES_PROTEGIDOS.includes(rol?.nombre)) {
+      showAlert("error", "Rol protegido", `El rol "${rol?.nombre}" no se puede modificar.`);
+      return;
+    }
+
+    const enlazados = await getUsuariosEnlazados(id);
     const isActive = rol?.estado !== false; // misma lógica que RolTable
     const accion = isActive ? "inactivar" : "activar";
     const accionLabel = accion.charAt(0).toUpperCase() + accion.slice(1);

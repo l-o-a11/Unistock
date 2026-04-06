@@ -299,8 +299,8 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               >
                 <option value="">Seleccionar rol</option>
                 {roles.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                  <option key={r.id} value={r.id}>
+                    {r.nombre}
                   </option>
                 ))}
               </Input>
@@ -318,8 +318,8 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
               >
                 <option value="">Seleccionar sede</option>
                 {sedes.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                  <option key={s.id} value={s.id}>
+                    {s.nombre}
                   </option>
                 ))}
               </Input>

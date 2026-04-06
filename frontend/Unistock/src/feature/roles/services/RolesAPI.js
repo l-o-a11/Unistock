@@ -1,13 +1,18 @@
 // Datos de ejemplo para módulos y privilegios (simulando BD)
 export const MODULOS_PREDETERMINADOS = [
-  { id: 1, nombre: 'Usuarios' },
-  { id: 2, nombre: 'Productos' },
-  { id: 3, nombre: 'Insumos' },
-  { id: 4, nombre: 'Compras' },
-  { id: 5, nombre: 'Proveedores' },
-  { id: 6, nombre: 'categorias de insumos' },
-  { id: 7, nombre: 'dashboard' },
-  { id: 8, nombre: 'Configuración' }
+  { id: 1,  nombre: 'Dashboard' },
+  { id: 2,  nombre: 'Usuarios' },
+  { id: 3,  nombre: 'Categorías de insumos' },
+  { id: 4,  nombre: 'Insumos' },
+  { id: 5,  nombre: 'Proveedores' },
+  { id: 6,  nombre: 'Compras' },
+  { id: 7,  nombre: 'Categorías de productos' },
+  { id: 8,  nombre: 'Productos' },
+  { id: 9,  nombre: 'Producción' },
+  { id: 10, nombre: 'Terceros' },
+  { id: 11, nombre: 'Empleados' },
+  { id: 12, nombre: 'Sedes' },
+  { id: 13, nombre: 'Roles' },
 ];
 
 export  const PRIVILEGIOS_PREDETERMINADOS = [
@@ -25,14 +30,19 @@ const INITIAL_ROLES = [
     descripcion: 'Accede a todos los módulos y permisos completos del sistema. Puede crear, editar y eliminar cualquier registro.',
     estado: true,
     modulos: [
-      { moduloId: 1, privilegios: [1, 2, 3, 4] }, // Usuarios: todos
-      { moduloId: 2, privilegios: [1, 2, 3, 4] }, // Productos: todos
-      { moduloId: 3, privilegios: [1, 2, 3, 4] }, // Insumos: todos
-      { moduloId: 4, privilegios: [1, 2, 3, 4] }, // Compras: todos
-      { moduloId: 5, privilegios: [1, 2, 3, 4] }, // Proveedores: todos
-      { moduloId: 6, privilegios: [1, 2, 3, 4] }, // Ventas: todos
-      { moduloId: 7, privilegios: [1, 2, 3, 4] }, // Reportes: todos
-      { moduloId: 8, privilegios: [1, 2, 3, 4] }  // Configuración: todos
+      { moduloId: 1,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 2,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 3,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 4,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 5,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 6,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 7,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 8,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 9,  privilegios: [1, 2, 3, 4] },
+      { moduloId: 10, privilegios: [1, 2, 3, 4] },
+      { moduloId: 11, privilegios: [1, 2, 3, 4] },
+      { moduloId: 12, privilegios: [1, 2, 3, 4] },
+      { moduloId: 13, privilegios: [1, 2, 3, 4] },
     ]
   },
   { 
@@ -41,11 +51,19 @@ const INITIAL_ROLES = [
     descripcion: 'Accede a todos los módulos de su área. Puede gestionar usuarios y configuraciones básicas.',
     estado: true,
     modulos: [
-      { moduloId: 1, privilegios: [1, 2, 3] }, // Usuarios: Leer, Crear, Actualizar
-      { moduloId: 2, privilegios: [1, 2, 3] }, // Productos: Leer, Crear, Actualizar
-      { moduloId: 3, privilegios: [1, 2, 3] }, // Insumos: Leer, Crear, Actualizar
-      { moduloId: 4, privilegios: [1, 2, 3] }, // Compras: Leer, Crear, Actualizar
-      { moduloId: 8, privilegios: [1, 2, 3] }  // Configuración: Leer, Crear, Actualizar
+      { moduloId: 1,  privilegios: [1, 2, 3] },
+      { moduloId: 2,  privilegios: [1, 2, 3] },
+      { moduloId: 3,  privilegios: [1, 2, 3] },
+      { moduloId: 4,  privilegios: [1, 2, 3] },
+      { moduloId: 5,  privilegios: [1, 2, 3] },
+      { moduloId: 6,  privilegios: [1, 2, 3] },
+      { moduloId: 7,  privilegios: [1, 2, 3] },
+      { moduloId: 8,  privilegios: [1, 2, 3] },
+      { moduloId: 9,  privilegios: [1, 2, 3] },
+      { moduloId: 10, privilegios: [1, 2, 3] },
+      { moduloId: 11, privilegios: [1, 2, 3] },
+      { moduloId: 12, privilegios: [1, 2, 3] },
+      { moduloId: 13, privilegios: [1, 2, 3] },
     ]
   },
   { 
@@ -54,8 +72,8 @@ const INITIAL_ROLES = [
     descripcion: 'Accede a la zona contable de la empresa y puede registrar horas de trabajo y materiales utilizados.',
     estado: true,
     modulos: [
-      { moduloId: 2, privilegios: [1] }, // Productos: Leer
-      { moduloId: 3, privilegios: [1, 2] } // Insumos: Leer, Crear
+      { moduloId: 8, privilegios: [1] },     // Productos: Leer
+      { moduloId: 9, privilegios: [1, 2] },  // Producción: Leer, Crear
     ]
   },
   { 
@@ -64,9 +82,9 @@ const INITIAL_ROLES = [
     descripcion: 'Este rol permite acceder a los módulos de gestión de inventario, incluyendo insumos, productos y compras. Ideal para personal encargado del control de stock.',
     estado: false,
     modulos: [
-      { moduloId: 2, privilegios: [1, 2, 3] }, // Productos: Leer, Crear, Actualizar
-      { moduloId: 3, privilegios: [1, 2, 3] }, // Insumos: Leer, Crear, Actualizar
-      { moduloId: 4, privilegios: [1, 2] }     // Compras: Leer, Crear
+      { moduloId: 4, privilegios: [1, 2, 3] }, // Insumos
+      { moduloId: 6, privilegios: [1, 2] },    // Compras
+      { moduloId: 8, privilegios: [1, 2, 3] }, // Productos
     ]
   },
   { 
@@ -75,8 +93,7 @@ const INITIAL_ROLES = [
     descripcion: 'Visualiza la información de productos y puede registrar ventas. No tiene acceso a configuración.',
     estado: true,
     modulos: [
-      { moduloId: 2, privilegios: [1] }, // Productos: Leer
-      { moduloId: 6, privilegios: [1, 2] } // Ventas: Leer, Crear
+      { moduloId: 8, privilegios: [1] }, // Productos: Leer
     ]
   },
    { 
@@ -85,7 +102,7 @@ const INITIAL_ROLES = [
     descripcion: 'Accede a la información de dashboard. No tiene acceso a configuración.',
     estado: false,
     modulos: [
-      { moduloId: 7, privilegios: [1] },
+      { moduloId: 1, privilegios: [1] }, // Dashboard: Leer
     ]
   }
 ];
@@ -172,4 +189,3 @@ export const RolesAPI = {
     });
   }
 };
-
