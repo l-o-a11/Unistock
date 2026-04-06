@@ -54,12 +54,20 @@ const UsersPage = () => {
       if (term === "a") return user.estado !== false;
       if (term === "i") return user.estado === false;
 
-      // Filtro general por texto en cualquier campo
-      return Object.values(user).some((value) =>
+      // Resolver nombres de rol y sede para incluirlos en la búsqueda
+      const rolNombre = roles.find((r) => r.id === parseInt(user.rolId ?? user.rol))?.nombre ?? "";
+      const sedeNombre = sedes.find((s) => s.id === parseInt(user.sedeId ?? user.sede))?.nombre ?? "";
+
+      // Filtro general por texto en campos del usuario + nombres resueltos
+      const enCampos = Object.values(user).some((value) =>
         value?.toString().toLowerCase().includes(term)
       );
+      const enRol = rolNombre.toLowerCase().includes(term);
+      const enSede = sedeNombre.toLowerCase().includes(term);
+
+      return enCampos || enRol || enSede;
     });
-  }, [users, searchTerm]);
+  }, [users, searchTerm, roles, sedes]);
 
   // 📄 PAGINACIÓN
   const itemsPerPage = 5;
@@ -75,7 +83,7 @@ const UsersPage = () => {
       documentNumber: user.numeroDocumento,
       name: user.nombreCompleto,
       email: user.correo,
-      role: user.rolId  ?? user.rol  ?? "",
+      role: user.rolId ?? user.rol ?? "",
       sede: user.sedeId ?? user.sede ?? "",
     });
   };
