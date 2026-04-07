@@ -7,13 +7,18 @@ const HEADERS = [
     "Documento",
     "Nombre",
     "Correo",
+    "Rol",
     "Sede",
     "Acciones",
 ];
 
-const EmployeeTable = ({ employees = [], onEdit, onDelete, onToggle }) => {
+const EmployeeTable = ({ employees = [], roles = [], sedes = [], onEdit, onDelete, onToggle }) => {
     const renderRow = (employee) => {
         const isActive = employee.estado !== false;
+        
+        // Resolver nombres de rol y sede desde IDs
+        const roleName = roles.find((r) => r.id === (employee.rolId ?? employee.rol))?.nombre ?? "—";
+        const sedeName = sedes.find((s) => s.id === (employee.sedeId ?? employee.sede))?.nombre ?? "—";
 
         return (
             <tr key={employee.id} className="transition-colors duration-150 hover:bg-gray-50">
@@ -27,7 +32,8 @@ const EmployeeTable = ({ employees = [], onEdit, onDelete, onToggle }) => {
                         fields={[
                             { label: "Nombre completo", value: employee.nombreCompleto, highlight: true },
                             { label: "Documento", value: `${employee.tipoDocumento} ${employee.numeroDocumento}`, highlight: true },
-                            { label: "Sede", value: employee.sede },
+                            { label: "Rol", value: roleName },
+                            { label: "Sede", value: sedeName },
                             { label: "Estado", value: isActive ? "Activo" : "Inactivo", type: "status" },
                         ]}
                     >
@@ -36,7 +42,8 @@ const EmployeeTable = ({ employees = [], onEdit, onDelete, onToggle }) => {
                 </td>
 
                 <td className={tdClass} title={employee.correo}>{truncateText(employee.correo)}</td>
-                <td className={tdClass} title={employee.sede}>{truncateText(employee.sede)}</td>
+                <td className={tdClass} title={roleName}>{truncateText(roleName)}</td>
+                <td className={tdClass} title={sedeName}>{truncateText(sedeName)}</td>
 
                 <td className={tdClass}>
                     <div className="flex items-center gap-2.5">

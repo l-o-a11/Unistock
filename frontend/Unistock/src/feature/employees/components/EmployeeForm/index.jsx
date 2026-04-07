@@ -3,15 +3,16 @@ import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
 import { validators } from "../../../shared/utils/validators";
-import { EmployeeDocumentTypes, EmployeeSedes } from "../../types/constantsEmployees";
+import { EmployeeDocumentTypes } from "../../types/constantsEmployees";
 
-const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
+const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
     // Inicializa directamente desde la prop — sin useEffect para evitar setState en efecto
     const [formData, setFormData] = useState(() => employee ?? {
         documentType: "",
         documentNumber: "",
         name: "",
         email: "",
+        role: "",
         sede: "",
     });
 
@@ -32,6 +33,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
             case "documentNumber": error = validators.required(value) || validators.numbers(value); break;
             case "name": error = validators.required(value); break;
             case "email": error = validators.required(value) || validators.email(value); break;
+            case "role": error = validators.required(value); break;
             case "sede": error = validators.required(value); break;
             default: break;
         }
@@ -151,6 +153,24 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     />
                 </div>
 
+                {/* ROL */}
+                <div className="mb-6">
+                    <Input
+                        label="Rol *"
+                        as="select"
+                        name="role"
+                        value={formData.role}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={errors.role}
+                    >
+                        <option value="">Seleccionar rol</option>
+                        {roles?.map((r) => (
+                            <option key={r.id} value={r.id}>{r.nombre}</option>
+                        ))}
+                    </Input>
+                </div>
+
                 {/* SEDE */}
                 <div className="mb-6">
                     <Input
@@ -163,17 +183,10 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                         error={errors.sede}
                     >
                         <option value="">Seleccionar sede</option>
-                        {EmployeeSedes.map((s) => (
-                            <option key={s} value={s}>{s}</option>
+                        {sedes?.map((s) => (
+                            <option key={s.id} value={s.id}>{s.nombre}</option>
                         ))}
                     </Input>
-                </div>
-
-                {/* ROL informativo */}
-                <div className="mb-6 p-3 bg-pink-50 border border-pink-200 rounded-xl">
-                    <p className="text-sm text-pink-600 font-semibold">
-                        Rol asignado: <span className="font-bold">Empleado</span>
-                    </p>
                 </div>
 
                 {/* BOTONES */}
