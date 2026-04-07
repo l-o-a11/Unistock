@@ -11,6 +11,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
+import { useRoles } from "../../../roles/hooks/useRoles";
+import { useSedes } from "../../../sedes/hooks/useSedes";
 import Alert from "../Alert";
 
 const Navbar = () => {
@@ -20,11 +22,19 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const session = AuthAPI.getSession();
+  const { roles } = useRoles();
+  const { sedes } = useSedes();
+
+  // Obtener nombre de rol basado en rolId
+  const roleName = roles.find((r) => r.id === session?.rolId)?.nombre ?? "";
+  // Obtener nombre de sede basado en sedeId
+  const sedeName = sedes.find((s) => s.id === session?.sedeId)?.nombre ?? "";
+
   const user = {
     name: session?.nombre ?? "Usuario",
     email: session?.correo ?? "",
-    rol: session?.rol ?? "",
-    sede: session?.sede ?? "",
+    rol: roleName,
+    sede: sedeName,
   };
 
   useEffect(() => {

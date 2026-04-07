@@ -1,9 +1,9 @@
 // src/feature/employees/hooks/mockEmployees.js
 // Comparte el mismo localStorage que users (app_users)
-// Solo opera sobre registros con rol "Empleado"
+// Filtra usuarios excluyendo Gerente y Admin
 
 import { useState, useEffect } from "react";
-import { EMPLOYEE_ROLE } from "../types/constantsEmployees";
+import { useRoles } from "../../roles/hooks/useRoles";
 
 const STORAGE_KEY = "app_users";
 
@@ -29,6 +29,7 @@ export const useEmployees = () => {
   // allUsers: TODOS los usuarios (admins, gerentes, empleados)
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { roles } = useRoles();
 
   // Carga inicial
   useEffect(() => {
@@ -41,10 +42,17 @@ export const useEmployees = () => {
     if (!loading) saveToStorage(allUsers);
   }, [allUsers, loading]);
 
-  // Vista filtrada: solo rol Empleado
-  const employees = allUsers.filter((u) => u.rol === EMPLOYEE_ROLE);
+  // Obtener IDs de Gerente y Admin para excluirlos
+  const gerenteId = roles.find((r) => r.nombre === "Gerente")?.id;
+  const adminId = roles.find((r) => r.nombre === "Administrador")?.id;
 
-  // ── CRUD (solo afecta registros con rol Empleado) ──────────────────────
+  // Vista filtrada: excluir Gerente y Admin
+  const employees = allUsers.filter((u) => {
+    const userRolId = u.rolId ?? u.rol;
+    return userRolId !== gerenteId && userRolId !== adminId;
+  });
+
+  // ── CRUD (solo afecta registros que no sean Gerente ni Admin) ────────────
 
   const createEmployee = async (formData) => {
     const exists = allUsers.find(
@@ -61,8 +69,9 @@ export const useEmployees = () => {
       numeroDocumento: formData.documentNumber,
       nombreCompleto: formData.name,
       correo: formData.email,
-      rol: EMPLOYEE_ROLE, // siempre Empleado
-      sede: formData.sede,
+      rolId: parseInt(formData.role),
+      sedeId: parseInt(formData.sede),
+      password: formData.password || null,
       estado: true,
     };
 
@@ -89,8 +98,8 @@ export const useEmployees = () => {
               numeroDocumento: formData.documentNumber,
               nombreCompleto: formData.name,
               correo: formData.email,
-              rol: EMPLOYEE_ROLE, // no puede cambiar de rol
-              sede: formData.sede,
+              rolId: parseInt(formData.role),
+              sedeId: parseInt(formData.sede),
             }
           : u,
       ),
@@ -110,7 +119,7 @@ export const useEmployees = () => {
   };
 
   return {
-    employees, // solo los de rol Empleado
+    employees, // todos menos Gerente y Admin
     loading,
     createEmployee,
     updateEmployee,
