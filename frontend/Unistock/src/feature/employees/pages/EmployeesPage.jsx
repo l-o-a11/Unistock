@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useEmployees } from "../hooks/mockEmployees";
 import { useEmployeeSearch } from "../hooks/useEmployeeSearch";
+import { useRoles } from "../../roles/hooks/useRoles";
+import { useSedes } from "../../sedes/hooks/useSedes";
 import EmployeeTable from "../components/EmployeeTable/index.jsx";
 import EmployeeForm from "../components/EmployeeForm/index.jsx";
 import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
@@ -15,6 +17,19 @@ const EmployeesPage = () => {
     deleteEmployee,
     toggleEmployee,
   } = useEmployees();
+
+  const { roles } = useRoles();
+  const { sedes } = useSedes();
+
+  // Filtrar roles: excluir Gerente y Admin para mostrar en el selector
+  const rolesDisponibles = roles.filter(
+    (r) =>
+      r.nombre !== "Gerente" &&
+      r.nombre !== "Administrador" &&
+      r.estado !== false,
+  );
+
+  const sedesActivas = sedes.filter((s) => s.estado !== false);
 
   const { searchTerm, handleSearch } = useEmployeeSearch();
 
@@ -36,15 +51,27 @@ const EmployeesPage = () => {
   // 🔎 Filtro
   const filteredEmployees = useMemo(() => {
     if (!employees) return [];
-
-    const term = searchTerm.toLowerCase();
-
-    return employees.filter((employee) =>
-      Object.values(employee).some((value) =>
+    const term = searchTerm.toLowerCase().trim();
+    return employees.filter((employee) => {
+      // Filtro por estado con tecla rápida
+      if (term === "a") return employee.estado !== false;
+      if (term === "i") return employee.estado === false;
+      // Resolver nombres de rol y sede para incluirlos en la búsqueda
+      const rolNombre =
+        roles.find((r) => r.id === parseInt(employee.rolId ?? employee.rol))
+          ?.nombre ?? "";
+      const sedeNombre =
+        sedes.find((s) => s.id === parseInt(employee.sedeId ?? employee.sede))
+          ?.nombre ?? "";
+      // Filtro general por texto en campos del empleado + nombres resueltos
+      const enCampos = Object.values(employee).some((value) =>
         value?.toString().toLowerCase().includes(term),
-      ),
-    );
-  }, [employees, searchTerm]);
+      );
+      const enRol = rolNombre.toLowerCase().includes(term);
+      const enSede = sedeNombre.toLowerCase().includes(term);
+      return enCampos || enRol || enSede;
+    });
+  }, [employees, searchTerm, roles, sedes]);
 
   // 📄 Paginación
   const itemsPerPage = 5;
@@ -68,7 +95,8 @@ const EmployeesPage = () => {
       documentNumber: employee.numeroDocumento,
       name: employee.nombreCompleto,
       email: employee.correo,
-      sede: employee.sede,
+      role: employee.rolId ?? employee.rol,
+      sede: employee.sedeId ?? employee.sede,
     });
   };
 
@@ -183,12 +211,26 @@ const EmployeesPage = () => {
       >
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Empleados</h1>
 
-        <div style={{ width: "260px" }}>
-          <SearchInput
-            value={searchTerm}
-            onChange={handleSearch}
-            placeholder="Buscar empleado"
-          />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
+          <div style={{ width: "260px" }}>
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearch}
+              placeholder="Buscar empleado"
+            />
+          </div>
+
+          <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+            Escribe <strong>a</strong> para ver activos · <strong>i</strong>{" "}
+            para inactivos
+          </span>
         </div>
       </div>
 
@@ -208,6 +250,8 @@ const EmployeesPage = () => {
       {/* 📋 Tabla */}
       <EmployeeTable
         employees={paginated}
+        roles={roles}
+        sedes={sedes}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggle={handleToggle}
@@ -217,6 +261,8 @@ const EmployeesPage = () => {
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
           <EmployeeForm
+            roles={rolesDisponibles}
+            sedes={sedesActivas}
             onSubmit={handleCreateSubmit}
             onCancel={() => setShowCreate(false)}
           />
@@ -228,6 +274,8 @@ const EmployeesPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
           <EmployeeForm
             employee={editEmployee}
+            roles={rolesDisponibles}
+            sedes={sedesActivas}
             onSubmit={handleEditSubmit}
             onCancel={() => setEditEmployee(null)}
           />

@@ -1,7 +1,7 @@
 import React from "react";
 import Button from "./../../shared/components/Button";
 
-function AddButton({ onClick, label = "Agregar Usuario" }) {
+function AddButton({ onClick, label = "Agregar Empleado" }) {
   const plusIcon = (
     <svg
       viewBox="0 0 24 24"

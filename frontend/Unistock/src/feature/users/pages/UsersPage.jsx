@@ -55,12 +55,16 @@ const UsersPage = () => {
       if (term === "i") return user.estado === false;
 
       // Resolver nombres de rol y sede para incluirlos en la búsqueda
-      const rolNombre = roles.find((r) => r.id === parseInt(user.rolId ?? user.rol))?.nombre ?? "";
-      const sedeNombre = sedes.find((s) => s.id === parseInt(user.sedeId ?? user.sede))?.nombre ?? "";
+      const rolNombre =
+        roles.find((r) => r.id === parseInt(user.rolId ?? user.rol))?.nombre ??
+        "";
+      const sedeNombre =
+        sedes.find((s) => s.id === parseInt(user.sedeId ?? user.sede))
+          ?.nombre ?? "";
 
       // Filtro general por texto en campos del usuario + nombres resueltos
       const enCampos = Object.values(user).some((value) =>
-        value?.toString().toLowerCase().includes(term)
+        value?.toString().toLowerCase().includes(term),
       );
       const enRol = rolNombre.toLowerCase().includes(term);
       const enSede = sedeNombre.toLowerCase().includes(term);
@@ -71,9 +75,15 @@ const UsersPage = () => {
 
   // 📄 PAGINACIÓN
   const itemsPerPage = 5;
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / itemsPerPage),
+  );
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
   // 🎯 ACCIONES
   const handleEdit = (user) => {
@@ -100,7 +110,11 @@ const UsersPage = () => {
         closeAlert();
         try {
           await deleteUser(id);
-          showResult("success", "Usuario eliminado", "El usuario fue eliminado correctamente.");
+          showResult(
+            "success",
+            "Usuario eliminado",
+            "El usuario fue eliminado correctamente.",
+          );
         } catch (e) {
           showResult("error", "No se pudo eliminar", e.message);
         }
@@ -128,7 +142,7 @@ const UsersPage = () => {
             isActive ? "Usuario inactivado" : "Usuario activado",
             isActive
               ? "El usuario fue inactivado correctamente."
-              : "El usuario fue activado correctamente."
+              : "El usuario fue activado correctamente.",
           );
         } catch (e) {
           showResult("error", "No se pudo cambiar el estado", e.message);
@@ -184,16 +198,24 @@ const UsersPage = () => {
         }}
       >
         <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Usuarios</h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
           <div style={{ width: "260px" }}>
             <SearchInput
               value={searchTerm}
               onChange={handleSearch}
-              placeholder='Buscar'
+              placeholder="Buscar"
             />
           </div>
           <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-            Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+            Escribe <strong>a</strong> para ver activos · <strong>i</strong>{" "}
+            para inactivos
           </span>
         </div>
       </div>
@@ -217,8 +239,12 @@ const UsersPage = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggle={handleToggle}
-        getRolNombre={(id) => roles.find((r) => r.id === parseInt(id))?.nombre ?? "—"}
-        getSedeNombre={(id) => sedes.find((s) => s.id === parseInt(id))?.nombre ?? "—"}
+        getRolNombre={(id) =>
+          roles.find((r) => r.id === parseInt(id))?.nombre ?? "—"
+        }
+        getSedeNombre={(id) =>
+          sedes.find((s) => s.id === parseInt(id))?.nombre ?? "—"
+        }
       />
 
       {/* ➕ FORM CREAR */}
@@ -278,7 +304,7 @@ const UsersPage = () => {
               >
                 {p}
               </button>
-            )
+            ),
           )}
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
