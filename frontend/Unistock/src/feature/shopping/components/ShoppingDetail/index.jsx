@@ -17,7 +17,7 @@ const EstadoBadge = ({ anulada }) => (
   </span>
 );
 
-const ShoppingDetail = ({ shopping, getProveedorNombre, onClose, onEdit }) => {
+const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
   if (!shopping) return null;
 
   const overlayStyle = {
@@ -161,17 +161,7 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose, onEdit }) => {
           )}
         </div>
 
-        {/* Botón editar — oculto si la compra está anulada */}
-        {onEdit && !shopping.anulada && (
-          <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={() => { onClose(); onEdit(shopping); }}
-              style={{ padding: "9px 22px", borderRadius: "8px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}
-            >
-              Editar
-            </button>
-          </div>
-        )}
+        
       </div>
     </div>
   );

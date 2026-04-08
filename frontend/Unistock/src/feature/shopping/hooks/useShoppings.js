@@ -100,30 +100,7 @@ export const useShoppings = () => {
     }
   };
 
-  // ── Actualizar compra ──────────────────────────────
-  const updateShopping = async (id, shoppingData) => {
-    const facturaNorm = shoppingData.numeroFactura?.trim().toLowerCase();
-    const duplicado = shoppings.find(
-      (p) => p.id !== id && p.numeroFactura?.trim().toLowerCase() === facturaNorm
-    );
-
-    if (duplicado) {
-      throw new Error(`Ya existe una compra con la factura "${shoppingData.numeroFactura}"`);
-    }
-
-    try {
-      setLoading(true);
-      const updated = await shoppingAPI.update(id, shoppingData);
-      setShoppings((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    } catch (err) {
-      setError("Error al actualizar la compra");
-      console.error(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   // ── Anular compra (reemplaza eliminar y toggle) ────
   const anularShopping = async (id) => {
     try {
@@ -151,7 +128,6 @@ export const useShoppings = () => {
     error,
     getShoppingById,
     createShopping,
-    updateShopping,
     anularShopping,
     proveedores,
     getProveedorNombre,
