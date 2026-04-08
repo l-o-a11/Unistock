@@ -29,6 +29,7 @@ const RolesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [modalType, setModalType] = useState(null);
   const [editingRol, setEditingRol] = useState(null); // objeto completo, no solo ID
+const [estadoFiltro, setEstadoFiltro] = useState("todos");
 
   const [alertConfig, setAlertConfig] = useState({
     open: false,
@@ -44,12 +45,27 @@ const RolesPage = () => {
     setAlertConfig({ open: true, type, title, message, onConfirm: onConfirm || closeAlert });
 
   // ── Filter ────────────────────────────────────────
-  const filteredRoles = roles.filter(
+  /*const filteredRoles = roles.filter(
     (rol) =>
       rol.id.toString().includes(searchTerm) ||
       rol.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rol.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  );*/
+  const filteredRoles = roles.filter((rol) => {
+  const text = searchTerm.toLowerCase();
+
+  const coincideBusqueda =
+    rol.id.toString().includes(searchTerm) ||
+    rol.nombre.toLowerCase().includes(text) ||
+    rol.descripcion.toLowerCase().includes(text);
+
+  const coincideEstado =
+    estadoFiltro === "todos" ||
+    (estadoFiltro === "activos" && rol.estado !== false) ||
+    (estadoFiltro === "inactivos" && rol.estado === false);
+
+  return coincideBusqueda && coincideEstado;
+});
 
   // ── Pagination ────────────────────────────────────
   const itemsPerPage = 5;
@@ -221,9 +237,54 @@ const RolesPage = () => {
       </div>
 
       {/* Botón */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", backgroundColor: "#ffffff", borderRadius: "10px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "12px 20px", marginBottom: "20px" }}>
-        <AddRolButton onClick={handleAddRol} />
-      </div>
+      <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: "10px",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+    padding: "12px 20px",
+    marginBottom: "20px",
+  }}
+>
+  {/* IZQUIERDA - CHIPS */}
+  <div style={{ display: "flex", gap: "8px" }}>
+    {[
+      { label: "Todos", value: "todos" },
+      { label: "Activos", value: "activos" },
+      { label: "Inactivos", value: "inactivos" },
+    ].map((chip) => (
+      <button
+        key={chip.value}
+        onClick={() => {
+          setEstadoFiltro(chip.value);
+          setCurrentPage(1); // 🔥 reset paginación
+        }}
+        style={{
+          padding: "6px 14px",
+          borderRadius: "20px",
+          border: "1px solid #ddd",
+          cursor: "pointer",
+          fontSize: "13px",
+          background:
+            estadoFiltro === chip.value ? "#FF4FD6" : "#fff",
+          color:
+            estadoFiltro === chip.value ? "#fff" : "#333",
+          fontWeight:
+            estadoFiltro === chip.value ? "600" : "400",
+          transition: "all 0.2s ease",
+        }}
+      >
+        {chip.label}
+      </button>
+    ))}
+  </div>
+
+  {/* DERECHA - BOTÓN */}
+  <AddRolButton onClick={handleAddRol} />
+</div>
 
       {/* Tabla */}
       <RolTable

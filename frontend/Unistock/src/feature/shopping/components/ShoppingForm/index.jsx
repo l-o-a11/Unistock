@@ -3,35 +3,42 @@ import Alert from "../../../shared/components/Alert";
 import { useSuppliers } from "../../../suppliers_fixed/hooks/mockSuppliers";
 import { useSupplies } from "../../../supplies/hooks/useSupplies";
 import SupplyForm from "../../../supplies/components/SupplyForm";
+import SupplierForm from "../../../suppliers_fixed/components/SupplierForm";
 
-const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
-  const { suppliers } = useSuppliers();
+const ShoppingForm = ({ onSubmit, onCancel }) => {
+  // ── Solo para CREAR — no recibe prop "shopping" (no hay edición)
+  const { suppliers, createSupplier } = useSuppliers();
   const { supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
 
   const [formData, setFormData] = useState({
-    numeroFactura: shopping?.numeroFactura || "",
-    proveedorId:   shopping?.proveedorId   || "",
-    fecha:         shopping?.fecha         || "",
-    observaciones: shopping?.observaciones || "",
-    costoTotal:    shopping?.costoTotal    || "",
-    detalles:      shopping?.detalles      || [],
+    numeroFactura: "",
+    proveedorId:   "",
+    proveedor:     "", // nombre resuelto para guardar junto al id
+    fecha:         "",
+    observaciones: "",
+    costoTotal:    "",
+    detalles:      [],
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors]               = useState({});
   const [detalleActual, setDetalleActual] = useState({
     supplyId: "", nombre: "", medidaId: "",
     cantidad: "", costo: "", costoUnitario: "", unidades: "",
   });
   const [insumoSearch, setInsumoSearch]   = useState("");
   const [showInsumoDD, setShowInsumoDD]   = useState(false);
-  const [showCreateSupply, setShowCreateSupply] = useState(false);
+  const [showCreateSupply, setShowCreateSupply]     = useState(false);
+
+  const [proveedorSearch, setProveedorSearch]       = useState("");
+  const [showProveedorDD, setShowProveedorDD]       = useState(false);
+  const [showCreateSupplier, setShowCreateSupplier] = useState(false);
 
   const [alertConfig, setAlertConfig] = useState({ open: false, type: "success", title: "", message: "", onConfirm: null });
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
   const showAlert  = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
 
-  // ── Validaciones ────────────────────────────────────────────────────────
+  // ── Validaciones ─────────────────────────────────────────────────────────
   const validators = {
     required:       (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) => (isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : ""),
@@ -58,7 +65,28 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
 
   const handleBlur = (e) => validateField(e.target.name, e.target.value);
 
-  // ── Insumo search ────────────────────────────────────────────────────────
+  // ── Proveedor search ──────────────────────────────────────────────────────
+  const filteredSuppliers = useMemo(() => {
+    if (!proveedorSearch.trim()) return suppliers;
+    return suppliers.filter((s) =>
+      s.nombreEmpresa?.toLowerCase().includes(proveedorSearch.toLowerCase())
+    );
+  }, [suppliers, proveedorSearch]);
+
+  // ✅ FIX: actualiza formData.proveedorId y formData.proveedor (no detalleActual)
+  const handleSelectProveedor = (supplier) => {
+    setFormData((prev) => ({
+      ...prev,
+      proveedorId: supplier.id,
+      proveedor:   supplier.nombreEmpresa,
+    }));
+    setProveedorSearch(supplier.nombreEmpresa);
+    setShowProveedorDD(false);
+    // Limpiar error de proveedor al seleccionar
+    setErrors((prev) => ({ ...prev, proveedorId: "" }));
+  };
+
+  // ── Insumo search ─────────────────────────────────────────────────────────
   const filteredSupplies = useMemo(() => {
     if (!insumoSearch.trim()) return supplies;
     return supplies.filter((s) =>
@@ -77,7 +105,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
     setShowInsumoDD(false);
   };
 
-  // ── Detalle handlers ─────────────────────────────────────────────────────
+  // ── Detalle handlers ──────────────────────────────────────────────────────
   const handleDetalleChange = (e) => {
     const { name, value } = e.target;
     setDetalleActual((prev) => {
@@ -122,11 +150,22 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
   const handleEliminarDetalle = (id) =>
     setFormData((prev) => ({ ...prev, detalles: prev.detalles.filter((d) => d.id !== id) }));
 
-  // ── Crear insumo desde el form ───────────────────────────────────────────
+  // ── Crear proveedor desde el form ─────────────────────────────────────────
+  const handleCreateSupplierSubmit = async (supplierData) => {
+    try {
+      const newSupplier = await createSupplier(supplierData);
+      handleSelectProveedor(newSupplier);
+      setShowCreateSupplier(false);
+      showAlert("success", "Proveedor creado", `"${newSupplier.nombreEmpresa}" fue creado y seleccionado.`);
+    } catch (error) {
+      showAlert("error", "Error", error.message || "No se pudo crear el proveedor.");
+    }
+  };
+
+  // ── Crear insumo desde el form ────────────────────────────────────────────
   const handleCreateSupplySubmit = async (supplyData) => {
     try {
       const newSupply = await createSupply(supplyData);
-      // Seleccionar automáticamente el insumo recién creado
       handleSelectInsumo(newSupply);
       setShowCreateSupply(false);
       showAlert("success", "Insumo creado", `"${newSupply.nombre}" fue creado y seleccionado.`);
@@ -135,7 +174,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
     }
   };
 
-  // ── Submit ───────────────────────────────────────────────────────────────
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     const fields = ["numeroFactura", "proveedorId", "fecha", "costoTotal"];
     let newErrors = {};
@@ -153,7 +192,6 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
       await onSubmit({
         ...formData,
         costoTotal: parseFloat(formData.costoTotal),
-        // Solo guardamos proveedorId — el nombre se resuelve desde el hook al renderizar
       });
     } catch (error) {
       showAlert("error", "Error al guardar", error.message || "No se pudo guardar la compra.");
@@ -166,20 +204,31 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
 
   const totalDetalles = formData.detalles.reduce((acc, d) => acc + (d.costo || 0), 0);
 
-  // ── Estilos ──────────────────────────────────────────────────────────────
+  // ── Estilos ───────────────────────────────────────────────────────────────
   const inp = (hasError) => ({
     width: "100%", padding: "9px 12px", borderRadius: "6px",
-    border: `1px solid ${hasError ? '#E91E8C' : '#d1d5db'}`,
+    border: `1px solid ${hasError ? "#E91E8C" : "#d1d5db"}`,
     fontSize: "13px", color: "#333", outline: "none",
     boxSizing: "border-box", backgroundColor: "#fff", transition: "border-color 0.15s",
   });
   const lbl  = { display: "block", fontSize: "12px", fontWeight: "600", color: "#555", marginBottom: "5px" };
-  const errS = { color: "#E91E8C", fontWeight: 'bold',fontSize: "11px", marginTop: "3px" };
+  const errS = { color: "#E91E8C", fontWeight: "bold", fontSize: "11px", marginTop: "3px" };
   const req  = <span style={{ color: "#FF4FD6" }}> *</span>;
-  const onFocus = (e) => { e.target.style.borderColor = "#FF4FD6"; e.target.style.boxShadow = "0 0 0 3px #FF4FD620"; };
-  const onBlurS = (e) => { e.target.style.borderColor = "#e5e7eb";  e.target.style.boxShadow = "none"; };
+  const onFocus  = (e) => { e.target.style.borderColor = "#FF4FD6"; e.target.style.boxShadow = "0 0 0 3px #FF4FD620"; };
+  const onBlurS  = (e) => { e.target.style.borderColor = "#e5e7eb"; e.target.style.boxShadow = "none"; };
 
-  // ── Si está creando insumo, mostrar SupplyForm en modal ──────────────────
+  // ── Modales anidados ──────────────────────────────────────────────────────
+  if (showCreateSupplier) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
+        <SupplierForm
+          onSubmit={handleCreateSupplierSubmit}
+          onCancel={() => setShowCreateSupplier(false)}
+        />
+      </div>
+    );
+  }
+
   if (showCreateSupply) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
@@ -201,7 +250,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
         {/* ── COLUMNA IZQUIERDA ── */}
         <div style={{ flex: "0 0 420px", padding: "28px 24px", overflowY: "auto", maxHeight: "90vh", scrollbarGutter: "stable", paddingRight: "12px" }}>
           <h2 style={{ margin: "0 0 20px", fontSize: "18px", fontWeight: 700, color: "#111" }}>
-            {shopping ? "Editar compra" : "Crear nueva compra"}
+            Crear nueva compra
           </h2>
 
           {/* Número de factura */}
@@ -212,16 +261,48 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
             {errors.numeroFactura && <p style={errS}>{errors.numeroFactura}</p>}
           </div>
 
-          {/* Proveedor */}
+          {/* Proveedor con buscador */}
           <div style={{ marginBottom: "14px" }}>
             <label style={lbl}>Proveedor{req}</label>
-            <select name="proveedorId" value={formData.proveedorId} onChange={handleChange} onBlur={handleBlur}
-              style={inp(errors.proveedorId)} onFocus={onFocus}>
-              <option value="">Seleccionar</option>
-              {suppliers.filter((s) => s.estado !== false).map((s) => (
-                <option key={s.id} value={s.id}>{s.nombreEmpresa}</option>
-              ))}
-            </select>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div style={{ flex: 1, position: "relative" }}>
+                <input
+                  value={proveedorSearch}
+                  onChange={(e) => {
+                    setProveedorSearch(e.target.value);
+                    setShowProveedorDD(true);
+                    // Si el usuario borra el texto, limpiar proveedorId
+                    if (!e.target.value) {
+                      setFormData((prev) => ({ ...prev, proveedorId: "", proveedor: "" }));
+                    }
+                  }}
+                  onFocus={() => setShowProveedorDD(true)}
+                  onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)}
+                  placeholder="Buscar proveedor..."
+                  style={inp(errors.proveedorId)}
+                />
+                {showProveedorDD && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "6px", boxShadow: "0 4px 12px rgba(0,0,0,0.10)", zIndex: 100, maxHeight: "160px", overflowY: "auto" }}>
+                    {filteredSuppliers.length > 0 ? filteredSuppliers.map((s) => (
+                      <div key={s.id} onMouseDown={() => handleSelectProveedor(s)}
+                        style={{ padding: "8px 12px", fontSize: "13px", cursor: "pointer", color: "#333", borderBottom: "1px solid #f5f5f5" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fdf0f7")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}>
+                        {s.nombreEmpresa}
+                      </div>
+                    )) : (
+                      <div style={{ padding: "10px 12px", fontSize: "12px", color: "#999" }}>
+                        No se encontraron proveedores
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button type="button" onClick={() => setShowCreateSupplier(true)} title="Crear nuevo proveedor"
+                style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", backgroundColor: "#FF4FD6", color: "#fff", fontSize: "20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px #FF4FD644" }}>
+                +
+              </button>
+            </div>
             {errors.proveedorId && <p style={errS}>{errors.proveedorId}</p>}
           </div>
 
@@ -266,7 +347,6 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
                     placeholder="Buscar insumo..."
                     style={inp(false)}
                   />
-                  {/* Dropdown */}
                   {showInsumoDD && (
                     <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "6px", boxShadow: "0 4px 12px rgba(0,0,0,0.10)", zIndex: 100, maxHeight: "160px", overflowY: "auto" }}>
                       {filteredSupplies.length > 0 ? filteredSupplies.map((s) => (
@@ -284,7 +364,6 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
                     </div>
                   )}
                 </div>
-                {/* Botón + crear insumo */}
                 <button type="button" onClick={() => setShowCreateSupply(true)} title="Crear nuevo insumo"
                   style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", backgroundColor: "#FF4FD6", color: "#fff", fontSize: "20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px #FF4FD644" }}>
                   +
@@ -342,7 +421,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
         {/* ── COLUMNA DERECHA ── */}
         <div style={{ flex: 1, backgroundColor: "#fafafa", borderLeft: "1px solid #f0f0f0", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, padding: "28px 20px", overflowY: "auto" }}>
-            <p style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: "#333" }}>Detalles de la compra</p>
+            <p style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: "#333" }}>Detalles de la compra (cada valor ya incluye IVA)</p>
 
             {formData.detalles.length > 0 ? (
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
@@ -401,7 +480,7 @@ const ShoppingForm = ({ shopping, onSubmit, onCancel }) => {
               </button>
               <button type="button" onClick={handleSubmit}
                 style={{ padding: "9px 22px", borderRadius: "8px", border: "none", background: "#FF4FD6", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px #FF4FD644" }}>
-                {shopping ? "Guardar compra" : "Guardar Compra"}
+                Guardar Compra
               </button>
             </div>
           </div>

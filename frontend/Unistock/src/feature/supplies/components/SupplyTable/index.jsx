@@ -60,29 +60,62 @@ const SupplyTable = ({
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
                   {/* Imagen */}
-                  <td style={tdStyle}>
-                    <HoverCard
-                      content={
-                        <div>
-                          <p style={{ fontWeight: "600", marginBottom: "8px", color: "#333" }}>Imagen del insumo</p>
-                          {supply.image ? (
-                            <img src={supply.image} alt={supply.nombre} style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} />
-                          ) : (
-                            <div style={{ width: "128px", height: "128px", backgroundColor: "#f5f5f5", borderRadius: "8px", border: "1px solid #eee", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: "14px" }}>Sin imagen</div>
-                          )}
-                          <p style={{ fontSize: "11px", color: "#999", marginTop: "6px" }}>ID: {supply.id}</p>
-                        </div>
-                      }
-                    >
-                      <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
-                        {supply.image ? (
-                          <img src={supply.image} alt={supply.nombre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <div style={{ width: "100%", height: "100%", backgroundColor: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: "10px" }}>🖼️</div>
-                        )}
-                      </div>
-                    </HoverCard>
-                  </td>
+                 <td style={tdStyle}>
+  <div className="relative group w-fit">
+
+    {/* Imagen pequeña */}
+    {supply.image ? (
+      <img
+        src={supply.image}
+        alt={supply.name}
+        className="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer"
+      />
+    ) : (
+      <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs cursor-pointer">
+        🖼️
+      </div>
+    )}
+
+    {/* Hover cuando SÍ hay imagen */}
+    {supply.image && (
+      <img
+        src={supply.image}
+        className="
+          absolute left-12 top-0
+         max-w-60 max-h-60
+          w-auto h-auto
+          object-contain
+          bg-white p-2
+          rounded-lg border border-gray-200 shadow-lg
+          opacity-0 scale-95
+          group-hover:opacity-100 group-hover:scale-100
+          transition-all duration-200
+          pointer-events-none z-50
+        "
+      />
+    )}
+
+    {/* Hover cuando NO hay imagen */}
+    {!supply.image && (
+      <div
+        className="
+          absolute left-12 top-0
+          w-40 h-20
+          flex items-center justify-center
+          bg-white border border-gray-200 rounded-lg shadow-lg
+          text-gray-500 text-sm
+          opacity-0 scale-95
+          group-hover:opacity-100 group-hover:scale-100
+          transition-all duration-200
+          pointer-events-none z-50
+        "
+      >
+        Sin imagen
+      </div>
+    )}
+
+  </div>
+</td>
 
                   <td style={tdStyle}>{supply.id}</td>
                   <td style={tdStyle}>{supply.nombre?.length > 30 ? supply.nombre.slice(0, 30) + "..." : supply.nombre}</td>

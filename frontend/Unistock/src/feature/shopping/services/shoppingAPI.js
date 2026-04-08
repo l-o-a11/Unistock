@@ -9,7 +9,7 @@ const INITIAL_SHOPPINGS = [
     fecha: "2025-12-10",
     observaciones: "Compra para la orden x para la ref x",
     costoTotal: 13300.00,
-    estado: true,
+    anulada: false,
     detalles: [
       { id: 101, nombre: "Tela Rosada",  cantidad: 50,  costoUnitario: 200.00, costo: 10000.00 },
       { id: 102, nombre: "Hilos",        cantidad: 100, costoUnitario: 3.00,   costo: 300.00   },
@@ -24,7 +24,7 @@ const INITIAL_SHOPPINGS = [
     fecha: "2026-01-15",
     observaciones: "Reposición de inventario mensual",
     costoTotal: 5800.00,
-    estado: true,
+    anulada: false,
     detalles: [
       { id: 201, nombre: "Elástico 2cm", cantidad: 200, costoUnitario: 15.00, costo: 3000.00 },
       { id: 202, nombre: "Velcro negro", cantidad: 140, costoUnitario: 20.00, costo: 2800.00 },
@@ -79,9 +79,8 @@ export const shoppingAPI = {
           id: mockShoppings.length > 0
             ? Math.max(...mockShoppings.map((p) => p.id)) + 1
             : 1,
-          estado: true,
+          anulada: false,
           ...shoppingData,
-          // Asignar IDs a los detalles
           detalles: (shoppingData.detalles || []).map((d, i) => ({
             id: Date.now() + i,
             ...d,
@@ -116,14 +115,15 @@ export const shoppingAPI = {
     });
   },
 
-  delete: async (id) => {
+  // ── Anular compra (reemplaza delete y toggle) ──────
+  anular: async (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         const index = mockShoppings.findIndex((p) => p.id === id);
         if (index !== -1) {
-          mockShoppings.splice(index, 1);
+          mockShoppings[index] = { ...mockShoppings[index], anulada: true };
           saveToStorage(mockShoppings);
-          resolve();
+          resolve({ ...mockShoppings[index] });
         } else {
           reject(new Error("Compra no encontrada"));
         }

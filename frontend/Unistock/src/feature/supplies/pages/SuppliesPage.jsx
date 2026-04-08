@@ -31,6 +31,7 @@ const SuppliesPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSupply, setEditingSupply] = useState(null);
+  const [estadoFiltro, setEstadoFiltro] = useState("todos");
 
   const [alertConfig, setAlertConfig] = useState({
     open: false,
@@ -48,7 +49,7 @@ const SuppliesPage = () => {
   };
 
   // ── Filtrado y paginación ──────────────────────────────────────────────────
-  const filteredSupplies = supplies.filter((s) => {
+  /*const filteredSupplies = supplies.filter((s) => {
     const text = searchTerm.toLowerCase();
     return (
       s.id?.toString().includes(searchTerm) ||
@@ -58,12 +59,36 @@ const SuppliesPage = () => {
       getCategoriaNombre(s.categoriaId)?.toLowerCase().includes(text) ||
       getMedidaNombre(s.medidaId)?.toLowerCase().includes(text)
     );
+  });*/
+  const filteredSupplies = supplies.filter((s) => {
+    const text = searchTerm.toLowerCase();
+
+    const coincideBusqueda =
+      s.id?.toString().includes(searchTerm) ||
+      s.stock?.toString().includes(searchTerm) ||
+      s.nombre?.toLowerCase().includes(text) ||
+      s.valorMedida?.toString().includes(searchTerm) ||
+      getCategoriaNombre(s.categoriaId)?.toLowerCase().includes(text) ||
+      getMedidaNombre(s.medidaId)?.toLowerCase().includes(text);
+
+    const coincideEstado =
+      estadoFiltro === "todos" ||
+      (estadoFiltro === "activos" && s.estado) ||
+      (estadoFiltro === "inactivos" && !s.estado);
+
+    return coincideBusqueda && coincideEstado;
   });
 
   const itemsPerPage = 5;
-  const totalPages = Math.max(1, Math.ceil(filteredSupplies.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredSupplies.length / itemsPerPage),
+  );
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedSupplies = filteredSupplies.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedSupplies = filteredSupplies.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
   // ── Acciones ───────────────────────────────────────────────────────────────
   const handleAddSupply = () => setShowCreateForm(true);
@@ -99,16 +124,28 @@ const SuppliesPage = () => {
       `Para eliminar "${supply?.nombre}" confirma tu contraseña de administrador.`,
       async (pwd) => {
         if (pwd !== ADMIN_PASSWORD) {
-          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+          showAlert(
+            "error",
+            "Contraseña incorrecta",
+            "Verifica tu contraseña e intenta nuevamente.",
+          );
           return;
         }
         try {
           await deleteSupply(id);
-          showAlert("success", "Insumo eliminado", `"${supply?.nombre}" fue eliminado correctamente.`);
+          showAlert(
+            "success",
+            "Insumo eliminado",
+            `"${supply?.nombre}" fue eliminado correctamente.`,
+          );
         } catch {
-          showAlert("error", "Error", "No se pudo eliminar el insumo. Intenta nuevamente.");
+          showAlert(
+            "error",
+            "Error",
+            "No se pudo eliminar el insumo. Intenta nuevamente.",
+          );
         }
-      }
+      },
     );
   };
 
@@ -121,16 +158,20 @@ const SuppliesPage = () => {
       `Para ${accion} "${supply?.nombre}" confirma tu contraseña de administrador.`,
       (pwd) => {
         if (pwd !== ADMIN_PASSWORD) {
-          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+          showAlert(
+            "error",
+            "Contraseña incorrecta",
+            "Verifica tu contraseña e intenta nuevamente.",
+          );
           return;
         }
         toggleSupply(id);
         showAlert(
           "success",
           `Insumo ${accion === "activar" ? "activado" : "inactivado"}`,
-          `"${supply?.nombre}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`
+          `"${supply?.nombre}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`,
         );
-      }
+      },
     );
   };
 
@@ -138,9 +179,17 @@ const SuppliesPage = () => {
     try {
       await createSupply(supplyData);
       handleCloseForm();
-      showAlert("success", "Insumo creado", `"${supplyData.nombre}" fue creado correctamente.`);
+      showAlert(
+        "success",
+        "Insumo creado",
+        `"${supplyData.nombre}" fue creado correctamente.`,
+      );
     } catch (error) {
-      showAlert("error", "Error al crear", error.message || "No se pudo crear el insumo.");
+      showAlert(
+        "error",
+        "Error al crear",
+        error.message || "No se pudo crear el insumo.",
+      );
     }
   };
 
@@ -148,9 +197,17 @@ const SuppliesPage = () => {
     try {
       await updateSupply(editingSupply.id, supplyData);
       handleCloseForm();
-      showAlert("success", "Insumo actualizado", `"${supplyData.nombre}" fue actualizado correctamente.`);
+      showAlert(
+        "success",
+        "Insumo actualizado",
+        `"${supplyData.nombre}" fue actualizado correctamente.`,
+      );
     } catch (error) {
-      showAlert("error", "Error al actualizar", error.message || "No se pudo actualizar el insumo.");
+      showAlert(
+        "error",
+        "Error al actualizar",
+        error.message || "No se pudo actualizar el insumo.",
+      );
     }
   };
 
@@ -162,7 +219,10 @@ const SuppliesPage = () => {
     const csv = [
       ["id", "Nombre", "Categoría", "Stock"],
       ...filteredSupplies.map((s) => [
-        s.id, s.nombre, getCategoriaNombre(s.categoriaId), s.stock,
+        s.id,
+        s.nombre,
+        getCategoriaNombre(s.categoriaId),
+        s.stock,
       ]),
     ]
       .map((row) => row.join(","))
@@ -179,10 +239,15 @@ const SuppliesPage = () => {
 
   // ── Paginación visual ──────────────────────────────────────────────────────
   const getPageNumbers = () => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (totalPages <= 5)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
       pages.push(i);
     }
     if (currentPage < totalPages - 2) pages.push("...");
@@ -200,33 +265,63 @@ const SuppliesPage = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
-
+    <div
+      style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
+    >
       {/* HEADER */}
-    
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-        <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a1a" }}>Insumos</h1>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "20px",
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "26px",
+            fontWeight: "700",
+            color: "#1a1a1a",
+          }}
+        >
+          Insumos
+        </h1>
         <SupplySearch value={searchTerm} onChange={handleSearch} />
       </div>
 
-      {/* TOOLBAR */}
-      <div style={{ display: "flex", justifyContent: "space-between", background: "#fff", padding: "12px 20px", borderRadius: "10px", marginBottom: "20px" }}>
-        <button
-          onClick={handleDownload}
-          title="Exportar insumos"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#555',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '4px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
-        >
-          <svg
+        <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    background: "#fff",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    marginBottom: "20px",
+    alignItems: "center",
+  }}
+>
+  {/* IZQUIERDA */}
+  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+    
+    {/* BOTÓN EXPORTAR */}
+    <button
+      onClick={handleDownload}
+      title="Exportar insumos"
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        color: "#555",
+        display: "flex",
+        alignItems: "center",
+        padding: "4px",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+      onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+    >
+      <svg
             width="22"
             height="22"
             viewBox="0 0 24 24"
@@ -241,9 +336,42 @@ const SuppliesPage = () => {
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
         </button>
-        <AddSupplyButton onClick={handleAddSupply} />
-      </div>
 
+    {/* CHIPS */}
+    <div style={{ display: "flex", gap: "8px" }}>
+      {[
+        { label: "Todos", value: "todos" },
+        { label: "Activos", value: "activos" },
+        { label: "Inactivos", value: "inactivos" },
+      ].map((chip) => (
+        <button
+          key={chip.value}
+          onClick={() => setEstadoFiltro(chip.value)}
+          style={{
+            padding: "6px 14px",
+            borderRadius: "20px",
+            border: "1px solid #ddd",
+            cursor: "pointer",
+            fontSize: "13px",
+            background:
+              estadoFiltro === chip.value ? "#FF4FD6" : "#fff",
+            color:
+              estadoFiltro === chip.value ? "#fff" : "#333",
+            fontWeight: estadoFiltro === chip.value ? "600" : "400",
+            transition: "all 0.2s ease",
+          }}
+        >
+          {chip.label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* DERECHA */}
+  <AddSupplyButton onClick={handleAddSupply} />
+</div>
+
+      
       {/* TABLA */}
       <SupplyTable
         supplies={paginatedSupplies}
@@ -299,22 +427,45 @@ const SuppliesPage = () => {
 
       {/* PAGINACIÓN */}
       {filteredSupplies.length > 0 && (
-        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            justifyContent: "center",
+            gap: "6px",
+          }}
+        >
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            style={paginationBtn}
+          >
+            ‹
+          </button>
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>...</span>
+              <span key={i} style={{ padding: "6px 10px" }}>
+                ...
+              </span>
             ) : (
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                style={{ ...paginationBtn, background: p === currentPage ? "#FF4FD6" : "#fff", color: p === currentPage ? "#fff" : "#000" }}
+                style={{
+                  ...paginationBtn,
+                  background: p === currentPage ? "#FF4FD6" : "#fff",
+                  color: p === currentPage ? "#fff" : "#000",
+                }}
               >
                 {p}
               </button>
-            )
+            ),
           )}
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={paginationBtn}>›</button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            style={paginationBtn}
+          >
+            ›
+          </button>
         </div>
       )}
 
