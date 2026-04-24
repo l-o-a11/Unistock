@@ -33,22 +33,37 @@ const LoginPage = () => {
   return (
     <>
       <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
-                *, *::before, *::after { box-sizing: border-box; font-family: 'Nunito', sans-serif; }
-                html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
-            `}</style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; font-family: 'Nunito', sans-serif; }
+  html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+
+  @keyframes zoom {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  .animate-zoom {
+    animation: zoom 8s ease-in-out infinite;
+    transform-origin: center center;
+  }
+`}</style>
 
       <div className="h-screen overflow-hidden flex bg-[#F8F9FA]">
         {/* Imagen izquierda — oculta en móvil */}
-        <div className="hidden md:block md:w-1/2 relative flex-shrink-0 overflow-hidden">
-          <img
-            src={logo}
-            alt="Login"
-            className="w-full h-full object-cover"
-            style={{ filter: 'blur(3px)', transform: 'scale(1.06)' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-900/20 to-gray-50/30"></div>
-        </div>
+<div className="hidden md:block md:w-1/2 relative flex-shrink-0 overflow-hidden">
+  <img
+    src={logo}
+    alt="Login"
+    className="w-full h-full object-cover animate-zoom"
+  />
+
+  {/* Capa de difuminación lateral hacia la derecha */}
+  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F8F9FA]/30 to-[#F8F9FA]"></div>
+
+  {/* Capa superior e inferior para suavizar bordes */}
+  <div className="absolute inset-0 bg-gradient-to-b from-[#F8F9FA]/20 via-transparent to-[#F8F9FA]/20"></div>
+</div>
 
         {/* Panel derecho */}
         <div className="flex-1 flex items-center justify-center px-5 sm:px-10">
