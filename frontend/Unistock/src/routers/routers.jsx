@@ -1,52 +1,52 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import Login from "../feature/auth/pages/LoginPage.jsx";
-import ProductionDashboard from "../feature/dashboard/dashboard.jsx";
+import Login from "../features/auth/pages/LoginPage.jsx";
+// import ProductionDashboard from "../features/dashboard/dashboard.jsx"; // TODO: Archivo no existe
 import AppLayout from "../layout/AppLayout.jsx";
-import PrivateRoute from "../feature/shared/PrivateRoute.jsx";
+import PrivateRoute from "../features/shared/PrivateRoute.jsx";
 
 // Roles
-import RolesPage from "../feature/roles/pages/RolesPage";
-import CreateRolPage from "../feature/roles/pages/CreateRolPage.jsx";
-import EditRolPage from "../feature/roles/pages/EditRolPage.jsx";
+import RolesPage from "../features/roles/pages/RolesPage";
+import CreateRolPage from "../features/roles/pages/CreateRolPage.jsx";
+import EditRolPage from "../features/roles/pages/EditRolPage.jsx";
 
 // Insumos
-import SuppliesPage from "../feature/supplies/pages/SuppliesPage.jsx";
+import SuppliesPage from "../features/supplies/pages/SuppliesPage.jsx";
 
 // Categorías
-import CategoriesPage from "../feature/categories/pages/CategoriesPage.jsx";
-import CategoriesSupplyPage from "../feature/categoriesSupply/pages/CategoriesSupplyPage.jsx";
+import CategoriesPage from "../features/categories/pages/CategoriesPage.jsx";
+import CategoriesSupplyPage from "../features/categoriesSupply/pages/CategoriesSupplyPage.jsx";
 
 // Productos
-import ProductsPage from "../feature/products/pages/ProductsPage.jsx";
+import ProductsPage from "../features/products/pages/ProductsPage.jsx";
 
 // Proveedores
-import SuppliersPage from "../feature/suppliers_fixed/pages/SuppliersPage.jsx";
+import SuppliersPage from "../features/suppliers_fixed/pages/SuppliersPage.jsx";
 
 // Compras
-import ShoppingsPage from "../feature/shopping/pages/ShoppingsPage.jsx";
+import ShoppingsPage from "../features/shopping/pages/ShoppingsPage.jsx";
 
 // Terceros
-import ThirdPartiesPage from "../feature/third_parties_fixed/pages/Third_partiesPage.jsx";
+import ThirdPartiesPage from "../features/third_parties_fixed/pages/Third_partiesPage.jsx";
 
 // Usuarios
-import UsersPage from "../feature/users/pages/UsersPage.jsx";
+import UsersPage from "../features/users/pages/UsersPage.jsx";
 
 // Producciones
-import ProductionsPage from "../feature/fixed/pages/ProductionPage.jsx";
-import ProductForm from "../feature/fixed/components/ProductionForm/index.jsx";
-import ProductionDetailsPage from "../feature/fixed/productionDetails/pages/ProductionDetailsPage.jsx";
-import ProductionCalendarPage from "../feature/fixed/components/ProductionCalender";
+import ProductionsPage from "../features/fixed/pages/ProductionPage.jsx";
+import ProductForm from "../features/fixed/components/ProductionForm/index.jsx";
+import ProductionDetailsPage from "../features/fixed/productionDetails/pages/ProductionDetailsPage.jsx";
+import ProductionCalendarPage from "../features/fixed/components/ProductionCalender";
 
 // Empleados
-import EmployeesPage from "../feature/employees/pages/EmployeesPage.jsx";
+import EmployeesPage from "../features/employees/pages/EmployeesPage.jsx";
 
 // Perfil
-import ProfilePage from "../feature/auth/pages/ProfilePage.jsx";
+import ProfilePage from "../features/auth/pages/ProfilePage.jsx";
 
 // Sedes
-import SedesPage from "../feature/sedes/pages/sedesPage.jsx";
+import SedesPage from "../features/sedes/pages/sedesPage.jsx";
 
 export function RouterApp() {
   return (
@@ -61,8 +61,8 @@ export function RouterApp() {
           <AppLayout />
         </PrivateRoute>
       }>
-        <Route index element={<ProductionDashboard />} />
-        <Route path="dashboard" element={<ProductionDashboard />} />
+        <Route index element={<ProductionsPage />} />
+        <Route path="dashboard" element={<ProductionsPage />} />
 
         {/* Usuarios */}
         <Route path="usuarios" element={
