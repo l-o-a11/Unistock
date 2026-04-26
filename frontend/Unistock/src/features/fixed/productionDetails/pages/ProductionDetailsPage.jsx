@@ -1,14 +1,7 @@
 /**
  * @file ProductionDetailsPage.jsx
  * @description Página de detalle de una orden de producción — Diseño renovado (Orden #3005 style)
- *
- * Responsabilidades:
- *   - Cargar y mostrar los datos de una orden por ID (URL param)
- *   - Avanzar / retroceder el estado de la orden (stepper)
- *   - Gestionar artículos: agregar, editar, eliminar con confirmación y alerta de éxito
- *   - Gestionar la ficha técnica: crear inline si no existe, ver expandida si existe
- *   - Bloquear el avance al siguiente paso si el paso actual es "Ficha Técnica"
- *     y aún no se ha creado la ficha
+ * CAMBIOS: Fix responsive para móvil — tabla historial, stepper, sidebar, botones nav
  */
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -23,32 +16,20 @@ import ProductionAlerts from "../pages/ProductionAlerts";
 const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Recepción", "Entrega"];
 const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Recepción", "Entregado"];
 
-/* ─── Size sort order ─────────────────────────────────────────
-   Extrae el sufijo de talla de refCorte (e.g. "3005-M" → "M")
-   y lo ordena por el ranking estándar XS → 5XL.
-   Si no coincide con ninguna talla conocida, va al final
-   ordenado alfabéticamente.
-──────────────────────────────────────────────────────────────*/
 const SIZE_ORDER = ["3XS","2XS","XS","S","M","L","XL","2XL","XXL","3XL","XXXL","4XL","5XL"];
-
 const extractSize = (refCorte = "") => {
-  // Intenta el sufijo después del último guión: "3005-M" → "M"
   const parts = refCorte.split("-");
   return parts[parts.length - 1].trim().toUpperCase();
 };
-
 const sortBySize = (details = []) =>
   [...details].sort((a, b) => {
     const sA = extractSize(a.refCorte);
     const sB = extractSize(b.refCorte);
     const iA = SIZE_ORDER.indexOf(sA);
     const iB = SIZE_ORDER.indexOf(sB);
-    // Ambos conocidos → por ranking
     if (iA !== -1 && iB !== -1) return iA - iB;
-    // Solo uno conocido → el conocido va primero
     if (iA !== -1) return -1;
     if (iB !== -1) return 1;
-    // Ninguno conocido → alfabético
     return sA.localeCompare(sB);
   });
 
@@ -98,7 +79,6 @@ const statusStyle = (status = "") => {
   return { background: "#fce7f3", color: "#9d174d" };
 };
 
-/* ─── Dot color for history timeline ─────────────────────────── */
 const dotColor = (status = "") => {
   const s = status.toLowerCase();
   if (s.includes("finaliz") || s.includes("list") || s.includes("aprobad")) return "#10b981";
@@ -131,14 +111,11 @@ const ProductionDetailsPage = () => {
   const [techSheetDraft, setTechSheetDraft] = useState(null);
 
   const [globalAlert, setGlobalAlert] = useState({ open: false, type: "success", title: "", message: "" });
-
-  // Modal productos dañados al anular desde detalle
   const [damagedModal, setDamagedModal] = useState({ open: false, production: null });
 
-  // Imagen del producto terminado / diseño
   const [showImageModal, setShowImageModal]         = useState(false);
   const [selectedImageIdx, setSelectedImageIdx]     = useState(0);
-  const [pendingFinishedImg, setPendingFinishedImg] = useState(null); // base64 provisional
+  const [pendingFinishedImg, setPendingFinishedImg] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -154,10 +131,8 @@ const ProductionDetailsPage = () => {
     load();
   }, [id]);
 
-  // Auto-open tech sheet form if navigated with openTechSheet flag (from DamagedProductsModal)
   useEffect(() => {
     if (location.state?.openTechSheet) {
-      // Small delay to let production data load first
       const t = setTimeout(() => setShowTechSheetForm(true), 600);
       return () => clearTimeout(t);
     }
@@ -180,8 +155,6 @@ const ProductionDetailsPage = () => {
     ? 0 : Math.round(((safeStepIndex + 1) / stepsReal.length) * 100);
   const nextStep = stepsReal[safeStepIndex + 1];
   const prevStep = stepsReal[safeStepIndex - 1];
-  const prevStepLabel = steps[safeStepIndex - 1];
-  const nextStepLabel = steps[safeStepIndex + 1];
   const isAnulada = production.status === "Anulada";
   const isLocked = safeStepIndex > stepsReal.indexOf("Corte");
   const isOnFichaStep = production.status === "Ficha Técnica";
@@ -210,13 +183,12 @@ const ProductionDetailsPage = () => {
     setProduction(saved);
   };
 
-  const ADMIN_PASSWORD = "1234"; // TODO: validate from backend
+  const ADMIN_PASSWORD = "1234";
 
   const handleProductionAlertConfirm = async (motivo = "") => {
     const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
 
-    // Retroceder con contraseña de seguridad
     if (type === "password") {
       if (motivo !== ADMIN_PASSWORD) {
         setGlobalAlert({ open: true, type: "error", title: "Contraseña incorrecta", message: "La contraseña ingresada no es correcta. No se pudo retroceder el estado." });
@@ -231,7 +203,6 @@ const ProductionDetailsPage = () => {
       return;
     }
 
-    // Anular orden
     if (onConfirmOverride && type === "anular") {
       try {
         await onConfirmOverride(motivo);
@@ -242,16 +213,12 @@ const ProductionDetailsPage = () => {
       return;
     }
 
-    // Otras acciones con override (anular artículo, etc.)
     if (onConfirmOverride) { onConfirmOverride(motivo); return; }
 
-    // Asignar tercero
     if (type === "third") {
       try {
-        // Guardar asignaciones en la orden
         const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
-        // Actualizar terceros en localStorage
         try {
           const terceroRaw = localStorage.getItem('app_third_parties');
           const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
@@ -264,10 +231,8 @@ const ProductionDetailsPage = () => {
                 tercerosList[idx] = {
                   ...tercerosList[idx],
                   producciones: [...(tercerosList[idx].producciones || []), {
-                    orden: production.orderNumber,
-                    fecha: today,
-                    produccionId: production.id,
-                    cantidad: Number(a.cantidad) || 0,
+                    orden: production.orderNumber, fecha: today,
+                    produccionId: production.id, cantidad: Number(a.cantidad) || 0,
                   }]
                 };
                 updated = true;
@@ -276,14 +241,10 @@ const ProductionDetailsPage = () => {
           });
           if (updated) localStorage.setItem('app_third_parties', JSON.stringify(tercerosList));
         } catch(e) { console.warn('Error linking tercero:', e); }
-        // Guardar distribución en la orden
         const savedProd = await ProductionAPI.update(production.id, {
-          ...production,
-          terceroAsignaciones: assignmentsList,
+          ...production, terceroAsignaciones: assignmentsList,
           history: [...(production.history || []), {
-            status: "Tercero asignado",
-            date: today,
-            user: ProductionAPI.getCurrentUser(),
+            status: "Tercero asignado", date: today, user: ProductionAPI.getCurrentUser(),
             motivo: assignmentsList.map(a => `${a.option}: ${a.cantidad} uds`).join(" | "),
             distribución: assignmentsList,
           }]
@@ -297,31 +258,22 @@ const ProductionDetailsPage = () => {
       return;
     }
 
-    // Asignar sede — al pasar de Producción solicitar imagen del producto terminado
     if (type === "assignSede") {
       try {
         const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
-
-        // Desvincula esta producción de todos los terceros que la tenían asignada
         try {
           const terceroRaw = localStorage.getItem('app_third_parties');
           const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
           const updatedTerceros = tercerosList.map(t => ({
-            ...t,
-            producciones: (t.producciones || []).filter(p => p.produccionId !== production.id),
+            ...t, producciones: (t.producciones || []).filter(p => p.produccionId !== production.id),
           }));
           localStorage.setItem('app_third_parties', JSON.stringify(updatedTerceros));
         } catch(e) { console.warn('Error unlinking tercero:', e); }
-
-        // Guardar distribución de sedes en la orden
         const savedProd = await ProductionAPI.update(production.id, {
-          ...production,
-          sedeAsignaciones: assignmentsList,
+          ...production, sedeAsignaciones: assignmentsList,
           history: [...(production.history || []), {
-            status: "Sede asignada",
-            date: today,
-            user: ProductionAPI.getCurrentUser(),
+            status: "Sede asignada", date: today, user: ProductionAPI.getCurrentUser(),
             motivo: assignmentsList.map(a => `${a.option}: ${a.cantidad} uds`).join(" | "),
             distribución: assignmentsList,
           }]
@@ -329,7 +281,6 @@ const ProductionDetailsPage = () => {
         setProduction(savedProd);
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
-        // Solicitar imagen del producto terminado
         setTimeout(() => setPendingFinishedImg("request"), 800);
       } catch {
         setGlobalAlert({ open: true, type: "error", title: "Error al asignar sede", message: "No se pudo asignar la sede. Intenta de nuevo." });
@@ -337,7 +288,6 @@ const ProductionDetailsPage = () => {
       return;
     }
 
-    // Cambio de estado general (advance)
     if (targetStep) {
       try {
         await applyStepChange(targetStep);
@@ -353,8 +303,7 @@ const ProductionDetailsPage = () => {
     const currentUser = ProductionAPI.getCurrentUser();
     const newDetails = (production.details || []).map(d => d.refCorte === updatedDetail.refCorte ? { ...d, ...updatedDetail } : d);
     const saved = await ProductionAPI.update(production.id, {
-      ...production,
-      details: newDetails,
+      ...production, details: newDetails,
       techSpecification: recalcCosts(newDetails, production.techSpecification),
       history: [...(production.history || []), { status: "Artículo editado", date: today, user: currentUser, motivo: `Ref: ${updatedDetail.ref} | Color: ${updatedDetail.color} | Cantidad: ${updatedDetail.quantity} uds` }]
     });
@@ -397,8 +346,6 @@ const ProductionDetailsPage = () => {
         const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const currentUser = ProductionAPI.getCurrentUser();
         const newDetails = (production.details || []).filter(x => x !== d);
-
-        // Si quedan 0 referencias, preguntar si se desea anular la orden completa
         if (newDetails.length === 0) {
           const saved = await ProductionAPI.update(production.id, {
             ...production, quantity: 0, details: newDetails,
@@ -407,7 +354,6 @@ const ProductionDetailsPage = () => {
           });
           setProduction(saved);
           setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado. La orden quedó sin referencias.` });
-          // Preguntar si anular la orden completa
           setTimeout(() => {
             openProductionAlert({
               type: "anular",
@@ -426,7 +372,6 @@ const ProductionDetailsPage = () => {
           }, 800);
           return;
         }
-
         const saved = await ProductionAPI.update(production.id, {
           ...production, quantity: newDetails.reduce((s, x) => s + x.quantity, 0), details: newDetails,
           techSpecification: recalcCosts(newDetails, production.techSpecification),
@@ -440,38 +385,182 @@ const ProductionDetailsPage = () => {
 
   /* ── Render ─────────────────────────────────────────────────── */
   return (
-    <div style={{ background: "#f8f9fb", minHeight: "100vh", fontFamily: "'DM Sans', 'Nunito', sans-serif", padding: "24px 28px" }}>
+    <div style={{ background: "#f8f9fb", minHeight: "100vh", fontFamily: "'DM Sans', 'Nunito', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── Responsive root padding ── */
+        .pd-root { padding: 14px; }
+        @media (min-width: 640px)  { .pd-root { padding: 18px 20px; } }
+        @media (min-width: 1024px) { .pd-root { padding: 24px 28px; } }
+
+        /* ── Main 2-col grid: stacks on mobile ── */
+        .pd-main-grid { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
+        @media (min-width: 900px) { .pd-main-grid { grid-template-columns:1fr 300px; } }
+
+        /* ── field-row: 1 col on small, 2 col on wider ── */
+        .pd-field-row { display:grid; grid-template-columns:1fr; gap:12px 20px; }
+        @media (min-width: 480px) { .pd-field-row { grid-template-columns:1fr 1fr; } }
+
+        /* ── Modals: fit viewport on mobile ── */
+        .pd-modal-inner { border-radius:18px; padding:20px 18px; width:calc(100vw - 32px); max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+        @media (min-width: 480px) { .pd-modal-inner { padding:28px 28px 24px; } }
+
         .pd-card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); }
         .pd-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#FF4FD6; margin-bottom:3px; }
         .pd-value { font-size:13px; font-weight:600; color:#1a1a2e; }
-        .pd-step-done { background:#FF4FD6; border-color:#FF4FD6; color:#fff; }
-        .pd-step-active { background:#fff; border-color:#FF4FD6; color:#FF4FD6; box-shadow:0 0 0 3px rgba(255,79,214,0.15); }
-        .pd-step-idle { background:#fff; border-color:#e5e7eb; color:#d1d5db; }
+        .pd-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10.5px; font-weight:700; letter-spacing:0.03em; }
+        .pd-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+
+        /* ── Nav buttons ── */
         .pd-btn-nav { border:1.5px solid #e5e7eb; background:#fff; color:#374151; border-radius:9px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s; }
         .pd-btn-nav:hover { border-color:#FF4FD6; color:#FF4FD6; }
         .pd-btn-primary { background:#FF4FD6; color:#fff; border:none; border-radius:9px; padding:7px 16px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 4px 12px rgba(255,79,214,0.3); transition:all 0.15s; }
         .pd-btn-primary:hover { background:#d93db8; transform:translateY(-1px); }
         .pd-btn-danger { border:1.5px solid #fca5a5; background:#fff5f5; color:#ef4444; border-radius:9px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
         .pd-btn-danger:hover { background:#fee2e2; }
+
+        /* ── Table base ── */
         .pd-table th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#9ca3af; padding-bottom:8px; }
         .pd-table td { padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:12.5px; }
         .pd-table tr:last-child td { border-bottom:none; }
-        .pd-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10.5px; font-weight:700; letter-spacing:0.03em; }
-        .pd-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
-        .pd-field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px 20px; }
+
+        /* ── Action buttons ── */
         .pd-action-btn { width:26px; height:26px; border-radius:7px; border:1.5px solid #e5e7eb; background:#fafafa; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; color:#9ca3af; }
         .pd-action-btn:hover.edit { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
         .pd-action-btn:hover.del { border-color:#ef4444; color:#ef4444; background:#fff5f5; }
+
+        /* ── Input ── */
         .pd-input { width:100%; border:1.5px solid #e5e7eb; border-radius:9px; padding:8px 12px; font-size:13px; color:#374151; outline:none; transition:border 0.15s; box-sizing:border-box; }
         .pd-input:focus { border-color:#FF4FD6; box-shadow:0 0 0 3px rgba(255,79,214,0.1); }
+
+        /* ── Stat card ── */
         .pd-stat-card { border-radius:11px; padding:13px 15px; }
+
+        /* ═══════════════════════════════════════════════════════
+           HISTORIAL COMPLETO — tabla responsive
+           ═══════════════════════════════════════════════════════ */
+        .pd-hist-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+        .pd-hist-th {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #9ca3af;
+          padding: 0 8px 8px 0;
+          text-align: left;
+          overflow: hidden;
+        }
+        .pd-hist-td {
+          padding: 10px 8px 10px 0;
+          border-bottom: 1px solid #f3f4f6;
+          font-size: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          vertical-align: middle;
+        }
+        .pd-hist-td:last-child { padding-right: 0; }
+
+        /* Anchos de columna por defecto (escritorio) */
+        .col-hist-estado { width: 28%; }
+        .col-hist-fecha  { width: 18%; }
+        .col-hist-resp   { width: 24%; }
+        .col-hist-motivo { width: 30%; }
+
+        /* Móvil ≤ 640px: ocultar Motivo, ajustar anchos, permitir wrap en estado */
+        @media (max-width: 640px) {
+          .col-hist-motivo { display: none; }
+          .col-hist-estado { width: 40%; white-space: normal; }
+          .col-hist-fecha  { width: 26%; }
+          .col-hist-resp   { width: 34%; }
+          .pd-hist-td      { font-size: 11px; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           STEPPER — texto adaptativo en móvil
+           ═══════════════════════════════════════════════════════ */
+        .pd-step-label {
+          font-size: 9px;
+          font-weight: 500;
+          text-align: center;
+          line-height: 1.2;
+        }
+        .pd-step-sublabel {
+          font-size: 8px;
+          font-weight: 400;
+          display: block;
+        }
+        @media (max-width: 480px) {
+          .pd-step-label    { font-size: 7px; }
+          .pd-step-sublabel { font-size: 6.5px; }
+          /* Círculos del stepper más pequeños */
+          .pd-step-circle   { width: 20px !important; height: 20px !important; font-size: 8px !important; }
+          /* Botones nav compactos */
+          .pd-btn-nav     { padding: 6px 9px !important; font-size: 11px !important; }
+          .pd-btn-primary { padding: 6px 10px !important; font-size: 11px !important; }
+          /* Botón anular — debajo del título en móvil */
+          .pd-anular-btn  { margin-left: 0 !important; margin-top: 8px; width: 100%; justify-content: center; }
+          /* Header de orden: stack en móvil */
+          .pd-order-header { flex-wrap: wrap; gap: 8px !important; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           SIDEBAR DERECHO — sin altura fija en móvil
+           ═══════════════════════════════════════════════════════ */
+        .pd-side-scroll {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          max-height: 620px;
+          overflow-y: auto;
+          padding-right: 2px;
+        }
+        @media (max-width: 900px) {
+          .pd-side-scroll {
+            max-height: none;
+            overflow-y: visible;
+            padding-right: 0;
+          }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           PRODUCTO TOP — imagen + info en móvil
+           ═══════════════════════════════════════════════════════ */
+        .pd-product-top {
+          padding: 18px 20px;
+          display: flex;
+          gap: 18px;
+          align-items: flex-start;
+          max-height: 240px;
+          overflow: hidden;
+        }
+        @media (max-width: 480px) {
+          .pd-product-top { flex-direction: column; max-height: none; gap: 12px; }
+          .pd-product-img-wrap { flex-direction: row !important; align-items: flex-start; }
+          .pd-product-main-img { width: 100px !important; height: 130px !important; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           DISTRIBUCIÓN tooltip — posición en móvil
+           ═══════════════════════════════════════════════════════ */
+        @media (max-width: 480px) {
+          .dist-tooltip, .dist-tt {
+            left: auto !important;
+            right: 0 !important;
+            margin-left: 0 !important;
+          }
+        }
       `}</style>
 
-      {/* ── Modals (logic unchanged) ── */}
+      <div className="pd-root">
+      {/* ── Modals ── */}
       <ProductionAlerts
         isOpen={productionAlert.isOpen}
         type={productionAlert.type}
@@ -486,7 +575,7 @@ const ProductionDetailsPage = () => {
         onCancel={closeProductionAlert}
         totalUnidades={totalUnidades}
       />
-      {/* Damaged Products Modal */}
+
       <DamagedProductsModal
         isOpen={damagedModal.open}
         production={damagedModal.production}
@@ -501,22 +590,14 @@ const ProductionDetailsPage = () => {
           setDamagedModal({ open: false, production: null });
           if (!damagedDetails.length || !source) return;
           try {
-            const { productAPI } = await import('../../../products/services/productAPI');
-            const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
             const { ProductionAPI: ProdAPI } = await import('../../services/ProductionAPI');
             const primary = damagedDetails[0];
             const newOrder = await ProdAPI.create({
-              tipo: 'diseno',
-              referencia: source.referencia || '',
-              producto: source.producto || '',
-              cantidad: String(primary.quantity || ''),
-              color: primary.color || '',
-              cliente: source.client || '',
-              fechaSolicitud: '',
+              tipo: 'diseno', referencia: source.referencia || '', producto: source.producto || '',
+              cantidad: String(primary.quantity || ''), color: primary.color || '',
+              cliente: source.client || '', fechaSolicitud: '',
               referencias: damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
-              fromDamaged: true,
-              originalOrderId: source.id,
-              originalOrderNumber: source.orderNumber,
+              fromDamaged: true, originalOrderId: source.id, originalOrderNumber: source.orderNumber,
             });
             navigate(`/layout/produccion/detalle/${newOrder.id}`, {
               state: { openTechSheet: true, fromDamaged: true, originalOrderNumber: source.orderNumber, from: 'produccion' }
@@ -542,8 +623,8 @@ const ProductionDetailsPage = () => {
 
       {/* ── Add Article Modal ── */}
       {addRefOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="pd-card" style={{ padding: 24, width: 320, animation: "fadeIn 0.2s ease" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "0 16px" }}>
+          <div className="pd-card" style={{ padding: 24, width: "100%", maxWidth: 320, animation: "fadeIn 0.2s ease" }}>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 18 }}>Agregar talla / artículo</h2>
             <div style={{ marginBottom: 14 }}>
               <div className="pd-label">Cantidad</div>
@@ -572,25 +653,25 @@ const ProductionDetailsPage = () => {
         </div>
       )}
 
-      {/* ── Modal Galería de Imágenes ──────────────────────────────────────── */}
+      {/* ── Modal Galería de Imágenes ── */}
       {showImageModal && (() => {
-        const designImages = production.designImages || [];
-        const finishedImages  = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
-        const allImages       = [...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })), ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` }))];
+        const designImages   = production.designImages || [];
+        const finishedImages = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+        const allImages      = [
+          ...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })),
+          ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` })),
+        ];
         const current = allImages[selectedImageIdx] || allImages[0];
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 2000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
             onClick={() => setShowImageModal(false)}>
             <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}
               onClick={e => e.stopPropagation()}>
-              {/* Botón cerrar */}
               <button onClick={() => setShowImageModal(false)}
                 style={{ position: "absolute", top: -36, right: 0, background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-              {/* Imagen principal */}
               <img src={current?.src} alt={current?.label}
                 style={{ maxWidth: "80vw", maxHeight: "65vh", borderRadius: 12, objectFit: "contain", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }} />
               <p style={{ color: "#fff", fontSize: 12, fontWeight: 600, margin: 0, background: "rgba(0,0,0,0.45)", padding: "4px 12px", borderRadius: 20 }}>{current?.label}</p>
-              {/* Miniaturas */}
               {allImages.length > 1 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
                   {allImages.map((img, i) => (
@@ -601,7 +682,6 @@ const ProductionDetailsPage = () => {
                   ))}
                 </div>
               )}
-              {/* Navegación */}
               {allImages.length > 1 && (
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={() => setSelectedImageIdx(i => (i - 1 + allImages.length) % allImages.length)}
@@ -615,11 +695,11 @@ const ProductionDetailsPage = () => {
         );
       })()}
 
-      {/* ── Modal Subir Foto Producto Terminado ───────────────────────────── */}
+      {/* ── Modal Subir Foto Producto Terminado ── */}
       {pendingFinishedImg === "request" && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
           onClick={() => setPendingFinishedImg(null)}>
-          <div style={{ background: "#fff", borderRadius: 18, padding: "28px 28px 24px", width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}
+          <div style={{ background: "#fff", borderRadius: 18, padding: "clamp(16px,4vw,28px)", width: "calc(100vw - 32px)", maxWidth: 360, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: "#fce7f3", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -629,14 +709,10 @@ const ProductionDetailsPage = () => {
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#111827" }}>Foto del producto terminado</p>
-                <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>Opcional — se mostrará en el detalle de la orden</p>
+                <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>Opcional — se mostrará en el detalle</p>
               </div>
             </div>
-            <label style={{
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
-              border: "2px dashed #f9a8d4", borderRadius: 12, padding: "24px 16px", cursor: "pointer",
-              background: "#fdf4ff", marginBottom: 16, transition: "border 0.15s",
-            }}>
+            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, border: "2px dashed #f9a8d4", borderRadius: 12, padding: "24px 16px", cursor: "pointer", background: "#fdf4ff", marginBottom: 16 }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
@@ -646,24 +722,18 @@ const ProductionDetailsPage = () => {
                 onChange={async (e) => {
                   const files = Array.from(e.target.files || []);
                   if (!files.length) return;
-                  const toBase64 = (file) => new Promise((res) => {
-                    const r = new FileReader();
-                    r.onload = (ev) => res(ev.target.result);
-                    r.readAsDataURL(file);
-                  });
+                  const toBase64 = (file) => new Promise((res) => { const r = new FileReader(); r.onload = (ev) => res(ev.target.result); r.readAsDataURL(file); });
                   try {
                     const bases = await Promise.all(files.map(toBase64));
                     const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
                     const existingFinished = Array.isArray(production.finishedImages) ? production.finishedImages : (production.finishedImageUrl ? [production.finishedImageUrl] : []);
                     const saved = await ProductionAPI.update(production.id, {
-                      ...production,
-                      finishedImages: [...existingFinished, ...bases],
-                      finishedImageUrl: bases[0],
+                      ...production, finishedImages: [...existingFinished, ...bases], finishedImageUrl: bases[0],
                       history: [...(production.history || []), { status: "Foto producto terminado", date: today, user: ProductionAPI.getCurrentUser(), motivo: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} agregada${bases.length !== 1 ? "s" : ""}` }]
                     });
                     setProduction(saved);
                     setPendingFinishedImg(null);
-                    setGlobalAlert({ open: true, type: "success", title: "Fotos guardadas", message: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} del producto terminado guardada${bases.length !== 1 ? "s" : ""} correctamente.` });
+                    setGlobalAlert({ open: true, type: "success", title: "Fotos guardadas", message: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} guardada${bases.length !== 1 ? "s" : ""} correctamente.` });
                   } catch {
                     setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar las imágenes." });
                     setPendingFinishedImg(null);
@@ -680,7 +750,7 @@ const ProductionDetailsPage = () => {
 
       {/* ── Tech Sheet Modal (Read) ── */}
       {showTechSheet && production.techSpecification && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           onClick={() => setShowTechSheet(false)}>
           <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}>
@@ -699,16 +769,16 @@ const ProductionDetailsPage = () => {
         </div>
       )}
 
-      {/* ── Tech Sheet Modal (Create / Edit for diseño recovery) ── */}
+      {/* ── Tech Sheet Modal (Create) ── */}
       {showTechSheetForm && (production.tipo === 'diseno' || !production.techSpecification) && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}>
           <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: "16px 20px", borderBottom: "3px solid #FF4FD6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "3px solid #FF4FD6", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>✏️ Crear ficha técnica</h4>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Completa los datos y guarda para desbloquear el avance al siguiente paso</p>
+                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Completa los datos y guarda para desbloquear el avance</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}
@@ -725,8 +795,8 @@ const ProductionDetailsPage = () => {
                         history: [...(production.history || []), { status: "Ficha técnica creada", date: today, user: ProductionAPI.getCurrentUser(), motivo: null }]
                       });
                       setProduction(saved); setShowTechSheetForm(false); setTechSheetDraft(null);
-                      setGlobalAlert({ open: true, type: "success", title: "Ficha guardada", message: "La ficha técnica fue creada correctamente. Ahora puedes avanzar al siguiente paso." });
-                    } catch (err) {
+                      setGlobalAlert({ open: true, type: "success", title: "Ficha guardada", message: "La ficha técnica fue creada correctamente." });
+                    } catch {
                       setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar la ficha técnica. Intenta de nuevo." });
                     }
                   }}>
@@ -755,7 +825,7 @@ const ProductionDetailsPage = () => {
       </button>
 
       {/* ── Page Header ─────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+      <div className="pd-order-header" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#111827", margin: 0 }}>
           Orden #{production.orderNumber}
         </h1>
@@ -767,9 +837,8 @@ const ProductionDetailsPage = () => {
             <ClockIcon /> Actualizado {production.statusDate}
           </span>
         )}
-        {/* Anular button far right */}
         {!isAnulada && (
-          <button className="pd-btn-danger" style={{ marginLeft: "auto" }}
+          <button className="pd-btn-danger pd-anular-btn" style={{ marginLeft: "auto" }}
             onClick={() => openProductionAlert({
               type: "anular", customTitle: "Anular orden",
               customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
@@ -798,17 +867,16 @@ const ProductionDetailsPage = () => {
         </div>
       )}
 
-      {/* ── 1. FLUJO DE PROCESO (primero, arriba del todo) ─────── */}
+      {/* ── 1. FLUJO DE PROCESO ─────────────────────────────────── */}
       {!isAnulada && (
         <div className="pd-card" style={{ padding: "14px 20px", marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>Flujo de Proceso</p>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
               {prevStep && safeStepIndex < stepsReal.indexOf("Recepción") && (
                 <button className="pd-btn-nav"
                   onClick={() => openProductionAlert({
-                    type: "password",
-                    targetStep: prevStep,
+                    type: "password", targetStep: prevStep,
                     customTitle: "Autorización requerida",
                     customMessage: `Para retroceder al estado "${prevStep}" ingresa la contraseña de administrador.`,
                   })}>
@@ -835,31 +903,37 @@ const ProductionDetailsPage = () => {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative" }}>
             <div style={{ position: "absolute", top: 13, left: "6.5%", right: "6.5%", height: 1.5, background: "#e5e7eb", zIndex: 0 }} />
             {steps.map((step, i) => {
-              const done = i < safeStepIndex;
+              const done   = i < safeStepIndex;
               const active = i === safeStepIndex;
               return (
                 <div key={step} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, position: "relative", zIndex: 1 }}>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: "50%", border: "2px solid",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700,
-                    ...(done ? { background: "#FF4FD6", borderColor: "#FF4FD6", color: "#fff" }
-                      : active ? { background: "#fff", borderColor: "#FF4FD6", color: "#FF4FD6", boxShadow: "0 0 0 4px rgba(255,79,214,0.12)" }
-                      : { background: "#fff", borderColor: "#e5e7eb", color: "#d1d5db" })
-                  }}>
+                  <div
+                    className="pd-step-circle"
+                    style={{
+                      width: 26, height: 26, borderRadius: "50%", border: "2px solid",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700,
+                      ...(done   ? { background: "#FF4FD6", borderColor: "#FF4FD6", color: "#fff" }
+                        : active ? { background: "#fff", borderColor: "#FF4FD6", color: "#FF4FD6", boxShadow: "0 0 0 4px rgba(255,79,214,0.12)" }
+                        :          { background: "#fff", borderColor: "#e5e7eb", color: "#d1d5db" })
+                    }}>
                     {done ? <CheckIcon /> : i + 1}
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, textAlign: "center", lineHeight: 1.2, color: active ? "#FF4FD6" : done ? "#6b7280" : "#d1d5db" }}>
+                  <span
+                    className="pd-step-label"
+                    style={{ fontWeight: active ? 700 : 500, color: active ? "#FF4FD6" : done ? "#6b7280" : "#d1d5db" }}>
                     {step}
-                    <div style={{ fontSize: 8, fontWeight: 400, color: active ? "#9ca3af" : done ? "#9ca3af" : "#e5e7eb" }}>
+                    <span
+                      className="pd-step-sublabel"
+                      style={{ color: active ? "#9ca3af" : done ? "#9ca3af" : "#e5e7eb" }}>
                       {active ? "En proceso" : done ? "Finalizado" : "Pendiente"}
-                    </div>
+                    </span>
                   </span>
                 </div>
               );
             })}
           </div>
 
-          {/* Progress bar + % */}
+          {/* Progress bar */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
             <div style={{ flex: 1, background: "#f3f4f6", borderRadius: 99, height: 4 }}>
               <div style={{ width: `${progressPercent}%`, height: 4, background: "#FF4FD6", borderRadius: 99, transition: "width 0.4s ease" }} />
@@ -876,27 +950,26 @@ const ProductionDetailsPage = () => {
         </div>
       )}
 
-      {/* ── 2. GRID: Product card (left, con tabla) + Side panels (right) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16, marginBottom: 16 }}>
+      {/* ── 2. GRID: Producto (izq) + Sidebar (der) ── */}
+      <div className="pd-main-grid">
 
-        {/* LEFT: Product card + Detalle Referencia integrado */}
+        {/* LEFT: Product card */}
         <div className="pd-card" style={{ padding: 0, overflow: "hidden" }}>
 
-          {/* Product top section */}
-          <div style={{ padding: "18px 20px", display: "flex", gap: 18, alignItems: "flex-start", maxHeight: 240, overflow: "hidden" }}>
-            {/* Image — shows design images OR finished product image */}
+          {/* Product top */}
+          <div className="pd-product-top">
+            {/* Imagen */}
             {(() => {
-              const designImages    = production.designImages || [];
-              const finishedImages  = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
-              const allImages       = [
+              const designImages   = production.designImages || [];
+              const finishedImages = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+              const allImages      = [
                 ...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })),
                 ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` })),
               ];
-
               return (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                  {/* Imagen principal — más grande */}
+                <div className="pd-product-img-wrap" style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
                   <div
+                    className="pd-product-main-img"
                     onClick={() => { if (allImages.length > 0) { setSelectedImageIdx(0); setShowImageModal(true); } }}
                     style={{
                       width: 150, height: 190, borderRadius: 12, overflow: "hidden",
@@ -905,8 +978,7 @@ const ProductionDetailsPage = () => {
                       boxShadow: "0 4px 14px rgba(255,79,214,0.15)",
                       cursor: allImages.length > 0 ? "pointer" : "default",
                       position: "relative",
-                    }}
-                  >
+                    }}>
                     {allImages.length > 0
                       ? <img src={allImages[0].src} alt={allImages[0].label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : production.imageUrl
@@ -930,7 +1002,6 @@ const ProductionDetailsPage = () => {
                       </div>
                     )}
                   </div>
-                  {/* Miniaturas si hay más de 1 */}
                   {allImages.length > 1 && (
                     <div style={{ display: "flex", gap: 4 }}>
                       {allImages.slice(1, 4).map((img, i) => (
@@ -978,10 +1049,9 @@ const ProductionDetailsPage = () => {
             </div>
           </div>
 
-          {/* Divider + Detalle Referencia */}
+          {/* Detalle Referencia */}
           <div style={{ borderTop: "1px solid #f3f4f6", padding: "12px 20px 16px" }}>
-            {/* Sub-header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>
                 Detalle Referencia {production.referencia}
               </p>
@@ -1000,55 +1070,58 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  {["Código", "Cantidad", "Color", "Estado", ...((!isAnulada && !isLocked) ? [""] : [])].map((h, idx) => (
-                    <th key={idx} style={{ textAlign: "left", padding: "0 0 6px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#c4c9d4" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortBySize(production.details).map((d, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f9fafb" }}>
-                    <td style={{ padding: "7px 0" }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "#111827" }}>{d.refCorte}</span>
-                    </td>
-                    <td style={{ padding: "7px 0" }}>
-                      <span style={{ fontSize: 11.5, color: "#374151" }}>{d.quantity} <span style={{ color: "#9ca3af", fontSize: 10 }}>uds</span></span>
-                    </td>
-                    <td style={{ padding: "7px 0" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#c4b5d4", flexShrink: 0 }} />
-                        <span style={{ fontSize: 11.5, color: "#374151" }}>{d.color}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "7px 0" }}>
-                      <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 20, fontSize: 9.5, fontWeight: 700, ...statusStyle(d.status) }}>
-                        {d.status}
-                      </span>
-                    </td>
-                    {!isAnulada && !isLocked && (
-                      <td style={{ padding: "7px 0" }}>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button className="pd-action-btn edit" style={{ width: 22, height: 22, borderRadius: 6 }}
-                            onClick={() => setEditAlert({ isOpen: true, detail: d })}><EditIcon /></button>
-                          <button className="pd-action-btn del" style={{ width: 22, height: 22, borderRadius: 6 }}
-                            onClick={() => handleAnularDetail(d)}><TrashIcon /></button>
+            {/* Tabla de referencias — scroll horizontal en móvil */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 320 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    {["Código", "Cantidad", "Color", "Estado", ...((!isAnulada && !isLocked) ? [""] : [])].map((h, idx) => (
+                      <th key={idx} style={{ textAlign: "left", padding: "0 0 6px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#c4c9d4", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortBySize(production.details).map((d, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #f9fafb" }}>
+                      <td style={{ padding: "7px 8px 7px 0" }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#111827", whiteSpace: "nowrap" }}>{d.refCorte}</span>
+                      </td>
+                      <td style={{ padding: "7px 8px 7px 0" }}>
+                        <span style={{ fontSize: 11.5, color: "#374151", whiteSpace: "nowrap" }}>{d.quantity} <span style={{ color: "#9ca3af", fontSize: 10 }}>uds</span></span>
+                      </td>
+                      <td style={{ padding: "7px 8px 7px 0" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#c4b5d4", flexShrink: 0 }} />
+                          <span style={{ fontSize: 11.5, color: "#374151", whiteSpace: "nowrap" }}>{d.color}</span>
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
-                {(production.details || []).length === 0 && (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: "center", color: "#9ca3af", fontSize: 11, padding: "18px 0" }}>
-                      No hay artículos en esta orden
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      <td style={{ padding: "7px 8px 7px 0" }}>
+                        <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 20, fontSize: 9.5, fontWeight: 700, whiteSpace: "nowrap", ...statusStyle(d.status) }}>
+                          {d.status}
+                        </span>
+                      </td>
+                      {!isAnulada && !isLocked && (
+                        <td style={{ padding: "7px 0" }}>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button className="pd-action-btn edit" style={{ width: 22, height: 22, borderRadius: 6 }}
+                              onClick={() => setEditAlert({ isOpen: true, detail: d })}><EditIcon /></button>
+                            <button className="pd-action-btn del" style={{ width: 22, height: 22, borderRadius: 6 }}
+                              onClick={() => handleAnularDetail(d)}><TrashIcon /></button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {(production.details || []).length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", color: "#9ca3af", fontSize: 11, padding: "18px 0" }}>
+                        No hay artículos en esta orden
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {(production.details || []).length > 0 && (
               <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #f3f4f6", display: "flex", justifyContent: "flex-end", gap: 14 }}>
@@ -1063,8 +1136,8 @@ const ProductionDetailsPage = () => {
           </div>
         </div>
 
-        {/* RIGHT: Stacked side cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: 620, overflowY: "auto", paddingRight: 2 }}>
+        {/* RIGHT: Sidebar */}
+        <div className="pd-side-scroll">
 
           {/* Ficha Técnica y Costos */}
           <div className="pd-card" style={{ padding: 16 }}>
@@ -1112,7 +1185,7 @@ const ProductionDetailsPage = () => {
             )}
           </div>
 
-          {/* ── Distribución Terceros ── */}
+          {/* Distribución Terceros */}
           {(production.terceroAsignaciones || []).length > 0 && (
             <div className="pd-card" style={{ padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -1125,8 +1198,8 @@ const ProductionDetailsPage = () => {
               </div>
               {(production.terceroAsignaciones || []).map((a, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: i % 2 === 0 ? "#fdf4ff" : "#fff", borderRadius: 8, marginBottom: 4, border: "1px solid #f5d0fe" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6b21a8" }}>{a.option}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#FF4FD6" }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6b21a8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>{a.option}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: "#FF4FD6", flexShrink: 0 }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTop: "1px solid #f5d0fe" }}>
@@ -1139,7 +1212,7 @@ const ProductionDetailsPage = () => {
             </div>
           )}
 
-          {/* ── Distribución Sedes ── */}
+          {/* Distribución Sedes */}
           {(production.sedeAsignaciones || []).length > 0 && (
             <div className="pd-card" style={{ padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -1152,13 +1225,13 @@ const ProductionDetailsPage = () => {
               </div>
               {(production.sedeAsignaciones || []).map((a, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: i % 2 === 0 ? "#f0fdf4" : "#fff", borderRadius: 8, marginBottom: 4, border: "1px solid #bbf7d0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round">
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d" }}>{a.option}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.option}</span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#16a34a" }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: "#16a34a", flexShrink: 0, marginLeft: 8 }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTop: "1px solid #bbf7d0" }}>
@@ -1171,7 +1244,7 @@ const ProductionDetailsPage = () => {
             </div>
           )}
 
-          {/* Historial Operativo */}
+          {/* Historial Operativo (últimas 4 entradas) */}
           <div className="pd-card" style={{ padding: 16, flex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 13 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Historial Operativo</p>
@@ -1184,11 +1257,11 @@ const ProductionDetailsPage = () => {
                     <div style={{ position: "absolute", left: 3.5, top: 16, bottom: 0, width: 1, background: "#f3f4f6" }} />
                   )}
                   <div className="pd-dot" style={{ background: dotColor(h.status), marginTop: 3 }} />
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", margin: "0 0 1px" }}>{h.status}</p>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", margin: "0 0 1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.status}</p>
                       {h.distribución && h.distribución.length > 0 && (
-                        <div style={{ position: "relative", display: "inline-block" }}
+                        <div style={{ position: "relative", display: "inline-block", flexShrink: 0 }}
                           onMouseEnter={e => e.currentTarget.querySelector('.dist-tooltip').style.display = 'block'}
                           onMouseLeave={e => e.currentTarget.querySelector('.dist-tooltip').style.display = 'none'}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round" style={{ cursor: "pointer", marginBottom: -2 }}>
@@ -1197,8 +1270,7 @@ const ProductionDetailsPage = () => {
                           <div className="dist-tooltip" style={{
                             display: "none", position: "absolute", left: "100%", top: "-8px",
                             zIndex: 200, background: "#1f2937", borderRadius: 10,
-                            padding: "10px 14px", minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
-                            marginLeft: 8,
+                            padding: "10px 14px", minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", marginLeft: 8,
                           }}>
                             <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em" }}>Distribución</p>
                             {h.distribución.map((d, di) => (
@@ -1213,11 +1285,9 @@ const ProductionDetailsPage = () => {
                     </div>
                     <p style={{ fontSize: 10, color: "#9ca3af", margin: 0 }}>
                       {h.date}
-                      {h.user && (
-                        <span style={{ color: "#6b7280", fontWeight: 600 }}> · {h.user}</span>
-                      )}
+                      {h.user && <span style={{ color: "#6b7280", fontWeight: 600 }}> · {h.user}</span>}
                     </p>
-                    {h.motivo && <p style={{ fontSize: 10, color: "#f59e0b", margin: "2px 0 0", fontStyle: "italic" }}>{h.motivo}</p>}
+                    {h.motivo && <p style={{ fontSize: 10, color: "#f59e0b", margin: "2px 0 0", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.motivo}</p>}
                   </div>
                 </div>
               ))}
@@ -1229,31 +1299,38 @@ const ProductionDetailsPage = () => {
         </div>
       </div>
 
-      {/* ── Full History Table (collapsed in a separate card) ── */}
+      {/* ── Historial Completo (expandible) ── */}
       {(production.history || []).length > 4 && (
         <details style={{ marginTop: 16 }}>
           <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: "#6b7280", padding: "10px 0" }}>
             <ClockIcon />
             Ver historial completo ({(production.history || []).length} entradas)
           </summary>
-          <div className="pd-card" style={{ padding: "16px 20px", marginTop: 8 }}>
-            <table className="pd-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="pd-card" style={{ padding: "16px 20px", marginTop: 8, overflowX: "auto" }}>
+            {/* Nota en móvil: Motivo oculto */}
+            <p style={{ margin: "0 0 8px", fontSize: 10, color: "#9ca3af", fontStyle: "italic" }}
+               className="col-hist-motivo">
+              * La columna Motivo se oculta en pantallas pequeñas
+            </p>
+
+            <table className="pd-hist-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left" }}>Estado</th>
-                  <th style={{ textAlign: "left" }}>Fecha</th>
-                  <th style={{ textAlign: "left" }}>Responsable</th>
-                  <th style={{ textAlign: "left" }}>Motivo</th>
+                  <th className="pd-hist-th col-hist-estado">Estado</th>
+                  <th className="pd-hist-th col-hist-fecha">Fecha</th>
+                  <th className="pd-hist-th col-hist-resp">Responsable</th>
+                  <th className="pd-hist-th col-hist-motivo">Motivo</th>
                 </tr>
               </thead>
               <tbody>
                 {(production.history || []).map((h, i) => (
                   <tr key={i}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span className="pd-badge" style={statusStyle(h.status)}>{h.status}</span>
+                    {/* Estado */}
+                    <td className="pd-hist-td col-hist-estado" style={{ paddingRight: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                        <span className="pd-badge" style={{ ...statusStyle(h.status), fontSize: 10, whiteSpace: "nowrap" }}>{h.status}</span>
                         {h.distribución && h.distribución.length > 0 && (
-                          <div style={{ position: "relative", display: "inline-block" }}
+                          <div style={{ position: "relative", display: "inline-block", flexShrink: 0 }}
                             onMouseEnter={e => e.currentTarget.querySelector('.dist-tt').style.display = 'block'}
                             onMouseLeave={e => e.currentTarget.querySelector('.dist-tt').style.display = 'none'}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round" style={{ cursor: "pointer" }}>
@@ -1262,8 +1339,7 @@ const ProductionDetailsPage = () => {
                             <div className="dist-tt" style={{
                               display: "none", position: "absolute", left: "100%", top: "-4px",
                               zIndex: 300, background: "#1f2937", borderRadius: 10,
-                              padding: "10px 14px", minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
-                              marginLeft: 6,
+                              padding: "10px 14px", minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", marginLeft: 6,
                             }}>
                               <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase" }}>Distribución</p>
                               {h.distribución.map((d, di) => (
@@ -1277,10 +1353,23 @@ const ProductionDetailsPage = () => {
                         )}
                       </div>
                     </td>
-                    <td style={{ color: "#6b7280", fontSize: 12 }}>{h.date}</td>
-                    <td style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{h.user || "—"}</td>
-                    <td style={{ fontSize: 12 }}>
-                      {h.motivo ? <span style={{ color: "#f59e0b", fontStyle: "italic" }}>{h.motivo}</span> : <span style={{ color: "#d1d5db" }}>—</span>}
+                    {/* Fecha */}
+                    <td className="pd-hist-td col-hist-fecha" style={{ color: "#6b7280" }}>
+                      {h.date}
+                    </td>
+                    {/* Responsable — truncado con title para ver completo en hover/tap */}
+                    <td
+                      className="pd-hist-td col-hist-resp"
+                      style={{ color: "#374151", fontWeight: 500 }}
+                      title={h.user || "—"}>
+                      {h.user || "—"}
+                    </td>
+                    {/* Motivo — oculto en móvil ≤640px */}
+                    <td className="pd-hist-td col-hist-motivo">
+                      {h.motivo
+                        ? <span style={{ color: "#f59e0b", fontStyle: "italic" }}>{h.motivo}</span>
+                        : <span style={{ color: "#d1d5db" }}>—</span>
+                      }
                     </td>
                   </tr>
                 ))}
@@ -1289,6 +1378,7 @@ const ProductionDetailsPage = () => {
           </div>
         </details>
       )}
+      </div>{/* /pd-root */}
     </div>
   );
 };

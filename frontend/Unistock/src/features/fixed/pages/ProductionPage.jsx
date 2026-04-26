@@ -1,15 +1,6 @@
 /**
  * @file pages/ProductionPage.jsx
- *
- * LÓGICA DE PRODUCTOS DAÑADOS:
- *   Al anular una orden que estaba en "Corte" o "Producción":
- *
- *   A) "Nueva ficha técnica":
- *      - Crea una NUEVA orden copiando todos los datos de la anulada
- *      - Navega al detalle con state: { openTechSheet: true }
- *
- *   B) "Nueva orden":
- *      - Abre ProductionForm pre-llenado + banner de aviso de daño
+ * CAMBIOS: Fix responsive móvil — filtros, tabla, paginación, modal anulación
  */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -64,7 +55,6 @@ const ProductionsPage = () => {
     || (prod?.details || []).some(d => [d?.ref, d?.refCorte, d?.color, d?.status].some(v => (v || '').toLowerCase().includes(term)))
     || (prod?.history || []).some(h => (h?.motivo || '').toLowerCase().includes(term));
     const matchesStatus = filterStatus === 'Todos' || prod?.status === filterStatus;
-    // Hide Anulada/Entregado unless explicitly filtered to those states
     const visibleByDefault = filterStatus === 'Todos'
       ? !HIDDEN_STATUSES.includes(prod?.status)
       : true;
@@ -83,7 +73,6 @@ const ProductionsPage = () => {
   const startIndex           = (currentPage - 1) * itemsPerPage;
   const paginatedProductions = filteredProductions.slice(startIndex, startIndex + itemsPerPage);
 
-  // ── Anulación ────────────────────────────────────────────────────────────
   const openCancelModal  = (id) => { setCancelModal({ open: true, id, motivo: '' }); setMotivoError(''); };
   const closeCancelModal = ()   => { setCancelModal({ open: false, id: null, motivo: '' }); setMotivoError(''); };
 
@@ -105,7 +94,6 @@ const ProductionsPage = () => {
     }
   };
 
-  // ── Desde dañados: nueva ORDEN ───────────────────────────────────────────
   const handleNewOrderFromDamaged = (damagedDetails) => {
     const source = damagedModal.production;
     setDamagedModal({ open: false, production: null });
@@ -130,7 +118,6 @@ const ProductionsPage = () => {
     });
   };
 
-  // ── Desde dañados: nueva FICHA TÉCNICA ───────────────────────────────────
   const handleNewTechSheetFromDamaged = async (damagedDetails) => {
     const source = damagedModal.production;
     setDamagedModal({ open: false, production: null });
@@ -139,7 +126,7 @@ const ProductionsPage = () => {
     try {
       const primary = damagedDetails[0];
       const newOrder = await createProduction({
-        tipo:           'diseno',          // diseño para poder crear nueva ficha técnica
+        tipo:           'diseno',
         referencia:     source.referencia || '',
         producto:       source.producto   || '',
         cantidad:       String(primary.quantity || ''),
@@ -147,27 +134,17 @@ const ProductionsPage = () => {
         cliente:        source.client || '',
         fechaSolicitud: '',
         referencias:    damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
-        fromDamaged:         true,
-        originalOrderId:     source.id,
-        originalOrderNumber: source.orderNumber,
-        originalOrderStatus: source.status,
+        fromDamaged:    true,
       });
-      // Navegar al detalle con flag para abrir la ficha técnica en modo diseño
-      navigate(`/layout/produccion/detalle/${newOrder.id}`, {
-        state: {
-          openTechSheet:       true,
-          fromDamaged:         true,
-          originalOrderNumber: source.orderNumber,
-          originalOrderStatus: source.status,
-        },
-      });
+      if (newOrder?.id) {
+        navigate(`/layout/produccion/detalle/${newOrder.id}`, { state: { openTechSheet: true } });
+      }
     } catch (e) {
-      console.error('Error creando orden de reposición:', e);
+      console.error(e);
     } finally {
       setCreatingNewOrder(false);
     }
   };
-    
 
   const handleDamagedOrderSubmit = async (data) => {
     await createProduction(data);
@@ -187,9 +164,113 @@ const ProductionsPage = () => {
   };
 
   const hasDateFilter = filterDateFrom || filterDateTo;
+  const hasAnyFilter  = searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f6f6f8', padding: '24px 28px', fontFamily: 'sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#f6f6f8', fontFamily: 'sans-serif' }}>
+
+      <style>{`
+        @keyframes pSpin { to { transform: rotate(360deg); } }
+
+        /* ── Root padding ── */
+        .prod-root { padding: 14px; }
+        @media (min-width: 640px)  { .prod-root { padding: 20px 24px; } }
+        @media (min-width: 1024px) { .prod-root { padding: 24px 32px; } }
+
+        /* ── Header: stack en móvil ── */
+        .prod-header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        @media (min-width: 640px) {
+          .prod-header { flex-direction: row; justify-content: space-between; align-items: center; }
+        }
+
+        /* ── Barra de filtros ── */
+        .prod-filters {
+          background: #fff; border-radius: 10px; padding: 10px 14px;
+          margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+          display: flex; flex-direction: column; gap: 10px;
+        }
+        @media (min-width: 768px) {
+          .prod-filters {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+          }
+        }
+
+        /* Grupo izquierdo: filtros wrapeados */
+        .prod-filter-left {
+          display: flex; align-items: center; gap: 8px;
+          flex-wrap: wrap; min-width: 0; flex: 1;
+        }
+
+        /* Grupo derecho: botones acción */
+        .prod-filter-right { flex-shrink: 0; }
+
+        /* En móvil el grupo derecho va abajo y centrado */
+        @media (max-width: 767px) {
+          .prod-filter-right {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+          }
+        }
+
+        /* Selects adaptados */
+        .prod-select {
+          padding: 6px 10px; border-radius: 7px; border: 1px solid #e5e7eb;
+          background: #fafafa; font-size: 12px; cursor: pointer;
+          flex: 1; min-width: 110px; max-width: 160px;
+        }
+        @media (max-width: 480px) {
+          .prod-select { max-width: none; width: auto; flex: 1 1 auto; }
+        }
+
+        /* Inputs de fecha */
+        .prod-date-input {
+          border: none; background: transparent;
+          font-size: 12px; outline: none; cursor: pointer;
+          width: 110px;
+        }
+        @media (max-width: 420px) {
+          .prod-date-input { width: 90px; font-size: 11px; }
+        }
+
+        /* Bloque de fechas: stack vertical en pantallas muy pequeñas */
+        .prod-date-block {
+          display: flex; align-items: center; gap: 4px;
+          border: 1px solid #e5e7eb; background: #fafafa;
+          border-radius: 7px; padding: 4px 8px;
+          flex-wrap: nowrap;
+        }
+        .prod-date-block.active { border-color: #FF4FD6; background: #fff0fb; }
+
+        /* Modal de anulación: ancho adaptativo */
+        .cancel-modal {
+          border-radius: 16px; padding: 20px 18px;
+          background: #fff; box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+          border: 2px solid #ef4444;
+          width: calc(100vw - 32px); max-width: 420px;
+        }
+        @media (min-width: 480px) {
+          .cancel-modal { padding: 24px; }
+        }
+
+        /* Paginación: más compacta en móvil */
+        .prod-page-btn {
+          padding: 6px 11px; border-radius: 6px;
+          border: 1px solid #ddd; background: #fff;
+          cursor: pointer; font-size: 13px;
+        }
+        @media (max-width: 480px) {
+          .prod-page-btn { padding: 5px 8px; font-size: 12px; }
+        }
+
+        /* Texto de hint de filtros: oculto en móvil muy pequeño */
+        .prod-filter-hint { font-size: 10px; color: #9ca3af; font-style: italic; white-space: nowrap; }
+        @media (max-width: 400px) {
+          .prod-filter-hint { display: none; }
+        }
+      `}</style>
 
       {/* Alert anulación éxito/error */}
       <Alert
@@ -204,18 +285,17 @@ const ProductionsPage = () => {
       {/* Spinner creando orden */}
       {creatingNewOrder && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: '24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', margin: '0 16px' }}>
             <div style={{ width: 40, height: 40, border: '3px solid #f3f4f6', borderTopColor: '#FF4FD6', borderRadius: '50%', animation: 'pSpin 0.7s linear infinite' }} />
             <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#374151' }}>Creando orden de reposición...</p>
-            <style>{`@keyframes pSpin { to { transform: rotate(360deg); }}`}</style>
           </div>
         </div>
       )}
 
       {/* Modal anulación */}
       {cancelModal.open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
-          <div style={{ width: 420, borderRadius: 16, padding: 24, background: '#fff', boxShadow: '0 8px 30px rgba(0,0,0,0.18)', border: '2px solid #ef4444' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '0 16px' }}>
+          <div className="cancel-modal">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
               <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="20" height="20" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24">
@@ -274,82 +354,147 @@ const ProductionsPage = () => {
         />
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
-        <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
-      </div>
+      <div className="prod-root">
+        {/* Header */}
+        <div className="prod-header">
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
+          <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
+        </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        {['producciones', 'terceros'].map(tab => (
-          <button key={tab} onClick={() => tab === 'terceros' ? navigate('/Layout/terceros') : setActiveTab(tab)}
-            style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeTab === tab ? '#ff4fd6' : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor: 'pointer', fontWeight: 500, fontSize: 13, textTransform: 'capitalize' }}>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Filtros */}
-      <div style={{ background: '#fff', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', gap: 10, flexWrap: 'nowrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', minWidth: 0 }}>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-            style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #e5e7eb', background: '#fafafa', fontSize: 12, cursor: 'pointer', minWidth: 0 }}>
-            {uniqueStatuses.map((s, i) => <option key={i} value={s}>{s === 'Todos' ? 'Estado: Activas' : s}</option>)}
-          </select>
-          {filterStatus === 'Todos' && (
-            <span style={{ fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap', fontStyle: 'italic' }}>
-              Anuladas y entregadas ocultas
-            </span>
-          )}
-          
-          <select value={filterClient} onChange={(e) => { setFilterClient(e.target.value); setCurrentPage(1); }}
-            style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #e5e7eb', background: '#fafafa', fontSize: 12, cursor: 'pointer', minWidth: 0 }}>
-            {uniqueClients.map((c, i) => <option key={i} value={c}>{c === 'Todos' ? 'Cliente: Todos' : c}</option>)}
-          </select>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: hasDateFilter ? '1px solid #FF4FD6' : '1px solid #e5e7eb', background: hasDateFilter ? '#fff0fb' : '#fafafa', borderRadius: 7, padding: '4px 8px' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasDateFilter ? '#FF4FD6' : '#aaa'} strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <input type="date" value={filterDateFrom} onChange={(e) => { setFilterDateFrom(e.target.value); setCurrentPage(1); }} title="Fecha desde" style={{ border: 'none', background: 'transparent', fontSize: 12, outline: 'none', cursor: 'pointer', width: 120 }} />
-            <span style={{ fontSize: 11, color: '#bbb', fontWeight: 500 }}>→</span>
-            <input type="date" value={filterDateTo} onChange={(e) => { setFilterDateTo(e.target.value); setCurrentPage(1); }} title="Fecha hasta" style={{ border: 'none', background: 'transparent', fontSize: 12, outline: 'none', cursor: 'pointer', width: 120 }} />
-            {hasDateFilter && <button onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#FF4FD6', fontSize: 15, lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>}
-          </div>
-          {(searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter) && (
-            <span style={{ fontSize: 11, color: '#FF4FD6', fontWeight: 700, whiteSpace: 'nowrap' }}>{filteredProductions.length} resultado{filteredProductions.length !== 1 ? 's' : ''}</span>
-          )}
-          {(searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter) && (
-            <button onClick={() => { setSearchTerm(''); setFilterStatus('Todos'); setFilterClient('Todos'); setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }}
-              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:7, border:'1.5px solid #fca5a5', background:'#fff5f5', color:'#ef4444', fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              Limpiar filtros
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {['producciones', 'terceros'].map(tab => (
+            <button key={tab} onClick={() => tab === 'terceros' ? navigate('/Layout/terceros') : setActiveTab(tab)}
+              style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeTab === tab ? '#ff4fd6' : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor: 'pointer', fontWeight: 500, fontSize: 13, textTransform: 'capitalize' }}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
+          ))}
+        </div>
+
+        {/* ── Filtros ── */}
+        <div className="prod-filters">
+          <div className="prod-filter-left">
+
+            {/* Select Estado */}
+            <select
+              className="prod-select"
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
+              {uniqueStatuses.map((s, i) => (
+                <option key={i} value={s}>{s === 'Todos' ? 'Estado: Activas' : s}</option>
+              ))}
+            </select>
+
+            {/* Hint órdenes ocultas */}
+            {filterStatus === 'Todos' && (
+              <span className="prod-filter-hint">
+                Anuladas y entregadas ocultas
+              </span>
+            )}
+
+            {/* Select Cliente */}
+            <select
+              className="prod-select"
+              value={filterClient}
+              onChange={(e) => { setFilterClient(e.target.value); setCurrentPage(1); }}>
+              {uniqueClients.map((c, i) => (
+                <option key={i} value={c}>{c === 'Todos' ? 'Cliente: Todos' : c}</option>
+              ))}
+            </select>
+
+            {/* Rango de fechas */}
+            <div className={`prod-date-block${hasDateFilter ? ' active' : ''}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasDateFilter ? '#FF4FD6' : '#aaa'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <input
+                className="prod-date-input"
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => { setFilterDateFrom(e.target.value); setCurrentPage(1); }}
+                title="Fecha desde"
+              />
+              <span style={{ fontSize: 11, color: '#bbb', fontWeight: 500, flexShrink: 0 }}>→</span>
+              <input
+                className="prod-date-input"
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => { setFilterDateTo(e.target.value); setCurrentPage(1); }}
+                title="Fecha hasta"
+              />
+              {hasDateFilter && (
+                <button
+                  onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#FF4FD6', fontSize: 15, lineHeight: 1, padding: 0, marginLeft: 2, flexShrink: 0 }}>
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* Contador resultados */}
+            {hasAnyFilter && (
+              <span style={{ fontSize: 11, color: '#FF4FD6', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                {filteredProductions.length} resultado{filteredProductions.length !== 1 ? 's' : ''}
+              </span>
+            )}
+
+            {/* Botón limpiar filtros */}
+            {hasAnyFilter && (
+              <button
+                onClick={() => { setSearchTerm(''); setFilterStatus('Todos'); setFilterClient('Todos'); setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, border: '1.5px solid #fca5a5', background: '#fff5f5', color: '#ef4444', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          {/* Botones acción (derecha) */}
+          <div className="prod-filter-right">
+            <AddProductionButton
+              productions={filteredProductions}
+              onCreateProduction={handleCreateSubmit}
+              onFilterByDate={(date) => { setFilterDateFrom(date); setFilterDateTo(date); setCurrentPage(1); }}
+            />
+          </div>
+        </div>
+
+        {/* Tabla — scroll horizontal en móvil */}
+        <div style={{ background: '#fff', borderRadius: 10, padding: '6px 0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
+          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} />
+        </div>
+
+        {/* Paginación */}
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className="prod-page-btn"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>
+            ‹
+          </button>
+          {getPageNumbers().map((p, i) =>
+            p === '...'
+              ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
+              : <button
+                  key={p}
+                  className="prod-page-btn"
+                  onClick={() => setCurrentPage(p)}
+                  style={{
+                    background: p === currentPage ? '#ff4fd6' : '#fff',
+                    color:      p === currentPage ? '#fff'    : '#333',
+                    border:     p === currentPage ? '1px solid #ff4fd6' : '1px solid #ddd',
+                  }}>
+                  {p}
+                </button>
           )}
+          <button
+            className="prod-page-btn"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>
+            ›
+          </button>
         </div>
-        <div style={{ flexShrink: 0 }}>
-          <AddProductionButton productions={filteredProductions} onCreateProduction={handleCreateSubmit} onFilterByDate={(date) => { setFilterDateFrom(date); setFilterDateTo(date); setCurrentPage(1); }} />
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <div style={{ background: '#fff', borderRadius: 10, padding: '6px 0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
-        <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} />
-      </div>
-
-      {/* Paginación */}
-      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center' }}>
-        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} style={pageBtn}>‹</button>
-        {getPageNumbers().map((p, i) =>
-          p === '...'
-            ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
-            : <button key={p} onClick={() => setCurrentPage(p)} style={{ ...pageBtn, background: p === currentPage ? '#ff4fd6' : '#fff', color: p === currentPage ? '#fff' : '#333', border: p === currentPage ? '1px solid #ff4fd6' : '1px solid #ddd' }}>{p}</button>
-        )}
-        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} style={pageBtn}>›</button>
       </div>
     </div>
   );
 };
 
-const pageBtn = { padding: '6px 11px', borderRadius: 6, border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: 13 };
 export default ProductionsPage;

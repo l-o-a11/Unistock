@@ -165,7 +165,7 @@ const DamagedProductsModal = ({
       >
 
         {/* ── HEADER ── */}
-        <div style={{
+        <div className="dmg-stats-grid" style={{
           background: "#fff",
           borderBottom: "3px solid #f59e0b",
           padding: "18px 22px",
@@ -222,9 +222,9 @@ const DamagedProductsModal = ({
 
           {/* Info de la orden */}
           <div style={{
-            background: "#fff", borderRadius: 12, padding: "12px 16px",
+            background: "#fff", borderRadius: 12, padding: "10px 12px",
             marginBottom: 14, border: "1px solid #f0f0f0",
-            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10,
+            className: "dmg-stats-grid",
           }}>
             {[
               ["Cliente",    production.client    || "—"],
@@ -290,7 +290,7 @@ const DamagedProductsModal = ({
                       key={index}
                       onClick={() => toggleItem(index)}
                       style={{
-                        padding: "12px 16px",
+                        padding: "10px 12px",
                         display: "flex", alignItems: "center", gap: 12,
                         cursor: "pointer",
                         borderBottom: index < details.length - 1 ? "1px solid #f5f5f5" : "none",
