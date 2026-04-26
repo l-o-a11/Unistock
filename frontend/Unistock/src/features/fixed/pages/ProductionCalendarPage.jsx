@@ -468,7 +468,7 @@ const ProductionCalendarPage = () => {
     const t = getEventType(event.type);
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
-        <div style={{ background: '#f6f6f8', borderRadius: 20, width: '100%', maxWidth: 540, boxShadow: '0 24px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: '#f6f6f8', borderRadius: 20, width: 'calc(100vw - 24px)', maxWidth: 540, boxShadow: '0 24px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
 
           {/* Header */}
           <div style={{ background: '#fff', padding: '18px 22px', borderBottom: '1px solid #f0f0f0' }}>
@@ -494,7 +494,7 @@ const ProductionCalendarPage = () => {
           <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#374151' }}>Información del evento</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                 {[['Fecha', formatDateES(event.date)], ['Proceso', getEventType(event.type).label || '—'], ['Orden', event.orderId ? `#${event.orderId}` : '—'], ['ID evento', `EVT-${event.id}`]].map(([label, value]) => (
                   <div key={label}>
                     <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{label}</span>

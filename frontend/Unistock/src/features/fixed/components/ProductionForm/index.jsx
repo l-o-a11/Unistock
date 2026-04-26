@@ -461,7 +461,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                       borderRadius: '0 0 10px 10px', padding: '16px 14px 12px',
                       background: '#fdf4ff', display: 'flex', flexDirection: 'column', gap: 12,
                     }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
                         {/* Código / Referencia — generado automáticamente */}
                         <div>
                           <label style={labelStyle}>Código de referencia <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400 }}>(auto-generado)</span></label>
@@ -540,7 +540,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                 <div>
                   <label style={labelStyle}>
                     {type === 'diseno' && !nuevaRefOpen ? 'Producto / Artículo ' : type === 'diseno' && nuevaRefOpen ? 'Producto base (opcional) ' : 'Producto / Artículo '}
@@ -586,7 +586,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                 <div>
                   <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
                   <div style={{ position: 'relative' }}>
@@ -815,7 +815,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
       {showTechSheet && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, width: '95%', maxWidth: 1100, maxHeight: '92vh', overflowY: 'auto', padding: '24px 28px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ background: '#fff', borderRadius: 14, width: '95%', maxWidth: 1100, maxHeight: '92vh', overflowY: 'auto', padding: 'clamp(14px, 3vw, 28px)', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 14 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1f2937' }}>📋 Ficha Técnica</h3>

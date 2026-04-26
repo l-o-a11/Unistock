@@ -52,7 +52,17 @@ const TechnicalSheetModal = ({ product, onClose }) => {
   const isLastVersion = versions.length > 0 && versions[0]?.id === currentVersionObj?.id;
 
   return (
-    <>
+
+      <style>{`
+        .form-root { padding: 16px; }
+        @media (min-width: 640px)  { .form-root { padding: 20px 24px; } }
+        @media (min-width: 1024px) { .form-root { padding: 24px 32px; } }
+        .form-grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px)  { .form-grid-2 { grid-template-columns: 1fr 1fr; } }
+        .form-grid-3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 768px)  { .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; } }
+      `}</style>
+      <>
       <div style={{
         position: 'fixed',
         top: 0,
@@ -91,13 +101,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
           pointerEvents: 'auto'
         }}>
           {/* Header del modal */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '24px 32px',
-            borderBottom: '1px solid #eee'
-          }}>
+          <div className="form-root">
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Ficha Técnica</h2>
             
             {/* Selector de versiones */}
@@ -188,7 +192,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
           </div>
 
           {/* Contenido de la ficha técnica */}
-          <div style={{ padding: '24px 32px' }}>
+          <div className="form-root">
             <TechnicalSheet
               sheet={currentVersionObj}
               isEditing={false}

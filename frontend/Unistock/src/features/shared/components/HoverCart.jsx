@@ -60,7 +60,7 @@ const HoverCard = ({ children, title = "Información detallada", fields = [], po
             {title}
           </p>
         </div>
-        <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
           {fields.map(({ label, value, highlight, type }, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12, color: "#6b7280", flexShrink: 0 }}>{label}</span>
