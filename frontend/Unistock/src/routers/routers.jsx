@@ -24,22 +24,22 @@ import CategoriesSupplyPage from "../features/categoriesSupply/pages/CategoriesS
 import ProductsPage from "../features/products/pages/ProductsPage.jsx";
 
 // Proveedores
-import SuppliersPage from "../features/suppliers_fixed/pages/SuppliersPage.jsx";
+import SuppliersPage from "../features/suppliers/pages/SuppliersPage.jsx";
 
 // Compras
 import ShoppingsPage from "../features/shopping/pages/ShoppingsPage.jsx";
 
 // Terceros
-import ThirdPartiesPage from "../features/third_parties_fixed/pages/Third_partiesPage.jsx";
+import ThirdPartiesPage from "../features/third_parties/pages/Third_partiesPage.jsx";
 
 // Usuarios
 import UsersPage from "../features/users/pages/UsersPage.jsx";
 
 // Producciones
-import ProductionsPage from "../features/fixed/pages/ProductionPage.jsx";
-import ProductForm from "../features/fixed/components/ProductionForm/index.jsx";
-import ProductionDetailsPage from "../features/fixed/productionDetails/pages/ProductionDetailsPage.jsx";
-import ProductionCalendarPage from "../features/fixed/components/ProductionCalender";
+import ProductionsPage from "../features/production/pages/ProductionPage.jsx";
+import ProductForm from "../features/production/components/ProductionForm/index.jsx";
+import ProductionDetailsPage from "../features/production/productionDetails/pages/ProductionDetailsPage.jsx";
+import ProductionCalendarPage from "../features/production/pages/ProductionCalendarPage.jsx";
 
 // Empleados
 import EmployeesPage from "../features/employees/pages/EmployeesPage.jsx";
