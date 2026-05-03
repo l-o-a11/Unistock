@@ -10,8 +10,8 @@ import { ProductionAPI } from "../../services/ProductionAPI";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
 import TechnicalSheet from "../../components/TechnicalSheet";
-import AlertEditProduction from "../pages/AlertEditProduction";
-import ProductionAlerts from "../pages/ProductionAlerts";
+import AlertEditProduction from "./AlertEditProduction";
+import ProductionAlerts from "./ProductionAlerts";
 
 const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Recepción", "Entrega"];
 const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Recepción", "Entregado"];
