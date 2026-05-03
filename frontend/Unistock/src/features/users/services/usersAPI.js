@@ -1,112 +1,55 @@
-// src/feature/users/services/UsersAPI.js
+// services/usersAPI.js
+// Llamadas HTTP al módulo de usuarios.
+// Traduce los campos del formulario a los que espera la API.
 
-// Datos mock de usuarios
-const mockUsers = [
-    {
-        id: '1',
-        tipoDocumento: 'CC',
-        numeroDocumento: '856127435',
-        nombreCompleto: 'Sofía Osorio',
-        correo: 'cuentarandom00a0@gmail.com',
-        rol: 1,
-        sede: 1,
-        estado: true
-    },
-    {
-        id: '2',
-        tipoDocumento: 'CC',
-        numeroDocumento: '1000000001',
-        nombreCompleto: 'Admin General',
-        correo: 'admin@admin.com',
-        password: 'admin123',
-        rol: 2,        // Administrador — rolId 2
-        sede: 1,
-        estado: true
-    },
-];
+import { http } from './http';
 
 export const userAPI = {
 
-    // Obtener todos los usuarios
-    getAll: async () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve([...mockUsers]);
-            }, 500);
-        });
-    },
+  // GET /users?search=&rolId=&sedeId=&estado=
+  getAll: (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search)            params.set('search',  filters.search);
+    if (filters.rolId)             params.set('rolId',   filters.rolId);
+    if (filters.sedeId)            params.set('sedeId',  filters.sedeId);
+    if (filters.estado !== undefined) params.set('estado', filters.estado);
+    const query = params.toString();
+    return http.get(`/users${query ? `?${query}` : ''}`);
+  },
 
-    // Obtener usuario por ID
-    getById: (id) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const user = mockUsers.find(u => u.id === id);
-                if (user) {
-                    resolve({ ...user });
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 300);
-        });
-    },
+  // GET /users/:id
+  getById: (id) => http.get(`/users/${id}`),
 
-    // Crear usuario
-    create: (userData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const newUser = {
-                    id: Date.now().toString(),
-                    estado: true,
-                    ...userData
-                };
-                mockUsers.push(newUser);
-                resolve({ ...newUser });
-            }, 500);
-        });
-    },
+  // POST /users
+  create: (userData) => http.post('/users', {
+    tipoDocumento:   userData.documentType,
+    numeroDocumento: userData.documentNumber,
+    nombreCompleto:  userData.name,
+    correo:          userData.email,
+    rolId:           parseInt(userData.role),
+    sedeId:          parseInt(userData.sede),
+    password:        userData.password,
+  }),
 
-    // Actualizar usuario
-    update: (id, updatedData) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const index = mockUsers.findIndex(u => u.id === id);
-                if (index !== -1) {
-                    mockUsers[index] = { ...mockUsers[index], ...updatedData };
-                    resolve({ ...mockUsers[index] });
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 500);
-        });
-    },
+  // PUT /users/:id
+  update: (id, userData) => http.put(`/users/${id}`, {
+    tipoDocumento:   userData.documentType,
+    numeroDocumento: userData.documentNumber,
+    nombreCompleto:  userData.name,
+    correo:          userData.email,
+    rolId:           userData.role  ? parseInt(userData.role)  : undefined,
+    sedeId:          userData.sede  ? parseInt(userData.sede)  : undefined,
+  }),
 
-    // Eliminar usuario
-    delete: (id) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const index = mockUsers.findIndex(u => u.id === id);
-                if (index !== -1) {
-                    mockUsers.splice(index, 1);
-                    resolve();
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 500);
-        });
-    },
+  // DELETE /users/:id
+  delete: (id) => http.delete(`/users/${id}`),
 
-    // Cambiar estado activo/inactivo
-    toggleStatus: (id) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const user = mockUsers.find(u => u.id === id);
-                if (user) {
-                    user.estado = !user.estado;
-                    resolve({ ...user });
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 300);
-        });
-    }
+  // PATCH /users/:id/status
+  toggleStatus: (id) => http.patch(`/users/${id}/status`),
+
+  // GET /users/roles
+  getRoles: () => http.get('/users/roles'),
+
+  // GET /users/sedes
+  getSedes: () => http.get('/users/sedes'),
 };

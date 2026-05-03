@@ -169,7 +169,7 @@ const SupplierPage = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
+    <div className="page-root" style={{display: "flex", flexDirection: "column"}}>
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -180,56 +180,37 @@ const SupplierPage = () => {
       />
 
       {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-        }}
-      >
-        <h1 style={{ fontSize: "26px", fontWeight: 600 }}>
+      <div className="page-header">
+        <h1 style={{ fontSize: "clamp(18px, 4vw, 26px)", fontWeight: 600 }}>
           Proveedores
         </h1>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "4px",
-          }}
-        >
-          <div style={{ width: "260px" }}>
-            <SearchInput
-              value={searchTerm}
-              onChange={(v) => {
-                handleSearch(v);
-                setCurrentPage(1);
-              }}
-              placeholder="Buscar proveedor..."
-            />
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "Column",
+              alignItems: "flex-end",
+              gap: "4px",
+            }}
+          >
+            <div className="search-wrap">
+              <SearchInput
+                value={searchTerm}
+                onChange={(v) => {
+                  handleSearch(v);
+                  setCurrentPage(1);
+                }}
+                placeholder="Buscar proveedor..."
+              />
+            </div>
+            <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+              Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+            </span>
           </div>
 
-          <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-            Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
-          </span>
+          <AddSupplierButton onClick={handleAddSupplier} />
         </div>
-      </div>
-
-      {/* TOOLBAR */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          background: "#fff",
-          padding: "12px 20px",
-          borderRadius: "10px",
-          marginBottom: "20px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
-      >
-        <AddSupplierButton onClick={handleAddSupplier} />
       </div>
 
       {/* TABLA */}

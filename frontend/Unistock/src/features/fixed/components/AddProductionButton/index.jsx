@@ -184,7 +184,7 @@ const AddProductionButton = ({ productions = [], onCreateProduction, onFilterByD
       {/* MODAL PDF / EXCEL */}
       {showDownloadModal && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1200}} onClick={()=>setShowDownloadModal(false)}>
-          <div style={{background:"#fff",borderRadius:18,padding:"28px 28px 24px",width:340,boxShadow:"0 20px 60px rgba(0,0,0,0.18)"}} onClick={e=>e.stopPropagation()}>
+          <div style={{background:"#fff",borderRadius:18,padding:"clamp(16px, 4vw, 28px)",width:"calc(100vw - 32px)",maxWidth:340,boxShadow:"0 20px 60px rgba(0,0,0,0.18)"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
               <div style={{width:40,height:40,borderRadius:11,background:"#fff0fb",display:"flex",alignItems:"center",justifyContent:"center"}}><DownloadIcon /></div>
               <div>

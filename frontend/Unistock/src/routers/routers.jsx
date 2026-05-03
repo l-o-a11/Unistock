@@ -6,6 +6,8 @@ import Login from "../features/auth/pages/LoginPage.jsx";
 import AppLayout from "../layout/AppLayout.jsx";
 import PrivateRoute from "../features/shared/PrivateRoute.jsx";
 
+import DashboardPage from "../features/dashboard/dashboard.jsx";
+
 // Roles
 import RolesPage from "../features/roles/pages/RolesPage";
 import CreateRolPage from "../features/roles/pages/CreateRolPage.jsx";
@@ -61,8 +63,8 @@ export function RouterApp() {
           <AppLayout />
         </PrivateRoute>
       }>
-        <Route index element={<ProductionsPage />} />
-        <Route path="dashboard" element={<ProductionsPage />} />
+        <Route index element={<DashboardPage />} />
+        <Route path="dashboard" element={<DashboardPage />} />
 
         {/* Usuarios */}
         <Route path="usuarios" element={
