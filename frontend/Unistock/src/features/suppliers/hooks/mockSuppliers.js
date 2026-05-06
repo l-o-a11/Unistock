@@ -61,37 +61,91 @@ export const useSuppliers = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Cargar desde el API real
       const response = await SuppliersAPIClient.getSuppliers({
         page: 1,
         limit: 100,
-        sortBy: 'nombre_de_empresa'
+        sortBy: 'nombre_de_empresa',
       });
-      
-      // Mapear respuesta del backend al formato del frontend
-      const mappedSuppliers = (response.data.data || []).map(supplier => ({
-        id: supplier._id || supplier.id,
-        nit: supplier.nit,
-        nombreEmpresa: supplier.nombre_de_empresa,
-        nombre_de_empresa: supplier.nombre_de_empresa,
-        nombreContacto: supplier.nombre_del_contacto,
-        nombre_del_contacto: supplier.nombre_del_contacto,
-        direccion: supplier.direccion,
-        telefono: supplier.telefono,
-        email: supplier.correo,
-        correo: supplier.correo,
-        sitioweb: supplier.sitio_web,
-        sitio_web: supplier.sitio_web,
-        estado: supplier.activo,
-        activo: supplier.activo,
-        rawData: supplier
-      }));
-      
+
+      // Backend suele responder: { success: true, data: [...] }
+      // Ajustamos para soportar variaciones: {data:{data}} o {data:[...]} o {success:true,data:[...]}
+      const backendSuppliers =
+        response?.data?.data ??
+        response?.data?.suppliers ??
+        response?.data ??
+        response?.suppliers ??
+        response ??
+        [];
+
+      const list = Array.isArray(backendSuppliers)
+        ? backendSuppliers
+        : Array.isArray(backendSuppliers?.data)
+          ? backendSuppliers.data
+          : [];
+
+      const normalizeBool = (v) => {
+        if (v === true || v === false) return v;
+        if (typeof v === 'number') return v === 1;
+        if (typeof v === 'string') {
+          const t = v.trim().toLowerCase();
+          if (t === 'true' || t === '1' || t === 'activo') return true;
+          if (t === 'false' || t === '0' || t === 'inactivo') return false;
+        }
+        return undefined;
+      };
+
+      const mappedSuppliers = (list || []).map((supplier) => {
+        const estado =
+          supplier?.activo ??
+          supplier?.estado ??
+          supplier?.activa ??
+          supplier?.inactivo ??
+          supplier?.active;
+
+        const estadoBool = normalizeBool(estado);
+
+        const nombreEmpresa =
+          supplier?.nombre_de_empresa ??
+          supplier?.nombreEmpresa ??
+          supplier?.nombre_empresa;
+
+        const nombreContacto =
+          supplier?.nombre_del_contacto ??
+          supplier?.nombreContacto ??
+          supplier?.nombre_contacto;
+
+        const correo = supplier?.correo ?? supplier?.correoEmpresa ?? supplier?.email;
+
+        const sitio =
+          supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb;
+
+        return {
+          id: supplier._id || supplier.id,
+          nit: supplier.nit,
+          nombreEmpresa,
+          nombre_de_empresa: nombreEmpresa,
+          nombreContacto,
+          nombre_del_contacto: nombreContacto,
+          direccion: supplier.direccion,
+          telefono: supplier.telefono,
+          email: correo,
+          correo,
+          sitioweb: sitio,
+          sitio_web: sitio,
+          estado: estadoBool,
+          activo: estadoBool,
+          rawData: supplier,
+        };
+      });
+
       setSuppliers(mappedSuppliers);
+      saveToStorage(mappedSuppliers);
     } catch (err) {
       console.error('Error al cargar proveedores:', err);
       setError('Error al cargar los proveedores. Verifica la conexión con el servidor.');
+
       // Fallback a localStorage si la API falla
       try {
         const cached = loadFromStorage();
@@ -107,22 +161,37 @@ export const useSuppliers = () => {
     }
   };
 
+  const mapFrontendToBackendCreate = (supplierData) => {
+    // El backend controller espera req.body con estos nombres:
+    // nit, nombreEmpresa, nombreContacto, direccion, telefono, correoEmpresa, sitioWeb
+    // (y internamente mapea a nombre_de_empresa / nombre_del_contacto / correo / sitio_web)
+    return {
+      nit: supplierData.nit,
+      nombreEmpresa:
+        supplierData.nombreEmpresa ||
+        supplierData.nombre_de_empresa ||
+        supplierData.nombre_empresa ||
+        '',
+      nombreContacto:
+        supplierData.nombreContacto ||
+        supplierData.nombre_del_contacto ||
+        supplierData.nombre_contacto ||
+        supplierData.contacto ||
+        '',
+      direccion: supplierData.direccion,
+      telefono: supplierData.telefono,
+      correoEmpresa:
+        supplierData.correoEmpresa || supplierData.email || supplierData.correo || '',
+      sitioWeb: supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web || '',
+    };
+  };
+
   // ➕ Crear proveedor
   const createSupplier = async (supplierData) => {
-  try {
-  // Mapear formato frontend → backend
-  const backendData = {
-    nit: supplierData.nit,
-    nombre_de_empresa: supplierData.nombreEmpresa || supplierData.nombre_de_empresa,
-    nombre_del_contacto: supplierData.nombreContacto || supplierData.nombre_del_contacto,
-    direccion: supplierData.direccion,
-    telefono: supplierData.telefono,
-    correo: supplierData.correoEmpresa || supplierData.email || supplierData.correo,
-    sitio_web: supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web,
-  };
-  const newSupplier = await SuppliersAPIClient.createSupplier(backendData);
-      
-      // Mapear respuesta
+    try {
+      const backendData = mapFrontendToBackendCreate(supplierData);
+      const newSupplier = await SuppliersAPIClient.createSupplier(backendData);
+
       const supplier = newSupplier.data || newSupplier;
       const mapped = {
         id: supplier._id || supplier.id,
@@ -139,13 +208,31 @@ export const useSuppliers = () => {
         sitio_web: supplier.sitio_web,
         estado: supplier.activo,
         activo: supplier.activo,
-        rawData: supplier
+        rawData: supplier,
       };
-      
-      setSuppliers((prev) => [...prev, mapped]);
+
+      setSuppliers((prev) => {
+        const next = [...prev, mapped];
+        saveToStorage(next);
+        return next;
+      });
+
       return mapped;
     } catch (err) {
+      // Si el backend devuelve 409 (conflict / NIT duplicado), no debemos desincronizar la UI.
+      // Refrescamos desde el backend para que la tabla coincida con la base de datos.
       console.error('Error al crear proveedor:', err);
+
+      try {
+        // heurística: el httpClient suele incluir status o response.status
+        const status = err?.status ?? err?.response?.status;
+        if (status === 409) {
+          await refreshSuppliers();
+        }
+      } catch (refreshErr) {
+        console.error('Error al refrescar proveedores tras conflicto:', refreshErr);
+      }
+
       setError('Error al crear el proveedor');
       throw err;
     }
@@ -154,41 +241,36 @@ export const useSuppliers = () => {
   // ✏️ Actualizar proveedor
   const updateSupplier = async (id, supplierData) => {
     try {
-      // Mapear formato frontend → backend
-      const backendData = {
-        nit: supplierData.nit,
-        nombre_de_empresa: supplierData.nombreEmpresa || supplierData.nombre_de_empresa,
-        nombre_del_contacto: supplierData.nombreContacto || supplierData.nombre_del_contacto,
-        direccion: supplierData.direccion,
-        telefono: supplierData.telefono,
-        correo: supplierData.correoEmpresa || supplierData.email || supplierData.correo,
-        sitio_web: supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web,
-      };
-      
+      // Backend updateSupplier usa req.body directo, así que mapeamos igual que create
+      const backendData = mapFrontendToBackendCreate(supplierData);
+      // Aseguramos que el backend reciba los campos requeridos en nombres esperados
       const updated = await SuppliersAPIClient.updateSupplier(id, backendData);
-      
-      // Mapear respuesta
+
+      const supplier = updated.data || updated;
       const mapped = {
-        id: updated._id || updated.id,
-        nit: updated.nit,
-        nombreEmpresa: updated.nombre_de_empresa,
-        nombre_de_empresa: updated.nombre_de_empresa,
-        nombreContacto: updated.nombre_del_contacto,
-        nombre_del_contacto: updated.nombre_del_contacto,
-        direccion: updated.direccion,
-        telefono: updated.telefono,
-        email: updated.correo,
-        correo: updated.correo,
-        sitioweb: updated.sitio_web,
-        sitio_web: updated.sitio_web,
-        estado: updated.activo,
-        activo: updated.activo,
-        rawData: updated
+        id: supplier._id || supplier.id,
+        nit: supplier.nit,
+        nombreEmpresa: supplier.nombre_de_empresa,
+        nombre_de_empresa: supplier.nombre_de_empresa,
+        nombreContacto: supplier.nombre_del_contacto,
+        nombre_del_contacto: supplier.nombre_del_contacto,
+        direccion: supplier.direccion,
+        telefono: supplier.telefono,
+        email: supplier.correo,
+        correo: supplier.correo,
+        sitioweb: supplier.sitio_web,
+        sitio_web: supplier.sitio_web,
+        estado: supplier.activo,
+        activo: supplier.activo,
+        rawData: supplier,
       };
-      
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === id ? mapped : s))
-      );
+
+      setSuppliers((prev) => {
+        const next = prev.map((s) => (s.id === id ? mapped : s));
+        saveToStorage(next);
+        return next;
+      });
+
       return mapped;
     } catch (err) {
       console.error('Error al actualizar proveedor:', err);
@@ -201,7 +283,12 @@ export const useSuppliers = () => {
   const deleteSupplier = async (id) => {
     try {
       await SuppliersAPIClient.deleteSupplier(id);
-      setSuppliers((prev) => prev.filter((s) => s.id !== id));
+
+      setSuppliers((prev) => {
+        const next = prev.filter((s) => s.id !== id);
+        saveToStorage(next);
+        return next;
+      });
     } catch (err) {
       console.error('Error al eliminar proveedor:', err);
       setError('Error al eliminar el proveedor');
@@ -209,37 +296,36 @@ export const useSuppliers = () => {
     }
   };
 
-  // 🔄 Refrescar lista
-  const refreshSuppliers = () => {
-    loadSuppliers();
-  };
-
   // 🔄 Alternar estado del proveedor
   const toggleSupplier = async (id) => {
     try {
       const updated = await SuppliersAPIClient.toggleSupplier(id);
-      
+      const supplier = updated.data || updated;
+
       const mapped = {
-        id: updated._id || updated.id,
-        nit: updated.nit,
-        nombreEmpresa: updated.nombre_de_empresa,
-        nombre_de_empresa: updated.nombre_de_empresa,
-        nombreContacto: updated.nombre_del_contacto,
-        nombre_del_contacto: updated.nombre_del_contacto,
-        direccion: updated.direccion,
-        telefono: updated.telefono,
-        email: updated.correo,
-        correo: updated.correo,
-        sitioweb: updated.sitio_web,
-        sitio_web: updated.sitio_web,
-        estado: updated.activo,
-        activo: updated.activo,
-        rawData: updated
+        id: supplier._id || supplier.id,
+        nit: supplier.nit,
+        nombreEmpresa: supplier.nombre_de_empresa,
+        nombre_de_empresa: supplier.nombre_de_empresa,
+        nombreContacto: supplier.nombre_del_contacto,
+        nombre_del_contacto: supplier.nombre_del_contacto,
+        direccion: supplier.direccion,
+        telefono: supplier.telefono,
+        email: supplier.correo,
+        correo: supplier.correo,
+        sitioweb: supplier.sitio_web,
+        sitio_web: supplier.sitio_web,
+        estado: supplier.activo,
+        activo: supplier.activo,
+        rawData: supplier,
       };
-      
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === id ? mapped : s))
-      );
+
+      setSuppliers((prev) => {
+        const next = prev.map((s) => (s.id === id ? mapped : s));
+        saveToStorage(next);
+        return next;
+      });
+
       return mapped;
     } catch (err) {
       console.error('Error al cambiar estado del proveedor:', err);
@@ -247,6 +333,8 @@ export const useSuppliers = () => {
       throw err;
     }
   };
+
+  const refreshSuppliers = () => loadSuppliers();
 
   return {
     suppliers,
@@ -259,3 +347,4 @@ export const useSuppliers = () => {
     toggleSupplier,
   };
 };
+

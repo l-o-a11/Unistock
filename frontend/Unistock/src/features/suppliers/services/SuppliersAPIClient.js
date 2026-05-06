@@ -1,14 +1,13 @@
 /**
  * Cliente API Real para Proveedores
- * Conecta con el backend en http://localhost:3000/api/proveedores
+ * Conecta con el backend en http://localhost:3000/api/suppliers
  */
 
 import { httpRequest } from "../../shared/utils/httpClient";
 
 export const SuppliersAPIClient = {
   /**
-   * GET /api/proveedores
-   * Lista todos los proveedores con filtros y paginación
+   * GET /suppliers
    */
   getSuppliers: async (filters = {}) => {
     const queryParams = new URLSearchParams();
@@ -21,63 +20,44 @@ export const SuppliersAPIClient = {
     if (filters.sortBy) queryParams.append("sortBy", filters.sortBy);
     if (filters.order) queryParams.append("order", filters.order);
 
-    const endpoint = `/proveedores${queryParams.toString() ? "?" + queryParams : ""}`;
+    const endpoint = `/suppliers${queryParams.toString() ? "?" + queryParams : ""}`;
     const response = await httpRequest(endpoint, { method: "GET" });
     return response?.data || response;
   },
 
-  /**
-   * GET /api/proveedores/:id
-   * Obtiene los detalles de un proveedor específico
-   */
   getSupplierById: async (id) => {
-    const response = await httpRequest(`/proveedores/${id}`, { method: "GET" });
+    const response = await httpRequest(`/suppliers/${id}`, { method: "GET" });
     return response?.data || response;
   },
 
-  /**
-   * POST /api/proveedores
-   * Crea un nuevo proveedor
-   */
   createSupplier: async (data) => {
-    const response = await httpRequest("/proveedores", {
+    const response = await httpRequest("/suppliers", {
       method: "POST",
       body: data,
     });
     return response?.data || response;
   },
 
-  /**
-   * PUT /api/proveedores/:id
-   * Actualiza un proveedor
-   */
   updateSupplier: async (id, data) => {
-    const response = await httpRequest(`/proveedores/${id}`, {
+    const response = await httpRequest(`/suppliers/${id}`, {
       method: "PUT",
       body: data,
     });
     return response?.data || response;
   },
 
-  /**
-   * DELETE /api/proveedores/:id
-   * Elimina un proveedor
-   */
   deleteSupplier: async (id) => {
-    const response = await httpRequest(`/proveedores/${id}`, {
+    const response = await httpRequest(`/suppliers/${id}`, {
       method: "DELETE",
     });
     return response?.data || response;
   },
 
-  /**
-   * PATCH /api/proveedores/:id/toggle
-   * Activa o inactiva un proveedor
-   */
   toggleSupplier: async (id) => {
-    const response = await httpRequest(`/proveedores/${id}/toggle`, {
+    const response = await httpRequest(`/suppliers/${id}/toggle`, {
       method: "PATCH",
     });
     return response?.data || response;
   },
 };
+
