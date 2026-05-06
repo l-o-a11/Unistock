@@ -1,4 +1,6 @@
 // Datos de ejemplo con nombres COMPLETOS
+import httpClient from "../../shared/utils/httpClient";
+
 const mockProducts = [
   {
     id: '772',
@@ -140,183 +142,233 @@ export const productAPI = {
     });
   },
 
-  getById: (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const product = mockProducts.find(p => p.id === id);
-        if (product) {
-          resolve({ ...product });
-        } else {
-          reject(new Error('Producto no encontrado'));
-        }
-      }, 300);
-    });
+  getById: async (id) => {
+    try {
+      return await httpClient.get(`/products/${id}`);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const product = mockProducts.find(p => p.id === id);
+          if (product) {
+            resolve({ ...product });
+          } else {
+            reject(new Error('Producto no encontrado'));
+          }
+        }, 300);
+      });
+    }
   },
 
-  create: (productData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newProduct = {
-          id: Date.now().toString().slice(-4),
-          ...productData,
-          image: `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
-          technicalSheetVersions: 1,
-          lastVersionDate: new Date().toISOString().split('T')[0],
-          active: true
-        };
-        mockProducts.push(newProduct);
-        resolve({ ...newProduct });
-      }, 500);
-    });
+  create: async (productData) => {
+    try {
+      return await httpClient.post("/products", productData);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const newProduct = {
+            id: Date.now().toString().slice(-4),
+            ...productData,
+            image: `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
+            technicalSheetVersions: 1,
+            lastVersionDate: new Date().toISOString().split('T')[0],
+            active: true
+          };
+          mockProducts.push(newProduct);
+          resolve({ ...newProduct });
+        }, 500);
+      });
+    }
   },
 
-  update: (id, updatedData) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockProducts.findIndex(p => p.id === id);
-        if (index !== -1) {
-          mockProducts[index] = { ...mockProducts[index], ...updatedData };
-          resolve({ ...mockProducts[index] });
-        } else {
-          reject(new Error('Producto no encontrado'));
-        }
-      }, 500);
-    });
+  update: async (id, updatedData) => {
+    try {
+      return await httpClient.put(`/products/${id}`, updatedData);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const index = mockProducts.findIndex(p => p.id === id);
+          if (index !== -1) {
+            mockProducts[index] = { ...mockProducts[index], ...updatedData };
+            resolve({ ...mockProducts[index] });
+          } else {
+            reject(new Error('Producto no encontrado'));
+          }
+        }, 500);
+      });
+    }
   },
 
-  delete: (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockProducts.findIndex(p => p.id === id);
-        if (index !== -1) {
-          mockProducts.splice(index, 1);
-          resolve();
-        } else {
-          reject(new Error('Producto no encontrado'));
-        }
-      }, 500);
-    });
+  delete: async (id) => {
+    try {
+      return await httpClient.delete(`/products/${id}`);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const index = mockProducts.findIndex(p => p.id === id);
+          if (index !== -1) {
+            mockProducts.splice(index, 1);
+            resolve();
+          } else {
+            reject(new Error('Producto no encontrado'));
+          }
+        }, 500);
+      });
+    }
   },
 
-  toggleActive: (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockProducts.findIndex(p => p.id === id);
-        if (index !== -1) {
-          mockProducts[index].active = !mockProducts[index].active;
-          resolve({ ...mockProducts[index] });
-        } else {
-          reject(new Error('Producto no encontrado'));
-        }
-      }, 300);
-    });
+  toggleActive: async (id) => {
+    try {
+      return await httpClient.patch(`/products/${id}/toggle-active`, {});
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const index = mockProducts.findIndex(p => p.id === id);
+          if (index !== -1) {
+            mockProducts[index].active = !mockProducts[index].active;
+            resolve({ ...mockProducts[index] });
+          } else {
+            reject(new Error('Producto no encontrado'));
+          }
+        }, 300);
+      });
+    }
   },
 
   // Métodos para fichas técnicas
-  getTechnicalSheetVersions: (productId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const sheets = mockTechnicalSheets
-          .filter(sheet => sheet.productId === productId)
-          .sort((a, b) => b.version - a.version);
-        resolve([...sheets]);
-      }, 300);
-    });
+  getTechnicalSheetVersions: async (productId) => {
+    try {
+      return await httpClient.get(`/products/${productId}/technical-sheets`);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const sheets = mockTechnicalSheets
+            .filter(sheet => sheet.productId === productId)
+            .sort((a, b) => b.version - a.version);
+          resolve([...sheets]);
+        }, 300);
+      });
+    }
   },
 
-  getTechnicalSheetById: (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const sheet = mockTechnicalSheets.find(s => s.id === id);
-        if (sheet) {
-          resolve({ ...sheet });
-        } else {
-          reject(new Error('Ficha técnica no encontrada'));
-        }
-      }, 300);
-    });
+  getTechnicalSheetById: async (id) => {
+    try {
+      return await httpClient.get(`/technical-sheets/${id}`);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const sheet = mockTechnicalSheets.find(s => s.id === id);
+          if (sheet) {
+            resolve({ ...sheet });
+          } else {
+            reject(new Error('Ficha técnica no encontrada'));
+          }
+        }, 300);
+      });
+    }
   },
 
-  createTechnicalSheet: (sheetData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newSheet = {
-          id: `ts-${sheetData.productId}-v${sheetData.version}`,
-          ...sheetData,
-          date: new Date().toISOString().split('T')[0]
-        };
-        mockTechnicalSheets.push(newSheet);
-        
-        const product = mockProducts.find(p => p.id === sheetData.productId);
-        if (product) {
-          product.technicalSheetVersions = sheetData.version;
-          product.lastVersionDate = new Date().toISOString().split('T')[0];
-          product.technicalSheet = newSheet;
-        }
-        
-        resolve({ ...newSheet });
-      }, 500);
-    });
+  createTechnicalSheet: async (sheetData) => {
+    try {
+      return await httpClient.post("/technical-sheets", sheetData);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const newSheet = {
+            id: `ts-${sheetData.productId}-v${sheetData.version}`,
+            ...sheetData,
+            date: new Date().toISOString().split('T')[0]
+          };
+          mockTechnicalSheets.push(newSheet);
+          
+          const product = mockProducts.find(p => p.id === sheetData.productId);
+          if (product) {
+            product.technicalSheetVersions = sheetData.version;
+            product.lastVersionDate = new Date().toISOString().split('T')[0];
+            product.technicalSheet = newSheet;
+          }
+          
+          resolve({ ...newSheet });
+        }, 500);
+      });
+    }
   },
 
-  updateTechnicalSheet: (productId, sheetData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const productSheets = mockTechnicalSheets
-          .filter(s => s.productId === productId)
-          .sort((a, b) => b.version - a.version);
-        
-        const newVersion = (productSheets[0]?.version || 0) + 1;
-        
-        const newSheet = {
-          id: `ts-${productId}-v${newVersion}`,
-          productId,
-          version: newVersion,
-          ...sheetData,
-          date: new Date().toISOString().split('T')[0]
-        };
-        
-        mockTechnicalSheets.push(newSheet);
-        
-        const product = mockProducts.find(p => p.id === productId);
-        if (product) {
-          product.technicalSheetVersions = newVersion;
-          product.lastVersionDate = new Date().toISOString().split('T')[0];
-          product.technicalSheet = newSheet;
-        }
-        
-        resolve({ ...newSheet });
-      }, 500);
-    });
+  updateTechnicalSheet: async (productId, sheetData) => {
+    try {
+      return await httpClient.post(`/products/${productId}/technical-sheets`, sheetData);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const productSheets = mockTechnicalSheets
+            .filter(s => s.productId === productId)
+            .sort((a, b) => b.version - a.version);
+          
+          const newVersion = (productSheets[0]?.version || 0) + 1;
+          
+          const newSheet = {
+            id: `ts-${productId}-v${newVersion}`,
+            productId,
+            version: newVersion,
+            ...sheetData,
+            date: new Date().toISOString().split('T')[0]
+          };
+          
+          mockTechnicalSheets.push(newSheet);
+          
+          const product = mockProducts.find(p => p.id === productId);
+          if (product) {
+            product.technicalSheetVersions = newVersion;
+            product.lastVersionDate = new Date().toISOString().split('T')[0];
+            product.technicalSheet = newSheet;
+          }
+          
+          resolve({ ...newSheet });
+        }, 500);
+      });
+    }
   },
 
-  deleteTechnicalSheet: (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const sheet = mockTechnicalSheets.find(s => s.id === id);
-        if (!sheet) {
-          reject(new Error('Ficha técnica no encontrada'));
-          return;
-        }
-        
-        const productSheets = mockTechnicalSheets.filter(s => s.productId === sheet.productId);
-        if (productSheets.length > 1) {
-          reject(new Error('No se puede eliminar: el producto tiene múltiples versiones'));
-          return;
-        }
-        
-        const index = mockTechnicalSheets.findIndex(s => s.id === id);
-        mockTechnicalSheets.splice(index, 1);
-        
-        const product = mockProducts.find(p => p.id === sheet.productId);
-        if (product) {
-          product.technicalSheetVersions = 0;
-          product.lastVersionDate = null;
-          product.technicalSheet = null;
-        }
-        
-        resolve();
-      }, 500);
-    });
+  deleteTechnicalSheet: async (id) => {
+    try {
+      return await httpClient.delete(`/technical-sheets/${id}`);
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error.message);
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const sheet = mockTechnicalSheets.find(s => s.id === id);
+          if (!sheet) {
+            reject(new Error('Ficha técnica no encontrada'));
+            return;
+          }
+          
+          const productSheets = mockTechnicalSheets.filter(s => s.productId === sheet.productId);
+          if (productSheets.length > 1) {
+            reject(new Error('No se puede eliminar: el producto tiene múltiples versiones'));
+            return;
+          }
+          
+          const index = mockTechnicalSheets.findIndex(s => s.id === id);
+          mockTechnicalSheets.splice(index, 1);
+          
+          const product = mockProducts.find(p => p.id === sheet.productId);
+          if (product) {
+            product.technicalSheetVersions = 0;
+            product.lastVersionDate = null;
+            product.technicalSheet = null;
+          }
+          
+          resolve();
+        }, 500);
+      });
+    }
   }
 };
