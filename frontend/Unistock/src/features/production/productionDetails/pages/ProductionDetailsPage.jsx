@@ -120,10 +120,36 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await ProductionAPI.getById(Number(id));
-        setProduction(data);
+        // Usar ProductionAPIClient en lugar de ProductionAPI (mock)
+        const { ProductionAPIClient } = await import('../../services/ProductionAPIClient');
+        const data = await ProductionAPIClient.getOrderById(id); // id es string de MongoDB, no número
+        
+        // Mapear respuesta del backend al formato del frontend
+        const mappedProduction = {
+          id: data._id || data.id,
+          orderNumber: data.numero_orden,
+          cliente: data.cliente,
+          client: data.cliente,
+          status: data.estado,
+          estado: data.estado,
+          deliveryDate: data.fecha_entrega 
+            ? new Date(data.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '',
+          statusDate: data.createdAt 
+            ? new Date(data.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '',
+          history: (data.historial || []).map(h => ({
+            status: h.estado,
+            date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+            user: h.id_usuario || 'Sistema',
+            motivo: h.motivo
+          })),
+          rawData: data
+        };
+        
+        setProduction(mappedProduction);
       } catch (err) {
-        console.error(err.message);
+        console.error('Error al cargar producción:', err.message);
       } finally {
         setLoading(false);
       }

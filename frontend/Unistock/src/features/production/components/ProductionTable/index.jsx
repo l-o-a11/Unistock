@@ -166,7 +166,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                       return (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                           {uniqueColors.length > 0 ? uniqueColors.map((c, ci) => (
-                            <span key={ci} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 20, padding: '2px 7px', fontSize: 10, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                            <span key={`${prod.id}-color-${c}-${ci}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 20, padding: '2px 7px', fontSize: 10, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
                               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
                               {c}
                             </span>
@@ -346,7 +346,7 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                             </thead>
                             <tbody>
                               {(prod.details || []).map((d, i) => (
-                                <tr key={i}
+                                <tr key={`${prod.id}-detail-${i}`}
                                   style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.5)' }}>
                                   <td style={{ padding: '7px 10px' }}>
                                     <span style={{ fontSize: 10, fontWeight: 700, color: '#c084fc' }}>#{i + 1}</span>

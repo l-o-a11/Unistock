@@ -1,4 +1,5 @@
 import emailjs from "@emailjs/browser";
+import httpClient from "../../shared/utils/httpClient";
 
 const EMAILJS_SERVICE_ID     = "service_nokqz2k";
 const EMAILJS_TEMPLATE_ID    = "template_rgm176v";

@@ -12,7 +12,7 @@ import SearchInput from "../../shared/components/SearchInput";
 
 const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
-const SupplierPage = () => {
+const SuppliersPage = () => {
   const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } =
     useSuppliers();
   const { searchTerm, handleSearch } = useSupplierSearch();
@@ -168,6 +168,16 @@ const SupplierPage = () => {
     return pages;
   };
 
+  // Pagination button styles
+  const paginationBtn = {
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ddd",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: "14px",
+  };
+
   return (
     <div className="page-root" style={{display: "flex", flexDirection: "column"}}>
       <Alert
@@ -180,38 +190,35 @@ const SupplierPage = () => {
       />
 
       {/* HEADER */}
-      <div className="page-header">
-        <h1 style={{ fontSize: "clamp(18px, 4vw, 26px)", fontWeight: 600 }}>
-          Proveedores
-        </h1>
+<div
+  className="page-header"
+  style={{
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: "16px",
+  }}
+>
+  <h1 style={{ fontSize: "clamp(18px, 4vw, 26px)", fontWeight: 600, margin: 0 }}>
+    Proveedores
+  </h1>
 
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "Column",
-              alignItems: "flex-end",
-              gap: "4px",
-            }}
-          >
-            <div className="search-wrap">
-              <SearchInput
-                value={searchTerm}
-                onChange={(v) => {
-                  handleSearch(v);
-                  setCurrentPage(1);
-                }}
-                placeholder="Buscar proveedor..."
-              />
-            </div>
-            <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-              Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
-            </span>
-          </div>
-
-          <AddSupplierButton onClick={handleAddSupplier} />
-        </div>
-      </div>
+  {/* Lado derecho: buscador + hint + botón */}
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+    <SearchInput
+      value={searchTerm}
+      onChange={(v) => {
+        handleSearch(v);
+        setCurrentPage(1);
+      }}
+      placeholder="Buscar proveedor..."
+    />
+    <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+      Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+    </span>
+    <AddSupplierButton onClick={handleAddSupplier} />
+  </div>
+</div>
 
       {/* TABLA */}
       <SupplierTable
@@ -290,13 +297,4 @@ const SupplierPage = () => {
   );
 };
 
-const paginationBtn = {
-  padding: "6px 12px",
-  borderRadius: "6px",
-  border: "1px solid #ddd",
-  background: "#fff",
-  cursor: "pointer",
-  fontSize: "14px",
-};
-
-export default SupplierPage;
+export default SuppliersPage;
