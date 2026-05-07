@@ -179,7 +179,28 @@ const SuppliersPage = () => {
   };
 
   return (
-    <div className="page-root" style={{display: "flex", flexDirection: "column"}}>
+    <div style={{ minHeight: "100vh", background: "#f6f6f8", fontFamily: "sans-serif" }}>
+
+      <style>{`
+        .sup-root { padding: 14px; }
+        @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }
+        @media (min-width: 1024px) { .sup-root { padding: 24px 32px; } }
+
+        .sup-header {
+          display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;
+        }
+        @media (min-width: 640px) {
+          .sup-header {
+            flex-direction: row; justify-content: space-between; align-items: center;
+          }
+        }
+
+        .sup-page-btn {
+          padding: 6px 12px; border-radius: 6px;
+          border: 1px solid #ddd; background: #fff;
+          cursor: pointer; font-size: 14px;
+        }
+      `}</style>
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -189,37 +210,28 @@ const SuppliersPage = () => {
         onCancel={closeAlert}
       />
 
-      {/* HEADER */}
-<div
-  className="page-header"
-  style={{
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: "16px",
-  }}
->
-  <h1 style={{ fontSize: "clamp(18px, 4vw, 26px)", fontWeight: 600, margin: 0 }}>
-    Proveedores
-  </h1>
+<div className="sup-header">
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Proveedores</h1>
+          <SearchInput
+            value={searchTerm}
+            onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
+            placeholder="Buscar proveedor..."
+          />
+        </div>
 
-  {/* Lado derecho: buscador + hint + botón */}
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-    <SearchInput
-      value={searchTerm}
-      onChange={(v) => {
-        handleSearch(v);
-        setCurrentPage(1);
-      }}
-      placeholder="Buscar proveedor..."
-    />
-    <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-      Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
-    </span>
-    <AddSupplierButton onClick={handleAddSupplier} />
-  </div>
-</div>
-
+        {/* ── Barra blanca con botón ── */}
+        <div style={{
+          background: "#fff",
+          borderRadius: 10,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+          padding: "12px 20px",
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+        }}>
+          <AddSupplierButton onClick={handleAddSupplier} />
+        </div>
       {/* TABLA */}
       <SupplierTable
         suppliers={paginatedSupplier}

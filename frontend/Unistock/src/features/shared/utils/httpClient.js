@@ -7,6 +7,18 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
 /**
+ * Limpia la sesión y redirige al login cuando el token es inválido/expirado
+ */
+const clearSessionAndRedirect = () => {
+  localStorage.removeItem("session_user");
+  sessionStorage.removeItem("session_user");
+  // Solo redirigir si no estamos ya en /login para evitar bucles
+  if (!window.location.pathname.includes("/login")) {
+    window.location.href = "/login";
+  }
+};
+
+/**
  * Obtiene el token JWT del localStorage
  */
 const getAuthToken = () => {
@@ -77,6 +89,12 @@ export const httpRequest = async (endpoint, options = {}) => {
       );
       error.status = response.status;
       error.data = errorData;
+
+      // 401 → sesión inválida o token ausente/expirado: forzar re-login
+      if (response.status === 401 && !options.skipAuth) {
+        clearSessionAndRedirect();
+      }
+
       throw error;
     }
 

@@ -1,9 +1,22 @@
-// Datos de ejemplo con nombres COMPLETOS
 import httpClient from "../../shared/utils/httpClient";
 
+const mockCategories = [
+  { id: 1, name: 'Crop Top' },
+  { id: 2, name: 'Vestidos' },
+  { id: 3, name: 'Enterizos' },
+  { id: 4, name: 'Buzos' },
+];
+
+const getCategoryId = (categoryName) => {
+  if (!categoryName) return 1;
+  return mockCategories.find(c => c.name === categoryName)?.id || 1;
+};
+
+// Full mockProducts from original
 const mockProducts = [
   {
     id: '772',
+    id_categorias: 1,
     image: 'null',
     reference: '772',
     name: 'Crop Top Negro para todos los días',
@@ -16,6 +29,7 @@ const mockProducts = [
   },
   {
     id: '482',
+    id_categorias: 2,
     image: 'null',
     reference: '482',
     name: 'Vestido Bohemio Largo con Estampado Floral',
@@ -28,6 +42,7 @@ const mockProducts = [
   },
   {
     id: 'E57',
+    id_categorias: 3,
     image: 'null',
     reference: 'E57',
     name: 'Enterizo Negro Escotado con Abertura Lateral',
@@ -40,6 +55,7 @@ const mockProducts = [
   },
   {
     id: '601',
+    id_categorias: 4,
     image: 'null',
     reference: '601',
     name: 'Buzo Estampado Oversize con Capucha',
@@ -52,6 +68,7 @@ const mockProducts = [
   },
   {
     id: '678',
+    id_categorias: 1,
     image: 'null',
     reference: '678',
     name: 'Crop Top Rojo con Encaje',
@@ -64,8 +81,8 @@ const mockProducts = [
   }
 ];
 
-// Fichas técnicas de ejemplo
 const mockTechnicalSheets = [
+  // original full
   {
     id: 'ts-772-v1',
     productId: '772',
@@ -161,38 +178,60 @@ export const productAPI = {
   },
 
   create: async (productData) => {
+    const backendData = {
+      id_categorias: productData.categoryId || getCategoryId(productData.category),
+      imagenes_Url: productData.image ? [productData.image] : [],
+      referencia: productData.reference || productData.referencia || productData.id,
+      nombre: productData.name || productData.nombre,
+      precio: productData.price || productData.precio,
+      stock: productData.stock,
+    };
+
     try {
-      return await httpClient.post("/products", productData);
+      return await httpClient.post("/products", backendData);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve) => {
         setTimeout(() => {
           const newProduct = {
             id: Date.now().toString().slice(-4),
-            ...productData,
-            image: `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
+            id_categorias: backendData.id_categorias,
+            image: backendData.imagenes_Url[0] || `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
+            reference: backendData.referencia,
+            name: backendData.nombre,
+            category: mockCategories.find(c => c.id === backendData.id_categorias)?.name || 'General',
+            price: backendData.precio,
+            stock: backendData.stock,
             technicalSheetVersions: 1,
             lastVersionDate: new Date().toISOString().split('T')[0],
             active: true
           };
           mockProducts.push(newProduct);
-          resolve({ ...newProduct });
+          resolve(newProduct);
         }, 500);
       });
     }
   },
 
   update: async (id, updatedData) => {
+    const backendData = {
+      id_categorias: updatedData.categoryId || getCategoryId(updatedData.category),
+      imagenes_Url: updatedData.image ? [updatedData.image] : [],
+      referencia: updatedData.reference || updatedData.referencia,
+      nombre: updatedData.name || updatedData.nombre,
+      precio: updatedData.price || updatedData.precio,
+      stock: updatedData.stock,
+    };
     try {
-      return await httpClient.put(`/products/${id}`, updatedData);
+      return await httpClient.put(`/products/${id}`, backendData);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const index = mockProducts.findIndex(p => p.id === id);
           if (index !== -1) {
-            mockProducts[index] = { ...mockProducts[index], ...updatedData };
-            resolve({ ...mockProducts[index] });
+            mockProducts[index] = { ...mockProducts[index], ...backendData, id_categorias: backendData.id_categorias };
+            resolve(mockProducts[index]);
           } else {
             reject(new Error('Producto no encontrado'));
           }
@@ -230,7 +269,7 @@ export const productAPI = {
           const index = mockProducts.findIndex(p => p.id === id);
           if (index !== -1) {
             mockProducts[index].active = !mockProducts[index].active;
-            resolve({ ...mockProducts[index] });
+            resolve(mockProducts[index]);
           } else {
             reject(new Error('Producto no encontrado'));
           }
@@ -239,10 +278,12 @@ export const productAPI = {
     }
   },
 
-  // Métodos para fichas técnicas
+  // Technical sheets full unchanged...
   getTechnicalSheetVersions: async (productId) => {
     try {
-      return await httpClient.get(`/products/${productId}/technical-sheets`);
+      // Backend ruta real: GET /api/products/:id/tecnicas
+      // (el httpClient ya antepone VITE_API_URL + /api)
+      return await httpClient.get(`/products/${productId}/tecnicas`);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve) => {
@@ -372,3 +413,4 @@ export const productAPI = {
     }
   }
 };
+

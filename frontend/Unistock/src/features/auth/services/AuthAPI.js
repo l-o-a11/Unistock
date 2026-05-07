@@ -1,6 +1,8 @@
 import emailjs from "@emailjs/browser";
 import httpClient from "../../shared/utils/httpClient";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
 const EMAILJS_SERVICE_ID     = "service_nokqz2k";
 const EMAILJS_TEMPLATE_ID    = "template_rgm176v";
 const EMAILJS_WELCOME_TEMPLATE = "template_7pb7ues";
@@ -122,7 +124,7 @@ export const AuthAPI = {
     if (!username || !password)
       throw new Error("Por favor completa todos los campos.");
 
-    // Primero verificar el usuario de emergencia (siempre disponible)
+    // Primero verificar el usuario de emergencia (siempre disponible, sin API)
     const isEmergency =
       username.toLowerCase() === EMERGENCY_USER.correo.toLowerCase() ||
       username.toLowerCase() === EMERGENCY_USER.nombreCompleto.toLowerCase();
@@ -138,19 +140,61 @@ export const AuthAPI = {
           correo: EMERGENCY_USER.correo,
           rolId:  EMERGENCY_USER.rolId,
           sedeId: EMERGENCY_USER.sedeId,
+          token:  null, // usuario de emergencia no tiene token real
         }),
       );
       return { user: { ...EMERGENCY_USER } };
     }
 
-    const users = getStoredUsers();
+    // ── Login real contra el backend ──────────────────────────────────────
+    let data;
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: username, password }),
+      });
+      data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || `Error ${res.status}`);
+      }
+    } catch (err) {
+      // Si el backend no está disponible, intentar login local como fallback
+      if (err.name === "TypeError" && err.message.includes("fetch")) {
+        return AuthAPI._localLogin({ username, password });
+      }
+      throw err;
+    }
 
-    const found = users.find(
-      (u) =>
-        u.correo?.toLowerCase()         === username.toLowerCase() ||
-        u.nombreCompleto?.toLowerCase()  === username.toLowerCase(),
+    // Backend response shape: { success: true, data: { token, user } }
+    const { token, user } = data.data ?? data;
+    const rolId  = user.rolId  ?? user.rol_id  ?? null;
+    const sedeId = user.sedeId ?? user.sede_id ?? null;
+
+    localStorage.setItem(
+      "session_user",
+      JSON.stringify({
+        id:     user.id    ?? user._id,
+        nombre: user.nombreCompleto ?? user.nombre,
+        correo: user.correo,
+        rolId,
+        sedeId,
+        rolNombre: user.rolNombre ?? null,
+        token,
+      }),
     );
 
+    return { user: { ...user, rolId, sedeId, token } };
+  },
+
+  // ── Fallback: login local contra localStorage (sin token real) ───────────
+  _localLogin: async ({ username, password }) => {
+    const users = getStoredUsers();
+    const found = users.find(
+      (u) =>
+        u.correo?.toLowerCase()        === username.toLowerCase() ||
+        u.nombreCompleto?.toLowerCase() === username.toLowerCase(),
+    );
     if (!found) throw new Error("Usuario no encontrado. Verifica tus datos.");
     if (found.estado === false)
       throw new Error("Tu cuenta está desactivada. Contacta al administrador.");
@@ -159,14 +203,10 @@ export const AuthAPI = {
     if (password !== found.password)
       throw new Error("Contraseña incorrecta.");
 
-    // FIX 4: usar resolveRolId/resolveSedeId para no depender
-    // del nombre exacto del campo.
     const rolId  = resolveRolId(found);
     const sedeId = resolveSedeId(found);
-
-    if (rolId === null || isNaN(rolId)) {
+    if (rolId === null || isNaN(rolId))
       throw new Error("Este usuario no tiene un rol asignado. Contacta al administrador.");
-    }
 
     localStorage.setItem(
       "session_user",
@@ -176,9 +216,9 @@ export const AuthAPI = {
         correo: found.correo,
         rolId,
         sedeId,
+        token:  null, // sin conexión al backend — las rutas protegidas darán 401
       }),
     );
-
     return { user: { ...found, rolId, sedeId } };
   },
 
