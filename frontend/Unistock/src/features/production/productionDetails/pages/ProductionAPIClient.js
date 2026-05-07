@@ -2,9 +2,9 @@
  * Cliente API Real para Producción
  * Conecta con el backend en http://localhost:3000/api/produccion
  */
- 
+
 import { httpRequest } from "../../shared/utils/httpClient";
- 
+
 export const ProductionAPIClient = {
   /**
    * GET /api/produccion/ordenes
@@ -22,12 +22,12 @@ export const ProductionAPIClient = {
     if (filters.limit) queryParams.append("limit", filters.limit);
     if (filters.sortBy) queryParams.append("sortBy", filters.sortBy);
     if (filters.order) queryParams.append("order", filters.order);
- 
+
     const endpoint = `/produccion/ordenes${queryParams.toString() ? "?" + queryParams : ""}`;
     const response = await httpRequest(endpoint, { method: "GET" });
     return response?.data || response;
   },
- 
+
   /**
    * GET /api/produccion/ordenes/:id
    * Obtiene los detalles de una orden específica
@@ -36,7 +36,7 @@ export const ProductionAPIClient = {
     const response = await httpRequest(`/produccion/ordenes/${id}`, { method: "GET" });
     return response?.data || response;
   },
- 
+
   /**
    * POST /api/produccion/ordenes
    * Crea una nueva orden de producción
@@ -48,7 +48,7 @@ export const ProductionAPIClient = {
     });
     return response?.data || response;
   },
- 
+
   /**
    * PUT /api/produccion/ordenes/:id
    * Actualiza una orden (fecha_entrega, cliente)
@@ -60,7 +60,7 @@ export const ProductionAPIClient = {
     });
     return response?.data || response;
   },
- 
+
   /**
    * PATCH /api/produccion/ordenes/:id/estado
    * Cambia el estado de una orden
@@ -72,7 +72,7 @@ export const ProductionAPIClient = {
     });
     return response?.data || response;
   },
- 
+
   /**
    * PATCH /api/produccion/ordenes/:id/anular
    * Anula una orden
@@ -84,7 +84,7 @@ export const ProductionAPIClient = {
     });
     return response?.data || response;
   },
- 
+
   /**
    * GET /api/produccion/ordenes/estados
    * Obtiene la lista de estados válidos
@@ -93,7 +93,7 @@ export const ProductionAPIClient = {
     const response = await httpRequest("/produccion/ordenes/estados", { method: "GET" });
     return response?.data || response;
   },
- 
+
   /**
    * GET /api/produccion/calendario
    * Obtiene eventos para el calendario
@@ -102,12 +102,12 @@ export const ProductionAPIClient = {
     const queryParams = new URLSearchParams();
     if (desde) queryParams.append("desde", desde);
     if (hasta) queryParams.append("hasta", hasta);
- 
+
     const endpoint = `/produccion/calendario${queryParams.toString() ? "?" + queryParams : ""}`;
     const response = await httpRequest(endpoint, { method: "GET" });
     return response?.data || response;
   },
- 
+
   /**
    * GET /api/produccion/alertas
    * Obtiene alertas de órdenes (vencidas, por vencer, sin avance)
@@ -117,7 +117,7 @@ export const ProductionAPIClient = {
     return response?.data || response;
   },
   // ── Detalles de orden ───────────────────────────────────────────────────────
- 
+
   /**
    * GET /api/produccion/detalle-orden?id_orden=:id
    */
@@ -128,7 +128,7 @@ export const ProductionAPIClient = {
     );
     return response?.data || response;
   },
- 
+
   /**
    * POST /api/produccion/detalle-orden
    * Crea un detalle asociado a una orden existente.
@@ -141,7 +141,7 @@ export const ProductionAPIClient = {
     });
     return response?.data || response;
   },
- 
+
   /**
    * GET /api/produccion/alertas
    * Retorna órdenes vencidas, por vencer y sin avance (>7 días).

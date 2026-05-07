@@ -161,7 +161,7 @@ export const productAPI = {
 
   getById: async (id) => {
     try {
-      return await httpClient.get(`/api/products/${id}`);
+      return await httpClient.get(`/products/${id}`);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
@@ -188,7 +188,7 @@ export const productAPI = {
     };
 
     try {
-      return await httpClient.post("/api/products", backendData);
+      return await httpClient.post("/products", backendData);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve) => {
@@ -223,7 +223,7 @@ export const productAPI = {
       stock: updatedData.stock,
     };
     try {
-      return await httpClient.put(`/api/products/${id}`, backendData);
+      return await httpClient.put(`/products/${id}`, backendData);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
@@ -242,7 +242,7 @@ export const productAPI = {
 
   delete: async (id) => {
     try {
-      return await httpClient.delete(`/api/products/${id}`);
+      return await httpClient.delete(`/products/${id}`);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
@@ -261,7 +261,7 @@ export const productAPI = {
 
   toggleActive: async (id) => {
     try {
-      return await httpClient.patch(`/api/products/${id}/toggle-active`, {});
+      return await httpClient.patch(`/products/${id}/toggle-active`, {});
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
@@ -281,7 +281,9 @@ export const productAPI = {
   // Technical sheets full unchanged...
   getTechnicalSheetVersions: async (productId) => {
     try {
-      return await httpClient.get(`/api/products/${productId}/technical-sheets`);
+      // Backend ruta real: GET /api/products/:id/tecnicas
+      // (el httpClient ya antepone VITE_API_URL + /api)
+      return await httpClient.get(`/products/${productId}/tecnicas`);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve) => {
@@ -297,7 +299,7 @@ export const productAPI = {
 
   getTechnicalSheetById: async (id) => {
     try {
-      return await httpClient.get(`/api/technical-sheets/${id}`);
+      return await httpClient.get(`/technical-sheets/${id}`);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
@@ -315,7 +317,7 @@ export const productAPI = {
 
   createTechnicalSheet: async (sheetData) => {
     try {
-      return await httpClient.post("/api/technical-sheets", sheetData);
+      return await httpClient.post("/technical-sheets", sheetData);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve) => {
@@ -342,7 +344,7 @@ export const productAPI = {
 
   updateTechnicalSheet: async (productId, sheetData) => {
     try {
-      return await httpClient.post(`/api/products/${productId}/technical-sheets`, sheetData);
+      return await httpClient.post(`/products/${productId}/technical-sheets`, sheetData);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve) => {
@@ -378,7 +380,7 @@ export const productAPI = {
 
   deleteTechnicalSheet: async (id) => {
     try {
-      return await httpClient.delete(`/api/technical-sheets/${id}`);
+      return await httpClient.delete(`/technical-sheets/${id}`);
     } catch (error) {
       console.warn("Backend no disponible, usando datos locales:", error.message);
       return new Promise((resolve, reject) => {
