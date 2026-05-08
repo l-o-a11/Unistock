@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
-  // Guardar los valores iniciales para comparar
+const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
   const initialData = {
-    name: category?.name || '',
-    description: category?.description || '',
+    name: productCategory?.name || '',
+    description: productCategory?.description || '',
   };
 
   const [formData, setFormData] = useState(initialData);
@@ -14,13 +13,11 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
   });
   const [touched, setTouched] = useState({});
 
-  // 🔥 DETECTAR SI HAY CAMBIOS
   const hasChanges = () => {
-    if (!category) return true; // En creación siempre hay cambios potenciales
-    return formData.name !== category.name || formData.description !== category.description;
+    if (!productCategory) return true;
+    return formData.name !== productCategory.name || formData.description !== productCategory.description;
   };
 
-  // 🔥 VALIDACIONES EN TIEMPO REAL
   const validateName = (value) => {
     if (!value.trim()) return "El nombre es obligatorio";
     if (/\d/.test(value)) return "El nombre no puede contener números";
@@ -34,7 +31,6 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     return "";
   };
 
-  // Validar campo específico y actualizar errores
   const validateField = (name, value) => {
     let error = '';
     if (name === 'name') error = validateName(value);
@@ -55,7 +51,6 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     validateField(field, formData[field]);
   };
 
-  // Validar todos los campos antes de enviar
   const validateForm = () => {
     const nameError = validateName(formData.name);
     const descriptionError = validateDescription(formData.description);
@@ -70,9 +65,7 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
       description: true
     });
 
-    const hasErrors = nameError || descriptionError;
-    
-    if (hasErrors) {
+    if (nameError || descriptionError) {
       onShowAlert({
         type: "warning",
         title: "Campos inválidos",
@@ -86,12 +79,10 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // 🔥 VALIDACIÓN DE CAMPOS
+
     if (!validateForm()) return;
     
-    // 🔥 VALIDACIÓN DE CAMBIOS (solo para edición)
-    if (category && !hasChanges()) {
+    if (productCategory && !hasChanges()) {
       onShowAlert({
         type: "warning",
         title: "Sin cambios",
@@ -103,7 +94,6 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     onSubmit(formData);
   };
 
-  // ALERTA DE CONFIRMACIÓN al cancelar
   const handleCancelClick = () => {
     onShowConfirm({
       title: "¿Seguro que deseas cancelar?",
@@ -114,13 +104,13 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
     });
   };
 
-  useEffect(() => {
-    const handleEsc = (e) => e.key === "Escape" && handleCancelClick();
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
+  const handleEscapeKey = (e) => e.key === "Escape" && handleCancelClick();
 
-  // Estilo para inputs con error - SOLO BORDE ROSA
+  useEffect(() => {
+    window.addEventListener("keydown", handleEscapeKey);
+    return () => window.removeEventListener("keydown", handleEscapeKey);
+  }, [handleCancelClick, handleEscapeKey]);
+
   const getInputStyle = (field) => {
     const baseStyle = {
       width: '100%',
@@ -165,11 +155,10 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
   return (
     <div style={{ padding: '32px' }}>
       <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: '600', color: '#333' }}>
-        {category ? 'Editar Categoría' : 'Crear Nueva Categoría'}
+        {productCategory ? 'Editar Categoría' : 'Crear Nueva Categoría'}
       </h2>
 
       <form onSubmit={handleSubmit}>
-        {/* Nombre */}
         <div style={{ marginBottom: '20px' }}>
           <label style={labelStyle}>Nombre {requiredStar}</label>
           <input
@@ -183,13 +172,10 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             onFocus={(e) => !errors.name && (e.target.style.borderColor = '#E91E8C')}
           />
           {(touched.name || formData.name) && errors.name && (
-            <span style={errorStyle}>
-              {errors.name}
-            </span>
+            <span style={errorStyle}>{errors.name}</span>
           )}
         </div>
 
-        {/* Descripción */}
         <div style={{ marginBottom: '24px' }}>
           <label style={labelStyle}>Descripción {requiredStar}</label>
           <textarea
@@ -206,13 +192,10 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             onFocus={(e) => !errors.description && (e.target.style.borderColor = '#E91E8C')}
           />
           {(touched.description || formData.description) && errors.description && (
-            <span style={errorStyle}>
-              {errors.description}
-            </span>
+            <span style={errorStyle}>{errors.description}</span>
           )}
         </div>
 
-        {/* Botones */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
           <button
             type="button"
@@ -232,6 +215,7 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
           >
             Cancelar
           </button>
+
           <button
             type="submit"
             style={{
@@ -250,7 +234,7 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FF4FD6')}
             disabled={errors.name || errors.description}
           >
-            {category ? 'Guardar Categoría' : 'Guardar Categoría'}
+            {productCategory ? 'Guardar Categoría' : 'Guardar Categoría'}
           </button>
         </div>
       </form>
@@ -258,4 +242,4 @@ const CategoryForm = ({ category, onSubmit, onCancel, onShowAlert, onShowConfirm
   );
 };
 
-export default CategoryForm;
+export default ProductCategoryForm;

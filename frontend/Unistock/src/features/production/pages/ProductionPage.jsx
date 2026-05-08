@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { useProductions } from '../hooks/useProduction';
 import ProductionTable from '../components/ProductionTable';
 import ProductionSearch from '../components/ProductionSearch';
-import AddProductionButton from '../components/AddProductionButton';
 import ProductionForm from '../components/ProductionForm';
 import DamagedProductsModal from '../components/DamagedProductsModal';
 import Alert from '../../shared/components/Alert';
@@ -31,6 +30,7 @@ const ProductionsPage = () => {
   const [damagedModal,   setDamagedModal]   = useState({ open: false, production: null });
   const [damagedOrderForm, setDamagedOrderForm] = useState({ open: false, initialData: null, notice: null });
   const [creatingNewOrder, setCreatingNewOrder] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const itemsPerPage = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
@@ -152,6 +152,10 @@ const ProductionsPage = () => {
   };
 
   const handleCreateSubmit = async (data) => { await createProduction(data); };
+  const handleCreateFromModal = async (data) => {
+    await handleCreateSubmit(data);
+    setShowCreateForm(false);
+  };
 
   const getPageNumbers = () => {
     if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
@@ -354,6 +358,13 @@ const ProductionsPage = () => {
         />
       )}
 
+      {showCreateForm && (
+        <ProductionForm
+          onSubmit={handleCreateFromModal}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
+
       <div className="prod-root">
         {/* Header */}
         <div className="prod-header">
@@ -451,11 +462,21 @@ const ProductionsPage = () => {
 
           {/* Botones acción (derecha) */}
           <div className="prod-filter-right">
-            <AddProductionButton
-              productions={filteredProductions}
-              onCreateProduction={handleCreateSubmit}
-              onFilterByDate={(date) => { setFilterDateFrom(date); setFilterDateTo(date); setCurrentPage(1); }}
-            />
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              style={{
+                border: 'none',
+                borderRadius: 8,
+                background: '#ff4fd6',
+                color: '#fff',
+                fontWeight: 600,
+                padding: '8px 14px',
+                cursor: 'pointer',
+              }}
+            >
+              + Nueva orden
+            </button>
           </div>
         </div>
 

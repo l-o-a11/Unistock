@@ -30,7 +30,11 @@ const inputStyle = {
 const AddRowBtn = ({ onClick }) => (
   <button
     type="button"
-    onClick={onClick}
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick?.();
+    }}
     style={{
       background: "none",
       border: "none",
@@ -39,9 +43,11 @@ const AddRowBtn = ({ onClick }) => (
       display: "flex",
       alignItems: "center",
       padding: "4px 0",
+      transition: "color 0.2s",
     }}
     onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
     onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+    title="Agregar fila"
   >
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -70,7 +76,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
         { type: "Abrochadura o gafete", values: ["", "", ""] },
         { type: "Elástico cargadera", values: ["", "", ""] },
       ],
-      accessories: Array(14).fill(null).map(() => ({ values: ["", "", "", "", "", ""] })),
+      accessories: Array(14).fill(null).map(() => ({ values: ["", "", ""] })),
       measurements: [
         { name: "Medidas cargaderas", values: ["", ""] },
         { name: "Medidas varillas plásticas", values: ["", ""] },

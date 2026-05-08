@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AddCategoryButton = ({ onClick, label = "Agregar nueva categoría" }) => {
+const AddProductCategoryButton = ({ onClick, label = 'Agregar nueva categoría' }) => {
   return (
     <button
       onClick={onClick}
@@ -41,4 +41,4 @@ const AddCategoryButton = ({ onClick, label = "Agregar nueva categoría" }) => {
   );
 };
 
-export default AddCategoryButton;
+export default AddProductCategoryButton;

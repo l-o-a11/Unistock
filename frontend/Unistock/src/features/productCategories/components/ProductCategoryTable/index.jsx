@@ -1,36 +1,37 @@
 import React from 'react';
 import HoverCard from '../../../shared/components/HoverCart';
-import { CATEGORY_COLORS } from '../../types/constants';
+import { useMediaQuery } from '../../../shared/hooks/useMediaQuery';
 
-const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
+const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   const thStyle = {
-    padding: '14px 20px',
+    padding: isMobile ? '10px 12px' : '14px 20px',
     textAlign: 'left',
-    fontSize: '13px',
+    fontSize: isMobile ? '12px' : '13px',
     fontWeight: '500',
     color: '#888',
     borderBottom: '1px solid #f0f0f0',
     backgroundColor: '#f5f5f5',
-    whiteSpace: 'nowrap',
+    whiteSpace: isMobile ? 'normal' : 'nowrap',
   };
 
   const tdStyle = {
-    padding: '14px 20px',
-    fontSize: '14px',
+    padding: isMobile ? '10px 12px' : '14px 20px',
+    fontSize: isMobile ? '13px' : '14px',
     color: '#333',
     borderBottom: '1px solid #f5f5f5',
+    whiteSpace: isMobile ? 'normal' : 'nowrap',
   };
 
-  const needsHover = (text) => {
-    return text && text.length > 12;
-  };
+  const needsHover = (text) => text && text.length > 12;
 
   const truncateText = (text, maxLength = 20) => {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  if (categories.length === 0) {
+  if (productCategories.length === 0) {
     return (
       <div style={{
         backgroundColor: '#fff',
@@ -40,7 +41,9 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📂</div>
-        <p style={{ color: '#999', fontSize: '15px', margin: 0 }}>No hay categorías para mostrar</p>
+        <p style={{ color: '#999', fontSize: '15px', margin: 0 }}>
+          No hay categorías para mostrar
+        </p>
       </div>
     );
   }
@@ -51,8 +54,16 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
       borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
     }}>
-      <div style={{ overflowX: 'visible' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{
+        overflowX: isMobile ? 'auto' : 'visible',
+        WebkitOverflowScrolling: 'touch',
+      }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          minWidth: isMobile ? '740px' : undefined,
+        }}>
+          
           <thead>
             <tr>
               <th style={thStyle}>Nombre</th>
@@ -61,23 +72,25 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
               <th style={thStyle}>Acciones</th>
             </tr>
           </thead>
+
           <tbody>
-            {categories.map((category) => (
+            {productCategories.map((productCategory) => (
               <tr
-                key={category.id}
+                key={productCategory.id}
                 style={{ transition: 'background 0.15s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fafafa')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
+
                 {/* NOMBRE */}
                 <td style={tdStyle}>
-                  {needsHover(category.name) ? (
+                  {needsHover(productCategory.name) ? (
                     <HoverCard
                       title="Nombre completo"
                       position="right"
                       fields={[
-                        { label: "Nombre", value: category.name, highlight: true },
-                        { label: "ID", value: category.id, type: "badge" }
+                        { label: "Nombre", value: productCategory.name, highlight: true },
+                        { label: "ID", value: productCategory.id, type: "badge" }
                       ]}
                     >
                       <span style={{
@@ -86,33 +99,33 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                         fontWeight: '500',
                         cursor: 'help'
                       }}>
-                        {truncateText(category.name, 20)}
+                        {truncateText(productCategory.name, 20)}
                       </span>
                     </HoverCard>
                   ) : (
                     <span style={{ color: '#333', fontSize: '14px', fontWeight: '500' }}>
-                      {category.name}
+                      {productCategory.name}
                     </span>
                   )}
                 </td>
 
                 {/* DESCRIPCIÓN */}
                 <td style={tdStyle}>
-                  {needsHover(category.description) ? (
+                  {needsHover(productCategory.description) ? (
                     <HoverCard
                       title="Información categoría"
                       position="right"
                       fields={[
-                        { label: "Descripción", value: category.description, highlight: true }
+                        { label: "Descripción", value: productCategory.description, highlight: true }
                       ]}
                     >
                       <span style={{ cursor: 'help' }}>
-                        {truncateText(category.description, 25)}
+                        {truncateText(productCategory.description, 25)}
                       </span>
                     </HoverCard>
                   ) : (
-                    <span title={category.description}>
-                      {truncateText(category.description, 25)}
+                    <span title={productCategory.description}>
+                      {truncateText(productCategory.description, 25)}
                     </span>
                   )}
                 </td>
@@ -120,16 +133,17 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                 {/* CANTIDAD */}
                 <td style={tdStyle}>
                   <span style={{ color: '#666', fontSize: '14px' }}>
-                    {category.productCount}
+                    {productCategory.productCount}
                   </span>
                 </td>
 
                 {/* ACCIONES */}
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    {/* Edit button */}
+
+                    {/* EDIT */}
                     <button
-                      onClick={() => onEdit(category)}
+                      onClick={() => onEdit(productCategory)}
                       title="Editar categoría"
                       style={{
                         background: 'none',
@@ -149,9 +163,9 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                       </svg>
                     </button>
 
-                    {/* Delete button */}
+                    {/* DELETE */}
                     <button
-                      onClick={() => onDelete(category.id)}
+                      onClick={() => onDelete(productCategory.id)}
                       title="Eliminar categoría"
                       style={{
                         background: 'none',
@@ -173,15 +187,18 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                         <path d="M9 6V4h6v2" />
                       </svg>
                     </button>
+
                   </div>
                 </td>
+
               </tr>
             ))}
           </tbody>
+
         </table>
       </div>
     </div>
   );
 };
 
-export default CategoryTable;
+export default ProductCategoryTable;
