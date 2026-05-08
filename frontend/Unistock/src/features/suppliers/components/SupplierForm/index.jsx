@@ -116,26 +116,41 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
    */
   // Campos que deben ser únicos entre proveedores
   const UNIQUE_FIELDS = {
-    nit:           (s) => s.nit,
-    correoEmpresa: (s) => s.correoEmpresa || s.email,
-    telefono:      (s) => s.telefono,
-    nombreEmpresa: (s) => (s.nombreEmpresa || "").toLowerCase().trim(),
+    nit:           (s) => s?.nit,
+    correoEmpresa: (s) => s?.correoEmpresa || s?.email,
+    telefono:      (s) => s?.telefono,
+    nombreEmpresa: (s) => (s?.nombreEmpresa || "").toLowerCase().trim(),
   };
 
   const isDuplicate = (name, value) => {
-    if (!value || !value.trim()) return false;
+    if (!value || typeof value !== "string" || !value.trim()) return false;
+
     const getter = UNIQUE_FIELDS[name];
     if (!getter) return false;
-    const normalized = name === "nombreEmpresa" ? value.toLowerCase().trim() : value.trim();
-    return allSuppliers.some(s => {
+
+    const normalized =
+      name === "nombreEmpresa" ? value.toLowerCase().trim() : value.trim();
+
+    return allSuppliers.some((s) => {
       // Skip the supplier being edited
       if (supplier && s.id === supplier.id) return false;
-      const existing = name === "nombreEmpresa"
-        ? (getter(s) || "").toLowerCase().trim()
-        : (getter(s) || "").trim();
-      return existing === normalized;
+
+      const raw = getter(s);
+      // If API returns non-string values, normalize to string safely.
+      const existing = raw === null || raw === undefined
+        ? ""
+        : String(raw).toLowerCase().trim();
+
+      const normalizedExisting = name === "nombreEmpresa"
+        ? existing // already lowercased
+        : String(raw).toLowerCase().trim();
+
+      // For non-nombreEmpresa fields, compare without forcing lowercase (except we already lowercased).
+      // email/nit/telefono are case-insensitive for our purposes.
+      return normalizedExisting === (name === "nombreEmpresa" ? normalized : normalized.toLowerCase());
     });
   };
+
 
   const validateField = (name, value) => {
     let error = "";
@@ -315,7 +330,6 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
           style={{
             backgroundColor: "#fff", borderRadius: "16px",
             width: "100%", maxWidth: "860px",
-            // Padding estandarizado: 28px vertical, 32px horizontal (= misma medida que Third_partiesForm)
             padding: "28px 32px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             position: "relative",
