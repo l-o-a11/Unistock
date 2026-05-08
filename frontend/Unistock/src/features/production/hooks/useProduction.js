@@ -2,85 +2,133 @@ import { useState, useEffect } from 'react';
 import { ProductionAPIClient } from '../services/ProductionAPIClient';
 import { getCurrentUser } from '../services/ProductionAPI';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+const fmtDate = (raw) =>
+  raw
+    ? new Date(raw).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '';
+
 /**
- * Hook para gestionar Órdenes de Producción desde el API real
- * Conectado con: http://localhost:3000/api/produccion
+ * Mapea un array de documentos de detalle del backend al formato del frontend.
+ * Cada detalle tiene: id, id_producto, cantidad, color, estado, createdAt
  */
+const mapDetails = (rawDetails, ordenEstado, statusDate) =>
+  (rawDetails || []).map((d) => ({
+    id:         d.id || d._id || '',
+    refCorte:   d.id_producto || '',   // código de referencia del artículo
+    ref:        d.id_producto || '',
+    quantity:   Number(d.cantidad) || 0,
+    color:      d.color || '—',
+    status:     ordenEstado || 'Diseño',
+    statusDate: statusDate || fmtDate(d.updatedAt || d.createdAt),
+    estado:     d.estado !== false,
+  }));
+
+/**
+ * Dado un array de detalles ya mapeados, calcula los campos resumen
+ * que se muestran directamente en la fila de la tabla.
+ */
+const summarizeDetails = (details) => {
+  const totalQty    = details.reduce((s, d) => s + (d.quantity || 0), 0);
+  const uniqueColors = [...new Set(details.map((d) => d.color).filter((c) => c && c !== '—'))];
+  const firstRef    = details[0]?.ref || '';
+  return { totalQty, uniqueColors, firstRef };
+};
+
+/**
+ * Mapea un documento de orden del backend (sin detalles) al formato frontend.
+ * Los campos de detalle (referencia, cantidad, color, details) se rellenan
+ * después con mergeDetails().
+ */
+const mapOrder = (order) => ({
+  id:           order._id  || order.id,
+  orderNumber:  order.numero_orden,
+  cliente:      order.cliente,
+  cliente_name: order.cliente,
+  client:       order.cliente,
+  status:       order.estado,
+  estado:       order.estado,
+  deliveryDate: fmtDate(order.fecha_entrega),
+  statusDate:   fmtDate(order.updatedAt || order.createdAt),
+  history: (order.historial || []).map((h) => ({
+    status: h.estado,
+    date:   fmtDate(h.fecha),
+    user:   h.id_usuario || 'Sistema',
+    motivo: h.motivo,
+  })),
+  // Campos de artículo — se rellenan tras cargar detalles
+  referencia: '',
+  producto:   '',
+  quantity:   0,
+  color:      '',
+  details:    [],
+  rawData:    order,
+});
+
+/**
+ * Fusiona los detalles cargados en un objeto de producción ya mapeado.
+ */
+const mergeDetails = (prod, rawDetails) => {
+  const details = mapDetails(rawDetails, prod.status, prod.statusDate);
+  const { totalQty, uniqueColors, firstRef } = summarizeDetails(details);
+  return {
+    ...prod,
+    details,
+    quantity:   totalQty,
+    color:      uniqueColors[0] || '',
+    referencia: firstRef,
+    producto:   firstRef || `Orden #${prod.orderNumber}`,
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const useProductions = () => {
   const [Productions, setProductions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
 
-  useEffect(() => {
-    loadProductions();
-  }, []);
+  useEffect(() => { loadProductions(); }, []);
 
+  // ── Carga inicial: órdenes + sus detalles en paralelo ─────────────────────
   const loadProductions = async () => {
     try {
       setLoading(true);
       setError(null);
-      // Cargar con paginación y sin filtros iniciales
-      const response = await ProductionAPIClient.getOrders({ 
-        page: 1, 
-        limit: 100 
-      });
-      
-      // Mapear respuesta del backend al formato del frontend
-      // El backend puede devolver shapes distintos (por ejemplo {data:{data:[...]}} o {data:[...]})
-      const backendList =
-        response?.data?.data ??
-        response?.data?.producciones ??
-        response?.data?.orders ??
-        response?.data ??
-        response?.producciones ??
-        response?.orders ??
-        response ??
+
+      const response = await ProductionAPIClient.getOrders({ page: 1, limit: 100 });
+
+      // Normalizar shape de respuesta
+      const raw =
+        response?.data?.data    ??
+        response?.data?.orders  ??
+        response?.data          ??
+        response?.orders        ??
+        response                ??
         [];
+      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
 
-      const list = Array.isArray(backendList)
-        ? backendList
-        : Array.isArray(backendList?.data)
-          ? backendList.data
-          : [];
+      // 1. Mapear órdenes base (sin detalles)
+      const baseProducciones = list.map(mapOrder);
 
-      const productions = (list || []).map((order) => ({
-        id: order._id || order.id,
-        orderNumber: order.numero_orden,
-        cliente: order.cliente,
-        cliente_name: order.cliente,
-        client: order.cliente,
-        status: order.estado,
-        estado: order.estado,
-        deliveryDate: order.fecha_entrega
-          ? new Date(order.fecha_entrega).toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-            })
-          : '',
-        statusDate: order.createdAt
-          ? new Date(order.createdAt).toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-            })
-          : '',
-        history: (order.historial || []).map((h) => ({
-          status: h.estado,
-          date: h.fecha
-            ? new Date(h.fecha).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })
-            : '',
-          user: h.id_usuario || 'Sistema',
-          motivo: h.motivo,
-        })),
-        rawData: order,
-      }));
-      
-      setProductions(productions);
+      // 2. Cargar detalles de todas las órdenes en paralelo
+      const detailsArray = await Promise.all(
+        baseProducciones.map((p) =>
+          ProductionAPIClient.getOrderDetails(p.id).catch(() => [])
+        )
+      );
+
+      // 3. Fusionar detalles en cada orden
+      const producciones = baseProducciones.map((p, i) =>
+        mergeDetails(p, detailsArray[i] || [])
+      );
+
+      setProductions(producciones);
     } catch (err) {
       console.error('Error al cargar producciones:', err);
       setError('Error al cargar las órdenes de producción. Verifica la conexión con el servidor.');
@@ -89,100 +137,52 @@ export const useProductions = () => {
     }
   };
 
+  // ── Crear orden + detalles ────────────────────────────────────────────────
   const createProduction = async (productionData) => {
     try {
       const backendData = {
-        cliente: (productionData.client || productionData.cliente || '').trim(),
-        fecha_entrega:
-          productionData.deliveryDate ||
-          productionData.fecha_entrega ||
-          productionData.fechaSolicitud,
+        cliente:       (productionData.client || productionData.cliente || '').trim(),
+        fecha_entrega: productionData.deliveryDate || productionData.fecha_entrega || productionData.fechaSolicitud,
       };
 
       const newOrder = await ProductionAPIClient.createOrder(backendData);
-      const idOrden = newOrder._id || newOrder.id;
+      const idOrden  = newOrder._id || newOrder.id;
 
-      // Guardar detalles (color / referencia / cantidad)
+      // Armar array de detalles desde los campos del form
       const detalles = [];
-
-      // Campos desde el form (ProductionForm)
-      const referencia = productionData.referencia || '';
+      const referencia       = String(productionData.referencia || '').trim();
       const cantidadPrincipal = Number(productionData.cantidad) || 0;
-      const colorPrincipal = productionData.color ? String(productionData.color).trim() : '';
+      const colorPrincipal    = String(productionData.color || '').trim();
 
-      if (String(referencia).trim() && cantidadPrincipal > 0 && colorPrincipal) {
-        detalles.push({
-          id_producto: String(referencia).trim(),
-          cantidad: cantidadPrincipal,
-          color: colorPrincipal,
-        });
+      if (referencia && cantidadPrincipal > 0) {
+        detalles.push({ id_producto: referencia, cantidad: cantidadPrincipal, color: colorPrincipal });
       }
 
-      const referenciasExtras = Array.isArray(productionData.referencias)
-        ? productionData.referencias
-        : [];
-
-      referenciasExtras.forEach((r) => {
-        const qty = Number(r?.cantidad) || 0;
-        const colorExtra = r?.color ? String(r.color).trim() : '';
-        if (!String(referencia).trim() || qty <= 0) return;
-        if (!colorExtra && !colorPrincipal) return;
-
-        detalles.push({
-          id_producto: String(referencia).trim(),
-          cantidad: qty,
-          color: colorExtra || colorPrincipal,
-        });
+      (Array.isArray(productionData.referencias) ? productionData.referencias : []).forEach((r) => {
+        const qty   = Number(r?.cantidad) || 0;
+        const color = String(r?.color || '').trim() || colorPrincipal;
+        const ref   = String(r?.referencia || referencia).trim();
+        if (ref && qty > 0) detalles.push({ id_producto: ref, cantidad: qty, color });
       });
 
-      // Endpoint backend: POST /api/produccion/detalle-orden
-      if (detalles.length > 0) {
-        for (const d of detalles) {
-          await ProductionAPIClient.createOrderDetail({
+      // Crear detalles en el backend
+      const rawDetails = await Promise.all(
+        detalles.map((d) =>
+          ProductionAPIClient.createOrderDetail({
             id_orden:    idOrden,
-            id_producto: String(d.id_producto).trim(),
+            id_producto: d.id_producto,
             cantidad:    d.cantidad,
-            color:       d.color ? String(d.color).trim() : '',
-          });
-        }
-      }
+            color:       d.color,
+          }).catch((err) => { console.error('Error creando detalle:', err); return null; })
+        )
+      );
 
-      // Mapear respuesta de vuelta al formato frontend
-      const newProduction = {
-        id: idOrden,
-        orderNumber: newOrder.numero_orden,
-        client: newOrder.cliente,
-        cliente: newOrder.cliente,
-        status: newOrder.estado,
-        estado: newOrder.estado,
-        deliveryDate: newOrder.fecha_entrega
-          ? new Date(newOrder.fecha_entrega).toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-            })
-          : '',
-        statusDate: new Date().toLocaleDateString('es-ES', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        }),
-        history: (newOrder.historial || []).map((h) => ({
-          status: h.estado,
-          date: h.fecha
-            ? new Date(h.fecha).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })
-            : '',
-          user: h.id_usuario || 'Sistema',
-          motivo: h.motivo,
-        })),
-        rawData: newOrder,
-      };
+      // Construir objeto producción con detalles ya incluidos
+      const base          = mapOrder(newOrder);
+      const validDetails  = rawDetails.filter(Boolean);
+      const newProduction = mergeDetails(base, validDetails);
 
-      setProductions((prev) => [...prev, newProduction]);
+      setProductions((prev) => [newProduction, ...prev]);
       return newProduction;
     } catch (err) {
       console.error('Error al crear producción:', err);
@@ -191,26 +191,20 @@ export const useProductions = () => {
     }
   };
 
+  // ── Actualizar orden ──────────────────────────────────────────────────────
   const updateProduction = async (id, productionData) => {
     try {
-      const backendData = {
-        cliente: productionData.client || productionData.cliente,
+      const updated = await ProductionAPIClient.updateOrder(id, {
+        cliente:       productionData.client || productionData.cliente,
         fecha_entrega: productionData.deliveryDate || productionData.fecha_entrega,
-      };
-      
-      const updated = await ProductionAPIClient.updateOrder(id, backendData);
-      
-      setProductions(prev => prev.map(p => 
-        p.id === id ? {
-          ...p,
-          client: updated.cliente,
-          deliveryDate: updated.fecha_entrega 
-            ? new Date(updated.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            : '',
-          rawData: updated
-        } : p
-      ));
-      
+      });
+      setProductions((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, client: updated.cliente, deliveryDate: fmtDate(updated.fecha_entrega), rawData: updated }
+            : p
+        )
+      );
       return updated;
     } catch (err) {
       console.error('Error al actualizar producción:', err);
@@ -219,25 +213,63 @@ export const useProductions = () => {
     }
   };
 
+  // ── Anular orden ──────────────────────────────────────────────────────────
   const cancelProduction = async (id, motivo) => {
     try {
       const updated = await ProductionAPIClient.cancelOrder(id, motivo);
-      
-      setProductions(prev => prev.map(p => 
-        p.id === id ? {
-          ...p,
-          status: 'Anulada',
-          estado: 'Anulada',
-          rawData: updated
-        } : p
-      ));
-      
+      setProductions((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, status: 'Anulada', estado: 'Anulada', rawData: updated } : p
+        )
+      );
       return updated;
     } catch (err) {
       console.error('Error al anular producción:', err);
       setError('Error al anular la orden de producción');
       throw err;
     }
+  };
+
+  // ── Fetch detalles de una orden (lazy, si el usuario expande una fila) ───
+  // Ya no es necesario porque loadProductions los carga todos, pero se
+  // mantiene para que ProductionTable pueda recargar tras crear nuevos detalles.
+  const fetchAndSetDetails = async (productionId) => {
+    try {
+      const rawDetails = await ProductionAPIClient.getOrderDetails(productionId);
+      setProductions((prev) =>
+        prev.map((p) =>
+          p.id === productionId ? mergeDetails(p, rawDetails || []) : p
+        )
+      );
+    } catch (err) {
+      console.error('Error al cargar detalles de la orden:', err);
+    }
+  };
+
+  // ── Cambiar estado ────────────────────────────────────────────────────────
+  const changeProductionStatus = async (id, nuevoEstado) => {
+    const updated = await ProductionAPIClient.changeOrderStatus(id, nuevoEstado);
+    const today   = fmtDate(new Date());
+    setProductions((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              status:     updated.estado || nuevoEstado,
+              estado:     updated.estado || nuevoEstado,
+              statusDate: today,
+              history: (updated.historial || []).map((h) => ({
+                status: h.estado,
+                date:   fmtDate(h.fecha),
+                user:   h.id_usuario || 'Sistema',
+                motivo: h.motivo,
+              })),
+              rawData: updated,
+            }
+          : p
+      )
+    );
+    return updated;
   };
 
   return {
@@ -247,6 +279,8 @@ export const useProductions = () => {
     createProduction,
     updateProduction,
     cancelProduction,
+    changeProductionStatus,
+    fetchAndSetDetails,
     refreshProductions: loadProductions,
   };
 };

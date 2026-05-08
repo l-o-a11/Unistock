@@ -9,7 +9,7 @@
  *   damageNotice  {object|null}    — aviso de origen por daño
  *     { originalOrderNumber, originalOrderStatus, damagedCount, totalDamagedQty }
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Alert from '../../../shared/components/Alert';
 import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
@@ -164,9 +164,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   useEffect(() => {
     (async () => {
       try {
-        const { categoryAPI } = await import('../../../categories/services/categoryAPI');
-        const cats = await categoryAPI.getAll();
-        setCategories((cats || []).map(c => c.name));
+        const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
+        const cats = await productCategoryAPI.getAll();
+        setCategories((cats || []).map(c => c.name)); 
       } catch {
         setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
       }
@@ -174,10 +174,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   }, []);
 
   useEffect(() => {
-    if (type !== 'produccion' || !formData.referencia) { setTechSheetPreview(null); return; }
-    setLoadingSheet(true);
-    setTechSheetPreview(null);
     (async () => {
+      if (type !== 'produccion' || !formData.referencia) { return; }
+      
+      setLoadingSheet(true);
       try {
         const { productAPI } = await import('../../../products/services/productAPI');
         const versions = await productAPI.getTechnicalSheetVersions(formData.referencia);
@@ -187,16 +187,19 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     })();
   }, [formData.referencia, type]);
 
-  useEffect(() => {
-    setSavedColors(JSON.parse(localStorage.getItem('productionColors') || '[]'));
-    setSavedClients(JSON.parse(localStorage.getItem('productionClients') || '[]'));
-  }, []);
+  const handleCancelClick = useCallback(() => {
+    setAlertConfig({
+      open: true, type: 'confirm', title: 'Cancelar',
+      message: '¿Seguro que deseas cancelar? Se perderán los cambios.',
+      onConfirm: () => { setAlertConfig(prev => ({ ...prev, open: false })); onCancel(); },
+    });
+  }, [onCancel]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') handleCancelClick(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [handleCancelClick]);
 
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
@@ -307,14 +310,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     });
     setShowConfirm(false);
     setAlertConfig({ open: true, type: 'success', title: 'Orden creada', message: 'La orden de producción fue creada correctamente.', onConfirm: null });
-  };
-
-  const handleCancelClick = () => {
-    setAlertConfig({
-      open: true, type: 'confirm', title: 'Cancelar',
-      message: '¿Seguro que deseas cancelar? Se perderán los cambios.',
-      onConfirm: () => { setAlertConfig(prev => ({ ...prev, open: false })); onCancel(); },
-    });
   };
 
   const sectionTitle = (t) => (
