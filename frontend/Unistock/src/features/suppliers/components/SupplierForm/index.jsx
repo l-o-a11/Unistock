@@ -166,6 +166,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         if (!error && isDuplicate("telefono", value))
           error = "El proveedor ya se encuentra registrado";
         break;
+      case "nombreContacto":
+        error = validators.required(value);
+        break;
       case "correoContacto":
         error = value ? validators.email(value) : "";
         break;
@@ -240,19 +243,13 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!validateAll()) {
-      setAlertConfig({
-        open: true, type: "warning",
-        title: "Campos incompletos",
-        message: "Corrige los campos marcados antes de continuar.",
-        onConfirm: null,
-      });
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateAll()){ 
       return;
     }
     try {
-      onSubmit(formData);
+      await onSubmit(formData);
       // pendingClose = true hace que el modal se cierre cuando el Alert de éxito se cierre
       setPendingClose(true);
       setAlertConfig({
@@ -416,11 +413,12 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
 
                 {/* Nombre contacto — opcional */}
                 <Input
-                  label="Nombre Contacto"
+                  label="Nombre Contacto *"
                   name="nombreContacto"
                   value={formData.nombreContacto}
                   onChange={handleChange}
                   onBlur={handleBlur}
+                  error={errors.nombreContacto}
                 />
 
                 {/* Teléfono — solo dígitos (bloqueado + validado), exactamente 10 */}

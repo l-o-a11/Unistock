@@ -120,10 +120,56 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await ProductionAPI.getById(Number(id));
-        setProduction(data);
+        // Usar ProductionAPIClient en lugar de ProductionAPI (mock)
+        const { ProductionAPIClient } = await import('../../services/ProductionAPIClient');
+        const data = await ProductionAPIClient.getOrderById(id); // id es string de MongoDB, no número
+        
+        // Mapear respuesta del backend al formato del frontend
+        const statusDate = data.updatedAt
+          ? new Date(data.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          : (data.createdAt ? new Date(data.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '');
+
+        const mappedProduction = {
+          id: data._id || data.id,
+          orderNumber: data.numero_orden,
+          cliente: data.cliente,
+          client: data.cliente,
+          // Campos de producto: derivados del primer detalle o genéricos
+          producto: (data.detalles && data.detalles.length > 0)
+            ? (data.detalles[0].id_producto || 'Orden de producción')
+            : 'Orden de producción',
+          referencia: (data.detalles && data.detalles.length > 0)
+            ? (data.detalles[0].id_producto || '')
+            : '',
+          status: data.estado,
+          estado: data.estado,
+          deliveryDate: data.fecha_entrega
+            ? new Date(data.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '',
+          statusDate,
+          history: (data.historial || []).map(h => ({
+            status: h.estado,
+            date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+            user: h.id_usuario || 'Sistema',
+            motivo: h.motivo
+          })),
+          // ── DETALLES: mapeados desde backend ──────────────────────────────
+          details: (data.detalles || []).map((d) => ({
+            id:         d.id || d._id,
+            refCorte:   d.id_producto || '',   // código/referencia del producto
+            ref:        d.id_producto || '',
+            quantity:   d.cantidad    || 0,
+            color:      d.color       || '—',
+            status:     data.estado,           // hereda el estado de la orden
+            statusDate,
+            estado:     d.estado !== false,    // true = activo
+          })),
+          rawData: data,
+        };
+        
+        setProduction(mappedProduction);
       } catch (err) {
-        console.error(err.message);
+        console.error('Error al cargar producción:', err.message);
       } finally {
         setLoading(false);
       }

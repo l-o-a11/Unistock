@@ -1,4 +1,5 @@
 // src/feature/users/services/UsersAPI.js
+import httpClient from "../../shared/utils/httpClient";
 
 // Datos mock de usuarios
 const mockUsers = [
