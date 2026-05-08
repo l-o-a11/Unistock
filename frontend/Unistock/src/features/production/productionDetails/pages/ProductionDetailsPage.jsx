@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
 import { ProductionAPI } from "../../services/ProductionAPI";
+import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
 import TechnicalSheet from "../../components/TechnicalSheet";
@@ -120,8 +121,7 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // Usar ProductionAPIClient en lugar de ProductionAPI (mock)
-        const { ProductionAPIClient } = await import('../../services/ProductionAPIClient');
+        // ProductionAPIClient está importado estáticamente al inicio del archivo
         const data = await ProductionAPIClient.getOrderById(id); // id es string de MongoDB, no número
         
         // Mapear respuesta del backend al formato del frontend
@@ -222,11 +222,34 @@ const ProductionDetailsPage = () => {
 
   const applyStepChange = async (newStatus) => {
     const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const currentUser = ProductionAPI.getCurrentUser();
-    const updatedHistory = [...(production.history || []), { status: newStatus, date: today, user: currentUser, motivo: null }];
-    const updated = { ...production, status: newStatus, statusDate: today, history: updatedHistory, details: (production.details || []).map(d => ({ ...d, status: newStatus, statusDate: today })) };
-    const saved = await ProductionAPI.update(production.id, updated);
-    setProduction(saved);
+    // Llamar al API real: PATCH /produccion/ordenes/:id/estado
+    await ProductionAPIClient.changeOrderStatus(production.id, newStatus);
+    // Re-fetch completo para sincronizar historial y detalles desde el backend
+    const refreshed = await ProductionAPIClient.getOrderById(production.id);
+    const mappedHistory = (refreshed.historial || []).map((h) => ({
+      status: h.estado,
+      date:   h.fecha ? new Date(h.fecha).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "",
+      user:   h.id_usuario || "Sistema",
+      motivo: h.motivo,
+    }));
+    const mappedDetails = (refreshed.detalles || production.details || []).map((d) => ({
+      id:         d.id || d._id,
+      refCorte:   d.refCorte   || d.id_producto || "",
+      ref:        d.ref        || d.id_producto || "",
+      quantity:   d.quantity   || d.cantidad    || 0,
+      color:      d.color      || "—",
+      status:     newStatus,
+      statusDate: today,
+    }));
+    setProduction((prev) => ({
+      ...prev,
+      status:     newStatus,
+      estado:     newStatus,
+      statusDate: today,
+      history:    mappedHistory,
+      details:    mappedDetails,
+      rawData:    refreshed,
+    }));
   };
 
   const ADMIN_PASSWORD = "1234";
@@ -407,7 +430,7 @@ const ProductionDetailsPage = () => {
               customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
               onConfirmOverride: async (motivo) => {
                 try {
-                  const cancelled = await ProductionAPI.cancel(saved.id, motivo || "Sin referencias");
+                  const cancelled = await ProductionAPIClient.cancelOrder(saved.id, motivo || "Sin referencias");
                   setProduction(cancelled);
                   setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
                 } catch {
@@ -889,7 +912,7 @@ const ProductionDetailsPage = () => {
               type: "anular", customTitle: "Anular orden",
               customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
               onConfirmOverride: async (motivo) => {
-                const saved = await ProductionAPI.cancel(production.id, motivo || "Sin motivo");
+                const saved = await ProductionAPIClient.cancelOrder(production.id, motivo || "Sin motivo");
                 setProduction(saved);
                 if (["Corte","Producción"].includes(production.status)) {
                   setTimeout(() => setDamagedModal({ open: true, production: saved || { ...production, status: "Anulada" } }), 400);

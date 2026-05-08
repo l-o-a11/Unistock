@@ -211,7 +211,7 @@ const SuppliersPage = () => {
       />
 
 <div className="sup-header">
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Proveedores</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 20 }}>Proveedores</h1>
           <SearchInput
             value={searchTerm}
             onChange={(v) => { handleSearch(v); setCurrentPage(1); }}

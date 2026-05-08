@@ -16,7 +16,7 @@ const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
 
 const ProductionsPage = () => {
   const navigate = useNavigate();
-  const { Productions: productions, createProduction, cancelProduction } = useProductions();
+  const { Productions: productions, createProduction, cancelProduction, fetchAndSetDetails, changeProductionStatus } = useProductions();
 
   const [activeTab,      setActiveTab]      = useState('producciones');
   const [searchTerm,     setSearchTerm]     = useState('');
@@ -461,7 +461,7 @@ const ProductionsPage = () => {
 
         {/* Tabla — scroll horizontal en móvil */}
         <div style={{ background: '#fff', borderRadius: 10, padding: '6px 0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
-          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} />
+          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} />
         </div>
 
         {/* Paginación */}
