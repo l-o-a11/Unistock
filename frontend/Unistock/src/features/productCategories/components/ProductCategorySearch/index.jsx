@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CategorySearch = ({ value, onChange, placeholder = "Buscar categorías..." }) => {
+const ProductCategorySearch = ({ value, onChange, placeholder = "Buscar categorías..." }) => {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
       {/* Search icon */}
@@ -54,4 +54,4 @@ const CategorySearch = ({ value, onChange, placeholder = "Buscar categorías..."
   );
 };
 
-export default CategorySearch;
+export default ProductCategorySearch;

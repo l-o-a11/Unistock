@@ -36,7 +36,18 @@ export const useProducts = () => {
   const updateProduct = async (id, productData) => {
     try {
       const updatedProduct = await productAPI.update(id, productData);
-      setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+      setProducts(prev =>
+        prev.map(p =>
+          p.id === id
+            ? {
+                ...p,
+                ...updatedProduct,
+                // Respaldo: si el backend no devolviera technicalSheet, conservamos el anterior
+                technicalSheet: updatedProduct.technicalSheet ?? p.technicalSheet,
+              }
+            : p
+        )
+      );
       return updatedProduct;
     } catch (err) {
       setError('Error al actualizar producto');
@@ -57,7 +68,18 @@ export const useProducts = () => {
   const toggleProduct = async (id) => {
     try {
       const updatedProduct = await productAPI.toggleActive(id);
-      setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+      setProducts(prev =>
+        prev.map(p =>
+          p.id === id
+            ? {
+                ...p,
+                ...updatedProduct,
+                // toggle solo cambia active, no debería borrar la ficha técnica
+                technicalSheet: updatedProduct.technicalSheet ?? p.technicalSheet,
+              }
+            : p
+        )
+      );
       return updatedProduct;
     } catch (err) {
       setError('Error al cambiar estado');
