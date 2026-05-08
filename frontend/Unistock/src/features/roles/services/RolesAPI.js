@@ -18,19 +18,19 @@ import httpClient from "../../shared/utils/httpClient";
 // ── Catálogos locales ─────────────────────────────────────────────────────────
 // Deben coincidir con los nombres que siembra el seed del backend.
 export const MODULOS_PREDETERMINADOS = [
-  { id: 1,  nombre: "Dashboard" },
-  { id: 2,  nombre: "Usuarios" },
-  { id: 3,  nombre: "Categorías de insumos" },
-  { id: 4,  nombre: "Insumos" },
-  { id: 5,  nombre: "Proveedores" },
-  { id: 6,  nombre: "Compras" },
-  { id: 7,  nombre: "Categorías de productos" },
-  { id: 8,  nombre: "Productos" },
-  { id: 9,  nombre: "Producción" },
-  { id: 10, nombre: "Terceros" },
-  { id: 11, nombre: "Empleados" },
-  { id: 12, nombre: "Sedes" },
-  { id: 13, nombre: "Roles" },
+  { id: 1,  nombre: "dashboard" },
+  { id: 2,  nombre: "usuarios" },
+  { id: 3,  nombre: "categorías de insumos" },
+  { id: 4,  nombre: "insumos" },
+  { id: 5,  nombre: "proveedores" },
+  { id: 6,  nombre: "compras" },
+  { id: 7,  nombre: "categorías de productos" },
+  { id: 8,  nombre: "productos" },
+  { id: 9,  nombre: "produccion" },
+  { id: 10, nombre: "terceros" },
+  { id: 11, nombre: "empleados" },
+  { id: 12, nombre: "sedes" },
+  { id: 13, nombre: "roles" },
 ];
 
 export const PRIVILEGIOS_PREDETERMINADOS = [
@@ -72,19 +72,23 @@ const permisosFrontToBack = (modulos = []) =>
   modulos
     .map((m) => {
       const modulo = MODULOS_PREDETERMINADOS.find((mod) => mod.id === m.moduloId);
+      if (!modulo) return null;
+
+      // Convierte los IDs de privilegios a sus keys (strings)
       const privilegios = (m.privilegios ?? [])
         .map((privId) => {
           const priv = PRIVILEGIOS_PREDETERMINADOS.find((p) => p.id === privId);
-          return priv ? { nombre: priv.key } : null;
+          return priv ? priv.key : null;  // ← string ("crear", "leer", etc.)
         })
         .filter(Boolean);
 
-      return modulo
-        ? { modulo: { nombre: modulo.nombre.toLowerCase() }, privilegios }
-        : null;
+      return {
+        modulo: modulo.nombre, // ← string directo, ej: "insumos"
+        privilegios,           // ← arreglo de strings, ej: ["crear"]
+      };
     })
     .filter(Boolean);
-
+    
 // ── Normalizar rol del backend al formato del frontend ────────────────────────
 // backend:  { _id, nombre, descripcion, estado, permisos }
 // frontend: { id,  nombre, descripcion, estado, modulos }
@@ -96,14 +100,7 @@ const normalizeRol = (rol) => ({
   modulos:     permisosBackToFront(rol.permisos ?? []),
 });
 
-// ── Helper interno ────────────────────────────────────────────────────────────
-const req = async (endpoint, options = {}) => {
-  const response = await httpRequestBack(endpoint, options);
-  // El backend responde: { success: true, data: ... }
-  return response?.data ?? response;
-};
-
-// ── API pública ───────────────────────────────────────────────────────────────
+// ── API pública (ahora con métodos HTTP igual que productAPI) ────────────────
 export const RolesAPI = {
 
   /**
@@ -114,16 +111,19 @@ export const RolesAPI = {
     const qs = new URLSearchParams(
       Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
-    const result = await req(`/roles${qs ? `?${qs}` : ""}`);
-    const lista = Array.isArray(result) ? result : (result?.data ?? result ?? []);
-    return Array.isArray(lista) ? lista.map(normalizeRol) : [];
+    const endpoint = `/roles${qs ? `?${qs}` : ""}`;
+
+    // httpClient.get devuelve directamente los datos (response.data)
+    const result = await httpClient.get(endpoint);
+    const lista = Array.isArray(result) ? result : (result?.data ?? []);
+    return lista.map(normalizeRol);
   },
 
   /**
    * GET /api/roles/:id
    */
   getById: async (id) => {
-    const rol = await req(`/roles/${id}`);
+    const rol = await httpClient.get(`/roles/${id}`);
     return normalizeRol(rol);
   },
 
@@ -138,7 +138,7 @@ export const RolesAPI = {
       estado:      rolData.estado ?? true,
       permisos:    permisosFrontToBack(rolData.modulos ?? []),
     };
-    const rol = await req("/roles", { method: "POST", body });
+    const rol = await httpClient.post("/roles", body);
     return normalizeRol(rol);
   },
 
@@ -154,7 +154,7 @@ export const RolesAPI = {
         permisos: permisosFrontToBack(rolData.modulos),
       }),
     };
-    const rol = await req(`/roles/${id}`, { method: "PUT", body });
+    const rol = await httpClient.put(`/roles/${id}`, body);
     return normalizeRol(rol);
   },
 
@@ -163,7 +163,7 @@ export const RolesAPI = {
    * El backend bloquea si hay usuarios activos con ese rol.
    */
   delete: async (id) => {
-    return req(`/roles/${id}`, { method: "DELETE" });
+    return httpClient.delete(`/roles/${id}`);
   },
 
   /**
@@ -171,7 +171,7 @@ export const RolesAPI = {
    * Activa o inactiva el rol.
    */
   toggle: async (id) => {
-    const rol = await req(`/roles/${id}/toggle`, { method: "PATCH" });
+    const rol = await httpClient.patch(`/roles/${id}/toggle`);
     return normalizeRol(rol);
   },
 
