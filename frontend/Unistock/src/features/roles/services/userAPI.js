@@ -1,63 +1,39 @@
-// API auxiliar de usuarios — usada por el módulo de Roles
-// para verificar si un rol está enlazado antes de eliminarlo o inactivarlo.
-// Los datos reales los maneja el módulo de usuarios de tu compañero.
+/**
+ * userAPI.js
+ *
+ * API auxiliar de usuarios — usada por el módulo de Roles
+ * para verificar si un rol está enlazado antes de eliminarlo o inactivarlo.
+ *
+ * Antes: mock con datos hardcodeados
+ * Ahora: llamadas reales al backend vía httpClient
+ */
 
-const ejemploUsers = [
-  {
-    id: 1,
-    tipoDocumento: "CC",
-    numeroDocumento: "856127435",
-    nombreCompleto: "Sofía Osorio Ramírez",
-    correo: "sofia.osorio@gmail.com",
-    rolId: 3, // Personal de corte
-    sede: "Parque Berrio",
-    estado: true,
-  },
-  {
-    id: 2,
-    tipoDocumento: "CC",
-    numeroDocumento: "684217935",
-    nombreCompleto: "Miguel Ángel Torres",
-    correo: "miguel.torres@gmail.com",
-    rolId: 3, // Personal de corte
-    sede: "Parque Berrio",
-    estado: true,
-  },
-  {
-    id: 3,
-    tipoDocumento: "CC",
-    numeroDocumento: "1023456789",
-    nombreCompleto: "Laura Marcela Gómez",
-    correo: "laura.gomez@gmail.com",
-    rolId: 2, // Administrador
-    sede: "Parque Berrio",
-    estado: true,
-  },
-];
+import { httpRequest } from "../../shared/utils/httpClient";
 
 export const UserAPI = {
-  // Retorna todos los usuarios
+
+  // GET /usuarios — todos los usuarios
   getAll: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...ejemploUsers]), 300);
-    });
+    const response = await httpRequest("/usuarios", { method: "GET" });
+    const raw = response?.data ?? response;
+    return Array.isArray(raw) ? raw : (raw?.data ?? []);
   },
 
-  // Retorna solo los usuarios que tienen asignado un rolId específico
+  // GET /usuarios?rolId=:id — usuarios con ese rol asignado
   getByRolId: async (rolId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(ejemploUsers.filter((u) => u.rolId === rolId));
-      }, 300);
-    });
+    const response = await httpRequest(`/usuarios?rolId=${rolId}`, { method: "GET" });
+    const raw = response?.data ?? response;
+    return Array.isArray(raw) ? raw : (raw?.data ?? []);
   },
 
-  // Cuenta cuántos usuarios tienen asignado un rolId específico
+  // Cuenta cuántos usuarios activos tienen asignado un rolId
   countByRolId: async (rolId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(ejemploUsers.filter((u) => u.rolId === rolId).length);
-      }, 300);
-    });
+    try {
+      const usuarios = await UserAPI.getByRolId(rolId);
+      return usuarios.filter((u) => u.estado !== false).length;
+    } catch {
+      // Si el endpoint falla, no bloquear la UI — el backend ya valida esto al eliminar
+      return 0;
+    }
   },
 };
