@@ -8,7 +8,7 @@ import AddShoppingButton from "../components/AddShoppingButton";
 import ShoppingForm from "../components/ShoppingForm";
 import ShoppingDetail from "../components/ShoppingDetail";
 import Alert from "../../shared/components/Alert";
-import { useSuppliers } from "../../suppliers_fixed/hooks/mockSuppliers";
+import { useSuppliers } from "../../suppliers/hooks/mockSuppliers";
 
 const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 

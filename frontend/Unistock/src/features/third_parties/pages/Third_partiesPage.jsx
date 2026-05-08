@@ -310,9 +310,9 @@ const Third_partiePage = () => {
         </div>
 
         {/* ── Tabs ── */}
-        <div className="tp-tabs">
-          <button className="tp-tab-btn"
-            style={{ background: '#f3f4f6', color: '#6b7280' }}
+        <div className="tp-tabs style">
+          <button className="tp-tab-btn "
+            style={{ background: 'rgba(68, 68, 68, 0.06)', color: '#2d3137d9' }}
             onClick={() => navigate('/Layout/produccion')}>
             Producciones
           </button>

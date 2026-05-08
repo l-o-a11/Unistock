@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from "react";
 import Alert from "../../../shared/components/Alert";
-import { useSuppliers } from "../../../suppliers_fixed/hooks/mockSuppliers";
+import { useSuppliers } from "../../../suppliers/hooks/mockSuppliers";
 import { useSupplies } from "../../../supplies/hooks/useSupplies";
 import SupplyForm from "../../../supplies/components/SupplyForm";
-import SupplierForm from "../../../suppliers_fixed/components/SupplierForm";
+import SupplierForm from "../../../suppliers/components/SupplierForm";
 
 const ShoppingForm = ({ onSubmit, onCancel }) => {
   // ── Solo para CREAR — no recibe prop "shopping" (no hay edición)
