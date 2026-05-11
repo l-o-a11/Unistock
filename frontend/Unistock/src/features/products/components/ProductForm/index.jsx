@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { Categories } from "../../types/constants";
 
@@ -274,18 +274,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setShowVersions(false);
   };
 
-  // 🔥 AHORA USA "confirm" PARA EL DISEÑO ORIGINAL (AZUL CON ?)
-  const handleCancelClick = () => {
-    onShowConfirm({
-      type: "confirm", // 👈 CAMBIADO DE "cancel" A "confirm"
-      title: "¿Seguro que deseas cancelar?",
-      message: "Los cambios no guardados se perderán.",
-      confirmText: "Confirmar",
-      cancelText: "Cancelar",
-      onConfirm: onCancel
-    });
-  };
-
   // 🔥 TAMBIÉN CAMBIADO A "confirm" PARA CONSISTENCIA
   const handleDeleteVersionClick = () => {
     onShowConfirm({
@@ -314,11 +302,23 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setTechnicalSheet(sheetData);
   };
 
+  // 🔥 AHORA USA "confirm" PARA EL DISEÑO ORIGINAL (AZUL CON ?)
+  const handleCancelClick = useCallback(() => {
+    onShowConfirm({
+      type: "confirm", // 👈 CAMBIADO DE "cancel" A "confirm"
+      title: "¿Seguro que deseas cancelar?",
+      message: "Los cambios no guardados se perderán.",
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      onConfirm: onCancel
+    });
+  }, [onCancel, onShowConfirm]);
+
   useEffect(() => {
     const handleEsc = (e) => e.key === "Escape" && handleCancelClick();
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
+  }, [handleCancelClick]);
 
   // 🔥 ESTILO PARA INPUTS CON ERROR - SOLO BORDE ROSA, SIN FONDO
   const getInputStyle = (field) => {

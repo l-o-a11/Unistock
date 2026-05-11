@@ -33,16 +33,20 @@ import React, { useState, useEffect, useRef } from "react";
  */
 const Alert = ({
   isOpen,
+  open,
   type = "success",
   title,
   message,
   onConfirm,
   onCancel,
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
   duration = 3000,
 }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const timerRef = useRef(null);
+  const isAlertOpen = typeof isOpen === "boolean" ? isOpen : Boolean(open);
 
   // Los tipos toast se cierran solos; los modales requieren acción del usuario
   const isToast = type === "success" || type === "error" || type === "warning";
@@ -69,7 +73,7 @@ const Alert = ({
 
   // Reset password/error cada vez que se abre
   useEffect(() => {
-    if (isOpen) {
+    if (isAlertOpen) {
       setPassword("");
       setError("");
       // Auto-cierre para toasts
@@ -83,10 +87,10 @@ const Alert = ({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isOpen, type]);
+  }, [isAlertOpen, type, isToast, duration, onCancel]);
 
   // No renderiza nada cuando está cerrado
-  if (!isOpen) return null;
+  if (!isAlertOpen) return null;
 
   /**
    * Paleta de estilos por tipo de alerta.
@@ -198,7 +202,7 @@ const Alert = ({
 
         {/* Botones */}
         <div style={actions}>
-          <button style={cancelBtn} onClick={handleClose}>Cancelar</button>
+          <button style={cancelBtn} onClick={handleClose}>{cancelText}</button>
           <button
             style={{
               ...confirmBtn,
@@ -210,7 +214,7 @@ const Alert = ({
             onClick={handleConfirm}
             disabled={type === "password" && !password}
           >
-            Confirmar
+            {confirmText}
           </button>
         </div>
       </div>

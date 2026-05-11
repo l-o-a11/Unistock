@@ -116,13 +116,14 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
    */
   // Campos que deben ser únicos entre proveedores
   const UNIQUE_FIELDS = {
-    nit:           (s) => s.nit,
-    correoEmpresa: (s) => s.correoEmpresa || s.email,
-    telefono:      (s) => s.telefono,
-    nombreEmpresa: (s) => (s.nombreEmpresa || "").toLowerCase().trim(),
+    nit:           (s) => s?.nit,
+    correoEmpresa: (s) => s?.correoEmpresa || s?.email,
+    telefono:      (s) => s?.telefono,
+    nombreEmpresa: (s) => (s?.nombreEmpresa || "").toLowerCase().trim(),
   };
 
   const isDuplicate = (name, value) => {
+
     if (!value || !String(value).trim()) return false;
     const getter = UNIQUE_FIELDS[name];
     if (!getter) return false;
@@ -136,6 +137,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
       return existing === normalized;
     });
   };
+
 
   const validateField = (name, value) => {
     let error = "";
@@ -315,7 +317,6 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
           style={{
             backgroundColor: "#fff", borderRadius: "16px",
             width: "100%", maxWidth: "860px",
-            // Padding estandarizado: 28px vertical, 32px horizontal (= misma medida que Third_partiesForm)
             padding: "28px 32px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             position: "relative",

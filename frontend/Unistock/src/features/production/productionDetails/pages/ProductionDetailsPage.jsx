@@ -8,6 +8,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
 import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
+import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
 import TechnicalSheet from "../../components/TechnicalSheet";
@@ -121,8 +122,7 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // Usar ProductionAPIClient en lugar de ProductionAPI (mock)
-        const { ProductionAPIClient } = await import('../../services/ProductionAPIClient');
+        // ProductionAPIClient está importado estáticamente al inicio del archivo
         const data = await ProductionAPIClient.getOrderById(id); // id es string de MongoDB, no número
         
         // Mapear respuesta del backend al formato del frontend

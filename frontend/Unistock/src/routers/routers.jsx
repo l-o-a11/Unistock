@@ -17,7 +17,7 @@ import EditRolPage from "../features/roles/pages/EditRolPage.jsx";
 import SuppliesPage from "../features/supplies/pages/SuppliesPage.jsx";
 
 // Categorías
-import CategoriesPage from "../features/categories/pages/CategoriesPage.jsx";
+import ProductCategoriesPage from "../features/productCategories/pages/ProductCategoriesPage.jsx";
 import CategoriesSupplyPage from "../features/categoriesSupply/pages/CategoriesSupplyPage.jsx";
 
 // Productos
@@ -110,7 +110,7 @@ export function RouterApp() {
           <PrivateRoute modulo="productos"><ProductsPage /></PrivateRoute>
         } />
         <Route path="categorias" element={
-          <PrivateRoute modulo="categorias"><CategoriesPage /></PrivateRoute>
+          <PrivateRoute modulo="categorias"><ProductCategoriesPage /></PrivateRoute>
         } />
         <Route path="productos/crear" element={
           <PrivateRoute modulo="productos"><ProductForm /></PrivateRoute>

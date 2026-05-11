@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import HoverCard from "../../../shared/components/HoverCart";
 import Alert from "../../../shared/components/Alert";
 import { StockStatus } from "../../types/constants";
+import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 
 const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   /* 🔥 ESTADOS PARA ALERTA DE CAMBIO DE ESTADO */
   const [showToggleAlert, setShowToggleAlert] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -24,22 +27,22 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
   };
 
   const thStyle = {
-    padding: "14px 20px",
+    padding: isMobile ? "10px 12px" : "14px 20px",
     textAlign: "left",
-    fontSize: "13px",
+    fontSize: isMobile ? "12px" : "13px",
     fontWeight: "500",
     color: "#888",
     borderBottom: "1px solid #f0f0f0",
-    whiteSpace: "nowrap",
+    whiteSpace: isMobile ? "normal" : "nowrap",
     backgroundColor: "#f5f5f5",
   };
 
   const tdStyle = {
-    padding: "14px 20px",
-    fontSize: "14px",
+    padding: isMobile ? "10px 12px" : "14px 20px",
+    fontSize: isMobile ? "13px" : "14px",
     color: "#333",
     borderBottom: "1px solid #f5f5f5",
-    whiteSpace: "nowrap",
+    whiteSpace: isMobile ? "normal" : "nowrap",
   };
 
   if (products.length === 0) {
@@ -70,9 +73,16 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}>
         <div style={{
-          overflowX: "visible",
+          overflowX: isMobile ? "auto" : "visible",
+          WebkitOverflowScrolling: "touch",
         }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: isMobile ? "920px" : undefined,
+            }}
+          >
             <thead>
               <tr>
                 <th style={thStyle}>Imagen</th>

@@ -1,5 +1,5 @@
 // Colores para las categorías (opcional)
-export const CATEGORY_COLORS = [
+export const PRODUCT_CATEGORY_COLORS = [
   { bg: "#fce7f3", text: "#be185d" }, // Rosa
   { bg: "#dbeafe", text: "#1e40af" }, // Azul
   { bg: "#dcfce7", text: "#166534" }, // Verde
