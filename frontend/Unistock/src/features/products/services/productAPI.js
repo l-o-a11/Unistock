@@ -428,9 +428,8 @@ export const productAPI = {
   // Technical sheets full unchanged...
   getTechnicalSheetVersions: async (productId) => {
     try {
-      // Backend ruta real: GET /api/products/:id/tecnicas
-      // (el httpClient ya antepone VITE_API_URL + /api)
-      return await httpClient.get(`/products/${productId}/tecnicas`);
+      // Backend ruta real: GET /api/products/:id/technical-sheets
+      return await httpClient.get(`/products/${productId}/technical-sheets`);
     } catch (error) {
       // Si el backend responde (ej: 404/500), no ocultamos el problema con mocks
       if (error?.status) throw error;

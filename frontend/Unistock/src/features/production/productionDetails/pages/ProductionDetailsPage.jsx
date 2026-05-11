@@ -8,7 +8,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
 import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
-import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
 import TechnicalSheet from "../../components/TechnicalSheet";
@@ -372,17 +371,53 @@ const ProductionDetailsPage = () => {
   };
 
   const handleEditConfirm = async (updatedDetail) => {
-    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const currentUser = ProductionAPI.getCurrentUser();
-    const newDetails = (production.details || []).map(d => d.refCorte === updatedDetail.refCorte ? { ...d, ...updatedDetail } : d);
-    const saved = await ProductionAPI.update(production.id, {
-      ...production, details: newDetails,
-      techSpecification: recalcCosts(newDetails, production.techSpecification),
-      history: [...(production.history || []), { status: "Artículo editado", date: today, user: currentUser, motivo: `Ref: ${updatedDetail.ref} | Color: ${updatedDetail.color} | Cantidad: ${updatedDetail.quantity} uds` }]
-    });
-    setProduction(saved);
-    setEditAlert({ isOpen: false, detail: null });
-    setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${updatedDetail.ref} fue actualizado correctamente.` });
+    try {
+      const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+      
+      // Mapear detalles de vuelta a formato que el backend espera
+      const newDetails = (production.rawData?.detalles || []).map(d => {
+        if (d.id_producto === updatedDetail.ref) {
+          return {
+            ...d,
+            cantidad: updatedDetail.quantity,
+            color: updatedDetail.color,
+          };
+        }
+        return d;
+      });
+      
+      // Usar backend para actualizar
+      await ProductionAPIClient.updateOrder(production.id, {
+        detalles: newDetails,
+      });
+      
+      // Recargar datos frescos del backend
+      const freshData = await ProductionAPIClient.getOrderById(production.id);
+      const statusDate = freshData.updatedAt
+        ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : today;
+
+      setProduction((prev) => ({
+        ...prev,
+        details: (freshData.detalles || prev.details || []).map((d) => ({
+          id: d.id || d._id,
+          refCorte: d.id_producto || '',
+          ref: d.id_producto || '',
+          quantity: d.cantidad || 0,
+          color: d.color || '—',
+          status: freshData.estado,
+          statusDate,
+          estado: d.estado !== false,
+        })),
+        rawData: freshData,
+      }));
+      
+      setEditAlert({ isOpen: false, detail: null });
+      setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${updatedDetail.ref} fue actualizado correctamente.` });
+    } catch (err) {
+      console.error('Error al editar detalle:', err);
+      setGlobalAlert({ open: true, type: "error", title: "Error al editar", message: "No se pudo actualizar el artículo. Intenta de nuevo." });
+    }
   };
 
   const recalcCosts = (details, techSpec) => {
