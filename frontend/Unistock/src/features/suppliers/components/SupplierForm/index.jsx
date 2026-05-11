@@ -123,16 +123,16 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   };
 
   const isDuplicate = (name, value) => {
-    if (!value || !value.trim()) return false;
+    if (!value || !String(value).trim()) return false;
     const getter = UNIQUE_FIELDS[name];
     if (!getter) return false;
-    const normalized = name === "nombreEmpresa" ? value.toLowerCase().trim() : value.trim();
+    const normalized = name === "nombreEmpresa" ? String(value).toLowerCase().trim() : String(value).trim();
     return allSuppliers.some(s => {
       // Skip the supplier being edited
       if (supplier && s.id === supplier.id) return false;
       const existing = name === "nombreEmpresa"
-        ? (getter(s) || "").toLowerCase().trim()
-        : (getter(s) || "").trim();
+        ? (String(getter(s) || "")).toLowerCase().trim()
+        : String(getter(s) || "").trim();
       return existing === normalized;
     });
   };
