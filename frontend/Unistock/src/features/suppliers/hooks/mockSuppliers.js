@@ -47,6 +47,38 @@ export const mockSuppliers = [
   },
 ];
 
+// ── Extrae el mensaje de error más descriptivo del backend ──────────────────
+const extractErrorMessage = (err) => {
+  // El httpClient adjunta err.data con el body JSON del backend
+  if (err?.data?.message) return err.data.message;
+  if (err?.data?.error)   return err.data.error;
+  if (err?.message)       return err.message;
+  return 'Ocurrió un error inesperado';
+};
+
+// ── Mensajes amigables por código HTTP ──────────────────────────────────────
+const friendlyMessage = (err, action = 'completar la operación') => {
+  const status = err?.status ?? err?.response?.status;
+  const backendMsg = extractErrorMessage(err);
+
+  switch (status) {
+    case 400:
+      return backendMsg || 'Datos incompletos o inválidos. Revisa todos los campos requeridos.';
+    case 409:
+      // El backend devuelve mensajes como "Ya existe un proveedor registrado con ese NIT"
+      return backendMsg || 'Ya existe un proveedor con esos datos (NIT o correo duplicado).';
+    case 404:
+      return backendMsg || 'El proveedor no fue encontrado. Puede haber sido eliminado.';
+    case 422:
+      // Ej: "tiene compras asociadas y no puede ser eliminado"
+      return backendMsg || 'No se puede realizar esta acción sobre el proveedor.';
+    case 500:
+      return `Error interno del servidor al ${action}. Verifica los logs del backend.`;
+    default:
+      return backendMsg || `No se pudo ${action}. Intenta nuevamente.`;
+  }
+};
+
 export const useSuppliers = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,15 +94,13 @@ export const useSuppliers = () => {
       setLoading(true);
       setError(null);
 
-      // Cargar desde el API real
       const response = await SuppliersAPIClient.getSuppliers({
         page: 1,
         limit: 100,
         sortBy: 'nombre_de_empresa',
       });
 
-      // Backend suele responder: { success: true, data: [...] }
-      // Ajustamos para soportar variaciones: {data:{data}} o {data:[...]} o {success:true,data:[...]}
+      // Backend responde: { success: true, data: { data: [...], total, page, ... } }
       const backendSuppliers =
         response?.data?.data ??
         response?.data?.suppliers ??
@@ -101,7 +131,6 @@ export const useSuppliers = () => {
           supplier?.activo ??
           supplier?.estado ??
           supplier?.activa ??
-          supplier?.inactivo ??
           supplier?.active;
 
         const estadoBool = normalizeBool(estado);
@@ -132,6 +161,7 @@ export const useSuppliers = () => {
           telefono: supplier.telefono,
           email: correo,
           correo,
+          correoEmpresa: correo,
           sitioweb: sitio,
           sitio_web: sitio,
           estado: estadoBool,
@@ -161,55 +191,38 @@ export const useSuppliers = () => {
     }
   };
 
-  const mapFrontendToBackendCreate = (supplierData) => {
-    // El backend controller espera req.body con estos nombres:
-    // nit, nombreEmpresa, nombreContacto, direccion, telefono, correoEmpresa, sitioWeb
-    // (y internamente mapea a nombre_de_empresa / nombre_del_contacto / correo / sitio_web)
-    return {
-      nit: supplierData.nit,
-      nombreEmpresa:
-        supplierData.nombreEmpresa ||
-        supplierData.nombre_de_empresa ||
-        supplierData.nombre_empresa ||
-        '',
-      nombreContacto:
-        supplierData.nombreContacto ||
-        supplierData.nombre_del_contacto ||
-        supplierData.nombre_contacto ||
-        supplierData.contacto ||
-        '',
-      direccion: supplierData.direccion,
-      telefono: supplierData.telefono,
-      correoEmpresa:
-        supplierData.correoEmpresa || supplierData.email || supplierData.correo || '',
-      sitioWeb: supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web || '',
-    };
-  };
+  // ── Mapea los nombres del formulario a los que espera el backend ─────────
+  // El backend controller acepta camelCase (nombreEmpresa, correoEmpresa, etc.)
+  // y los normaliza internamente a snake_case.
+  const mapFrontendToBackend = (supplierData) => ({
+    nit: supplierData.nit,
+    nombreEmpresa:
+      supplierData.nombreEmpresa ||
+      supplierData.nombre_de_empresa ||
+      supplierData.nombre_empresa ||
+      '',
+    nombreContacto:
+      supplierData.nombreContacto ||
+      supplierData.nombre_del_contacto ||
+      supplierData.nombre_contacto ||
+      supplierData.contacto ||
+      '',
+    direccion: supplierData.direccion,
+    telefono: supplierData.telefono,
+    correoEmpresa:
+      supplierData.correoEmpresa || supplierData.email || supplierData.correo || '',
+    sitioWeb:
+      supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web || '',
+  });
 
   // ➕ Crear proveedor
   const createSupplier = async (supplierData) => {
     try {
-      const backendData = mapFrontendToBackendCreate(supplierData);
+      const backendData = mapFrontendToBackend(supplierData);
       const newSupplier = await SuppliersAPIClient.createSupplier(backendData);
 
       const supplier = newSupplier.data || newSupplier;
-      const mapped = {
-        id: supplier._id || supplier.id,
-        nit: supplier.nit,
-        nombreEmpresa: supplier.nombre_de_empresa,
-        nombre_de_empresa: supplier.nombre_de_empresa,
-        nombreContacto: supplier.nombre_del_contacto,
-        nombre_del_contacto: supplier.nombre_del_contacto,
-        direccion: supplier.direccion,
-        telefono: supplier.telefono,
-        email: supplier.correo,
-        correo: supplier.correo,
-        sitioweb: supplier.sitio_web,
-        sitio_web: supplier.sitio_web,
-        estado: supplier.activo,
-        activo: supplier.activo,
-        rawData: supplier,
-      };
+      const mapped = _mapBackendToFrontend(supplier);
 
       setSuppliers((prev) => {
         const next = [...prev, mapped];
@@ -219,51 +232,33 @@ export const useSuppliers = () => {
 
       return mapped;
     } catch (err) {
-      // Si el backend devuelve 409 (conflict / NIT duplicado), no debemos desincronizar la UI.
-      // Refrescamos desde el backend para que la tabla coincida con la base de datos.
       console.error('Error al crear proveedor:', err);
 
-      try {
-        // heurística: el httpClient suele incluir status o response.status
-        const status = err?.status ?? err?.response?.status;
-        if (status === 409) {
-          await refreshSuppliers();
-        }
-      } catch (refreshErr) {
-        console.error('Error al refrescar proveedores tras conflicto:', refreshErr);
+      // Si fue un 409 (NIT o correo duplicado), refrescar para sincronizar
+      const status = err?.status ?? err?.response?.status;
+      if (status === 409) {
+        try { await refreshSuppliers(); } catch { /* ignorar */ }
       }
 
-      setError('Error al crear el proveedor');
-      throw err;
+      const msg = friendlyMessage(err, 'crear el proveedor');
+      setError(msg);
+
+      // Re-lanzar con mensaje legible para que el formulario lo muestre
+      const richErr = new Error(msg);
+      richErr.status = status;
+      richErr.originalError = err;
+      throw richErr;
     }
   };
 
   // ✏️ Actualizar proveedor
   const updateSupplier = async (id, supplierData) => {
     try {
-      // Backend updateSupplier usa req.body directo, así que mapeamos igual que create
-      const backendData = mapFrontendToBackendCreate(supplierData);
-      // Aseguramos que el backend reciba los campos requeridos en nombres esperados
+      const backendData = mapFrontendToBackend(supplierData);
       const updated = await SuppliersAPIClient.updateSupplier(id, backendData);
 
       const supplier = updated.data || updated;
-      const mapped = {
-        id: supplier._id || supplier.id,
-        nit: supplier.nit,
-        nombreEmpresa: supplier.nombre_de_empresa,
-        nombre_de_empresa: supplier.nombre_de_empresa,
-        nombreContacto: supplier.nombre_del_contacto,
-        nombre_del_contacto: supplier.nombre_del_contacto,
-        direccion: supplier.direccion,
-        telefono: supplier.telefono,
-        email: supplier.correo,
-        correo: supplier.correo,
-        sitioweb: supplier.sitio_web,
-        sitio_web: supplier.sitio_web,
-        estado: supplier.activo,
-        activo: supplier.activo,
-        rawData: supplier,
-      };
+      const mapped = _mapBackendToFrontend(supplier);
 
       setSuppliers((prev) => {
         const next = prev.map((s) => (s.id === id ? mapped : s));
@@ -274,8 +269,12 @@ export const useSuppliers = () => {
       return mapped;
     } catch (err) {
       console.error('Error al actualizar proveedor:', err);
-      setError('Error al actualizar el proveedor');
-      throw err;
+      const msg = friendlyMessage(err, 'actualizar el proveedor');
+      setError(msg);
+      const richErr = new Error(msg);
+      richErr.status = err?.status;
+      richErr.originalError = err;
+      throw richErr;
     }
   };
 
@@ -291,8 +290,12 @@ export const useSuppliers = () => {
       });
     } catch (err) {
       console.error('Error al eliminar proveedor:', err);
-      setError('Error al eliminar el proveedor');
-      throw err;
+      const msg = friendlyMessage(err, 'eliminar el proveedor');
+      setError(msg);
+      const richErr = new Error(msg);
+      richErr.status = err?.status;
+      richErr.originalError = err;
+      throw richErr;
     }
   };
 
@@ -301,24 +304,7 @@ export const useSuppliers = () => {
     try {
       const updated = await SuppliersAPIClient.toggleSupplier(id);
       const supplier = updated.data || updated;
-
-      const mapped = {
-        id: supplier._id || supplier.id,
-        nit: supplier.nit,
-        nombreEmpresa: supplier.nombre_de_empresa,
-        nombre_de_empresa: supplier.nombre_de_empresa,
-        nombreContacto: supplier.nombre_del_contacto,
-        nombre_del_contacto: supplier.nombre_del_contacto,
-        direccion: supplier.direccion,
-        telefono: supplier.telefono,
-        email: supplier.correo,
-        correo: supplier.correo,
-        sitioweb: supplier.sitio_web,
-        sitio_web: supplier.sitio_web,
-        estado: supplier.activo,
-        activo: supplier.activo,
-        rawData: supplier,
-      };
+      const mapped = _mapBackendToFrontend(supplier);
 
       setSuppliers((prev) => {
         const next = prev.map((s) => (s.id === id ? mapped : s));
@@ -329,8 +315,12 @@ export const useSuppliers = () => {
       return mapped;
     } catch (err) {
       console.error('Error al cambiar estado del proveedor:', err);
-      setError('Error al cambiar estado del proveedor');
-      throw err;
+      const msg = friendlyMessage(err, 'cambiar el estado del proveedor');
+      setError(msg);
+      const richErr = new Error(msg);
+      richErr.status = err?.status;
+      richErr.originalError = err;
+      throw richErr;
     }
   };
 
@@ -348,3 +338,32 @@ export const useSuppliers = () => {
   };
 };
 
+// ── Mapeo interno: backend → formato del frontend ────────────────────────────
+function _mapBackendToFrontend(supplier) {
+  const nombreEmpresa =
+    supplier?.nombre_de_empresa ?? supplier?.nombreEmpresa ?? '';
+  const nombreContacto =
+    supplier?.nombre_del_contacto ?? supplier?.nombreContacto ?? '';
+  const correo = supplier?.correo ?? supplier?.correoEmpresa ?? supplier?.email ?? '';
+  const sitio  = supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb ?? '';
+  const estado = supplier?.activo ?? supplier?.estado;
+
+  return {
+    id: supplier._id || supplier.id,
+    nit: supplier.nit,
+    nombreEmpresa,
+    nombre_de_empresa: nombreEmpresa,
+    nombreContacto,
+    nombre_del_contacto: nombreContacto,
+    direccion: supplier.direccion,
+    telefono: supplier.telefono,
+    email: correo,
+    correo,
+    correoEmpresa: correo,
+    sitioweb: sitio,
+    sitio_web: sitio,
+    estado,
+    activo: estado,
+    rawData: supplier,
+  };
+}

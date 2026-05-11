@@ -123,31 +123,18 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   };
 
   const isDuplicate = (name, value) => {
-    if (!value || typeof value !== "string" || !value.trim()) return false;
 
+    if (!value || !String(value).trim()) return false;
     const getter = UNIQUE_FIELDS[name];
     if (!getter) return false;
-
-    const normalized =
-      name === "nombreEmpresa" ? value.toLowerCase().trim() : value.trim();
-
-    return allSuppliers.some((s) => {
+    const normalized = name === "nombreEmpresa" ? String(value).toLowerCase().trim() : String(value).trim();
+    return allSuppliers.some(s => {
       // Skip the supplier being edited
       if (supplier && s.id === supplier.id) return false;
-
-      const raw = getter(s);
-      // If API returns non-string values, normalize to string safely.
-      const existing = raw === null || raw === undefined
-        ? ""
-        : String(raw).toLowerCase().trim();
-
-      const normalizedExisting = name === "nombreEmpresa"
-        ? existing // already lowercased
-        : String(raw).toLowerCase().trim();
-
-      // For non-nombreEmpresa fields, compare without forcing lowercase (except we already lowercased).
-      // email/nit/telefono are case-insensitive for our purposes.
-      return normalizedExisting === (name === "nombreEmpresa" ? normalized : normalized.toLowerCase());
+      const existing = name === "nombreEmpresa"
+        ? (String(getter(s) || "")).toLowerCase().trim()
+        : String(getter(s) || "").trim();
+      return existing === normalized;
     });
   };
 
