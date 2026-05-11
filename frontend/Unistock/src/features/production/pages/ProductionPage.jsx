@@ -470,7 +470,9 @@ const ProductionsPage = () => {
                 borderRadius: 8,
                 background: '#ff4fd6',
                 color: '#fff',
-                fontWeight: 600,
+                fontSize: 15,
+
+                fontWeight: 500,
                 padding: '8px 14px',
                 cursor: 'pointer',
               }}
