@@ -4,12 +4,12 @@
  *
  * CAMPOS Y SUS VALIDACIONES:
  *   nombreEmpresa  — texto libre, obligatorio
- *   nit            — solo dígitos (bloqueado en onChange), 8-12 dígitos, obligatorio
+ *   nit            — 8-12 dígitos, opcionalmente con guión (ej: 900123456-7), obligatorio
  *   direccion      — texto libre, obligatorio
  *   correoEmpresa  — formato email, obligatorio
  *   sitioWeb       — texto libre, opcional
  *   nombreContacto — texto libre, opcional
- *   telefono       — solo dígitos (bloqueado en onChange), exactamente 10, obligatorio
+ *   telefono       — solo dígitos, exactamente 10, obligatorio
  *   correoContacto — formato email, opcional (solo valida si tiene valor)
  *
  * PROPS:
@@ -116,26 +116,28 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
    */
   // Campos que deben ser únicos entre proveedores
   const UNIQUE_FIELDS = {
-    nit:           (s) => s.nit,
-    correoEmpresa: (s) => s.correoEmpresa || s.email,
-    telefono:      (s) => s.telefono,
-    nombreEmpresa: (s) => (s.nombreEmpresa || "").toLowerCase().trim(),
+    nit:           (s) => s?.nit,
+    correoEmpresa: (s) => s?.correoEmpresa || s?.email,
+    telefono:      (s) => s?.telefono,
+    nombreEmpresa: (s) => (s?.nombreEmpresa || "").toLowerCase().trim(),
   };
 
   const isDuplicate = (name, value) => {
-    if (!value || !value.trim()) return false;
+
+    if (!value || !String(value).trim()) return false;
     const getter = UNIQUE_FIELDS[name];
     if (!getter) return false;
-    const normalized = name === "nombreEmpresa" ? value.toLowerCase().trim() : value.trim();
+    const normalized = name === "nombreEmpresa" ? String(value).toLowerCase().trim() : String(value).trim();
     return allSuppliers.some(s => {
       // Skip the supplier being edited
       if (supplier && s.id === supplier.id) return false;
       const existing = name === "nombreEmpresa"
-        ? (getter(s) || "").toLowerCase().trim()
-        : (getter(s) || "").trim();
+        ? (String(getter(s) || "")).toLowerCase().trim()
+        : String(getter(s) || "").trim();
       return existing === normalized;
     });
   };
+
 
   const validateField = (name, value) => {
     let error = "";
@@ -146,9 +148,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
           error = "El proveedor ya se encuentra registrado";
         break;
       case "nit":
-        error = validators.required(value) || validators.numbers(value);
-        if (!error && (value.length < 8 || value.length > 12))
-          error = "Debe tener entre 8 y 12 dígitos";
+        error = validators.required(value) || validators.nit(value);
         if (!error && isDuplicate("nit", value))
           error = "El proveedor ya se encuentra registrado";
         break;
@@ -192,11 +192,12 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // ── Bloqueo a nivel de carácter para campos numéricos ──────────────────
-    // Si blockInput.onlyNumbers retorna false, el carácter no es un dígito
-    // y simplemente retornamos sin actualizar el estado.
-    if (name === "telefono" || name === "nit") {
-      if (!blockInput.onlyNumbers(e)) return;
+    // ── Bloqueo a nivel de carácter ────────────────────────────────────────
+    // Validar en tiempo real según el tipo de campo
+    if (name === "telefono") {
+      if (!blockInput.onlyNumbers(e)) return; // Solo dígitos
+    } else if (name === "nit") {
+      if (!blockInput.nit(e)) return; // Dígitos y guión (ej: 900123456-7)
     }
 
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -315,7 +316,6 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
           style={{
             backgroundColor: "#fff", borderRadius: "16px",
             width: "100%", maxWidth: "860px",
-            // Padding estandarizado: 28px vertical, 32px horizontal (= misma medida que Third_partiesForm)
             padding: "28px 32px",
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             position: "relative",
@@ -358,10 +358,10 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                   error={errors.nombreEmpresa}
                 />
 
-                {/* NIT — solo dígitos (bloqueado + validado) */}
+                {/* NIT — dígitos y guión opcional (bloqueado + validado) */}
                 <div>
                   <Input
-                    label={`NIT * (solo dígitos, 8-12 caracteres)${nitBloqueado ? " 🔒" : ""}`}
+                    label={`NIT * (8-12 caracteres, ej: 900123456-7)${nitBloqueado ? " 🔒" : ""}`}
                     name="nit"
                     value={formData.nit}
                     onChange={nitBloqueado ? undefined : handleChange}

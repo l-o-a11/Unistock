@@ -3,7 +3,7 @@ import TechnicalSheet from '../TechnicalSheet';
 import { useTechnicalSheet } from '../../hooks/useTechnicalSheet';
 import Alert from '../../../shared/components/Alert';
 
-const TechnicalSheetModal = ({ product, onClose }) => {
+const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   const { versions, currentVersion, loadVersions, deleteLastVersion } = useTechnicalSheet(product?.id);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
@@ -41,6 +41,8 @@ const TechnicalSheetModal = ({ product, onClose }) => {
         setSelectedVersion(null);
       }
       await loadVersions();
+      // Mantener la UI de Products sincronizada (bloqueo/desbloqueo por ficha técnica)
+      onTechnicalSheetChanged?.();
     } catch (error) {
       console.error("Error al eliminar:", error);
       setDeleteAlert({ open: false });

@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
 import { ProductionAPI } from "../../services/ProductionAPI";
+import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
 import TechnicalSheet from "../../components/TechnicalSheet";
@@ -120,8 +121,7 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // Usar ProductionAPIClient en lugar de ProductionAPI (mock)
-        const { ProductionAPIClient } = await import('../../services/ProductionAPIClient');
+        // ProductionAPIClient está importado estáticamente al inicio del archivo
         const data = await ProductionAPIClient.getOrderById(id); // id es string de MongoDB, no número
         
         // Mapear respuesta del backend al formato del frontend
@@ -221,12 +221,38 @@ const ProductionDetailsPage = () => {
   const closeProductionAlert = () => setProductionAlert((p) => ({ ...p, isOpen: false }));
 
   const applyStepChange = async (newStatus) => {
-    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const currentUser = ProductionAPI.getCurrentUser();
-    const updatedHistory = [...(production.history || []), { status: newStatus, date: today, user: currentUser, motivo: null }];
-    const updated = { ...production, status: newStatus, statusDate: today, history: updatedHistory, details: (production.details || []).map(d => ({ ...d, status: newStatus, statusDate: today })) };
-    const saved = await ProductionAPI.update(production.id, updated);
-    setProduction(saved);
+    // Persistir el cambio de estado en el backend real
+    await ProductionAPIClient.changeOrderStatus(production.id, newStatus);
+
+    // Recargar datos frescos del backend (historial actualizado)
+    const freshData = await ProductionAPIClient.getOrderById(production.id);
+    const statusDate = freshData.updatedAt
+      ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    setProduction((prev) => ({
+      ...prev,
+      status: freshData.estado || newStatus,
+      estado: freshData.estado || newStatus,
+      statusDate,
+      history: (freshData.historial || []).map((h) => ({
+        status: h.estado,
+        date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+        user: h.id_usuario || 'Sistema',
+        motivo: h.motivo,
+      })),
+      details: (freshData.detalles || prev.details || []).map((d) => ({
+        id: d.id || d._id,
+        refCorte: d.id_producto || '',
+        ref: d.id_producto || '',
+        quantity: d.cantidad || 0,
+        color: d.color || '—',
+        status: freshData.estado || newStatus,
+        statusDate,
+        estado: d.estado !== false,
+      })),
+      rawData: freshData,
+    }));
   };
 
   const ADMIN_PASSWORD = "1234";
@@ -345,17 +371,53 @@ const ProductionDetailsPage = () => {
   };
 
   const handleEditConfirm = async (updatedDetail) => {
-    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const currentUser = ProductionAPI.getCurrentUser();
-    const newDetails = (production.details || []).map(d => d.refCorte === updatedDetail.refCorte ? { ...d, ...updatedDetail } : d);
-    const saved = await ProductionAPI.update(production.id, {
-      ...production, details: newDetails,
-      techSpecification: recalcCosts(newDetails, production.techSpecification),
-      history: [...(production.history || []), { status: "Artículo editado", date: today, user: currentUser, motivo: `Ref: ${updatedDetail.ref} | Color: ${updatedDetail.color} | Cantidad: ${updatedDetail.quantity} uds` }]
-    });
-    setProduction(saved);
-    setEditAlert({ isOpen: false, detail: null });
-    setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${updatedDetail.ref} fue actualizado correctamente.` });
+    try {
+      const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+      
+      // Mapear detalles de vuelta a formato que el backend espera
+      const newDetails = (production.rawData?.detalles || []).map(d => {
+        if (d.id_producto === updatedDetail.ref) {
+          return {
+            ...d,
+            cantidad: updatedDetail.quantity,
+            color: updatedDetail.color,
+          };
+        }
+        return d;
+      });
+      
+      // Usar backend para actualizar
+      await ProductionAPIClient.updateOrder(production.id, {
+        detalles: newDetails,
+      });
+      
+      // Recargar datos frescos del backend
+      const freshData = await ProductionAPIClient.getOrderById(production.id);
+      const statusDate = freshData.updatedAt
+        ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : today;
+
+      setProduction((prev) => ({
+        ...prev,
+        details: (freshData.detalles || prev.details || []).map((d) => ({
+          id: d.id || d._id,
+          refCorte: d.id_producto || '',
+          ref: d.id_producto || '',
+          quantity: d.cantidad || 0,
+          color: d.color || '—',
+          status: freshData.estado,
+          statusDate,
+          estado: d.estado !== false,
+        })),
+        rawData: freshData,
+      }));
+      
+      setEditAlert({ isOpen: false, detail: null });
+      setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${updatedDetail.ref} fue actualizado correctamente.` });
+    } catch (err) {
+      console.error('Error al editar detalle:', err);
+      setGlobalAlert({ open: true, type: "error", title: "Error al editar", message: "No se pudo actualizar el artículo. Intenta de nuevo." });
+    }
   };
 
   const recalcCosts = (details, techSpec) => {
@@ -366,19 +428,44 @@ const ProductionDetailsPage = () => {
 
   const handleSaveRef = async () => {
     if (!newRef.cantidad || !newRef.color) { setAddRefError("Completa cantidad y color."); return; }
-    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const currentUser = ProductionAPI.getCurrentUser();
-    const newDetail = { refCorte: `${production.referencia}_${Date.now().toString().slice(-4)}`, ref: production.referencia, status: production.status, statusDate: today, quantity: Number(newRef.cantidad), color: newRef.color };
-    const newDetails = [...(production.details || []), newDetail];
-    const saved = await ProductionAPI.update(production.id, {
-      ...production, quantity: newDetails.reduce((s, d) => s + d.quantity, 0), details: newDetails,
-      techSpecification: recalcCosts(newDetails, production.techSpecification),
-      history: [...(production.history || []), { status: "Artículo agregado", date: today, user: currentUser, motivo: `Ref: ${production.referencia} | Color: ${newRef.color} | Cantidad: ${newRef.cantidad} uds` }]
-    });
-    setProduction(saved);
-    setAddRefOpen(false);
-    setNewRef({ cantidad: "", color: "" });
-    setAddRefError("");
+    try {
+      // Crear detalle en el backend real
+      await ProductionAPIClient.createOrderDetail({
+        id_orden: production.id,
+        id_producto: production.referencia,
+        cantidad: Number(newRef.cantidad),
+        color: newRef.color,
+      });
+      // Recargar la orden completa para reflejar el nuevo detalle e historial
+      const freshData = await ProductionAPIClient.getOrderById(production.id);
+      const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      setProduction((prev) => ({
+        ...prev,
+        details: (freshData.detalles || []).map((d) => ({
+          id: d.id || d._id,
+          refCorte: d.id_producto || '',
+          ref: d.id_producto || '',
+          quantity: d.cantidad || 0,
+          color: d.color || '—',
+          status: freshData.estado || prev.status,
+          statusDate: today,
+          estado: d.estado !== false,
+        })),
+        history: (freshData.historial || []).map((h) => ({
+          status: h.estado,
+          date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+          user: h.id_usuario || 'Sistema',
+          motivo: h.motivo,
+        })),
+        rawData: freshData,
+      }));
+      setAddRefOpen(false);
+      setNewRef({ cantidad: "", color: "" });
+      setAddRefError("");
+    } catch (err) {
+      console.error("Error al agregar referencia:", err);
+      setAddRefError("No se pudo agregar el artículo. Intenta de nuevo.");
+    }
   };
 
   const anuladaEntry = (production.history || []).findLast?.(h => h.status === "Anulada") || [...(production.history || [])].reverse().find(h => h.status === "Anulada");
@@ -407,8 +494,14 @@ const ProductionDetailsPage = () => {
               customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
               onConfirmOverride: async (motivo) => {
                 try {
-                  const cancelled = await ProductionAPI.cancel(saved.id, motivo || "Sin referencias");
-                  setProduction(cancelled);
+                  await ProductionAPIClient.cancelOrder(saved.id, motivo || "Sin referencias");
+                  const freshC = await ProductionAPIClient.getOrderById(saved.id);
+                  const cDate = freshC.updatedAt ? new Date(freshC.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                  setProduction((prev) => ({
+                    ...prev, status: 'Anulada', estado: 'Anulada', statusDate: cDate,
+                    history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.id_usuario || 'Sistema', motivo: h.motivo })),
+                    rawData: freshC,
+                  }));
                   setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
                 } catch {
                   setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
@@ -889,10 +982,24 @@ const ProductionDetailsPage = () => {
               type: "anular", customTitle: "Anular orden",
               customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
               onConfirmOverride: async (motivo) => {
-                const saved = await ProductionAPI.cancel(production.id, motivo || "Sin motivo");
-                setProduction(saved);
+                await ProductionAPIClient.cancelOrder(production.id, motivo || "Sin motivo");
+                const freshCancelled = await ProductionAPIClient.getOrderById(production.id);
+                const cancelDate = freshCancelled.updatedAt
+                  ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                  : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const cancelledMapped = {
+                  ...production,
+                  status: 'Anulada', estado: 'Anulada', statusDate: cancelDate,
+                  history: (freshCancelled.historial || []).map((h) => ({
+                    status: h.estado,
+                    date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+                    user: h.id_usuario || 'Sistema', motivo: h.motivo,
+                  })),
+                  rawData: freshCancelled,
+                };
+                setProduction(cancelledMapped);
                 if (["Corte","Producción"].includes(production.status)) {
-                  setTimeout(() => setDamagedModal({ open: true, production: saved || { ...production, status: "Anulada" } }), 400);
+                  setTimeout(() => setDamagedModal({ open: true, production: cancelledMapped }), 400);
                 }
               }
             })}>

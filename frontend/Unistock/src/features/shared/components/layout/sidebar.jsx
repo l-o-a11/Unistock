@@ -11,69 +11,31 @@ import ConfigIcon from "../../../../assets/icons/Config";
 import logo from "../../../../assets/transparent-Photoroom.png";
 
 const ALL_MENU_ITEMS = [
+  { id: "dashboard", name: "Dashboard", icon: DashboardIcon, hasSubmenu: false, path: "/layout/dashboard", modulo: "dashboard" },
+  { id: "usuarios",  name: "Usuarios",  icon: UsuariosIcon,  hasSubmenu: false, path: "/layout/usuarios",  modulo: "usuarios"  },
   {
-    id: "dashboard",
-    name: "Dashboard",
-    icon: DashboardIcon,
-    hasSubmenu: false,
-    path: "/layout/dashboard",
-    modulo: "dashboard",
-  },
-  {
-    id: "usuarios",
-    name: "Usuarios",
-    icon: UsuariosIcon,
-    hasSubmenu: false,
-    path: "/layout/usuarios",
-    modulo: "usuarios",
-  },
-  {
-    id: "compras",
-    name: "Compras",
-    icon: ComprasIcon,
-    hasSubmenu: true,
+    id: "compras", name: "Compras", icon: ComprasIcon, hasSubmenu: true,
     submenu: [
-      {
-        name: "Categorías",
-        path: "categorias-insumos",
-        modulo: "categorias-insumos",
-      },
-      { name: "Insumos", path: "insumos", modulo: "insumos" },
-      { name: "Proveedores", path: "proveedores", modulo: "proveedores" },
-      { name: "Compras", path: "compras", modulo: "compras" },
+      { name: "Categorías", path: "categorias-insumos", modulo: "categorias-insumos" },
+      { name: "Insumos",    path: "insumos",            modulo: "insumos"            },
+      { name: "Proveedores",path: "proveedores",        modulo: "proveedores"        },
+      { name: "Compras",    path: "compras",            modulo: "compras"            },
     ],
   },
   {
-    id: "produccion",
-    name: "Producción",
-    icon: ProduccionIcon,
-    hasSubmenu: true,
+    id: "produccion", name: "Producción", icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: "Categorías", path: "categorias", modulo: "categorias" },
-      { name: "Productos", path: "productos", modulo: "productos" },
+      { name: "Categorías De Productos", path: "categorias", modulo: "categorias" },
+      { name: "Productos",  path: "productos",  modulo: "productos"  },
       { name: "Producción", path: "produccion", modulo: "produccion" },
-      { name: "Terceros", path: "terceros", modulo: "terceros" },
-      { name: "Empleados", path: "empleados", modulo: "empleados" },
+      { name: "Terceros",   path: "terceros",   modulo: "terceros"   },
+      { name: "Empleados",  path: "empleados",  modulo: "empleados"  },
     ],
   },
-  {
-    id: "sedes",
-    name: "Sedes",
-    icon: SedesIcon,
-    hasSubmenu: false,
-    path: "/layout/sedes",
-    modulo: "sedes",
-  },
+  { id: "sedes", name: "Sedes", icon: SedesIcon, hasSubmenu: false, path: "/layout/sedes", modulo: "sedes" },
 ];
 
-const BOTTOM_ITEM = {
-  id: "configuracion",
-  name: "Roles",
-  icon: ConfigIcon,
-  hasSubmenu: false,
-  path: "/layout/roles",
-  modulo: "roles",
-};
+const BOTTOM_ITEM = { id: "configuracion", name: "Roles", icon: ConfigIcon, hasSubmenu: false, path: "/layout/roles", modulo: "roles" };
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
@@ -85,63 +47,128 @@ function useIsMobile() {
   return isMobile;
 }
 
+const NavContent = ({ isMobile, isExpanded, visibleMenuItems, showBottomItem, activeMenu, openSubmenu, activeSubItem, handleMenuClick, handleSubitemClick, iconColor, BOTTOM_ITEM, setMobileOpen }) => (
+  <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+    {/* Logo */}
+    <div style={{ display:"flex", alignItems:"center", padding:"18px 16px 10px", gap:10, minHeight:68 }}>
+      <div style={{ width:40, height:40, borderRadius:12, overflow:"hidden", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <img src={logo} alt="Logo" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+      </div>
+      <div style={{ overflow:"hidden", maxWidth: isExpanded ? 140 : 0, opacity: isExpanded ? 1 : 0, transition:"max-width 0.18s ease,opacity 0.18s ease", whiteSpace:"nowrap" }}>
+        <p style={{ fontSize:18, fontWeight:700, color:"#111827", margin:0, lineHeight:1.2 }}>Putongas</p>
+      </div>
+      {isMobile && (
+        <button onClick={() => setMobileOpen(false)}
+          style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", color:"#9ca3af", display:"flex", alignItems:"center", padding:4 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      )}
+    </div>
+
+    <div style={{ width:"65%", height:1, background:"#f3f4f6", margin:"0 auto 6px" }} />
+
+    <nav style={{ flex:1, overflowY:"auto", overflowX:"hidden", display:"flex", flexDirection:"column", gap:2, padding:"0 8px" }}>
+      {visibleMenuItems.map(item => {
+        const Icon     = item.icon;
+        const isActive = activeMenu === item.id;
+        const isOpen   = openSubmenu === item.id;
+        return (
+          <div key={item.id}>
+            <button onClick={() => handleMenuClick(item)} title={!isExpanded ? item.name : undefined}
+              className={`sb-btn${isActive ? " active" : ""}`}>
+              <Icon style={{ width:24, height:24, flexShrink:0, color:iconColor(isActive), transition:"color 0.12s" }} />
+              <span className={`sb-label${isExpanded ? "" : " hidden"}${isActive ? " active" : ""}`}>{item.name}</span>
+              {item.hasSubmenu && (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isActive ? "#ec4899" : "#9ca3af"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  className={`sb-chevron${isExpanded ? "" : " hidden"}${isOpen ? " open" : ""}`}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              )}
+            </button>
+            {item.hasSubmenu && (
+              <div className="sb-submenu" style={{ maxHeight: isOpen && isExpanded ? item.submenu.length * 40 + "px" : "0px", opacity: isOpen && isExpanded ? 1 : 0 }}>
+                <div style={{ marginLeft:12, borderLeft:"3px solid #f9a8d4", paddingLeft:6, marginTop:2, marginBottom:4 }}>
+                  {item.submenu.map((subitem, i) => {
+                    const key = item.id + "-" + i;
+                    return (
+                      <button key={i} onClick={() => handleSubitemClick(subitem, key)}
+                        className={`sb-subitem${activeSubItem === key ? " active" : ""}`}>
+                        {subitem.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+
+    {showBottomItem && (
+      <div style={{ padding:"0 8px 18px" }}>
+        <div style={{ width:"65%", height:1, background:"#f3f4f6", margin:"0 auto 6px" }} />
+        {(() => {
+          const item = BOTTOM_ITEM; const Icon = item.icon; const isActive = activeMenu === item.id;
+          return (
+            <button onClick={() => handleMenuClick(item)} title={!isExpanded ? item.name : undefined}
+              className={`sb-btn${isActive ? " active" : ""}`}>
+              <Icon style={{ width:24, height:24, flexShrink:0, color:iconColor(isActive), transition:"color 0.12s" }} />
+              <span className={`sb-label${isExpanded ? "" : " hidden"}${isActive ? " active" : ""}`}>{item.name}</span>
+            </button>
+          );
+        })()}
+      </div>
+    )}
+  </div>
+);
+
 export default function Sidebar() {
   const { canAccess, loading } = useAuthContext();
-  const isMobile = useIsMobile();
-  const [expanded, setExpanded] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState(null);
-  const [openSubmenu, setOpenSubmenu] = useState(null);
+  const isMobile    = useIsMobile();
+  const [expanded,      setExpanded]      = useState(false);
+  const [mobileOpen,    setMobileOpen]    = useState(false);
+  const [activeMenu,    setActiveMenu]    = useState(null);
+  const [openSubmenu,   setOpenSubmenu]   = useState(null);
   const [activeSubItem, setActiveSubItem] = useState(null);
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
   const leaveTimer = useRef(null);
 
   // Escucha evento global del Navbar hamburguesa
-  const handleToggle = useCallback(() => setMobileOpen((v) => !v), []);
+  const handleToggle = useCallback(() => setMobileOpen(v => !v), []);
   useEffect(() => {
     window.addEventListener("sidebar:toggle", handleToggle);
     return () => window.removeEventListener("sidebar:toggle", handleToggle);
   }, [handleToggle]);
 
   useEffect(() => {
-    if (!isMobile) setMobileOpen(false);
-  }, [isMobile]);
+    if (!isMobile && mobileOpen) {
+      setMobileOpen(false);
+    }
+  }, [isMobile, mobileOpen]);
 
-  const visibleMenuItems = ALL_MENU_ITEMS.filter((item) =>
-    !item.hasSubmenu
-      ? canAccess(item.modulo)
-      : item.submenu?.some((s) => canAccess(s.modulo)),
-  ).map((item) =>
-    !item.hasSubmenu
-      ? item
-      : { ...item, submenu: item.submenu.filter((s) => canAccess(s.modulo)) },
+  const visibleMenuItems = ALL_MENU_ITEMS.filter(item =>
+    !item.hasSubmenu ? canAccess(item.modulo) : item.submenu?.some(s => canAccess(s.modulo))
+  ).map(item =>
+    !item.hasSubmenu ? item : { ...item, submenu: item.submenu.filter(s => canAccess(s.modulo)) }
   );
   const showBottomItem = canAccess(BOTTOM_ITEM.modulo);
 
-  const handleMouseEnter = () => {
-    if (!isMobile) {
-      clearTimeout(leaveTimer.current);
-      setExpanded(true);
-    }
-  };
+  const handleMouseEnter = () => { if (!isMobile) { clearTimeout(leaveTimer.current); setExpanded(true); } };
   const handleMouseLeave = () => {
-    if (!isMobile)
-      leaveTimer.current = setTimeout(() => {
-        setExpanded(false);
-        setOpenSubmenu(null);
-      }, 120);
+    if (!isMobile) leaveTimer.current = setTimeout(() => { setExpanded(false); setOpenSubmenu(null); }, 120);
   };
 
   const handleMenuClick = (item) => {
     if (!item.hasSubmenu) {
-      setActiveMenu(item.id);
-      setOpenSubmenu(null);
-      setActiveSubItem(null);
+      setActiveMenu(item.id); setOpenSubmenu(null); setActiveSubItem(null);
       navigate(item.path);
       if (isMobile) setMobileOpen(false);
     } else {
       setActiveMenu(item.id);
-      setOpenSubmenu((prev) => (prev === item.id ? null : item.id));
+      setOpenSubmenu(prev => prev === item.id ? null : item.id);
     }
   };
 
@@ -151,33 +178,13 @@ export default function Sidebar() {
     if (isMobile) setMobileOpen(false);
   };
 
-  const iconColor = (active) => (active ? "#ec4899" : "#111827");
+  const iconColor = active => active ? "#ec4899" : "#111827";
   const isExpanded = isMobile ? true : expanded;
 
   if (loading) {
     return (
-      <div
-        style={{
-          width: 72,
-          height: "100vh",
-          background: "#fff",
-          borderRight: "1px solid #f3f4f6",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            border: "3px solid #f3f4f6",
-            borderTopColor: "#FF4FD6",
-            animation: "spin 0.8s linear infinite",
-          }}
-        />
+      <div style={{ width: 72, height: "100vh", background: "#fff", borderRight: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #f3f4f6", borderTopColor: "#FF4FD6", animation: "spin 0.8s linear infinite" }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -203,238 +210,6 @@ export default function Sidebar() {
     @keyframes sbSlideIn { from{transform:translateX(-100%)} to{transform:translateX(0)} }
   `;
 
-  const NavContent = () => (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflow: "hidden",
-      }}
-    >
-      {/* Logo */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "18px 16px 10px",
-          gap: 10,
-          minHeight: 68,
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            overflow: "hidden",
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img
-            src={logo}
-            alt="Logo"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        </div>
-        <div
-          style={{
-            overflow: "hidden",
-            maxWidth: isExpanded ? 140 : 0,
-            opacity: isExpanded ? 1 : 0,
-            transition: "max-width 0.18s ease,opacity 0.18s ease",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <p
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#111827",
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
-            Putongas
-          </p>
-        </div>
-        {isMobile && (
-          <button
-            onClick={() => setMobileOpen(false)}
-            style={{
-              marginLeft: "auto",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#9ca3af",
-              display: "flex",
-              alignItems: "center",
-              padding: 4,
-            }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      <div
-        style={{
-          width: "65%",
-          height: 1,
-          background: "#f3f4f6",
-          margin: "0 auto 6px",
-        }}
-      />
-
-      <nav
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          padding: "0 8px",
-        }}
-      >
-        {visibleMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeMenu === item.id;
-          const isOpen = openSubmenu === item.id;
-          return (
-            <div key={item.id}>
-              <button
-                onClick={() => handleMenuClick(item)}
-                title={!isExpanded ? item.name : undefined}
-                className={`sb-btn${isActive ? " active" : ""}`}
-              >
-                <Icon
-                  style={{
-                    width: 24,
-                    height: 24,
-                    flexShrink: 0,
-                    color: iconColor(isActive),
-                    transition: "color 0.12s",
-                  }}
-                />
-                <span
-                  className={`sb-label${isExpanded ? "" : " hidden"}${isActive ? " active" : ""}`}
-                >
-                  {item.name}
-                </span>
-                {item.hasSubmenu && (
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={isActive ? "#ec4899" : "#9ca3af"}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`sb-chevron${isExpanded ? "" : " hidden"}${isOpen ? " open" : ""}`}
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                )}
-              </button>
-              {item.hasSubmenu && (
-                <div
-                  className="sb-submenu"
-                  style={{
-                    maxHeight:
-                      isOpen && isExpanded
-                        ? item.submenu.length * 40 + "px"
-                        : "0px",
-                    opacity: isOpen && isExpanded ? 1 : 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      marginLeft: 12,
-                      borderLeft: "3px solid #f9a8d4",
-                      paddingLeft: 6,
-                      marginTop: 2,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {item.submenu.map((subitem, i) => {
-                      const key = item.id + "-" + i;
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleSubitemClick(subitem, key)}
-                          className={`sb-subitem${activeSubItem === key ? " active" : ""}`}
-                        >
-                          {subitem.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      {showBottomItem && (
-        <div style={{ padding: "0 8px 18px" }}>
-          <div
-            style={{
-              width: "65%",
-              height: 1,
-              background: "#f3f4f6",
-              margin: "0 auto 6px",
-            }}
-          />
-          {(() => {
-            const item = BOTTOM_ITEM;
-            const Icon = item.icon;
-            const isActive = activeMenu === item.id;
-            return (
-              <button
-                onClick={() => handleMenuClick(item)}
-                title={!isExpanded ? item.name : undefined}
-                className={`sb-btn${isActive ? " active" : ""}`}
-              >
-                <Icon
-                  style={{
-                    width: 24,
-                    height: 24,
-                    flexShrink: 0,
-                    color: iconColor(isActive),
-                    transition: "color 0.12s",
-                  }}
-                />
-                <span
-                  className={`sb-label${isExpanded ? "" : " hidden"}${isActive ? " active" : ""}`}
-                >
-                  {item.name}
-                </span>
-              </button>
-            );
-          })()}
-        </div>
-      )}
-    </div>
-  );
-
   // ── Mobile: drawer overlay (no ocupa espacio en el layout) ───────
   if (isMobile) {
     return (
@@ -443,16 +218,9 @@ export default function Sidebar() {
         {mobileOpen && (
           <>
             <div className="sb-backdrop" onClick={() => setMobileOpen(false)} />
-            <div
-              className="sb-drawer sidebar-wrap"
-              style={{
-                width: 240,
-                background: "#fff",
-                borderRight: "1px solid #f3f4f6",
-                boxShadow: "4px 0 24px rgba(0,0,0,0.12)",
-              }}
-            >
-              <NavContent />
+            <div className="sb-drawer sidebar-wrap"
+              style={{ width:240, background:"#fff", borderRight:"1px solid #f3f4f6", boxShadow:"4px 0 24px rgba(0,0,0,0.12)" }}>
+              <NavContent isMobile={isMobile} isExpanded={isExpanded} visibleMenuItems={visibleMenuItems} showBottomItem={showBottomItem} activeMenu={activeMenu} openSubmenu={openSubmenu} activeSubItem={activeSubItem} handleMenuClick={handleMenuClick} handleSubitemClick={handleSubitemClick} iconColor={iconColor} BOTTOM_ITEM={BOTTOM_ITEM} setMobileOpen={setMobileOpen} />
             </div>
           </>
         )}
@@ -464,24 +232,9 @@ export default function Sidebar() {
   return (
     <>
       <style>{CSS}</style>
-      <div
-        className="sidebar-wrap"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          width: expanded ? 224 : 72,
-          transition: "width 0.2s ease",
-          height: "100vh",
-          background: "#fff",
-          borderRight: "1px solid #f3f4f6",
-          boxShadow: "2px 0 10px rgba(0,0,0,0.04)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          flexShrink: 0,
-        }}
-      >
-        <NavContent />
+      <div className="sidebar-wrap" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+        style={{ width: expanded ? 224 : 72, transition:"width 0.2s ease", height:"100vh", background:"#fff", borderRight:"1px solid #f3f4f6", boxShadow:"2px 0 10px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column", overflow:"hidden", flexShrink:0 }}>
+        <NavContent isMobile={isMobile} isExpanded={isExpanded} visibleMenuItems={visibleMenuItems} showBottomItem={showBottomItem} activeMenu={activeMenu} openSubmenu={openSubmenu} activeSubItem={activeSubItem} handleMenuClick={handleMenuClick} handleSubitemClick={handleSubitemClick} iconColor={iconColor} BOTTOM_ITEM={BOTTOM_ITEM} setMobileOpen={setMobileOpen} />
       </div>
     </>
   );

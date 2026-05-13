@@ -1,15 +1,9 @@
 import httpClient from "../../shared/utils/httpClient";
-
-const mockCategories = [
-  { id: 1, name: 'Crop Top' },
-  { id: 2, name: 'Vestidos' },
-  { id: 3, name: 'Enterizos' },
-  { id: 4, name: 'Buzos' },
-];
+import { Categories } from "../types/constants";
 
 const getCategoryId = (categoryName) => {
   if (!categoryName) return 1;
-  return mockCategories.find(c => c.name === categoryName)?.id || 1;
+  return Categories.find(c => c.name === categoryName)?.id || Categories[0]?.id || 1;
 };
 
 // Full mockProducts from original
@@ -152,18 +146,82 @@ mockProducts.forEach(product => {
 
 export const productAPI = {
   getAll: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...mockProducts]);
-      }, 500);
-    });
+    try {
+      const products = await httpClient.get(`/products`);
+
+      // Enriquecer cada producto con su ficha técnica (última versión)
+      const enriched = await Promise.all(
+        (products || []).map(async (p) => {
+          const product = {
+            id: p.id,
+            reference: p.reference,
+            name: p.name,
+            category: p.category,
+            price: p.price,
+            stock: p.stock,
+            active: p.active,
+            technicalSheetVersions: p.technicalSheetVersions ?? 0,
+            lastVersionDate: p.lastVersionDate ?? null,
+            image: p.image ?? (p.imagenes_Url?.[0] || p.imagenesUrl?.[0] || null),
+            technicalSheet: null,
+          };
+
+          try {
+            const versions = await productAPI.getTechnicalSheetVersions(p.id);
+            const sorted = Array.isArray(versions)
+              ? [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+              : [];
+
+            product.technicalSheet = sorted[0] || null;
+            product.technicalSheetVersions = p.technicalSheetVersions ?? sorted.length ?? 0;
+            product.lastVersionDate = p.lastVersionDate ?? sorted[0]?.date ?? null;
+          } catch (e) {
+            if (e?.status) throw e;
+            // Si falla la ficha técnica, al menos dejamos el producto base
+          }
+
+          return product;
+        })
+      );
+
+      return enriched;
+    } catch (error) {
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
+      return [...mockProducts];
+    }
   },
 
   getById: async (id) => {
     try {
-      return await httpClient.get(`/products/${id}`);
+      const p = await httpClient.get(`/products/${id}`);
+      const product = {
+        id: p?.id ?? id,
+        reference: p?.reference,
+        name: p?.name,
+        category: p?.category,
+        price: p?.price,
+        stock: p?.stock,
+        active: p?.active,
+        technicalSheetVersions: p?.technicalSheetVersions ?? 0,
+        lastVersionDate: p?.lastVersionDate ?? null,
+        image: p?.image ?? (p?.imagenes_Url?.[0] || p?.imagenesUrl?.[0] || null),
+        technicalSheet: null,
+      };
+
+      try {
+        const versions = await productAPI.getTechnicalSheetVersions(product.id);
+        const sorted = Array.isArray(versions)
+          ? [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+          : [];
+        product.technicalSheet = sorted[0] || null;
+      } catch (e) {
+        if (e?.status) throw e;
+        // sin technicalSheet
+      }
+
+      return product;
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const product = mockProducts.find(p => p.id === id);
@@ -178,6 +236,7 @@ export const productAPI = {
   },
 
   create: async (productData) => {
+    const { technicalSheet } = productData || {};
     const backendData = {
       id_categorias: productData.categoryId || getCategoryId(productData.category),
       imagenes_Url: productData.image ? [productData.image] : [],
@@ -187,33 +246,69 @@ export const productAPI = {
       stock: productData.stock,
     };
 
+    let created;
     try {
-      return await httpClient.post("/products", backendData);
+      created = await httpClient.post("/products", backendData);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve) => {
         setTimeout(() => {
           const newProduct = {
             id: Date.now().toString().slice(-4),
             id_categorias: backendData.id_categorias,
-            image: backendData.imagenes_Url[0] || `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
+            image:
+              backendData.imagenes_Url[0] ||
+              `https://picsum.photos/300/300?random=${Date.now().toString().slice(-4)}`,
             reference: backendData.referencia,
             name: backendData.nombre,
-            category: mockCategories.find(c => c.id === backendData.id_categorias)?.name || 'General',
+            category:
+              Categories.find((c) => c.id === backendData.id_categorias)?.name || "General",
             price: backendData.precio,
             stock: backendData.stock,
             technicalSheetVersions: 1,
-            lastVersionDate: new Date().toISOString().split('T')[0],
-            active: true
+            lastVersionDate: new Date().toISOString().split("T")[0],
+            active: true,
           };
           mockProducts.push(newProduct);
           resolve(newProduct);
         }, 500);
       });
     }
+
+    const createdProduct = {
+      id: created?.id ?? created?.productId ?? created?.data?.id,
+      reference: created?.reference ?? created?.referencia,
+      name: created?.name ?? created?.nombre,
+      category: created?.category ?? created?.nombreCategoria,
+      price: created?.price ?? created?.precio,
+      stock: created?.stock,
+      active: created?.active ?? true,
+      technicalSheetVersions: created?.technicalSheetVersions ?? 0,
+      lastVersionDate: created?.lastVersionDate ?? null,
+      image: created?.image ?? (created?.imagenes_Url?.[0] || created?.imagenesUrl?.[0] || null),
+      technicalSheet: null,
+    };
+
+    // Crear ficha técnica (obligatoria por ProductForm)
+    if (technicalSheet && createdProduct.id) {
+      const version = technicalSheet.version ?? 1;
+      const sheetPayload = {
+        ...technicalSheet,
+        productId: createdProduct.id,
+        version,
+      };
+
+      const createdSheet = await productAPI.createTechnicalSheet(sheetPayload);
+      createdProduct.technicalSheet = createdSheet || null;
+      createdProduct.technicalSheetVersions = 1;
+      createdProduct.lastVersionDate = createdSheet?.date ?? createdProduct.lastVersionDate;
+    }
+
+    return createdProduct;
   },
 
   update: async (id, updatedData) => {
+    const { technicalSheet } = updatedData || {};
     const backendData = {
       id_categorias: updatedData.categoryId || getCategoryId(updatedData.category),
       imagenes_Url: updatedData.image ? [updatedData.image] : [],
@@ -222,22 +317,74 @@ export const productAPI = {
       precio: updatedData.price || updatedData.precio,
       stock: updatedData.stock,
     };
+    let updated;
     try {
-      return await httpClient.put(`/products/${id}`, backendData);
+      updated = await httpClient.put(`/products/${id}`, backendData);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          const index = mockProducts.findIndex(p => p.id === id);
+          const index = mockProducts.findIndex((p) => p.id === id);
           if (index !== -1) {
-            mockProducts[index] = { ...mockProducts[index], ...backendData, id_categorias: backendData.id_categorias };
+            mockProducts[index] = {
+              ...mockProducts[index],
+              ...backendData,
+              id_categorias: backendData.id_categorias,
+            };
             resolve(mockProducts[index]);
           } else {
-            reject(new Error('Producto no encontrado'));
+            reject(new Error("Producto no encontrado"));
           }
         }, 500);
       });
     }
+
+    const updatedProduct = {
+      id: updated?.id ?? id,
+      reference: updated?.reference ?? updated?.referencia,
+      name: updated?.name ?? updated?.nombre,
+      category: updated?.category ?? updated?.nombreCategoria,
+      price: updated?.price ?? updated?.precio,
+      stock: updated?.stock,
+      active: updated?.active ?? true,
+      technicalSheetVersions: updated?.technicalSheetVersions ?? 0,
+      lastVersionDate: updated?.lastVersionDate ?? null,
+      image: updated?.image ?? (updated?.imagenes_Url?.[0] || updated?.imagenesUrl?.[0] || null),
+      technicalSheet: null,
+    };
+
+    if (technicalSheet) {
+      const version = technicalSheet.version ?? updatedProduct.technicalSheetVersions ?? 1;
+      const sheetPayload = {
+        ...technicalSheet,
+        productId: id,
+        version,
+      };
+
+      // OJO: si falla la ficha técnica, propagamos el error para que el usuario lo vea
+      const updatedSheet = await productAPI.updateTechnicalSheet(id, sheetPayload);
+      updatedProduct.technicalSheet = updatedSheet || null;
+      updatedProduct.technicalSheetVersions =
+        updatedProduct.technicalSheetVersions || (version ? version : 1);
+      updatedProduct.lastVersionDate = updatedSheet?.date ?? updatedProduct.lastVersionDate;
+    } else {
+      // Si no viene ficha técnica, intentamos conservar/traer la actual del backend
+      try {
+        const versions = await productAPI.getTechnicalSheetVersions(id);
+        const sorted = Array.isArray(versions)
+          ? [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+          : [];
+        updatedProduct.technicalSheet = sorted[0] || null;
+        updatedProduct.technicalSheetVersions =
+          updatedProduct.technicalSheetVersions ?? sorted.length ?? 0;
+        updatedProduct.lastVersionDate =
+          updatedProduct.lastVersionDate ?? sorted[0]?.date ?? null;
+      } catch {
+        // noop
+      }
+    }
+
+    return updatedProduct;
   },
 
   delete: async (id) => {
@@ -281,11 +428,13 @@ export const productAPI = {
   // Technical sheets full unchanged...
   getTechnicalSheetVersions: async (productId) => {
     try {
-      // Backend ruta real: GET /api/products/:id/tecnicas
-      // (el httpClient ya antepone VITE_API_URL + /api)
-      return await httpClient.get(`/products/${productId}/tecnicas`);
+      // Backend ruta real: GET /api/products/:id/technical-sheets
+      return await httpClient.get(`/products/${productId}/technical-sheets`);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      // Si el backend responde (ej: 404/500), no ocultamos el problema con mocks
+      if (error?.status) throw error;
+
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve) => {
         setTimeout(() => {
           const sheets = mockTechnicalSheets
@@ -301,7 +450,9 @@ export const productAPI = {
     try {
       return await httpClient.get(`/technical-sheets/${id}`);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      if (error?.status) throw error;
+
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const sheet = mockTechnicalSheets.find(s => s.id === id);
@@ -319,7 +470,9 @@ export const productAPI = {
     try {
       return await httpClient.post("/technical-sheets", sheetData);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      if (error?.status) throw error;
+
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve) => {
         setTimeout(() => {
           const newSheet = {
@@ -346,7 +499,9 @@ export const productAPI = {
     try {
       return await httpClient.post(`/products/${productId}/technical-sheets`, sheetData);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      if (error?.status) throw error;
+
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve) => {
         setTimeout(() => {
           const productSheets = mockTechnicalSheets
@@ -382,7 +537,9 @@ export const productAPI = {
     try {
       return await httpClient.delete(`/technical-sheets/${id}`);
     } catch (error) {
-      console.warn("Backend no disponible, usando datos locales:", error.message);
+      if (error?.status) throw error;
+
+      console.warn("Backend no disponible, usando datos locales:", error?.message);
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const sheet = mockTechnicalSheets.find(s => s.id === id);

@@ -67,7 +67,7 @@ const StatusBadge = ({ status, small }) => {
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
-const ProductionTable = ({ productions = [], onCancel }) => {
+const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const navigate = useNavigate();
 
@@ -246,7 +246,13 @@ const ProductionTable = ({ productions = [], onCancel }) => {
                       {/* Acordeón toggle */}
                       <button
                         title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
-                        onClick={() => setExpandedRow(isOpen ? null : prod.id)}
+                        onClick={() => {
+                          const next = isOpen ? null : prod.id;
+                          setExpandedRow(next);
+                          if (next && typeof onExpandRow === 'function') {
+                            onExpandRow(prod.id);
+                          }
+                        }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 4,
                           padding: '5px 8px', borderRadius: 7,

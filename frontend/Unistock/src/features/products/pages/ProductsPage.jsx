@@ -9,10 +9,12 @@ import ProductSearch from '../components/ProductSearch';
 import AddProductButton from '../components/AddProductButton';
 import ProductForm from '../components/ProductForm';
 import TechnicalSheetModal from '../components/TechnicalSheetModal';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
 const ProductsPage = () => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const navigate = useNavigate();
-  const { products, createProduct, updateProduct, deleteProduct, toggleProduct } = useProducts();
+  const { products, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
   
@@ -383,16 +385,18 @@ const ProductsPage = () => {
       display: 'flex', 
       flexDirection: 'column', 
       gap: '0', 
-      padding: '24px 32px' 
+      padding: isMobile ? '16px 12px' : '24px 32px' 
     }}>
 
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '12px' : '0px',
         marginBottom: '20px',
       }}>
-        <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#1a1a1a' }}>
+        <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
           Productos
         </h1>
         <ProductSearch value={searchTerm} onChange={handleSearch} />
@@ -401,7 +405,9 @@ const ProductsPage = () => {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: isMobile ? 'flex-start' : 'space-between',
+        flexDirection: isMobile ? 'column' : 'row',
+        width: '100%',
         backgroundColor: '#ffffff',
         borderRadius: '10px',
         boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
@@ -485,6 +491,7 @@ const ProductsPage = () => {
         <TechnicalSheetModal
           product={selectedProductForSheet}
           onClose={handleCloseTechnicalSheet}
+          onTechnicalSheetChanged={() => refreshProducts()}
         />
       )}
 
