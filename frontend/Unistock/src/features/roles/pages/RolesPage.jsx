@@ -18,7 +18,7 @@ import { UserAPI } from "../services/userAPI";
 const ADMIN_PASSWORD = "admin123";
 
 // Roles que no se pueden modificar ni eliminar
-const ROLES_PROTEGIDOS = ["Administrador", "Gerente"];
+const ROLES_PROTEGIDOS = ["Gerente"];
 
 const RolesPage = () => {
   const { roles, createRol, updateRol, deleteRol, toggleRol } = useRoles();

@@ -20,11 +20,11 @@ import httpClient from "../../shared/utils/httpClient";
 export const MODULOS_PREDETERMINADOS = [
   { id: 1,  nombre: "dashboard" },
   { id: 2,  nombre: "usuarios" },
-  { id: 3,  nombre: "categorías de insumos" },
+  { id: 3,  nombre: "categorias de insumos" },
   { id: 4,  nombre: "insumos" },
   { id: 5,  nombre: "proveedores" },
   { id: 6,  nombre: "compras" },
-  { id: 7,  nombre: "categorías de productos" },
+  { id: 7,  nombre: "categorias de productos" },
   { id: 8,  nombre: "productos" },
   { id: 9,  nombre: "produccion" },
   { id: 10, nombre: "terceros" },
