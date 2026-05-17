@@ -1,9 +1,9 @@
 /**
  * Cliente API Real para Categorías de Producto
- * Conecta con el backend en http://localhost:3000/api/categories
+ * Conecta con el backend en http://localhost:3000/api/product-categories
  *
  * Nota: El backend documenta categorías como:
- *  - GET /categories -> [{ id, name }]
+ *  - GET /product-categories -> [{ id, name }]
  * Para mantener compatibilidad con la UI actual, normalizamos campos faltantes
  * (description, productCount, createdAt, updatedAt) con valores por defecto.
  */

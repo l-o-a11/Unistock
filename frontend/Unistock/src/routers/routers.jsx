@@ -109,8 +109,8 @@ export function RouterApp() {
         <Route path="productos" element={
           <PrivateRoute modulo="productos"><ProductsPage /></PrivateRoute>
         } />
-        <Route path="categorias" element={
-          <PrivateRoute modulo="categorias"><ProductCategoriesPage /></PrivateRoute>
+        <Route path="categorias-productos" element={
+          <PrivateRoute modulo="categorias-productos"><ProductCategoriesPage /></PrivateRoute>
         } />
         <Route path="productos/crear" element={
           <PrivateRoute modulo="productos"><ProductForm /></PrivateRoute>
