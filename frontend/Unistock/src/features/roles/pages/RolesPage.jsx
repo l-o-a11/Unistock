@@ -18,7 +18,7 @@ import { UserAPI } from "../services/userAPI";
 const ADMIN_PASSWORD = "admin123";
 
 // Roles que no se pueden modificar ni eliminar
-const ROLES_PROTEGIDOS = ["Gerente"];
+const ROLES_PROTEGIDOS = ["Administrador"];
 
 const RolesPage = () => {
   const { roles, createRol, updateRol, deleteRol, toggleRol } = useRoles();
@@ -51,6 +51,7 @@ const [estadoFiltro, setEstadoFiltro] = useState("todos");
       rol.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rol.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );*/
+  console.log("ROLES:", roles);
   const filteredRoles = roles.filter((rol) => {
   const text = searchTerm.toLowerCase();
 
