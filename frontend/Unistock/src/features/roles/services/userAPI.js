@@ -19,21 +19,6 @@ export const UserAPI = {
     return Array.isArray(raw) ? raw : (raw?.data ?? []);
   },
 
-  // GET /usuarios?rolId=:id — usuarios con ese rol asignado
-  getByRolId: async (rolId) => {
-    const response = await httpRequest(`/usuarios?rolId=${rolId}`, { method: "GET" });
-    const raw = response?.data ?? response;
-    return Array.isArray(raw) ? raw : (raw?.data ?? []);
-  },
-
-  // Cuenta cuántos usuarios activos tienen asignado un rolId
-  countByRolId: async (rolId) => {
-    try {
-      const usuarios = await UserAPI.getByRolId(rolId);
-      return usuarios.filter((u) => u.estado !== false).length;
-    } catch {
-      // Si el endpoint falla, no bloquear la UI — el backend ya valida esto al eliminar
-      return 0;
-    }
-  },
+  
+  
 };

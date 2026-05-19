@@ -1,7 +1,7 @@
 /**
  * RolesAPI.js
  *
- * Conectado a back_unistock → VITE_BACK_URL/roles  (puerto 3020)
+ * Conectado a back_unistock, maneja la conversión de datos entre el formato del backend y el formato que usa el frontend.
  *
  * El backend guarda los permisos como:
  *   permisos: [{ modulo: { nombre: 'insumos' }, privilegios: [{ nombre: 'crear' }] }]
@@ -46,22 +46,37 @@ export const PRIVILEGIOS_PREDETERMINADOS = [
 const permisosBackToFront = (permisos = []) =>
   permisos
     .map((p) => {
-      const nombreModulo = p.modulo?.nombre ?? "";
+      // Soporta string u objeto
+      const nombreModulo =
+        typeof p.modulo === "object"
+          ? p.modulo?.nombre
+          : p.modulo ?? "";
+
       const modulo = MODULOS_PREDETERMINADOS.find(
         (m) => m.nombre.toLowerCase() === nombreModulo.toLowerCase()
       );
+
       const privilegios = (p.privilegios ?? [])
         .map((priv) => {
-          const nombre = typeof priv === "object" ? priv.nombre : priv;
+          const nombre =
+            typeof priv === "object"
+              ? priv.nombre
+              : priv;
+
           return PRIVILEGIOS_PREDETERMINADOS.find(
             (pr) =>
-              pr.key.toLowerCase()    === nombre.toLowerCase() ||
+              pr.key.toLowerCase() === nombre.toLowerCase() ||
               pr.nombre.toLowerCase() === nombre.toLowerCase()
           )?.id;
         })
         .filter(Boolean);
 
-      return modulo ? { moduloId: modulo.id, privilegios } : null;
+      return modulo
+        ? {
+            moduloId: modulo.id,
+            privilegios,
+          }
+        : null;
     })
     .filter(Boolean);
 
@@ -93,16 +108,18 @@ const permisosFrontToBack = (modulos = []) =>
 // backend:  { _id, nombre, descripcion, estado, permisos }
 // frontend: { id,  nombre, descripcion, estado, modulos }
 const normalizeRol = (rol) => ({
-  id:          rol._id  ?? rol.id,
-  nombre:      rol.nombre,
-  descripcion: rol.descripcion,
-  estado:      rol.estado ?? true,
-  modulos:     permisosBackToFront(rol.permisos ?? []),
+  id: String(rol.id ?? rol._id ?? ""),
+  nombre: rol.nombre ?? "",
+  descripcion: rol.descripcion ?? "",
+  estado: rol.estado ?? true,
+  modulos: permisosBackToFront(rol.permisos ?? []),
 });
 
 // ── API pública (ahora con métodos HTTP igual que productAPI) ────────────────
 export const RolesAPI = {
-
+ countUsers: async (id) => {
+  return await httpClient.get(`/roles/${id}/users-count`);
+},
   /**
    * GET /api/roles
    * Soporta: ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
@@ -116,6 +133,7 @@ export const RolesAPI = {
     // httpClient.get devuelve directamente los datos (response.data)
     const result = await httpClient.get(endpoint);
     const lista = Array.isArray(result) ? result : (result?.data ?? []);
+    console.log(lista);
     return lista.map(normalizeRol);
   },
 
@@ -155,6 +173,7 @@ export const RolesAPI = {
       }),
     };
     const rol = await httpClient.put(`/roles/${id}`, body);
+     console.log("UPDATE RESPONSE", rol);
     return normalizeRol(rol);
   },
 
@@ -172,6 +191,7 @@ export const RolesAPI = {
    */
   toggle: async (id) => {
     const rol = await httpClient.patch(`/roles/${id}/toggle`);
+     console.log("TOGGLE RESPONSE", rol);
     return normalizeRol(rol);
   },
 

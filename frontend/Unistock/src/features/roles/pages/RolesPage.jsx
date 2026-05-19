@@ -9,7 +9,7 @@ import RolDetail from "../components/RolDetail";
 import CreateRolPage from "./CreateRolPage";
 import EditRolPage from "./EditRolPage";
 import Alert from "../../shared/components/Alert";
-import { UserAPI } from "../services/userAPI";
+import { RolesAPI } from "../services/RolesAPI";
 
 // ─────────────────────────────────────────────────
 // CONTRASEÑA ADMIN SIMULADA
@@ -18,7 +18,7 @@ import { UserAPI } from "../services/userAPI";
 const ADMIN_PASSWORD = "admin123";
 
 // Roles que no se pueden modificar ni eliminar
-const ROLES_PROTEGIDOS = ["Administrador"];
+const ROLES_PROTEGIDOS = ["Gerente"];
 
 const RolesPage = () => {
   const { roles, createRol, updateRol, deleteRol, toggleRol } = useRoles();
@@ -51,15 +51,14 @@ const [estadoFiltro, setEstadoFiltro] = useState("todos");
       rol.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rol.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );*/
-  console.log("ROLES:", roles);
   const filteredRoles = roles.filter((rol) => {
   const text = searchTerm.toLowerCase();
 
   const coincideBusqueda =
-    rol.id.toString().includes(searchTerm) ||
-    rol.nombre.toLowerCase().includes(text) ||
-    rol.descripcion.toLowerCase().includes(text);
-
+  String(rol.id || "").includes(searchTerm) ||
+  (rol.nombre || "").toLowerCase().includes(text) ||
+  (rol.descripcion || "").toLowerCase().includes(text);
+  
   const coincideEstado =
     estadoFiltro === "todos" ||
     (estadoFiltro === "activos" && rol.estado !== false) ||
@@ -81,9 +80,10 @@ const [estadoFiltro, setEstadoFiltro] = useState("todos");
    * Ejemplo: return usuarios.filter(u => u.rolId === rolId).length;
    */
   // Consulta la API auxiliar para saber cuántos usuarios tienen este rol
-  const getUsuariosEnlazados = async (rolId) => {
-    return await UserAPI.countByRolId(rolId);
-  };
+ const getUsuariosEnlazados = async (rolId) => {
+  const result = await RolesAPI.countUsers(rolId);
+  return result.total;
+};
 
   const verificarPassword = (password) => password === ADMIN_PASSWORD;
 
