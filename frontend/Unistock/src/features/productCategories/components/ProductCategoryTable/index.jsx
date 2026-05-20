@@ -74,9 +74,9 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
           </thead>
 
           <tbody>
-            {productCategories.map((productCategory) => (
+            {productCategories.map((productCategory, index) => (
               <tr
-                key={productCategory.id}
+                key={productCategory.id ?? productCategory._id ?? `category-${index}`}
                 style={{ transition: 'background 0.15s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fafafa')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -90,7 +90,7 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
                       position="right"
                       fields={[
                         { label: "Nombre", value: productCategory.name, highlight: true },
-                        { label: "ID", value: productCategory.id, type: "badge" }
+                        { label: "ID", value: productCategory.id ?? productCategory._id, type: "badge" }
                       ]}
                     >
                       <span style={{
@@ -165,7 +165,7 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
 
                     {/* DELETE */}
                     <button
-                      onClick={() => onDelete(productCategory.id)}
+                      onClick={() => onDelete(productCategory.id ?? productCategory._id)}
                       title="Eliminar categoría"
                       style={{
                         background: 'none',

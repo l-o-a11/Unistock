@@ -25,7 +25,7 @@ const ALL_MENU_ITEMS = [
   {
     id: "produccion", name: "Producción", icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: "Categorías De Productos", path: "categorias", modulo: "categorias" },
+      { name: "Categorías De Productos", path: "categorias-productos", modulo: "categorias-productos" },
       { name: "Productos",  path: "productos",  modulo: "productos"  },
       { name: "Producción", path: "produccion", modulo: "produccion" },
       { name: "Terceros",   path: "terceros",   modulo: "terceros"   },

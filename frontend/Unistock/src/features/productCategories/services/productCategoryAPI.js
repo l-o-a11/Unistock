@@ -1,78 +1,131 @@
 /**
  * Cliente API Real para Categorías de Producto
- * Conecta con el backend en http://localhost:3000/api/categories
+ * Conecta con el backend en http://localhost:3000/api/product-categories
  *
  * Nota: El backend documenta categorías como:
- *  - GET /categories -> [{ id, name }]
+ *  - GET /product-categories -> [{ id, name }]
  * Para mantener compatibilidad con la UI actual, normalizamos campos faltantes
  * (description, productCount, createdAt, updatedAt) con valores por defecto.
  */
 
 import { httpRequest } from "../../shared/utils/httpClient";
 
+const PRODUCT_CATEGORIES_ENDPOINT = "/products-categories";
+
+const unwrapResponse = (response) => {
+  if (!response) return response;
+
+  return (
+    response.product_categories ??
+    response.product_category ??
+    response.productCategories ??
+    response.productCategory ??
+    response.categories ??
+    response.categorias ??
+    response.data?.product_categories ??
+    response.data?.product_category ??
+    response.data?.productCategories ??
+    response.data?.productCategory ??
+    response.data?.categories ??
+    response.data?.categorias ??
+    response.data?.data ??
+    response.data ??
+    response
+  );
+};
+
 const toUiCategory = (raw) => {
   if (!raw) return raw;
   const now = new Date().toISOString().split("T")[0];
   return {
-    id: raw.id,
-    name: raw.name ?? raw.nombre ?? "",
-    description: raw.description ?? raw.descripcion ?? "",
-    productCount: raw.productCount ?? raw.product_count ?? 0,
-    createdAt: raw.createdAt ?? raw.created_at ?? now,
-    updatedAt: raw.updatedAt ?? raw.updated_at ?? now,
+    id: raw.id ?? raw._id ?? raw.id_categoria_producto ?? raw.id_categorias,
+    _id: raw._id,
+    name: raw.name ?? raw.nombre ?? raw.categoryName ?? raw.nombre_categoria ?? "",
+    description: raw.description ?? raw.descripcion ?? raw["descripción"] ?? raw.descripcion_categoria ?? "",
+    productCount: raw.productCount ?? raw.product_count ?? raw.products_count ?? raw.cantidad_productos ?? raw.total_products ?? 0,
+    createdAt: raw.createdAt ?? raw.created_at ?? raw.fecha_creacion ?? now,
+    updatedAt: raw.updatedAt ?? raw.updated_at ?? raw.fecha_actualizacion ?? now,
   };
 };
 
-const toBackendCategoryPayload = (data) => {
-  if (!data) return {};
-  return {
-    // backend: { name: "..." }
-    name: data.name ?? data.nombre ?? "",
-  };
+const buildCategoryPayloads = (data) => {
+  if (!data) return [{}];
+
+  const name = data.name ?? data.nombre ?? "";
+  const description = data.description ?? data.descripcion ?? "";
+  const withDescription = description ? { description } : {};
+  const withDescripcion = description ? { descripcion: description } : {};
+  const withDescripcionAccent = description ? { "descripción": description } : {};
+
+  return [
+    { nombre: name, ...withDescripcionAccent },
+    { name, ...withDescription },
+    { nombre: name, ...withDescripcion },
+    { name },
+    { nombre: name },
+  ];
+};
+
+const sendWithPayloadFallback = async (endpoint, method, data) => {
+  const payloads = buildCategoryPayloads(data);
+  let lastError;
+
+  for (const payload of payloads) {
+    try {
+      return await httpRequest(endpoint, { method, body: payload });
+    } catch (error) {
+      lastError = error;
+      if (![400, 422].includes(error?.status)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
 };
 
 export const productCategoryAPI = {
   // Obtener todas las categorías (GET /product-categories)
   getAll: async () => {
-    const response = await httpRequest("/product-categories", { method: "GET" });
-    const data = response?.data ?? response;
+    const response = await httpRequest(PRODUCT_CATEGORIES_ENDPOINT, { method: "GET" });
+    const data = unwrapResponse(response);
     return Array.isArray(data) ? data.map(toUiCategory) : [];
   },
 
   // Obtener categoría por ID (GET /product-categories/:id)
   getById: async (id) => {
-    const response = await httpRequest(`/product-categories/${id}`, { method: "GET" });
-    const data = response?.data ?? response;
+    const response = await httpRequest(`${PRODUCT_CATEGORIES_ENDPOINT}/${id}`, { method: "GET" });
+    const data = unwrapResponse(response);
     return toUiCategory(data);
   },
 
   // Crear nueva categoría (POST /product-categories)
   create: async (productCategoryData) => {
-    const payload = toBackendCategoryPayload(productCategoryData);
-    const response = await httpRequest("/product-categories", {
-      method: "POST",
-      body: payload,
-    });
-    const data = response?.data ?? response;
+    const response = await sendWithPayloadFallback(
+      PRODUCT_CATEGORIES_ENDPOINT,
+      "POST",
+      productCategoryData
+    );
+    const data = unwrapResponse(response);
     return toUiCategory(data);
   },
 
   // Actualizar categoría (PUT /product-categories/:id)
   update: async (id, updatedData) => {
-    const payload = toBackendCategoryPayload(updatedData);
-    const response = await httpRequest(`/product-categories/${id}`, {
-      method: "PUT",
-      body: payload,
-    });
-    const data = response?.data ?? response;
+    const response = await sendWithPayloadFallback(
+      `${PRODUCT_CATEGORIES_ENDPOINT}/${id}`,
+      "PUT",
+      updatedData
+    );
+    const data = unwrapResponse(response);
     return toUiCategory(data);
   },
 
   // Eliminar categoría (DELETE /product-categories/:id)
   delete: async (id) => {
-    const response = await httpRequest(`/product-categories/${id}`, {
+    const response = await httpRequest(`${PRODUCT_CATEGORIES_ENDPOINT}/${id}`, {
       method: "DELETE",
     });
-    return response?.data ?? response;
+    return unwrapResponse(response);
   },
 };

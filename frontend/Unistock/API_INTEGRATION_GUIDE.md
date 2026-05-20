@@ -12,8 +12,8 @@ El frontend está configurado para conectarse al backend en:
 Editar `.env`:
 ```
 VITE_API_URL=http://localhost:3000/api
-VITE_API_TIMEOUT=10000
-VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+VITE_API_TIMEVITE_GOOGLE_CLIENT_IDOUT=10000
+=xxx.apps.googleusercontent.com
 ```
 
 ## Cliente HTTP

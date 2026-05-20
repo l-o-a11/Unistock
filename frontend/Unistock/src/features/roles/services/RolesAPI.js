@@ -1,191 +1,202 @@
-// Datos de ejemplo para módulos y privilegios (simulando BD)
+/**
+ * RolesAPI.js
+ *
+ * Conectado a back_unistock, maneja la conversión de datos entre el formato del backend y el formato que usa el frontend.
+ *
+ * El backend guarda los permisos como:
+ *   permisos: [{ modulo: { nombre: 'insumos' }, privilegios: [{ nombre: 'crear' }] }]
+ *
+ * El frontend los usa como:
+ *   modulos: [{ moduloId: 4, privilegios: [2] }]
+ *
+ * Este archivo convierte en ambas direcciones para que el resto
+ * del frontend (hooks, páginas, formularios) no cambie nada.
+ */
+
+import httpClient from "../../shared/utils/httpClient";
+
+// ── Catálogos locales ─────────────────────────────────────────────────────────
+// Deben coincidir con los nombres que siembra el seed del backend.
 export const MODULOS_PREDETERMINADOS = [
-  { id: 1,  nombre: 'Dashboard' },
-  { id: 2,  nombre: 'Usuarios' },
-  { id: 3,  nombre: 'Categorías de insumos' },
-  { id: 4,  nombre: 'Insumos' },
-  { id: 5,  nombre: 'Proveedores' },
-  { id: 6,  nombre: 'Compras' },
-  { id: 7,  nombre: 'Categorías de productos' },
-  { id: 8,  nombre: 'Productos' },
-  { id: 9,  nombre: 'Producción' },
-  { id: 10, nombre: 'Terceros' },
-  { id: 11, nombre: 'Empleados' },
-  { id: 12, nombre: 'Sedes' },
-  { id: 13, nombre: 'Roles' },
+  { id: 1,  nombre: "dashboard" },
+  { id: 2,  nombre: "usuarios" },
+  { id: 3,  nombre: "categorias de insumos" },
+  { id: 4,  nombre: "insumos" },
+  { id: 5,  nombre: "proveedores" },
+  { id: 6,  nombre: "compras" },
+  { id: 7,  nombre: "categorias de productos" },
+  { id: 8,  nombre: "productos" },
+  { id: 9,  nombre: "produccion" },
+  { id: 10, nombre: "terceros" },
+  { id: 11, nombre: "empleados" },
+  { id: 12, nombre: "sedes" },
+  { id: 13, nombre: "roles" },
 ];
 
-export  const PRIVILEGIOS_PREDETERMINADOS = [
-  { id: 1, nombre: 'Leer', key: 'leer' },
-  { id: 2, nombre: 'Crear', key: 'crear' },
-  { id: 3, nombre: 'Actualizar', key: 'actualizar' },
-  { id: 4, nombre: 'Eliminar', key: 'eliminar' }
+export const PRIVILEGIOS_PREDETERMINADOS = [
+  { id: 1, nombre: "Leer",       key: "leer" },
+  { id: 2, nombre: "Crear",      key: "crear" },
+  { id: 3, nombre: "Actualizar", key: "actualizar" },
+  { id: 4, nombre: "Eliminar",   key: "eliminar" },
 ];
 
-// Datos de ejemplo para roles iniciales
-const INITIAL_ROLES = [
-  { 
-    id: 1, 
-    nombre: 'Gerente', 
-    descripcion: 'Accede a todos los módulos y permisos completos del sistema. Puede crear, editar y eliminar cualquier registro.',
-    estado: true,
-    modulos: [
-      { moduloId: 1,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 2,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 3,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 4,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 5,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 6,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 7,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 8,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 9,  privilegios: [1, 2, 3, 4] },
-      { moduloId: 10, privilegios: [1, 2, 3, 4] },
-      { moduloId: 11, privilegios: [1, 2, 3, 4] },
-      { moduloId: 12, privilegios: [1, 2, 3, 4] },
-      { moduloId: 13, privilegios: [1, 2, 3, 4] },
-    ]
-  },
-  { 
-    id: 2, 
-    nombre: 'Administrador', 
-    descripcion: 'Accede a todos los módulos de su área. Puede gestionar usuarios y configuraciones básicas.',
-    estado: true,
-    modulos: [
-      { moduloId: 1,  privilegios: [1, 2, 3] },
-      { moduloId: 2,  privilegios: [1, 2, 3] },
-      { moduloId: 3,  privilegios: [1, 2, 3] },
-      { moduloId: 4,  privilegios: [1, 2, 3] },
-      { moduloId: 5,  privilegios: [1, 2, 3] },
-      { moduloId: 6,  privilegios: [1, 2, 3] },
-      { moduloId: 7,  privilegios: [1, 2, 3] },
-      { moduloId: 8,  privilegios: [1, 2, 3] },
-      { moduloId: 9,  privilegios: [1, 2, 3] },
-      { moduloId: 10, privilegios: [1, 2, 3] },
-      { moduloId: 11, privilegios: [1, 2, 3] },
-      { moduloId: 12, privilegios: [1, 2, 3] },
-      { moduloId: 13, privilegios: [1, 2, 3] },
-    ]
-  },
-  { 
-    id: 3, 
-    nombre: 'Personal de corte', 
-    descripcion: 'Accede a la zona contable de la empresa y puede registrar horas de trabajo y materiales utilizados.',
-    estado: true,
-    modulos: [
-      { moduloId: 8, privilegios: [1] },     // Productos: Leer
-      { moduloId: 9, privilegios: [1, 2] },  // Producción: Leer, Crear
-    ]
-  },
-  { 
-    id: 4, 
-    nombre: 'Gestor de inventario', 
-    descripcion: 'Este rol permite acceder a los módulos de gestión de inventario, incluyendo insumos, productos y compras. Ideal para personal encargado del control de stock.',
-    estado: false,
-    modulos: [
-      { moduloId: 4, privilegios: [1, 2, 3] }, // Insumos
-      { moduloId: 6, privilegios: [1, 2] },    // Compras
-      { moduloId: 8, privilegios: [1, 2, 3] }, // Productos
-    ]
-  },
-  { 
-    id: 5, 
-    nombre: 'Vendedor', 
-    descripcion: 'Visualiza la información de productos y puede registrar ventas. No tiene acceso a configuración.',
-    estado: true,
-    modulos: [
-      { moduloId: 8, privilegios: [1] }, // Productos: Leer
-    ]
-  },
-   { 
-    id: 6, 
-    nombre: 'Contador', 
-    descripcion: 'Accede a la información de dashboard. No tiene acceso a configuración.',
-    estado: false,
-    modulos: [
-      { moduloId: 1, privilegios: [1] }, // Dashboard: Leer
-    ]
-  }
-];
-let mockRoles = [...INITIAL_ROLES];
+// ── Conversión backend → frontend ─────────────────────────────────────────────
+// backend:  [{ modulo: { nombre: 'insumos' }, privilegios: [{ nombre: 'crear' }] }]
+// frontend: [{ moduloId: 4, privilegios: [2] }]
+const permisosBackToFront = (permisos = []) =>
+  permisos
+    .map((p) => {
+      // Soporta string u objeto
+      const nombreModulo =
+        typeof p.modulo === "object"
+          ? p.modulo?.nombre
+          : p.modulo ?? "";
+
+      const modulo = MODULOS_PREDETERMINADOS.find(
+        (m) => m.nombre.toLowerCase() === nombreModulo.toLowerCase()
+      );
+
+      const privilegios = (p.privilegios ?? [])
+        .map((priv) => {
+          const nombre =
+            typeof priv === "object"
+              ? priv.nombre
+              : priv;
+
+          return PRIVILEGIOS_PREDETERMINADOS.find(
+            (pr) =>
+              pr.key.toLowerCase() === nombre.toLowerCase() ||
+              pr.nombre.toLowerCase() === nombre.toLowerCase()
+          )?.id;
+        })
+        .filter(Boolean);
+
+      return modulo
+        ? {
+            moduloId: modulo.id,
+            privilegios,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
+// ── Conversión frontend → backend ─────────────────────────────────────────────
+// frontend: [{ moduloId: 4, privilegios: [2] }]
+// backend:  [{ modulo: { nombre: 'insumos' }, privilegios: [{ nombre: 'crear' }] }]
+const permisosFrontToBack = (modulos = []) =>
+  modulos
+    .map((m) => {
+      const modulo = MODULOS_PREDETERMINADOS.find((mod) => mod.id === m.moduloId);
+      if (!modulo) return null;
+
+      // Convierte los IDs de privilegios a sus keys (strings)
+      const privilegios = (m.privilegios ?? [])
+        .map((privId) => {
+          const priv = PRIVILEGIOS_PREDETERMINADOS.find((p) => p.id === privId);
+          return priv ? priv.key : null;  // ← string ("crear", "leer", etc.)
+        })
+        .filter(Boolean);
+
+      return {
+        modulo: modulo.nombre, // ← string directo, ej: "insumos"
+        privilegios,           // ← arreglo de strings, ej: ["crear"]
+      };
+    })
+    .filter(Boolean);
+    
+// ── Normalizar rol del backend al formato del frontend ────────────────────────
+// backend:  { _id, nombre, descripcion, estado, permisos }
+// frontend: { id,  nombre, descripcion, estado, modulos }
+const normalizeRol = (rol) => ({
+  id: String(rol.id ?? rol._id ?? ""),
+  nombre: rol.nombre ?? "",
+  descripcion: rol.descripcion ?? "",
+  estado: rol.estado ?? true,
+  modulos: permisosBackToFront(rol.permisos ?? []),
+});
+
+// ── API pública (ahora con métodos HTTP igual que productAPI) ────────────────
 export const RolesAPI = {
-  getAll: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...mockRoles]);
-      }, 500);
-    });
+ countUsers: async (id) => {
+  return await httpClient.get(`/roles/${id}/users-count`);
+},
+  /**
+   * GET /api/roles
+   * Soporta: ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
+   */
+  getAll: async (filters = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+    ).toString();
+    const endpoint = `/roles${qs ? `?${qs}` : ""}`;
+
+    // httpClient.get devuelve directamente los datos (response.data)
+    const result = await httpClient.get(endpoint);
+    const lista = Array.isArray(result) ? result : (result?.data ?? []);
+    console.log(lista);
+    return lista.map(normalizeRol);
   },
 
+  /**
+   * GET /api/roles/:id
+   */
   getById: async (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const rol = mockRoles.find(r => r.id === id);
-        if (rol) resolve({ ...rol });
-        else reject(new Error('Rol no encontrado'));
-      }, 300);
-    });
+    const rol = await httpClient.get(`/roles/${id}`);
+    return normalizeRol(rol);
   },
 
+  /**
+   * POST /api/roles
+   * Recibe formato frontend: { nombre, descripcion, estado, modulos }
+   */
   create: async (rolData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newRol = {
-          id: mockRoles.length > 0
-            ? Math.max(...mockRoles.map(r => r.id)) + 1
-            : 1,
-          ...rolData
-        };
-
-        mockRoles.push(newRol);
-        resolve({ ...newRol });
-      }, 500);
-    });
+    const body = {
+      nombre:      rolData.nombre,
+      descripcion: rolData.descripcion,
+      estado:      rolData.estado ?? true,
+      permisos:    permisosFrontToBack(rolData.modulos ?? []),
+    };
+    const rol = await httpClient.post("/roles", body);
+    return normalizeRol(rol);
   },
 
-  update: async (id, updatedData) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockRoles.findIndex(r => r.id === id);
-        if (index !== -1) {
-          mockRoles[index] = {
-            ...mockRoles[index],
-            ...updatedData
-          };
-          resolve({ ...mockRoles[index] });
-        } else {
-          reject(new Error('Rol no encontrado'));
-        }
-      }, 500);
-    });
+  /**
+   * PUT /api/roles/:id
+   */
+  update: async (id, rolData) => {
+    const body = {
+      ...(rolData.nombre      !== undefined && { nombre:      rolData.nombre }),
+      ...(rolData.descripcion !== undefined && { descripcion: rolData.descripcion }),
+      ...(rolData.estado      !== undefined && { estado:      rolData.estado }),
+      ...(rolData.modulos     !== undefined && {
+        permisos: permisosFrontToBack(rolData.modulos),
+      }),
+    };
+    const rol = await httpClient.put(`/roles/${id}`, body);
+     console.log("UPDATE RESPONSE", rol);
+    return normalizeRol(rol);
   },
 
+  /**
+   * DELETE /api/roles/:id
+   * El backend bloquea si hay usuarios activos con ese rol.
+   */
   delete: async (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockRoles.findIndex(r => r.id === id);
-        if (index !== -1) {
-          mockRoles.splice(index, 1);
-          resolve();
-        } else {
-          reject(new Error('Rol no encontrado'));
-        }
-      }, 500);
-    });
+    return httpClient.delete(`/roles/${id}`);
   },
 
-  getModulos: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...MODULOS_PREDETERMINADOS]);
-      }, 300);
-    });
+  /**
+   * PATCH /api/roles/:id/toggle
+   * Activa o inactiva el rol.
+   */
+  toggle: async (id) => {
+    const rol = await httpClient.patch(`/roles/${id}/toggle`);
+     console.log("TOGGLE RESPONSE", rol);
+    return normalizeRol(rol);
   },
 
-  getPrivilegios: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...PRIVILEGIOS_PREDETERMINADOS]);
-      }, 300);
-    });
-  }
+  // ── Catálogos (compatibilidad con el hook actual) ─────────────────────────
+  // Se devuelven los locales — no hace falta llamar al backend para esto.
+  getModulos:     async () => [...MODULOS_PREDETERMINADOS],
+  getPrivilegios: async () => [...PRIVILEGIOS_PREDETERMINADOS],
 };

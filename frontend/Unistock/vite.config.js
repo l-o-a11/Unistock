@@ -7,7 +7,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-      workbox:{
+      workbox: {
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,jsx,css,html,png,svg,jpeg}']
       },
@@ -19,30 +19,31 @@ export default defineConfig({
         start_url: "/",
         display: "standalone",
         theme_color: '#ffffff',
-        background_color : '#ffffff',
-        screenshots:[{
+        background_color: '#ffffff',
+        screenshots: [{
           src: '/frontend/Unistock/src/assets/transparent-Photoroom.png/ pwa-192x192.png',
           sizes: '1200x581',
           type: 'image/png',
           form_factor: 'wide',
         },
-        { src: '/frontend/Unistock/src/assets/Login.jpeg/ pwa-192x192.png',
+        {
+          src: '/frontend/Unistock/src/assets/Login.jpeg/ pwa-192x192.png',
           sizes: '512x512',
           type: 'image/png',
           form_factor: 'wide',
         }
-      ],
+        ],
         icons: [
           {
             src: '/frontend/Unistock/src/assets/Login.jpeg/ pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-          form_factor: 'wide',
+            form_factor: 'wide',
           },
           {
-          src: '/frontend/Unistock/src/assets/transparent-Photoroom.png/ pwa-192x192.png',
+            src: '/frontend/Unistock/src/assets/transparent-Photoroom.png/ pwa-192x192.png',
             sizes: '1200x581',
-            type: 'image/png',          
+            type: 'image/png',
             form_factor: 'wide',
 
           }

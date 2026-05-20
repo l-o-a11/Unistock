@@ -7,6 +7,11 @@ import ProductCategoryForm from '../components/ProductCategoryForm';
 import AddProductCategoryButton from '../components/AddProductCategoryButton';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
+const getProductCategoryId = (category) =>
+  category?.id ?? category?._id ?? category?.id_categoria_producto ?? category?.id_categorias;
+
+const sameProductCategoryId = (left, right) => String(left) === String(right);
+
 const ProductCategoriesPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -51,9 +56,10 @@ const ProductCategoriesPage = () => {
   // 🔍 FILTRO
   const filteredProductCategories = productCategories.filter(pc => {
     const searchLower = searchTerm.toLowerCase();
+
     return (
-      pc.name.toLowerCase().includes(searchLower) ||
-      pc.description.toLowerCase().includes(searchLower) ||
+      pc.name?.toLowerCase().includes(searchLower) ||
+      pc.description?.toLowerCase().includes(searchLower) ||
       pc.productCount?.toString().includes(searchTerm)
     );
   });
@@ -71,13 +77,20 @@ const ProductCategoriesPage = () => {
     if (!setter) return;
 
     setter({ open: false, key: Date.now() });
+
     setTimeout(() => {
-      setter({ open: true, key: Date.now(), title, message });
+      setter({
+        open: true,
+        key: Date.now(),
+        title,
+        message
+      });
     }, 50);
   };
 
   const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
     setConfirmAlert({ open: false, key: Date.now() });
+
     setTimeout(() => {
       setConfirmAlert({
         open: true,
@@ -108,27 +121,55 @@ const ProductCategoriesPage = () => {
   const handleCreateSubmit = async (data) => {
     try {
       await createProductCategory(data);
+
       handleCloseForm();
-      handleShowAlert({ type: "success", title: "¡Éxito!", message: "Categoría creada correctamente" });
+
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: "Categoría creada correctamente"
+      });
+
     } catch (error) {
+
       handleCloseForm();
-      handleShowAlert({ type: "error", title: "Error", message: error.message });
+
+      handleShowAlert({
+        type: "error",
+        title: "Error",
+        message: error.message
+      });
     }
   };
 
   const handleEditSubmit = async (data) => {
     try {
-      await updateProductCategory(editingProductCategory.id, data);
+      await updateProductCategory(getProductCategoryId(editingProductCategory), data);
+
       handleCloseForm();
-      handleShowAlert({ type: "success", title: "¡Éxito!", message: "Categoría actualizada correctamente" });
+
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: "Categoría actualizada correctamente"
+      });
+
     } catch (error) {
+
       handleCloseForm();
-      handleShowAlert({ type: "error", title: "Error", message: error.message });
+
+      handleShowAlert({
+        type: "error",
+        title: "Error",
+        message: error.message
+      });
     }
   };
 
   const handleDeleteClick = (id) => {
-    const pc = productCategories.find(c => c.id === id);
+    const pc = productCategories.find(c => sameProductCategoryId(getProductCategoryId(c), id));
+
+    if (!pc) return;
 
     if (pc.productCount > 0) {
       handleShowAlert({
@@ -136,6 +177,7 @@ const ProductCategoriesPage = () => {
         title: "No se puede eliminar",
         message: `Tiene ${pc.productCount} producto(s) asociados`
       });
+
       return;
     }
 
@@ -152,18 +194,42 @@ const ProductCategoriesPage = () => {
   const handleDeleteConfirm = async () => {
     try {
       await deleteProductCategory(deleteAlert.productCategoryId);
-      setDeleteAlert({ open: false, step: "confirm", key: Date.now() });
-      handleShowAlert({ type: "success", title: "Eliminado", message: "Categoría eliminada correctamente" });
+
+      setDeleteAlert({
+        open: false,
+        step: "confirm",
+        key: Date.now()
+      });
+
+      handleShowAlert({
+        type: "success",
+        title: "Eliminado",
+        message: "Categoría eliminada correctamente"
+      });
+
     } catch (error) {
-      handleShowAlert({ type: "error", title: "Error", message: error.message });
-      setDeleteAlert({ open: false, step: "confirm", key: Date.now() });
+
+      handleShowAlert({
+        type: "error",
+        title: "Error",
+        message: error.message
+      });
+
+      setDeleteAlert({
+        open: false,
+        step: "confirm",
+        key: Date.now()
+      });
     }
   };
 
   // 🎨 MODAL STYLES (igual que Categories)
   const modalOverlayStyle = {
     position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
     zIndex: 100,
     pointerEvents: 'none'
@@ -191,30 +257,36 @@ const ProductCategoriesPage = () => {
   };
 
   return (
-    <div style={{
-      position: 'relative',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: isMobile ? '16px 12px' : '24px 32px'
-    }}>
+    <div
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: isMobile ? '16px 12px' : '24px 32px'
+      }}
+    >
 
       {/* ── ROW 1: Título + Search ── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? '12px' : '0px',
-        marginBottom: '20px',
-      }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: isMobile ? '22px' : '26px',
-          fontWeight: '700',
-          color: '#1a1a1a'
-        }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '12px' : '0px',
+          marginBottom: '20px',
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: isMobile ? '22px' : '26px',
+            fontWeight: '700',
+            color: '#1a1a1a'
+          }}
+        >
           Categorías de productos
         </h1>
 
@@ -225,16 +297,18 @@ const ProductCategoriesPage = () => {
       </div>
 
       {/* ── ROW 2: Botón en card ── */}
-      <div style={{
-        display: 'flex',
-        justifyContent: isMobile ? 'flex-start' : 'flex-end',
-        width: '100%',
-        backgroundColor: '#ffffff',
-        borderRadius: '10px',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-        padding: '12px 20px',
-        marginBottom: '20px',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: isMobile ? 'flex-start' : 'flex-end',
+          width: '100%',
+          backgroundColor: '#ffffff',
+          borderRadius: '10px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          padding: '12px 20px',
+          marginBottom: '20px',
+        }}
+      >
         <AddProductCategoryButton onClick={handleAdd} />
       </div>
 
@@ -248,7 +322,11 @@ const ProductCategoriesPage = () => {
       {/* ── MODALES ── */}
       {showCreateForm && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div
+            style={modalBackgroundStyle}
+            onClick={handleCloseForm}
+          />
+
           <div style={modalContentStyle}>
             <ProductCategoryForm
               onSubmit={handleCreateSubmit}
@@ -262,7 +340,11 @@ const ProductCategoriesPage = () => {
 
       {showEditForm && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div
+            style={modalBackgroundStyle}
+            onClick={handleCloseForm}
+          />
+
           <div style={modalContentStyle}>
             <ProductCategoryForm
               productCategory={editingProductCategory}
@@ -276,17 +358,23 @@ const ProductCategoriesPage = () => {
       )}
 
       {/* ── ALERTAS (igual que Categories) ── */}
-      <Alert {...successAlert} type="success"
+      <Alert
+        {...successAlert}
+        type="success"
         onConfirm={() => setSuccessAlert({ ...successAlert, open: false })}
         onCancel={() => setSuccessAlert({ ...successAlert, open: false })}
       />
 
-      <Alert {...errorAlert} type="error"
+      <Alert
+        {...errorAlert}
+        type="error"
         onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
         onCancel={() => setErrorAlert({ ...errorAlert, open: false })}
       />
 
-      <Alert {...warningAlert} type="warning"
+      <Alert
+        {...warningAlert}
+        type="warning"
         onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
         onCancel={() => setWarningAlert({ ...warningAlert, open: false })}
       />
@@ -296,29 +384,51 @@ const ProductCategoriesPage = () => {
         type="confirm"
         onConfirm={() => {
           confirmAlert.onConfirm?.();
-          setConfirmAlert({ ...confirmAlert, open: false });
+
+          setConfirmAlert({
+            ...confirmAlert,
+            open: false
+          });
         }}
-        onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}
+        onCancel={() =>
+          setConfirmAlert({
+            ...confirmAlert,
+            open: false
+          })
+        }
       />
 
       <Alert
-        isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
+        open={deleteAlert.open && deleteAlert.step === "confirm"}
         type="confirm"
         title="Confirmar eliminación"
         message={`¿Eliminar "${deleteAlert.productCategoryName}"?`}
         confirmText="Eliminar"
         cancelText="Cancelar"
-        onConfirm={() => setDeleteAlert({ ...deleteAlert, step: "password" })}
-        onCancel={() => setDeleteAlert({ open: false })}
+        onConfirm={() =>
+          setDeleteAlert({
+            ...deleteAlert,
+            step: "password"
+          })
+        }
+        onCancel={() =>
+          setDeleteAlert({
+            open: false
+          })
+        }
       />
 
       <Alert
-        isOpen={deleteAlert.open && deleteAlert.step === "password"}
+        open={deleteAlert.open && deleteAlert.step === "password"}
         type="password"
         title="Confirmar eliminación"
         message="Ingresa la contraseña"
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteAlert({ open: false })}
+        onCancel={() =>
+          setDeleteAlert({
+            open: false
+          })
+        }
       />
 
     </div>

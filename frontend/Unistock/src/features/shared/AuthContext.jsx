@@ -5,11 +5,11 @@ import { AuthAPI } from "../../features/auth/services/AuthAPI";
 export const ROUTE_MODULE_MAP = {
   "dashboard":          1,
   "usuarios":           2,
-  "categorias-insumos": 3,
+  "categorias de insumos": 3,
   "insumos":            4,
   "proveedores":        5,
   "compras":            6,
-  "categorias":         7,
+  "categorias de productos":         7,
   "productos":          8,
   "produccion":         9,
   "terceros":           10,
