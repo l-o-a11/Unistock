@@ -43,7 +43,7 @@ export const useTechnicalSheet = (productId) => {
   const deleteLastVersion = async (versionId) => {
     if (versions.length === 0) return;
     try {
-      await productAPI.deleteTechnicalSheet(versionId);
+      await productAPI.deleteTechnicalSheet(productId, versionId);
       setVersions([]);
       setCurrentVersion(null);
     } catch (err) {
