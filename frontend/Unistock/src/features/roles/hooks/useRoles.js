@@ -1,86 +1,56 @@
-import { useState, useEffect } from 'react';
-import { RolesAPI, MODULOS_PREDETERMINADOS, PRIVILEGIOS_PREDETERMINADOS } from '../services/RolesAPI';
+// features/roles/hooks/useRoles.js
 
-const STORAGE_KEY = 'app_roles';
+import { useState, useEffect, useCallback } from "react";
+import {
+  RolesAPI,
+  MODULOS_PREDETERMINADOS,
+  PRIVILEGIOS_PREDETERMINADOS,
+} from "../services/RolesAPI";
 
-// ── Helpers de localStorage ────────────────────────────────────────────────
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* JSON corrupto */ }
-  return null;
-};
-
-// FIX 5: disparar evento 'storage' para que AuthContext se entere
-// cuando los roles son modificados en la misma pestaña.
-const saveToStorage = (roles) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
-    // localStorage events solo llegan a OTRAS pestañas por defecto;
-    // disparamos uno manual para la pestaña actual.
-    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
-  } catch (e) {
-    console.error('No se pudo guardar en localStorage:', e);
-  }
-};
-
-// ── Hook principal ─────────────────────────────────────────────────────────
+// ── Hook principal ────────────────────────────────────────────────────────────
 export const useRoles = () => {
-  const [roles, setRoles]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
-  const [modulos, setModulos]     = useState([]);
-  const [privilegios, setPrivilegios] = useState([]);
+  const [roles, setRoles]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
 
+  // Carga inicial desde el backend
   useEffect(() => {
-    const cached = loadFromStorage();
-    if (cached) {
-      setRoles(cached);
-      setLoading(false);
-    } else {
-      loadData();
-    }
+    loadData();
   }, []);
-
-  // Persistir cada vez que roles cambia (después de la carga inicial)
-  useEffect(() => {
-    if (!loading) {
-      saveToStorage(roles);
-    }
-  }, [roles, loading]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [rolesData, modulosData, privilegiosData] = await Promise.all([
-        RolesAPI.getAll(),
-        RolesAPI.getModulos(),
-        RolesAPI.getPrivilegios(),
-      ]);
-      setRoles(rolesData);
-      setModulos(modulosData);
-      setPrivilegios(privilegiosData);
       setError(null);
+      const data = await RolesAPI.getAll();
+      setRoles(data);
     } catch (err) {
-      setError('Error al cargar datos');
-      console.error(err);
+      setError(err.message ?? "Error al cargar roles");
+      console.error("[useRoles] loadData:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getRolById   = (id) => roles.find((rol) => rol.id === parseInt(id));
+  // ── CRUD ──────────────────────────────────────────────────────────────────
+
+  // Busca un rol en el estado local por id (acepta string o número)
+  const getRolById = useCallback(
+    (id) => roles.find((r) => String(r.id) === String(id)),
+    [roles]
+  );
 
   const createRol = async (rolData) => {
     try {
       setLoading(true);
+      setError(null);
       const newRol = await RolesAPI.create(rolData);
       setRoles((prev) => [...prev, newRol]);
       return newRol;
     } catch (err) {
-      setError('Error al crear el rol');
-      throw err;
+      const msg = err.message ?? "Error al crear el rol";
+      setError(msg);
+      throw new Error(msg);
     } finally {
       setLoading(false);
     }
@@ -89,11 +59,16 @@ export const useRoles = () => {
   const updateRol = async (id, rolData) => {
     try {
       setLoading(true);
+      setError(null);
       const updated = await RolesAPI.update(id, rolData);
-      setRoles((prev) => prev.map((rol) => (rol.id === id ? updated : rol)));
+      setRoles((prev) =>
+        prev.map((r) => (String(r.id) === String(id) ? updated : r))
+      );
+      return updated;
     } catch (err) {
-      setError('Error al actualizar el rol');
-      throw err;
+      const msg = err.message ?? "Error al actualizar el rol";
+      setError(msg);
+      throw new Error(msg);
     } finally {
       setLoading(false);
     }
@@ -102,36 +77,57 @@ export const useRoles = () => {
   const deleteRol = async (id) => {
     try {
       setLoading(true);
+      setError(null);
       await RolesAPI.delete(id);
-      setRoles((prev) => prev.filter((rol) => rol.id !== id));
+      setRoles((prev) => prev.filter((r) => String(r.id) !== String(id)));
     } catch (err) {
-      setError('Error al eliminar el rol');
-      throw err;
+      const msg = err.message ?? "Error al eliminar el rol";
+      setError(msg);
+      throw new Error(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleRol = (id) => {
-    setRoles((prev) =>
-      prev.map((rol) => (rol.id === id ? { ...rol, estado: !rol.estado } : rol))
-    );
+  // toggleRol ahora llama al backend (PATCH /roles/:id/toggle)
+  const toggleRol = async (id) => {
+    try {
+      setError(null);
+      const updated = await RolesAPI.toggle(id);
+      setRoles((prev) =>
+        prev.map((r) => (String(r.id) === String(id) ? updated : r))
+      );
+      return updated;
+    } catch (err) {
+      const msg = err.message ?? "Error al cambiar estado del rol";
+      setError(msg);
+      throw new Error(msg);
+    }
   };
 
-  const getModulos        = () => MODULOS_PREDETERMINADOS;
-  const getPrivilegios    = () => PRIVILEGIOS_PREDETERMINADOS;
-  const getModuloNombre   = (moduloId) => MODULOS_PREDETERMINADOS.find((m) => m.id === moduloId)?.nombre ?? 'Módulo desconocido';
-  const getPrivilegioNombre = (privId) => PRIVILEGIOS_PREDETERMINADOS.find((p) => p.id === privId)?.nombre ?? 'Desconocido';
+  // ── Helpers de catálogos ──────────────────────────────────────────────────
+  // Usan los catálogos locales definidos en RolesAPI.js — sin petición extra.
+
+  const getModulos     = () => MODULOS_PREDETERMINADOS;
+  const getPrivilegios = () => PRIVILEGIOS_PREDETERMINADOS;
+
+  const getModuloNombre = (moduloId) =>
+    MODULOS_PREDETERMINADOS.find((m) => m.id === moduloId)?.nombre ??
+    "Módulo desconocido";
+
+  const getPrivilegioNombre = (privId) =>
+    PRIVILEGIOS_PREDETERMINADOS.find((p) => p.id === privId)?.nombre ??
+    "Desconocido";
 
   const tienePermiso = (rolId, moduloId, privilegioId) => {
-    const rol = roles.find((r) => r.id === parseInt(rolId));
+    const rol = roles.find((r) => String(r.id) === String(rolId));
     if (!rol) return false;
     const mod = rol.modulos?.find((m) => m.moduloId === moduloId);
     return mod ? mod.privilegios.includes(privilegioId) : false;
   };
 
   const getPermisosModulo = (rolId, moduloId) => {
-    const rol = roles.find((r) => r.id === parseInt(rolId));
+    const rol = roles.find((r) => String(r.id) === String(rolId));
     if (!rol) return [];
     return rol.modulos?.find((m) => m.moduloId === moduloId)?.privilegios ?? [];
   };
@@ -140,6 +136,7 @@ export const useRoles = () => {
     roles,
     loading,
     error,
+    reload: loadData,       // nuevo: permite refrescar la lista manualmente
     getRolById,
     createRol,
     updateRol,
@@ -154,16 +151,20 @@ export const useRoles = () => {
   };
 };
 
+// ── Hooks auxiliares — misma interfaz que antes, sin cambios ──────────────────
+
 export const useRolSearch = (roles, searchTerm) => {
   const [filteredRoles, setFilteredRoles] = useState(roles);
 
   useEffect(() => {
-    const filtered = roles.filter(
-      (rol) =>
-        rol.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rol.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+    const term = (searchTerm ?? "").toLowerCase();
+    setFilteredRoles(
+      roles.filter(
+        (r) =>
+          r.nombre?.toLowerCase().includes(term) ||
+          r.descripcion?.toLowerCase().includes(term)
+      )
     );
-    setFilteredRoles(filtered);
   }, [roles, searchTerm]);
 
   return { filteredRoles };
@@ -171,7 +172,7 @@ export const useRolSearch = (roles, searchTerm) => {
 
 export const useRolDetail = () => {
   const [selectedRol, setSelectedRol] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen]           = useState(false);
 
   const openDetail  = (rol) => { setSelectedRol(rol); setIsOpen(true); };
   const closeDetail = ()    => { setIsOpen(false); setSelectedRol(null); };

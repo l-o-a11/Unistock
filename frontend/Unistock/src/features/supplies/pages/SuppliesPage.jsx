@@ -338,33 +338,31 @@ const SuppliesPage = () => {
         </button>
 
     {/* CHIPS */}
-    <div style={{ display: "flex", gap: "8px" }}>
-      {[
-        { label: "Todos", value: "todos" },
-        { label: "Activos", value: "activos" },
-        { label: "Inactivos", value: "inactivos" },
-      ].map((chip) => (
-        <button
-          key={chip.value}
-          onClick={() => setEstadoFiltro(chip.value)}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "20px",
-            border: "1px solid #ddd",
-            cursor: "pointer",
-            fontSize: "13px",
-            background:
-              estadoFiltro === chip.value ? "#FF4FD6" : "#fff",
-            color:
-              estadoFiltro === chip.value ? "#fff" : "#333",
-            fontWeight: estadoFiltro === chip.value ? "600" : "400",
-            transition: "all 0.2s ease",
-          }}
-        >
-          {chip.label}
-        </button>
-      ))}
-    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+  <label style={{ fontSize: "13px", color: "#555" }}>
+    Estado:
+  </label>
+
+  <select
+    value={estadoFiltro}
+    onChange={(e) => {
+      setEstadoFiltro(e.target.value);
+      setCurrentPage(1); // reset paginación
+    }}
+    style={{
+      padding: "6px 10px",
+      borderRadius: "6px",
+      border: "1px solid #ddd",
+      fontSize: "13px",
+      cursor: "pointer",
+      outline: "none",
+    }}
+  >
+    <option value="todos">Todos</option>
+    <option value="activos">Activos</option>
+    <option value="inactivos">Inactivos</option>
+  </select>
+</div>
   </div>
 
   {/* DERECHA */}
