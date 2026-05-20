@@ -28,7 +28,7 @@ export const useProductCategories = () => {
     try {
       setError(null);
       const newItem = await productCategoryAPI.create(data);
-      setProductCategories(prev => [...prev, newItem]);
+      await loadProductCategories();
       return newItem;
     } catch (err) {
       setError(err?.message || 'Error al crear categoría');
@@ -40,9 +40,7 @@ export const useProductCategories = () => {
     try {
       setError(null);
       const updated = await productCategoryAPI.update(id, data);
-      setProductCategories(prev =>
-        prev.map(pc => pc.id === id ? updated : pc)
-      );
+      await loadProductCategories();
       return updated;
     } catch (err) {
       setError(err?.message || 'Error al actualizar categoría');
@@ -54,7 +52,7 @@ export const useProductCategories = () => {
     try {
       setError(null);
       await productCategoryAPI.delete(id);
-      setProductCategories(prev => prev.filter(pc => pc.id !== id));
+      await loadProductCategories();
     } catch (err) {
       setError(err?.message || 'Error al eliminar categoría');
       throw err;
