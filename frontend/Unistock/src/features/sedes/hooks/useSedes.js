@@ -1,110 +1,114 @@
-import { useState, useEffect } from "react";
+/**
+ * useSedes.js
+ *
+ * Hook principal para gestión de sedes.
+ * Reemplaza la lógica de localStorage/mock por llamadas reales vía sedesAPI.
+ *
+ * Responsabilidades:
+ *  - Cargar la lista de sedes desde el backend al montar
+ *  - Exponer CRUD: createSede, updateSede, deleteSede, toggleSede
+ *  - Mantener loading y error para la UI
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import { sedesAPI } from "../services/sedesAPI";
 
-const STORAGE_KEY = "app_sedes";
-
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return null;
-};
-
-const saveToStorage = (sedes) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sedes));
-  } catch (e) {
-    console.error("No se pudo guardar en localStorage:", e);
-  }
-};
-
 export const useSedes = () => {
-  const [sedes, setSedes] = useState([]);
+  const [sedes,   setSedes]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
 
-  useEffect(() => {
-    const cached = loadFromStorage();
-    if (cached) { setSedes(cached); setLoading(false); }
-    else loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!loading) saveToStorage(sedes);
-  }, [sedes, loading]);
-
-  const loadData = async () => {
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+  const loadData = useCallback(async (filters = {}) => {
     try {
       setLoading(true);
-      const data = await sedesAPI.getAll();
-      setSedes(data);
       setError(null);
+      const data = await sedesAPI.getAll(filters);
+      setSedes(data);
     } catch (err) {
-      setError("Error al cargar sedes");
-      console.error(err);
+      setError(err.message || "Error al cargar sedes");
+      console.error("[useSedes] loadData:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // ── Crear ──────────────────────────────────────────────────────────────────
   const createSede = async (sedeData) => {
-    const duplicado = sedes.find(
-      (s) => s.nombre?.trim().toLowerCase() === sedeData.nombre?.trim().toLowerCase()
-    );
-    if (duplicado) throw new Error(`Ya existe una sede con el nombre "${sedeData.nombre}"`);
-
     try {
       setLoading(true);
       const newSede = await sedesAPI.create(sedeData);
       setSedes((prev) => [...prev, newSede]);
       return newSede;
     } catch (err) {
-      setError("Error al crear la sede");
+      const msg = err.message || "Error al crear la sede";
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Actualizar ─────────────────────────────────────────────────────────────
   const updateSede = async (id, sedeData) => {
-    const duplicado = sedes.find(
-      (s) => s.id !== id && s.nombre?.trim().toLowerCase() === sedeData.nombre?.trim().toLowerCase()
-    );
-    if (duplicado) throw new Error(`Ya existe una sede con el nombre "${sedeData.nombre}"`);
-
     try {
       setLoading(true);
       const updated = await sedesAPI.update(id, sedeData);
       setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      return updated;
     } catch (err) {
-      setError("Error al actualizar la sede");
+      const msg = err.message || "Error al actualizar la sede";
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Eliminar ───────────────────────────────────────────────────────────────
   const deleteSede = async (id) => {
     try {
       setLoading(true);
       await sedesAPI.delete(id);
       setSedes((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
-      setError("Error al eliminar la sede");
+      const msg = err.message || "Error al eliminar la sede";
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleSede = (id) => {
-    setSedes((prev) => prev.map((s) => (s.id === id ? { ...s, estado: !s.estado } : s)));
+  // ── Toggle activo/inactivo ────────────────────────────────────────────────
+  // Llama al backend (PATCH /api/sites/:id/toggle) en lugar de mutar el estado local.
+  const toggleSede = async (id) => {
+    try {
+      setLoading(true);
+      const updated = await sedesAPI.toggle(id);
+      setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      return updated;
+    } catch (err) {
+      const msg = err.message || "Error al cambiar el estado de la sede";
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
-    sedes, loading, error,
-    createSede, updateSede, deleteSede, toggleSede,
+    sedes,
+    loading,
+    error,
+    createSede,
+    updateSede,
+    deleteSede,
+    toggleSede,
     refreshSedes: loadData,
   };
 };
