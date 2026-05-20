@@ -1,7 +1,7 @@
 import React from "react";
 
 // Roles que no se pueden modificar ni eliminar
-const ROLES_PROTEGIDOS = ["Administrador", "Gerente"];
+const ROLES_PROTEGIDOS = ["Gerente"];
 
 const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
   const thStyle = {
