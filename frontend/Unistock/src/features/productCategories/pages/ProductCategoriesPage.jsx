@@ -7,6 +7,11 @@ import ProductCategoryForm from '../components/ProductCategoryForm';
 import AddProductCategoryButton from '../components/AddProductCategoryButton';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
+const getProductCategoryId = (category) =>
+  category?.id ?? category?._id ?? category?.id_categoria_producto ?? category?.id_categorias;
+
+const sameProductCategoryId = (left, right) => String(left) === String(right);
+
 const ProductCategoriesPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -139,7 +144,7 @@ const ProductCategoriesPage = () => {
 
   const handleEditSubmit = async (data) => {
     try {
-      await updateProductCategory(editingProductCategory.id, data);
+      await updateProductCategory(getProductCategoryId(editingProductCategory), data);
 
       handleCloseForm();
 
@@ -162,7 +167,7 @@ const ProductCategoriesPage = () => {
   };
 
   const handleDeleteClick = (id) => {
-    const pc = productCategories.find(c => c.id === id);
+    const pc = productCategories.find(c => sameProductCategoryId(getProductCategoryId(c), id));
 
     if (!pc) return;
 

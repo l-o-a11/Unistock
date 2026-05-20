@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { Categories } from "../../types/constants";
+import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 
-const CategoryDropdown = ({ value, onChange, onBlur, touched, error }) => {
+const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories = Categories }) => {
   const [open, setOpen] = useState(false);
   
   const handleSelect = (catName) => {
@@ -45,21 +46,21 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error }) => {
             >
               Seleccionar categoría
             </div>
-            {Categories.map((cat) => (
+            {categories.map((cat) => (
               <div 
-                key={cat.id} 
-                onClick={() => handleSelect(cat.name)} 
+                key={cat.id ?? cat._id} 
+                onClick={() => handleSelect(cat.name ?? cat.nombre)} 
                 style={{ 
                   padding: "10px 14px", 
                   fontSize: "14px", 
                   color: "#333", 
                   cursor: "pointer", 
-                  backgroundColor: value === cat.name ? "#fdf0f7" : "#fff", 
+                  backgroundColor: value === (cat.name ?? cat.nombre) ? "#fdf0f7" : "#fff", 
                   borderTop: "1px solid #f5f5f5", 
                   transition: "background-color 0.1s" 
                 }}
               >
-                {cat.icon} {cat.name}
+                {cat.icon} {cat.name ?? cat.nombre}
               </div>
             ))}
           </div>
@@ -86,6 +87,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   };
 
   const [formData, setFormData] = useState(initialData);
+  const [categories, setCategories] = useState(Categories);
   const [errors, setErrors] = useState({
     reference: "",
     name: "",
@@ -102,6 +104,17 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
+
+  useEffect(() => {
+    productCategoryAPI
+      .getAll()
+      .then((apiCategories) => {
+        if (Array.isArray(apiCategories) && apiCategories.length > 0) {
+          setCategories(apiCategories);
+        }
+      })
+      .catch(() => setCategories(Categories));
+  }, []);
 
   // 🔥 DETECTAR SI HAY CAMBIOS EN EL PRODUCTO
   const hasProductChanges = () => {
@@ -472,6 +485,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                           onBlur={() => handleBlur("category")}
                           touched={touched.category}
                           error={errors.category}
+                          categories={categories}
                         />
                         {requiredStar}
                       </div>
