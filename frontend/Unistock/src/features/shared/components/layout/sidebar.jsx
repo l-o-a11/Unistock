@@ -16,7 +16,7 @@ const ALL_MENU_ITEMS = [
   {
     id: "compras", name: "Compras", icon: ComprasIcon, hasSubmenu: true,
     submenu: [
-      { name: "Categorías", path: "categorias-insumos", modulo: "categorias-insumos" },
+      { name: "Categorías", path: "categorias-insumos", modulo: "categorias de insumos" },
       { name: "Insumos",    path: "insumos",            modulo: "insumos"            },
       { name: "Proveedores",path: "proveedores",        modulo: "proveedores"        },
       { name: "Compras",    path: "compras",            modulo: "compras"            },
@@ -25,7 +25,7 @@ const ALL_MENU_ITEMS = [
   {
     id: "produccion", name: "Producción", icon: ProduccionIcon, hasSubmenu: true,
     submenu: [
-      { name: "Categorías De Productos", path: "categorias-productos", modulo: "categorias-productos" },
+      { name: "Categorías De Productos", path: "categorias-productos", modulo: "categorias de productos" },
       { name: "Productos",  path: "productos",  modulo: "productos"  },
       { name: "Producción", path: "produccion", modulo: "produccion" },
       { name: "Terceros",   path: "terceros",   modulo: "terceros"   },

@@ -1,110 +1,137 @@
-import { useState, useEffect } from "react";
+/**
+ * useSedes.js
+ *
+ * FIX #9: el hook ahora maneja la paginación del servidor.
+ * - Expone `pagination` con { total, page, limit, totalPages }
+ * - loadData acepta filters (incluyendo page/limit) y los pasa a la API
+ * - Las acciones CRUD recargan la página actual en lugar de mutar estado local
+ *   (evita inconsistencias con el orden/filtrado del servidor)
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import { sedesAPI } from "../services/sedesAPI";
 
-const STORAGE_KEY = "app_sedes";
+export const useSedes = (initialFilters = {}) => {
+  const [sedes,      setSedes]      = useState([]);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+  const [filters,    setFilters]    = useState({ limit: 10, ...initialFilters });
 
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return null;
-};
-
-const saveToStorage = (sedes) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sedes));
-  } catch (e) {
-    console.error("No se pudo guardar en localStorage:", e);
-  }
-};
-
-export const useSedes = () => {
-  const [sedes, setSedes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const cached = loadFromStorage();
-    if (cached) { setSedes(cached); setLoading(false); }
-    else loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!loading) saveToStorage(sedes);
-  }, [sedes, loading]);
-
-  const loadData = async () => {
+  // ── Carga (server-side) ────────────────────────────────────────────────────
+  const loadData = useCallback(async (overrideFilters = {}) => {
     try {
       setLoading(true);
-      const data = await sedesAPI.getAll();
-      setSedes(data);
       setError(null);
+      const merged = { ...filters, ...overrideFilters };
+      const result = await sedesAPI.getAll(merged);
+      setSedes(result.data);
+      setPagination({
+        total:      result.total,
+        page:       result.page,
+        limit:      result.limit,
+        totalPages: result.totalPages,
+      });
     } catch (err) {
-      setError("Error al cargar sedes");
-      console.error(err);
+      setError(err.message || "Error al cargar sedes");
+      console.error("[useSedes] loadData:", err);
     } finally {
       setLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Cambiar página / filtros y recargar
+  const goToPage = (page) => {
+    setFilters((prev) => ({ ...prev, page }));
   };
 
-  const createSede = async (sedeData) => {
-    const duplicado = sedes.find(
-      (s) => s.nombre?.trim().toLowerCase() === sedeData.nombre?.trim().toLowerCase()
-    );
-    if (duplicado) throw new Error(`Ya existe una sede con el nombre "${sedeData.nombre}"`);
+  const applyFilters = (newFilters) => {
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
+  };
 
+  // ── Crear ──────────────────────────────────────────────────────────────────
+  const createSede = async (sedeData) => {
     try {
       setLoading(true);
       const newSede = await sedesAPI.create(sedeData);
-      setSedes((prev) => [...prev, newSede]);
+      await loadData(); // recarga para reflejar orden/paginación del servidor
       return newSede;
     } catch (err) {
-      setError("Error al crear la sede");
+      const msg = err.message || "Error al crear la sede";
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Actualizar ─────────────────────────────────────────────────────────────
   const updateSede = async (id, sedeData) => {
-    const duplicado = sedes.find(
-      (s) => s.id !== id && s.nombre?.trim().toLowerCase() === sedeData.nombre?.trim().toLowerCase()
-    );
-    if (duplicado) throw new Error(`Ya existe una sede con el nombre "${sedeData.nombre}"`);
-
     try {
       setLoading(true);
       const updated = await sedesAPI.update(id, sedeData);
-      setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      await loadData(); // recarga para reflejar cambios de orden/filtrado
+      return updated;
     } catch (err) {
-      setError("Error al actualizar la sede");
+      const msg = err.message || "Error al actualizar la sede";
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Eliminar ───────────────────────────────────────────────────────────────
   const deleteSede = async (id) => {
     try {
       setLoading(true);
       await sedesAPI.delete(id);
-      setSedes((prev) => prev.filter((s) => s.id !== id));
+      // Si la página actual queda vacía tras eliminar, retroceder una página
+      const newTotal = pagination.total - 1;
+      const maxPage  = Math.max(1, Math.ceil(newTotal / pagination.limit));
+      const targetPage = Math.min(pagination.page, maxPage);
+      await loadData({ page: targetPage });
     } catch (err) {
-      setError("Error al eliminar la sede");
+      const msg = err.message || "Error al eliminar la sede";
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleSede = (id) => {
-    setSedes((prev) => prev.map((s) => (s.id === id ? { ...s, estado: !s.estado } : s)));
+  // ── Toggle activo/inactivo ─────────────────────────────────────────────────
+  const toggleSede = async (id) => {
+    try {
+      setLoading(true);
+      const updated = await sedesAPI.toggle(id);
+      // Actualización optimista local (evita un round-trip innecesario)
+      setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      return updated;
+    } catch (err) {
+      const msg = err.message || "Error al cambiar el estado de la sede";
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
-    sedes, loading, error,
-    createSede, updateSede, deleteSede, toggleSede,
+    sedes,
+    pagination,
+    loading,
+    error,
+    createSede,
+    updateSede,
+    deleteSede,
+    toggleSede,
     refreshSedes: loadData,
+    goToPage,
+    applyFilters,
   };
 };
