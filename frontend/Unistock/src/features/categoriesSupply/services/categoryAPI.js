@@ -1,105 +1,105 @@
-const STORAGE_KEY = 'app_categorias';
+/**
+ * categoriesSupply/services/categoryAPI.js
+ *
+ * Reemplaza el mock de localStorage/setTimeout por llamadas reales al backend.
+ * Endpoint base: /api/categorias-insumos  (montado en server.js)
+ *
+ * El backend responde: { success: true, data: ... }
+ * Paginado devuelve: { data: [...], total, page, limit, totalPages }
+ */
 
-const INITIAL_CATEGORIES = [
-  { id: 1, nombre: 'Telas' },
-  { id: 2, nombre: 'Hilos' },
-  { id: 3, nombre: 'Cierres' },
-  { id: 4, nombre: 'Elásticos' },
-  { id: 5, nombre: 'Encajes y pasamanería' },
-  { id: 6, nombre: 'Entretelas' },
-  { id: 7, nombre: 'Botones' },
-  { id: 8, nombre: 'Velcros' },
-];
+import httpClient from "../../shared/utils/httpClient";
 
-// ── localStorage helpers ───────────────────────────────────────────────────
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // JSON corrupto — usar seed
-  }
-  return null;
-};
-
-const saveToStorage = (categories) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
-  } catch (e) {
-    console.error('No se pudo guardar en localStorage:', e);
-  }
-};
-
-// Nota: usamos "nombre" (no "name") para ser consistente con el resto de la app
-let mockCategories = loadFromStorage() ?? [...INITIAL_CATEGORIES];
+// ── Normaliza una categoría recibida del backend ───────────────────────────
+const normalizeCategory = (raw) => ({
+  id:          String(raw.id ?? raw._id ?? ""),
+  nombre:      raw.nombre      ?? "",
+  descripcion: raw.descripcion ?? "",
+  estado:      raw.estado      ?? true,
+  createdAt:   raw.createdAt,
+  updatedAt:   raw.updatedAt,
+});
 
 export const categoryAPI = {
+  /**
+   * GET /api/categorias-insumos
+   * Soporta: ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
+   * Devuelve: { data: Category[], total, page, limit, totalPages }
+   */
+  getAll: async (filters = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+    ).toString();
+    const result = await httpClient.get(`/categorias-insumos${qs ? `?${qs}` : ""}`);
+    const payload = result?.data ?? result;
 
-  getAll: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...mockCategories]), 500);
-    });
+    if (Array.isArray(payload)) {
+      return {
+        data:       payload.map(normalizeCategory),
+        total:      payload.length,
+        page:       1,
+        limit:      payload.length,
+        totalPages: 1,
+      };
+    }
+    return {
+      data:       (payload?.data ?? []).map(normalizeCategory),
+      total:      payload?.total      ?? 0,
+      page:       payload?.page       ?? 1,
+      limit:      payload?.limit      ?? 50,
+      totalPages: payload?.totalPages ?? 1,
+    };
   },
 
+  /**
+   * GET /api/categorias-insumos/:id
+   */
   getById: async (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const category = mockCategories.find(c => c.id === id);
-        if (category) resolve({ ...category });
-        else reject(new Error('Categoría no encontrada'));
-      }, 300);
-    });
+    const result = await httpClient.get(`/categorias-insumos/${id}`);
+    const raw = result?.data ?? result;
+    return normalizeCategory(raw);
   },
 
+  /**
+   * POST /api/categorias-insumos
+   */
   create: async (categoryData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newCategory = {
-          id: mockCategories.length > 0
-            ? Math.max(...mockCategories.map(c => c.id)) + 1
-            : 1,
-          ...categoryData,
-        };
-        mockCategories.push(newCategory);
-        saveToStorage(mockCategories);
-        resolve({ ...newCategory });
-      }, 500);
+    const result = await httpClient.post("/categorias-insumos", {
+      nombre:      categoryData.nombre,
+      descripcion: categoryData.descripcion ?? "",
     });
+    const raw = result?.data ?? result;
+    return normalizeCategory(raw);
   },
 
-  update: async (id, updatedData) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockCategories.findIndex(c => c.id === id);
-        if (index !== -1) {
-          mockCategories[index] = { ...mockCategories[index], ...updatedData };
-          saveToStorage(mockCategories);
-          resolve({ ...mockCategories[index] });
-        } else {
-          reject(new Error('Categoría no encontrada'));
-        }
-      }, 500);
-    });
+  /**
+   * PUT /api/categorias-insumos/:id
+   */
+  update: async (id, categoryData) => {
+    const body = {};
+    if (categoryData.nombre      != null) body.nombre      = categoryData.nombre;
+    if (categoryData.descripcion != null) body.descripcion = categoryData.descripcion;
+    if (categoryData.estado      != null) body.estado      = categoryData.estado;
+
+    const result = await httpClient.put(`/categorias-insumos/${id}`, body);
+    const raw = result?.data ?? result;
+    return normalizeCategory(raw);
   },
 
+  /**
+   * DELETE /api/categorias-insumos/:id
+   * El backend retorna 422 si la categoría tiene insumos activos.
+   */
   delete: async (id) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = mockCategories.findIndex(c => c.id === id);
-        if (index !== -1) {
-          mockCategories.splice(index, 1);
-          saveToStorage(mockCategories);
-          resolve();
-        } else {
-          reject(new Error('Categoría no encontrada'));
-        }
-      }, 500);
-    });
+    return httpClient.delete(`/categorias-insumos/${id}`);
   },
 
-  // Util para desarrollo
-  reset: () => {
-    localStorage.removeItem(STORAGE_KEY);
-    mockCategories = [...INITIAL_CATEGORIES];
+  /**
+   * PATCH /api/categorias-insumos/:id/toggle
+   */
+  toggle: async (id) => {
+    const result = await httpClient.patch(`/categorias-insumos/${id}/toggle`);
+    const raw = result?.data ?? result;
+    return normalizeCategory(raw);
   },
 };
