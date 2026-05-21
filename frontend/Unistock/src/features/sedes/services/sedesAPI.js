@@ -1,15 +1,10 @@
 /**
  * sedesAPI.js
  *
- * Reemplaza el mock de localStorage por llamadas reales al backend.
- * Endpoint base: /api/sites  (montado en server.js como app.use('/api/sites', siteRoutes))
- *
- * La API envuelve las respuestas en { success: true, data: ... }
- * httpClient devuelve el JSON crudo → desenvolvemos con result?.data ?? result.
- *
- * Normalización frontend ↔ backend:
- *   backend devuelve: { id, nombre, ciudad, barrio, direccion, telefono, estado }
- *   frontend usa:     mismos campos — no hay transformación necesaria.
+ * FIX #9: getAll ahora devuelve la metadata de paginación completa
+ * { data, total, page, limit, totalPages } en lugar de solo el array.
+ * Esto permite que useSedes y sedesPage usen la paginación del servidor
+ * en lugar de recargar todos los registros y paginar en el cliente.
  */
 
 import httpClient from "../../shared/utils/httpClient";
@@ -29,18 +24,32 @@ export const sedesAPI = {
   /**
    * GET /api/sites
    * Soporta: ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
-   * Devuelve: { data: Sede[], total, page, limit, totalPages }
-   *           o el array directo si el backend no pagina.
+   *
+   * FIX #9: antes descartaba total/totalPages y devolvía solo el array.
+   * Ahora devuelve: { data: Sede[], total, page, limit, totalPages }
    */
   getAll: async (filters = {}) => {
     const qs = new URLSearchParams(
       Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
+
     const result = await httpClient.get(`/sites${qs ? `?${qs}` : ""}`);
-    // Soporta respuesta paginada { data: [...] } y array directo
-    const raw = result?.data ?? result;
-    const lista = Array.isArray(raw) ? raw : (raw?.data ?? []);
-    return lista.map(normalizeSede);
+
+    // La API responde: { success: true, data: { data: [...], total, page, ... } }
+    const payload = result?.data ?? result;
+
+    // Soporta tanto respuesta paginada { data: [...], total, ... } como array directo
+    if (Array.isArray(payload)) {
+      return { data: payload.map(normalizeSede), total: payload.length, page: 1, limit: payload.length, totalPages: 1 };
+    }
+
+    return {
+      data:       (payload?.data ?? []).map(normalizeSede),
+      total:      payload?.total      ?? 0,
+      page:       payload?.page       ?? 1,
+      limit:      payload?.limit      ?? 10,
+      totalPages: payload?.totalPages ?? 1,
+    };
   },
 
   /**

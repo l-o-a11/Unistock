@@ -1,23 +1,50 @@
-import React, { useState } from "react";
+/**
+ * sedesPage.jsx
+ *
+ * FIX #9: paginación delegada al servidor (via useSedes)
+ *         Se eliminó el filtrado/paginación local. El search ahora llama a la API.
+ * FIX #10: ADMIN_PASSWORD eliminada del frontend.
+ *          Las acciones protegidas (eliminar/toggle) ahora verifican la contraseña
+ *          contra el endpoint POST /api/auth/verify-password del backend.
+ */
+
+import React, { useState, useCallback } from "react";
 import { useSedes } from "../hooks/useSedes";
-import { useSedesSearch } from "../hooks/useSedesSearch";
 import Alert from "../../shared/components/Alert";
 import AddSedesButton from "../components/AddSedesButton";
 import SedesSearch from "../components/SedesSearch";
 import SedeTable from "../components/SedesTable";
 import SedeForm from "../components/SedesForm";
+import httpClient from "../../shared/utils/httpClient";
 
-const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
+// FIX #10: verificar contraseña en el backend, no en el cliente
+const verifyAdminPassword = async (password) => {
+  try {
+    await httpClient.post("/auth/verify-password", { password });
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const SedesPage = () => {
-  const { sedes, createSede, updateSede, deleteSede, toggleSede } = useSedes();
-  const { searchTerm, handleSearch } = useSedesSearch();
+  // FIX #9: useSedes ahora gestiona paginación server-side
+  const {
+    sedes,
+    pagination,
+    loading,
+    createSede,
+    updateSede,
+    deleteSede,
+    toggleSede,
+    goToPage,
+    applyFilters,
+  } = useSedes({ page: 1, limit: 10 });
 
-  const [currentPage,   setCurrentPage]   = useState(1);
-  const [modalType,     setModalType]     = useState(null); // "create" | "edit"
-  const [editingSede,   setEditingSede]   = useState(null);
-  const [selectedSede,  setSelectedSede]  = useState(null);
-  const [alertConfig,   setAlertConfig]   = useState({
+  const [modalType,    setModalType]    = useState(null); // "create" | "edit"
+  const [editingSede,  setEditingSede]  = useState(null);
+  const [selectedSede, setSelectedSede] = useState(null);
+  const [alertConfig,  setAlertConfig]  = useState({
     open: false, type: "success", title: "", message: "", onConfirm: null,
   });
 
@@ -25,21 +52,11 @@ const SedesPage = () => {
   const showAlert  = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
 
-  // ── Filtrado ───────────────────────────────────────────────────────────────
-  const filtered = sedes.filter((s) => {
-    const t = searchTerm.toLowerCase();
-    return (
-      s.nombre?.toLowerCase().includes(t)    ||
-      s.ciudad?.toLowerCase().includes(t)    ||
-      s.barrio?.toLowerCase().includes(t)    ||
-      s.direccion?.toLowerCase().includes(t) ||
-      s.telefono?.includes(searchTerm)
-    );
-  });
-
-  const itemsPerPage = 5;
-  const totalPages   = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
-  const paginated    = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // FIX #9: búsqueda delegada al servidor con debounce simple
+  const handleSearch = useCallback((e) => {
+    const value = e?.target?.value ?? e;
+    applyFilters({ search: value, page: 1 });
+  }, [applyFilters]);
 
   // ── Acciones CRUD ──────────────────────────────────────────────────────────
   const handleCreate = () => { setEditingSede(null); setModalType("create"); };
@@ -52,8 +69,10 @@ const SedesPage = () => {
       "password",
       "¿Eliminar sede?",
       `Para eliminar "${sede?.nombre}" confirma tu contraseña de administrador.`,
+      // FIX #10: pwd se valida en el backend, no contra una constante local
       async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
+        const ok = await verifyAdminPassword(pwd);
+        if (!ok) {
           showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
           return;
         }
@@ -67,7 +86,6 @@ const SedesPage = () => {
     );
   };
 
-  // toggle es ahora async → capturar error
   const handleToggle = (id) => {
     const sede   = sedes.find((s) => s.id === id);
     const accion = sede?.estado ? "inactivar" : "activar";
@@ -76,7 +94,9 @@ const SedesPage = () => {
       `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} sede?`,
       `Para ${accion} "${sede?.nombre}" confirma tu contraseña de administrador.`,
       async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
+        // FIX #10: validación en backend
+        const ok = await verifyAdminPassword(pwd);
+        if (!ok) {
           showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
           return;
         }
@@ -114,7 +134,9 @@ const SedesPage = () => {
     }
   };
 
-  // ── Paginación ─────────────────────────────────────────────────────────────
+  // ── Paginación (FIX #9 — usa pagination del servidor) ─────────────────────
+  const { page: currentPage, totalPages } = pagination;
+
   const getPageNumbers = () => {
     if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [1];
@@ -137,7 +159,8 @@ const SedesPage = () => {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
         <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a1a" }}>Sedes</h1>
-        <SedesSearch value={searchTerm} onChange={handleSearch} />
+        {/* FIX #9: onChange llama a applyFilters → búsqueda server-side */}
+        <SedesSearch onChange={handleSearch} />
       </div>
 
       {/* Botón crear */}
@@ -145,9 +168,10 @@ const SedesPage = () => {
         <AddSedesButton onClick={handleCreate} />
       </div>
 
-      {/* Tabla */}
+      {/* Tabla — muestra solo la página actual devuelta por el servidor */}
       <SedeTable
-        sedes={paginated}
+        sedes={sedes}
+        loading={loading}
         onView={(sede) => setSelectedSede(sede)}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -214,21 +238,21 @@ const SedesPage = () => {
         </div>
       )}
 
-      {/* Paginación */}
-      {filtered.length > 0 && (
+      {/* Paginación (FIX #9 — usa totalPages del servidor) */}
+      {totalPages > 1 && (
         <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={pBtn}>‹</button>
+          <button onClick={() => goToPage(Math.max(1, currentPage - 1))} style={pBtn}>‹</button>
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
               <span key={i} style={{ padding: "6px 10px" }}>...</span>
             ) : (
-              <button key={p} onClick={() => setCurrentPage(p)}
+              <button key={p} onClick={() => goToPage(p)}
                 style={{ ...pBtn, background: p === currentPage ? "#FF4FD6" : "#fff", color: p === currentPage ? "#fff" : "#000", border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd" }}>
                 {p}
               </button>
             )
           )}
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={pBtn}>›</button>
+          <button onClick={() => goToPage(Math.min(totalPages, currentPage + 1))} style={pBtn}>›</button>
         </div>
       )}
 

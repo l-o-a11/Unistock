@@ -1,48 +1,64 @@
 /**
  * useSedes.js
  *
- * Hook principal para gestión de sedes.
- * Reemplaza la lógica de localStorage/mock por llamadas reales vía sedesAPI.
- *
- * Responsabilidades:
- *  - Cargar la lista de sedes desde el backend al montar
- *  - Exponer CRUD: createSede, updateSede, deleteSede, toggleSede
- *  - Mantener loading y error para la UI
+ * FIX #9: el hook ahora maneja la paginación del servidor.
+ * - Expone `pagination` con { total, page, limit, totalPages }
+ * - loadData acepta filters (incluyendo page/limit) y los pasa a la API
+ * - Las acciones CRUD recargan la página actual en lugar de mutar estado local
+ *   (evita inconsistencias con el orden/filtrado del servidor)
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { sedesAPI } from "../services/sedesAPI";
 
-export const useSedes = () => {
-  const [sedes,   setSedes]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+export const useSedes = (initialFilters = {}) => {
+  const [sedes,      setSedes]      = useState([]);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+  const [filters,    setFilters]    = useState({ limit: 10, ...initialFilters });
 
-  // ── Carga inicial ──────────────────────────────────────────────────────────
-  const loadData = useCallback(async (filters = {}) => {
+  // ── Carga (server-side) ────────────────────────────────────────────────────
+  const loadData = useCallback(async (overrideFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await sedesAPI.getAll(filters);
-      setSedes(data);
+      const merged = { ...filters, ...overrideFilters };
+      const result = await sedesAPI.getAll(merged);
+      setSedes(result.data);
+      setPagination({
+        total:      result.total,
+        page:       result.page,
+        limit:      result.limit,
+        totalPages: result.totalPages,
+      });
     } catch (err) {
       setError(err.message || "Error al cargar sedes");
       console.error("[useSedes] loadData:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Cambiar página / filtros y recargar
+  const goToPage = (page) => {
+    setFilters((prev) => ({ ...prev, page }));
+  };
+
+  const applyFilters = (newFilters) => {
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
+  };
 
   // ── Crear ──────────────────────────────────────────────────────────────────
   const createSede = async (sedeData) => {
     try {
       setLoading(true);
       const newSede = await sedesAPI.create(sedeData);
-      setSedes((prev) => [...prev, newSede]);
+      await loadData(); // recarga para reflejar orden/paginación del servidor
       return newSede;
     } catch (err) {
       const msg = err.message || "Error al crear la sede";
@@ -58,7 +74,7 @@ export const useSedes = () => {
     try {
       setLoading(true);
       const updated = await sedesAPI.update(id, sedeData);
-      setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      await loadData(); // recarga para reflejar cambios de orden/filtrado
       return updated;
     } catch (err) {
       const msg = err.message || "Error al actualizar la sede";
@@ -74,7 +90,11 @@ export const useSedes = () => {
     try {
       setLoading(true);
       await sedesAPI.delete(id);
-      setSedes((prev) => prev.filter((s) => s.id !== id));
+      // Si la página actual queda vacía tras eliminar, retroceder una página
+      const newTotal = pagination.total - 1;
+      const maxPage  = Math.max(1, Math.ceil(newTotal / pagination.limit));
+      const targetPage = Math.min(pagination.page, maxPage);
+      await loadData({ page: targetPage });
     } catch (err) {
       const msg = err.message || "Error al eliminar la sede";
       setError(msg);
@@ -84,12 +104,12 @@ export const useSedes = () => {
     }
   };
 
-  // ── Toggle activo/inactivo ────────────────────────────────────────────────
-  // Llama al backend (PATCH /api/sites/:id/toggle) en lugar de mutar el estado local.
+  // ── Toggle activo/inactivo ─────────────────────────────────────────────────
   const toggleSede = async (id) => {
     try {
       setLoading(true);
       const updated = await sedesAPI.toggle(id);
+      // Actualización optimista local (evita un round-trip innecesario)
       setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
       return updated;
     } catch (err) {
@@ -103,6 +123,7 @@ export const useSedes = () => {
 
   return {
     sedes,
+    pagination,
     loading,
     error,
     createSede,
@@ -110,5 +131,7 @@ export const useSedes = () => {
     deleteSede,
     toggleSede,
     refreshSedes: loadData,
+    goToPage,
+    applyFilters,
   };
 };
