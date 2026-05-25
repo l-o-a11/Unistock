@@ -370,17 +370,18 @@ const ProductionDetailsPage = () => {
     }
   };
 
-  const handleEditConfirm = async (updatedDetail) => {
+  const handleEditConfirm = async (updatedData) => {
     try {
       const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const detail = editAlert.detail;
       
-      // Mapear detalles de vuelta a formato que el backend espera
+      // Mapear detalles: actualizar el que coincida con ref
       const newDetails = (production.rawData?.detalles || []).map(d => {
-        if (d.id_producto === updatedDetail.ref) {
+        if (d.id_producto === detail.ref) {
           return {
             ...d,
-            cantidad: updatedDetail.quantity,
-            color: updatedDetail.color,
+            cantidad: Number(updatedData.cantidad) || 0,
+            color: updatedData.color,
           };
         }
         return d;
@@ -413,7 +414,7 @@ const ProductionDetailsPage = () => {
       }));
       
       setEditAlert({ isOpen: false, detail: null });
-      setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${updatedDetail.ref} fue actualizado correctamente.` });
+      setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${detail.ref} fue actualizado correctamente.` });
     } catch (err) {
       console.error('Error al editar detalle:', err);
       setGlobalAlert({ open: true, type: "error", title: "Error al editar", message: "No se pudo actualizar el artículo. Intenta de nuevo." });
@@ -476,48 +477,70 @@ const ProductionDetailsPage = () => {
       customTitle: "Anular artículo",
       customMessage: `¿Deseas anular el artículo ${d.ref} (${d.color}, ${d.quantity} uds)? Se eliminará de la tabla y quedará registrado en el historial.`,
       onConfirmOverride: async (_motivo) => {
-        const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const currentUser = ProductionAPI.getCurrentUser();
-        const newDetails = (production.details || []).filter(x => x !== d);
-        if (newDetails.length === 0) {
-          const saved = await ProductionAPI.update(production.id, {
-            ...production, quantity: 0, details: newDetails,
-            techSpecification: recalcCosts(newDetails, production.techSpecification),
-            history: [...(production.history || []), { status: "Artículo anulado", date: today, user: currentUser, motivo: `Ref: ${d.ref} | Color: ${d.color} | Cantidad: ${d.quantity} uds | Ref_corte: ${d.refCorte}` }]
+        try {
+          const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+          
+          // Mapear detalles: filtrar el detalle a eliminar
+          const newDetails = (production.rawData?.detalles || []).filter(detail => 
+            detail.id_producto !== d.ref
+          );
+          
+          // Usar backend para actualizar
+          await ProductionAPIClient.updateOrder(production.id, {
+            detalles: newDetails,
           });
-          setProduction(saved);
-          setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado. La orden quedó sin referencias.` });
-          setTimeout(() => {
-            openProductionAlert({
-              type: "anular",
-              customTitle: "¿Anular orden completa?",
-              customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
-              onConfirmOverride: async (motivo) => {
-                try {
-                  await ProductionAPIClient.cancelOrder(saved.id, motivo || "Sin referencias");
-                  const freshC = await ProductionAPIClient.getOrderById(saved.id);
-                  const cDate = freshC.updatedAt ? new Date(freshC.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-                  setProduction((prev) => ({
-                    ...prev, status: 'Anulada', estado: 'Anulada', statusDate: cDate,
-                    history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.id_usuario || 'Sistema', motivo: h.motivo })),
-                    rawData: freshC,
-                  }));
-                  setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
-                } catch {
-                  setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+          
+          if (newDetails.length === 0) {
+            // Si no hay más detalles, preguntar si anular orden
+            setTimeout(() => {
+              openProductionAlert({
+                type: "anular",
+                customTitle: "¿Anular orden completa?",
+                customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
+                onConfirmOverride: async (motivo) => {
+                  try {
+                    await ProductionAPIClient.cancelOrder(production.id, motivo || "Sin referencias");
+                    const freshC = await ProductionAPIClient.getOrderById(production.id);
+                    const cDate = freshC.updatedAt ? new Date(freshC.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                    setProduction((prev) => ({
+                      ...prev, status: 'Anulada', estado: 'Anulada', statusDate: cDate,
+                      history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.id_usuario || 'Sistema', motivo: h.motivo })),
+                      rawData: freshC,
+                    }));
+                    setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
+                  } catch {
+                    setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+                  }
                 }
-              }
-            });
-          }, 800);
-          return;
+              });
+            }, 800);
+          } else {
+            // Recargar datos frescos del backend
+            const freshData = await ProductionAPIClient.getOrderById(production.id);
+            const statusDate = freshData.updatedAt
+              ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : today;
+
+            setProduction((prev) => ({
+              ...prev,
+              details: (freshData.detalles || []).map((d) => ({
+                id: d.id || d._id,
+                refCorte: d.id_producto || '',
+                ref: d.id_producto || '',
+                quantity: d.cantidad || 0,
+                color: d.color || '—',
+                status: freshData.estado,
+                statusDate,
+                estado: d.estado !== false,
+              })),
+              rawData: freshData,
+            }));
+            setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado correctamente y quedó registrado en el historial.` });
+          }
+        } catch (err) {
+          console.error('Error al eliminar detalle:', err);
+          setGlobalAlert({ open: true, type: "error", title: "Error al eliminar", message: "No se pudo eliminar el artículo. Intenta de nuevo." });
         }
-        const saved = await ProductionAPI.update(production.id, {
-          ...production, quantity: newDetails.reduce((s, x) => s + x.quantity, 0), details: newDetails,
-          techSpecification: recalcCosts(newDetails, production.techSpecification),
-          history: [...(production.history || []), { status: "Artículo anulado", date: today, user: currentUser, motivo: `Ref: ${d.ref} | Color: ${d.color} | Cantidad: ${d.quantity} uds | Ref_corte: ${d.refCorte}` }]
-        });
-        setProduction(saved);
-        setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado correctamente y quedó registrado en el historial.` });
       }
     });
   };
