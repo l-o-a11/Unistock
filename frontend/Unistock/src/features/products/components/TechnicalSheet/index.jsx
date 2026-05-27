@@ -51,53 +51,24 @@ const AddRowBtn = ({ onClick }) => (
   </button>
 );
 
-const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
-  const [formData, setFormData] = useState(
-    sheet || {
-      client: "Diego Perez",
-      date: "17/02/2026",
-      ref: "772",
-      type: "Body manga larga con cortes diagonales",
-      description: "Body manga larga, con cortes diagonales en destellante y mallatex, copa partida doble, frente inferior encarretado doble en centro y lateral, espalda abierta con cortes, lleva elástico, enviado en cuello, puños, espalda y piernas para mejor apariencia.",
-      image: null,
-      fabrics: [
-        { name: "MALLATEX", consumption: "0.59", pieces: "34", talla: "" },
-        { name: "DESTELLANTE", consumption: "0.66", pieces: "34", talla: "" },
-        { name: "DESTELLANTE", consumption: "0,66", pieces: "", talla: "única" },
-      ],
-      cups: [
-        { type: "Copa ojo de gato straple con realce", values: ["34", "36", "38"] },
-        { type: "Copa vergara con realce", values: ["34", "36", "38"] },
-      ],
-      closures: [
-        { type: "Abrochadura o gafete", values: ["1x1", "2x1", "3x1"] },
-        { type: "Elástico cargadera", values: ["10mm 0,'", "15mm", "20mm"] },
-      ],
-      accessories: [
-        { name: "Varilla mi", values: ["", "", ""] },
-        { name: "Elástico envívar", values: ["", "", ""] },
-        { name: "Hiladilla", values: ["", "", ""] },
-        { name: "Broches decor", values: ["", "", ""] },
-        { name: "Aro", values: ["", "", ""] },
-        { name: "Tensor", values: ["", "", ""] },
-        { name: "Zeta", values: ["", "", ""] },
-        { name: "Cinta ilus", values: ["", "", ""] },
-        { name: "Elástico con base moi", values: ["", "", ""] },
-        { name: "Marquilla", values: ["", "", ""] },
-        { name: "Cordón redondi", values: ["", "", ""] },
-        { name: "Sesgo", values: ["", "", ""] },
-        { name: "Varilla plástic", values: ["", "", ""] },
-        { name: "Elástico senc", values: ["", "", ""] },
-      ],
-      measurements: [
-        { name: "Medidas cargaderas", values: ["", ""] },
-        { name: "Medidas varillas plásticas", values: ["", ""] },
-      ],
-      observations: "Conservar apariencia lisa de la prenda, no recogidos.",
-      createdBy: "Paula Andrea Builes.",
-    }
-  );
+const EMPTY_SHEET = {
+  client: "",
+  date: "",
+  ref: "",
+  type: "",
+  description: "",
+  image: null,
+  fabrics: [],
+  cups: [],
+  closures: [],
+  accessories: [],
+  measurements: [],
+  observations: "",
+  createdBy: "",
+};
 
+const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
+  const [formData, setFormData] = useState(sheet || EMPTY_SHEET);
   const [imagePreview, setImagePreview] = useState(sheet?.image || null);
 
   const handleChange = (field, value) => {
@@ -140,8 +111,8 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
     handleChange("cups", updated);
   };
   const addCup = () => {
-    console.log("➕ Añadiendo copa");
-    handleChange("cups", [...(formData.cups || []), { type: "", values: ["", "", ""] }]);
+    const current = withMinimumRows(formData.cups, 2, blankCup);
+    handleChange("cups", [...current, blankCup()]);
   };
 
   // Closures
@@ -154,8 +125,8 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
     handleChange("closures", updated);
   };
   const addClosure = () => {
-    console.log("➕ Añadiendo abrochadura");
-    handleChange("closures", [...(formData.closures || []), { type: "", values: ["", "", ""] }]);
+    const current = withMinimumRows(formData.closures, 2, blankClosure);
+    handleChange("closures", [...current, blankClosure()]);
   };
 
   // Accessories
@@ -168,8 +139,8 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
     handleChange("accessories", updated);
   };
   const addAccessory = () => {
-    console.log("➕ Añadiendo accesorio");
-    handleChange("accessories", [...(formData.accessories || []), { name: "", values: ["", "", ""] }]);
+    const current = withMinimumRows(formData.accessories, 14, blankAccessory);
+    handleChange("accessories", [...current, blankAccessory()]);
   };
 
   // Measurements
@@ -182,8 +153,8 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
     handleChange("measurements", updated);
   };
   const addMeasurement = () => {
-    console.log("➕ Añadiendo medida");
-    handleChange("measurements", [...(formData.measurements || []), { name: "", values: ["", ""] }]);
+    const current = withMinimumRows(formData.measurements, 2, blankMeasurement);
+    handleChange("measurements", [...current, blankMeasurement()]);
   };
 
   const tableStyle = {
@@ -191,28 +162,27 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
     borderCollapse: "collapse",
     marginBottom: "0",
   };
+  const blankCup = () => ({ type: "", values: ["", "", ""] });
+  const blankClosure = () => ({ type: "", values: ["", "", ""] });
+  const blankAccessory = () => ({ name: "", values: ["", "", ""] });
+  const blankMeasurement = () => ({ name: "", values: ["", ""] });
+
+  const withMinimumRows = (items, minimum, factory) => {
+    const current = items || [];
+    return current.length >= minimum
+      ? current
+      : [...current, ...Array.from({ length: minimum - current.length }, factory)];
+  };
 
   // Valores seguros para renderizado (NO modificar el estado original)
-  const getDisplayAccessories = () => {
-    // Tomamos los accesorios reales del estado
-    const realAccessories = formData.accessories || [];
-    // Si hay menos de 14, completamos con vacíos SOLO para mostrar
-    if (realAccessories.length < 14) {
-      return [...realAccessories, ...Array(14 - realAccessories.length).fill({ name: "", values: ["", "", ""] })];
-    }
-    return realAccessories;
-  };
+  const getDisplayAccessories = () => formData.accessories || [];
 
-  const getDisplayMeasurements = () => {
-    const realMeasurements = formData.measurements || [];
-    if (realMeasurements.length < 2) {
-      return [...realMeasurements, ...Array(2 - realMeasurements.length).fill({ name: "", values: ["", ""] })];
-    }
-    return realMeasurements;
-  };
+  const getDisplayMeasurements = () => formData.measurements || [];
 
   const displayAccessories = getDisplayAccessories();
   const displayMeasurements = getDisplayMeasurements();
+  const displayCups = formData.cups || [];
+  const displayClosures = formData.closures || [];
 
   return (
     <div style={{ backgroundColor: "#fff", fontFamily: "sans-serif" }}>
@@ -308,106 +278,88 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 <td colSpan={6} style={{ ...headerCellStyle, textAlign: "left", fontSize: "14px", padding: "8px 12px" }}>
                   Cópiado
                 </td>
-              </tr>
-              
-              {/* Copa ojo de gato straple con realce */}
-              <tr>
-                <td style={headerCellStyle} colSpan={2}>Copa ojo de gato straple con realce:</td>
-                <td colSpan={4} style={cellStyle}>
-                  <div style={{ display: "flex", gap: "20px" }}>
-                    {(formData.cups[0]?.values || ["", "", ""]).map((val, vi) => (
-                      <div key={vi}>
-                        {isEditing ? (
-                          <input 
-                            style={{ ...inputStyle, width: "50px", textAlign: "center" }} 
-                            value={val} 
-                            onChange={(e) => handleCupChange(0, vi, e.target.value)}
-                          />
-                        ) : (
-                          <span>{val}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </td>
-              </tr>
+              </tr>              {displayCups.map((cup, i) => (
+                <tr key={`cup-${i}`}>
+                  <td style={headerCellStyle} colSpan={2}>
+                    {isEditing ? (
+                      <input
+                        style={inputStyle}
+                        value={cup?.type || ""}
+                        placeholder={`Copa ${i + 1}`}
+                        onChange={(e) => {
+                          const updated = [...(formData.cups || [])];
+                          if (!updated[i]) updated[i] = blankCup();
+                          updated[i] = { ...updated[i], type: e.target.value };
+                          handleChange("cups", updated);
+                        }}
+                      />
+                    ) : (cup?.type || `Copa ${i + 1}`)}
+                  </td>
+                  <td colSpan={4} style={cellStyle}>
+                    <div style={{ display: "flex", gap: "20px" }}>
+                      {(cup?.values || ["", "", ""]).map((val, vi) => (
+                        <div key={vi}>
+                          {isEditing ? (
+                            <input
+                              style={{ ...inputStyle, width: "50px", textAlign: "center" }}
+                              value={val}
+                              onChange={(e) => handleCupChange(i, vi, e.target.value)}
+                            />
+                          ) : (
+                            <span>{val}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
 
-              {/* Copa vergara con realce */}
-              <tr>
-                <td style={headerCellStyle} colSpan={2}>Copa vergara con realce:</td>
-                <td colSpan={4} style={cellStyle}>
-                  <div style={{ display: "flex", gap: "20px" }}>
-                    {(formData.cups[1]?.values || ["", "", ""]).map((val, vi) => (
-                      <div key={vi}>
-                        {isEditing ? (
-                          <input 
-                            style={{ ...inputStyle, width: "50px", textAlign: "center" }} 
-                            value={val} 
-                            onChange={(e) => handleCupChange(1, vi, e.target.value)}
-                          />
-                        ) : (
-                          <span>{val}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-
-              {/* Botón + para Copas */}
+              {/* Bot�n + para Copas */}
               {isEditing && (
                 <tr>
                   <td colSpan={6} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
                     <AddRowBtn onClick={addCup} />
                   </td>
                 </tr>
-              )}
+              )}              {displayClosures.map((closure, i) => (
+                <tr key={`closure-${i}`}>
+                  <td style={headerCellStyle} colSpan={2}>
+                    {isEditing ? (
+                      <input
+                        style={inputStyle}
+                        value={closure?.type || ""}
+                        placeholder={i === 0 ? "Abrochadura o gafete" : i === 1 ? "Elastico cargadera" : `Cierre ${i + 1}`}
+                        onChange={(e) => {
+                          const updated = [...(formData.closures || [])];
+                          if (!updated[i]) updated[i] = blankClosure();
+                          updated[i] = { ...updated[i], type: e.target.value };
+                          handleChange("closures", updated);
+                        }}
+                      />
+                    ) : (closure?.type || `Cierre ${i + 1}`)}
+                  </td>
+                  <td colSpan={4} style={cellStyle}>
+                    <div style={{ display: "flex", gap: "20px" }}>
+                      {(closure?.values || ["", "", ""]).map((val, vi) => (
+                        <div key={vi}>
+                          {isEditing ? (
+                            <input
+                              style={{ ...inputStyle, width: "80px", minWidth: "64px", textAlign: "center" }}
+                              value={val}
+                              onChange={(e) => handleClosureChange(i, vi, e.target.value)}
+                            />
+                          ) : (
+                            <span>{val}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
 
-              {/* ── Abrochadura o gafete ── */}
-              <tr>
-                <td style={headerCellStyle} colSpan={2}>Abrochadura o gafete</td>
-                <td colSpan={4} style={cellStyle}>
-                  <div style={{ display: "flex", gap: "20px" }}>
-                    {((formData.closures || [])[0]?.values || ["", "", ""]).map((val, vi) => (
-                      <div key={vi}>
-                        {isEditing ? (
-                          <input 
-                            style={{ ...inputStyle, width: "50px", textAlign: "center" }} 
-                            value={val} 
-                            onChange={(e) => handleClosureChange(0, vi, e.target.value)}
-                          />
-                        ) : (
-                          <span>{val}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-
-              {/* ── Elástico cargadera ── */}
-              <tr>
-                <td style={headerCellStyle} colSpan={2}>Elástico cargadera</td>
-                <td colSpan={4} style={cellStyle}>
-                  <div style={{ display: "flex", gap: "20px" }}>
-                    {((formData.closures || [])[1]?.values || ["", "", ""]).map((val, vi) => (
-                      <div key={vi}>
-                        {isEditing ? (
-                          <input 
-                            style={{ ...inputStyle, width: "70px", textAlign: "center" }} 
-                            value={val} 
-                            onChange={(e) => handleClosureChange(1, vi, e.target.value)}
-                          />
-                        ) : (
-                          <span>{val}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-
-              {/* Botón + para Abrochaduras y Elásticos */}
+              {/* Bot�n + para Abrochaduras y El�sticos */}
               {isEditing && (
                 <tr>
                   <td colSpan={6} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
@@ -419,7 +371,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
               {/* ── Accessories primera fila (7 columnas) ── */}
               <tr>
                 <td style={headerCellStyle}>Varilla mi</td>
-                <td style={headerCellStyle}>Elástico envívar</td>
+                <td style={headerCellStyle}>Elastico envivar</td>
                 <td style={headerCellStyle}>Hiladilla</td>
                 <td style={headerCellStyle}>Broches decor</td>
                 <td style={headerCellStyle}>Aro</td>
@@ -497,12 +449,12 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
               {/* ── Accessories segunda fila (7 columnas) ── */}
               <tr>
                 <td style={headerCellStyle}>Cinta ilus</td>
-                <td style={headerCellStyle}>Elástico con base moi</td>
+                <td style={headerCellStyle}>Elastico con base moi</td>
                 <td style={headerCellStyle}>Marquilla</td>
                 <td style={headerCellStyle}>Cordón redondi</td>
                 <td style={headerCellStyle}>Sesgo</td>
                 <td style={headerCellStyle}>Varilla plástic</td>
-                <td style={headerCellStyle}>Elástico senc</td>
+                <td style={headerCellStyle}>Elastico senc</td>
               </tr>
               {[0, 1, 2].map((row) => (
                 <tr key={`second-${row}`}>
@@ -572,7 +524,41 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 </tr>
               ))}
 
-              {/* Botón + para Accesorios */}
+              {displayAccessories.slice(14).map((accessory, extraIndex) => {
+                const accessoryIndex = extraIndex + 14;
+                return (
+                  <tr key={`extra-accessory-${accessoryIndex}`}>
+                    <td style={headerCellStyle} colSpan={2}>
+                      {isEditing ? (
+                        <input
+                          style={inputStyle}
+                          value={accessory?.name || ""}
+                          placeholder={`Accesorio ${accessoryIndex + 1}`}
+                          onChange={(e) => {
+                            const updated = [...(formData.accessories || [])];
+                            if (!updated[accessoryIndex]) updated[accessoryIndex] = blankAccessory();
+                            updated[accessoryIndex] = { ...updated[accessoryIndex], name: e.target.value };
+                            handleChange("accessories", updated);
+                          }}
+                        />
+                      ) : accessory?.name}
+                    </td>
+                    <td colSpan={5} style={cellStyle}>
+                      <div style={{ display: "flex", gap: "20px" }}>
+                        {(accessory?.values || ["", "", ""]).map((val, vi) => (
+                          <input
+                            key={vi}
+                            style={{ ...inputStyle, width: "80px", minWidth: "64px", textAlign: "center" }}
+                            value={val}
+                            onChange={(e) => handleAccessoryChange(accessoryIndex, vi, e.target.value)}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* Bot�n + para Accesorios */}
               {isEditing && (
                 <tr>
                   <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
@@ -627,7 +613,41 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 </td>
               </tr>
 
-              {/* Botón + para Medidas */}
+              {displayMeasurements.slice(2).map((measurement, extraIndex) => {
+                const measurementIndex = extraIndex + 2;
+                return (
+                  <tr key={`extra-measurement-${measurementIndex}`}>
+                    <td style={headerCellStyle} colSpan={2}>
+                      {isEditing ? (
+                        <input
+                          style={inputStyle}
+                          value={measurement?.name || ""}
+                          placeholder={`Medida ${measurementIndex + 1}`}
+                          onChange={(e) => {
+                            const updated = [...(formData.measurements || [])];
+                            if (!updated[measurementIndex]) updated[measurementIndex] = blankMeasurement();
+                            updated[measurementIndex] = { ...updated[measurementIndex], name: e.target.value };
+                            handleChange("measurements", updated);
+                          }}
+                        />
+                      ) : measurement?.name}
+                    </td>
+                    <td style={cellStyle} colSpan={5}>
+                      <div style={{ display: "flex", gap: "20px" }}>
+                        {(measurement?.values || ["", ""]).map((val, vi) => (
+                          <input
+                            key={vi}
+                            style={{ ...inputStyle, width: "90px", textAlign: "center" }}
+                            value={val}
+                            onChange={(e) => handleMeasurementChange(measurementIndex, vi, e.target.value)}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* Bot�n + para Medidas */}
               {isEditing && (
                 <tr>
                   <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
