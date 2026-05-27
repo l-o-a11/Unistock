@@ -24,7 +24,7 @@ export const CupTypes = [
 // Tipos de abrochadura
 export const ClousereTypes = [
   'Abrochadura o gafete',
-  'Elástico cargadera'
+  'Elastico cargadera'
 ];
 
 // Accesorios
