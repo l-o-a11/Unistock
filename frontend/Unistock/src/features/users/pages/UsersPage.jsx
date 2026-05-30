@@ -1,14 +1,14 @@
 // pages/UsersPage.jsx
 
 import React, { useState, useMemo } from 'react';
-import { useUsers }      from '../hooks/useUsers';
+import { useUsers } from '../hooks/useUsers';
 import { useUserSearch } from '../hooks/useUserSearch';
-import { useCatalogs }   from '../hooks/useCatalogs';
-import UserTable         from '../components/UserTable/index.jsx';
-import UserForm          from '../components/UserForm/index.jsx';
-import AddUserButton     from '../components/AddUserButton.jsx';
-import SearchInput       from '../../shared/components/SearchInput';
-import Alert             from '../../shared/components/Alert';
+import { useCatalogs } from '../hooks/useCatalogs';
+import UserTable from '../components/UserTable/index.jsx';
+import UserForm from '../components/UserForm/index.jsx';
+import AddUserButton from '../components/AddUserButton.jsx';
+import SearchInput from '../../shared/components/SearchInput';
+import Alert from '../../shared/components/Alert';
 
 const UsersPage = () => {
   const { users, loading, createUser, updateUser, deleteUser, toggleUser } = useUsers();
@@ -16,8 +16,8 @@ const UsersPage = () => {
   const { rolesActivos, sedesActivas, getRolNombre, getSedeNombre, roles, sedes } = useCatalogs();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [showCreate, setShowCreate]   = useState(false);
-  const [editUser, setEditUser]       = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editUser, setEditUser] = useState(null);
 
   const [alertConfig, setAlertConfig] = useState({
     open: false, type: 'password', title: '', message: '', onConfirm: null,
@@ -31,32 +31,33 @@ const UsersPage = () => {
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     const term = searchTerm.toLowerCase().trim();
-    return users.filter((user) => {
+    return users.filter(Boolean).filter((user) => {
       if (term === 'a') return user.estado !== false;
       if (term === 'i') return user.estado === false;
-      const rolNombre  = roles.find((r) => r.id === parseInt(user.rolId))?.nombre  ?? '';
-      const sedeNombre = sedes.find((s) => s.id === parseInt(user.sedeId))?.nombre ?? '';
-      const enCampos   = Object.values(user).some((v) => v?.toString().toLowerCase().includes(term));
+      // FIX: rolId y sedeId son ObjectId strings — comparar con String(), no parseInt
+      const rolNombre = roles.find((r) => String(r.id) === String(user.rolId))?.nombre ?? '';
+      const sedeNombre = sedes.find((s) => String(s.id) === String(user.sedeId))?.nombre ?? '';
+      const enCampos = Object.values(user).some((v) => v?.toString().toLowerCase().includes(term));
       return enCampos || rolNombre.toLowerCase().includes(term) || sedeNombre.toLowerCase().includes(term);
     });
   }, [users, searchTerm, roles, sedes]);
 
   // Paginación
-  const itemsPerPage   = 5;
-  const totalPages     = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
-  const startIndex     = (currentPage - 1) * itemsPerPage;
+  const itemsPerPage = 5;
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
   // Acciones
   const handleEdit = (user) => {
     setEditUser({
-      id:             user.id,
-      documentType:   user.tipoDocumento,
+      id: user.id,
+      documentType: user.tipoDocumento,
       documentNumber: user.numeroDocumento,
-      name:           user.nombreCompleto,
-      email:          user.correo,
-      role:           user.rolId  ?? '',
-      sede:           user.sedeId ?? '',
+      name: user.nombreCompleto,
+      email: user.correo,
+      role: user.rolId ?? '',
+      sede: user.sedeId ?? '',
     });
   };
 
@@ -79,7 +80,7 @@ const UsersPage = () => {
   };
 
   const handleToggle = (id) => {
-    const user     = users.find((u) => String(u.id) === String(id));
+    const user = users.find((u) => String(u.id) === String(id));
     const isActive = user?.estado !== false;
     setAlertConfig({
       open: true, type: 'password',
@@ -103,7 +104,7 @@ const UsersPage = () => {
   };
 
   const handleCreateSubmit = async (userData) => { await createUser(userData); };
-  const handleEditSubmit   = async (userData) => { await updateUser(editUser.id, userData); };
+  const handleEditSubmit = async (userData) => { await updateUser(editUser.id, userData); };
 
   const getPageNumbers = () => {
     if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
@@ -182,8 +183,8 @@ const UsersPage = () => {
               <button key={p} onClick={() => setCurrentPage(p)} style={{
                 ...paginationBtn,
                 backgroundColor: p === currentPage ? '#FF4FD6' : '#fff',
-                color:           p === currentPage ? '#fff'    : '#333',
-                border:          p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
+                color: p === currentPage ? '#fff' : '#333',
+                border: p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
               }}>
                 {p}
               </button>

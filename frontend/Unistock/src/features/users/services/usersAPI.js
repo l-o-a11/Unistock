@@ -1,113 +1,91 @@
-// src/feature/users/services/UsersAPI.js
-import httpClient from "../../shared/utils/httpClient";
+import { get, post, put, deleteRequest } from "../../shared/utils/httpClient";
 
-// Datos mock de usuarios
-const mockUsers = [
-    {
-        id: '1',
-        tipoDocumento: 'CC',
-        numeroDocumento: '856127435',
-        nombreCompleto: 'Sofía Osorio',
-        correo: 'cuentarandom00a0@gmail.com',
-        rol: 1,
-        sede: 1,
-        estado: true
-    },
-    {
-        id: '2',
-        tipoDocumento: 'CC',
-        numeroDocumento: '1000000001',
-        nombreCompleto: 'Admin General',
-        correo: 'admin@admin.com',
-        password: 'admin123',
-        rol: 2,        // Administrador — rolId 2
-        sede: 1,
-        estado: true
-    },
-];
-
-export const userAPI = {
-
-    // Obtener todos los usuarios
-    getAll: async () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve([...mockUsers]);
-            }, 500);
-        });
-    },
-
-    // Obtener usuario por ID
-    getById: (id) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const user = mockUsers.find(u => u.id === id);
-                if (user) {
-                    resolve({ ...user });
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 300);
-        });
-    },
-
-    // Crear usuario
-    create: (userData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const newUser = {
-                    id: Date.now().toString(),
-                    estado: true,
-                    ...userData
-                };
-                mockUsers.push(newUser);
-                resolve({ ...newUser });
-            }, 500);
-        });
-    },
-
-    // Actualizar usuario
-    update: (id, updatedData) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const index = mockUsers.findIndex(u => u.id === id);
-                if (index !== -1) {
-                    mockUsers[index] = { ...mockUsers[index], ...updatedData };
-                    resolve({ ...mockUsers[index] });
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 500);
-        });
-    },
-
-    // Eliminar usuario
-    delete: (id) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const index = mockUsers.findIndex(u => u.id === id);
-                if (index !== -1) {
-                    mockUsers.splice(index, 1);
-                    resolve();
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 500);
-        });
-    },
-
-    // Cambiar estado activo/inactivo
-    toggleStatus: (id) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const user = mockUsers.find(u => u.id === id);
-                if (user) {
-                    user.estado = !user.estado;
-                    resolve({ ...user });
-                } else {
-                    reject(new Error('Usuario no encontrado'));
-                }
-            }, 300);
-        });
+const internal = {
+  getUsers: async () => {
+    try {
+      const res = await get("/users");
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
     }
+  },
+
+  getUserById: async (id) => {
+    try {
+      const res = await get(`/users/${id}`);
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+
+  createUser: async (data) => {
+    try {
+      const res = await post("/users", data);
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+
+  updateUser: async (id, data) => {
+    try {
+      const res = await put(`/users/${id}`, data);
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+
+  deleteUser: async (id) => {
+    try {
+      const res = await deleteRequest(`/users/${id}`);
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
 };
+
+// API pública con los nombres que esperan los hooks/components
+export const userAPI = {
+  getAll: internal.getUsers,
+  getById: internal.getUserById,
+  create: internal.createUser,
+  update: internal.updateUser,
+  delete: internal.deleteUser,
+  // FIX: la API usa PATCH /users/:id/status, no PUT /users/:id/toggle
+  toggleStatus: async (id) => {
+    try {
+      const { patch } = await import("../../shared/utils/httpClient");
+      const res = await patch(`/users/${id}/status`);
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+  // Catálogos usados por useCatalogs / AuthContext
+  getRoles: async () => {
+    try {
+      const res = await get("/roles");
+      // La API puede devolver array plano o { data: [...] }
+      const payload = res?.data ?? res;
+      return Array.isArray(payload) ? payload : (payload?.data ?? []);
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+  // FIX: la API monta las sedes en /sites, no en /sedes
+  getSedes: async () => {
+    try {
+      const res = await get("/sites");
+      // La API puede devolver array plano o { data: [...] }
+      const payload = res?.data ?? res;
+      return Array.isArray(payload) ? payload : (payload?.data ?? []);
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+};
+
+export default userAPI;

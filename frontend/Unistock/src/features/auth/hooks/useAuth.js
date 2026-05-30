@@ -45,8 +45,24 @@ export const useAuth = () => {
         return;
       }
 
-      // Notificar al contexto con la sesión recién creada
-      if (ctxLogin) ctxLogin(data.user);
+      // Leer la sesión que AuthAPI.login() acaba de guardar en localStorage.
+      // Si por algún motivo no está, decodificar el JWT directamente aquí.
+      let session = AuthAPI.getSession();
+      if (!session?.rolNombre && data.token) {
+        try {
+          const claims = JSON.parse(atob(data.token.split(".")[1]));
+          session = {
+            id: data.user?.id ?? data.user?._id,
+            nombre: data.user?.nombreCompleto ?? data.user?.nombre,
+            correo: data.user?.correo,
+            rolId: data.user?.rolId ?? claims?.rolId,
+            rolNombre: claims?.rolNombre ?? null,
+            sedeId: data.user?.sedeId ?? claims?.sedeId,
+            token: data.token,
+          };
+        } catch { session = data.user; }
+      }
+      if (ctxLogin) ctxLogin(session ?? data.user);
 
       showAlert("success", "¡Bienvenido!", `Hola, ${data.user.nombreCompleto}`);
       if (onSuccess) setTimeout(onSuccess, 1200);

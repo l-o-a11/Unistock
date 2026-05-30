@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { userAPI } from '../services/usersAPI';
 
 export const useCatalogs = () => {
-  const [roles, setRoles]     = useState([]);
-  const [sedes, setSedes]     = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [sedes, setSedes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,10 +24,10 @@ export const useCatalogs = () => {
     load();
   }, []);
 
-  const rolesActivos  = roles.filter((r) => r.estado !== false);
-  const sedesActivas  = sedes.filter((s) => s.estado !== false);
-  const getRolNombre  = (id) => roles.find((r) => r.id === parseInt(id))?.nombre ?? '—';
-  const getSedeNombre = (id) => sedes.find((s) => s.id === parseInt(id))?.nombre ?? '—';
+  const rolesActivos = roles.filter((r) => r.estado !== false);
+  const sedesActivas = sedes.filter((s) => s.estado !== false);
+  const getRolNombre = (id) => roles.find((r) => String(r.id) === String(id))?.nombre ?? '—';
+  const getSedeNombre = (id) => sedes.find((s) => String(s.id) === String(id))?.nombre ?? '—';
 
   return { roles, sedes, rolesActivos, sedesActivas, getRolNombre, getSedeNombre, loading };
 };
