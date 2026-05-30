@@ -101,11 +101,13 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
   };
 
   const [formData, setFormData] = useState(() => mergeSheet(sheet));
-  // If sheet prop changes (e.g. loaded asynchronously), re-sync
-  React.useEffect(() => { setFormData(mergeSheet(sheet)); }, [sheet?.ref]);
-
-
   const [imagePreview, setImagePreview] = useState(sheet?.image || null);
+
+  // If sheet prop changes (e.g. loaded asynchronously), re-sync entire object
+  React.useEffect(() => {
+    setFormData(mergeSheet(sheet));
+    setImagePreview(sheet?.image || null);
+  }, [sheet]);
 
   const handleChange = (field, value) => {
     const newData = { ...formData, [field]: value };

@@ -97,7 +97,7 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
       return;
     }
     try {
-      onSubmit({
+      Promise.resolve(onSubmit({
         nombreEmpresa:  formData.nombre,
         nombre:         formData.nombre,
         nit:            formData.nit,
@@ -107,16 +107,21 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
         contacto:       formData.contacto,
         correo:         formData.correo,
         email:          formData.correo,
+      })).then(() => {
+        setPendingClose(true);
+        setAlertConfig({
+          open: true, type: 'success',
+          title:   isEdit ? 'Tercero actualizado' : 'Tercero creado',
+          message: isEdit ? 'El tercero fue actualizado correctamente.' : 'El tercero fue creado correctamente.',
+          onConfirm: null,
+        });
+      }).catch((err) => {
+        const message = err?.message || 'No se pudo guardar. Intenta de nuevo.';
+        setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message, onConfirm: null });
       });
-      setPendingClose(true);
-      setAlertConfig({
-        open: true, type: 'success',
-        title:   isEdit ? 'Tercero actualizado' : 'Tercero creado',
-        message: isEdit ? 'El tercero fue actualizado correctamente.' : 'El tercero fue creado correctamente.',
-        onConfirm: null,
-      });
-    } catch {
-      setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message: 'No se pudo guardar. Intenta de nuevo.', onConfirm: null });
+    } catch (err) {
+      const message = err?.message || 'No se pudo guardar. Intenta de nuevo.';
+      setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message, onConfirm: null });
     }
   };
 
@@ -249,18 +254,18 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1f2937' }}>
               {isEdit ? 'Editar tercero' : 'Nuevo tercero'}
             </h2>
-            {isEdit && Third_partie?.codigo && (
+            {isEdit && (
               <span style={{
                 display: 'inline-block', marginTop: 6,
                 fontSize: 12, fontWeight: 700, color: '#FF4FD6',
                 background: '#fce7f3', padding: '2px 10px', borderRadius: 20,
               }}>
-                Código: {Third_partie.codigo}
+                NIT: {Third_partie.nit || 'Sin NIT'}
               </span>
             )}
             {!isEdit && (
               <p style={{ margin: '6px 0 0', fontSize: 12, color: '#9ca3af' }}>
-                El código se asignará automáticamente al crear el tercero.
+                El NIT identifica al tercero en listados y asignaciones.
               </p>
             )}
           </div>

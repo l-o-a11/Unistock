@@ -31,6 +31,7 @@ const ProductionsPage = () => {
   const [damagedOrderForm, setDamagedOrderForm] = useState({ open: false, initialData: null, notice: null });
   const [creatingNewOrder, setCreatingNewOrder] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [downloadModal, setDownloadModal] = useState(false);
 
   const itemsPerPage = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
@@ -157,6 +158,689 @@ const ProductionsPage = () => {
     setShowCreateForm(false);
   };
 
+  const handleDownloadExcel = () => {
+    setDownloadModal(false);
+    const rows = [
+      ['Orden', 'Cliente', 'Estado', 'Entrega', 'Referencia', 'Cantidad', 'Color'],
+      ...filteredProductions.map((p) => [
+        p.orderNumber || '',
+        p.client || '',
+        p.status || '',
+        p.deliveryDate || '',
+        p.referencia || '',
+        p.quantity || 0,
+        p.color || '',
+      ]),
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ordenes-produccion.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    setDownloadModal(false);
+    const now   = new Date();
+    const fecha = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+    const hora  = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+    // Resumen por estado
+    const statusSummary = filteredProductions.reduce((acc, p) => {
+      const s = p.status || 'Sin estado';
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+    const totalUnidades = filteredProductions.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
+
+    const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const statusColor = (s) => {
+      const map = {
+        'Entregado':   { bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
+        'Producción':  { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
+        'Corte':       { bg: '#fef9c3', color: '#854d0e', dot: '#eab308' },
+        'Anulada':     { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
+        'Diseño':      { bg: '#f3e8ff', color: '#6b21a8', dot: '#a855f7' },
+        'Terminado':   { bg: '#d1fae5', color: '#065f46', dot: '#10b981' },
+      };
+      return map[s] || { bg: '#f3f4f6', color: '#374151', dot: '#9ca3af' };
+    };
+
+    const tableRows = filteredProductions.map((p, i) => {
+      const sc = statusColor(p.status);
+      return `
+        <tr class="${i % 2 === 0 ? 'row-even' : 'row-odd'}">
+          <td class="td-order"><span class="order-num">#${esc(p.orderNumber)}</span></td>
+          <td class="td-product">
+            <span class="product-name">${esc(p.producto || p.referencia || '—')}</span>
+            ${p.referencia ? `<span class="product-ref">Ref: ${esc(p.referencia)}</span>` : ''}
+          </td>
+          <td class="td-client">${esc(p.client || '—')}</td>
+          <td class="td-qty"><span class="qty-badge">${esc(p.quantity ?? 0)}</span><span class="qty-label">uds</span></td>
+          <td class="td-color">
+            <span class="color-pill">${esc(p.color || '—')}</span>
+          </td>
+          <td class="td-date">${esc(p.deliveryDate || '—')}</td>
+          <td class="td-status">
+            <span class="status-badge" style="background:${sc.bg};color:${sc.color};">
+              <span class="status-dot" style="background:${sc.dot};"></span>
+              ${esc(p.status || '—')}
+            </span>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const summaryCards = Object.entries(statusSummary).map(([s, n]) => {
+      const sc = statusColor(s);
+      return `<div class="sum-card" style="border-left:4px solid ${sc.dot};">
+        <span class="sum-count" style="color:${sc.dot};">${n}</span>
+        <span class="sum-label">${esc(s)}</span>
+      </div>`;
+    }).join('');
+
+    const filterInfo = [
+      filterStatus !== 'Todos' ? `Estado: <strong>${esc(filterStatus)}</strong>` : '',
+      filterClient !== 'Todos' ? `Cliente: <strong>${esc(filterClient)}</strong>` : '',
+      filterDateFrom ? `Desde: <strong>${esc(filterDateFrom)}</strong>` : '',
+      filterDateTo   ? `Hasta: <strong>${esc(filterDateTo)}</strong>` : '',
+      searchTerm     ? `Búsqueda: <strong>"${esc(searchTerm)}"</strong>` : '',
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Órdenes de Producción — ${fecha}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    font-size: 11px;
+  }
+
+  /* ── Página ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: #fff;
+    padding: 0;
+  }
+
+  /* ── Encabezado ── */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    padding: 28px 32px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: rgba(255,79,214,0.18);
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; right: 60px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,79,214,0.1);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .brand-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #ff4fd6;
+    box-shadow: 0 0 8px rgba(255,79,214,0.6);
+  }
+  .brand-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .doc-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .doc-subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+  }
+  .header-meta {
+    text-align: right;
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.7;
+  }
+  .header-meta strong { color: rgba(255,255,255,0.85); }
+  .doc-id {
+    display: inline-block;
+    background: rgba(255,79,214,0.25);
+    color: #ff9ee8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,79,214,0.4);
+    margin-top: 6px;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Cuerpo ── */
+  .body { padding: 22px 32px 28px; }
+
+  /* Filtros activos */
+  .filter-bar {
+    background: #f8f9fb;
+    border: 1px solid #e8eaf0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin-bottom: 18px;
+    font-size: 10px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .filter-bar strong { color: #374151; }
+  .filter-icon { color: #9ca3af; }
+
+  /* Resumen de estados */
+  .summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .sum-card {
+    flex: 1;
+    min-width: 90px;
+    background: #fafbfc;
+    border: 1px solid #e8eaf0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sum-count {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .sum-label {
+    font-size: 9.5px;
+    color: #9ca3af;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Totales destacados */
+  .totals-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .total-card {
+    flex: 1;
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    border-radius: 10px;
+    padding: 14px 18px;
+    color: #fff;
+  }
+  .total-card.pink {
+    background: linear-gradient(135deg, #ff4fd6, #c026d3);
+  }
+  .total-val {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .total-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Tabla */
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+  thead tr {
+    background: #1a1a2e;
+  }
+  thead th {
+    padding: 9px 10px;
+    text-align: left;
+    color: rgba(255,255,255,0.7);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; }
+  thead th:last-child  { border-radius: 0 6px 0 0; }
+
+  .row-even { background: #fff; }
+  .row-odd  { background: #f9fafb; }
+
+  tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+  }
+
+  td { padding: 9px 10px; vertical-align: middle; }
+
+  .td-order .order-num {
+    font-size: 12px;
+    font-weight: 800;
+    color: #ff4fd6;
+    letter-spacing: -0.02em;
+  }
+  .td-product .product-name {
+    display: block;
+    font-weight: 600;
+    color: #111827;
+    font-size: 10.5px;
+  }
+  .td-product .product-ref {
+    display: block;
+    font-size: 9px;
+    color: #9ca3af;
+    margin-top: 1px;
+  }
+  .td-client { color: #374151; font-weight: 500; }
+  .td-qty {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .qty-badge {
+    font-size: 12px;
+    font-weight: 800;
+    color: #111827;
+  }
+  .qty-label {
+    font-size: 9px;
+    color: #9ca3af;
+    margin-left: 2px;
+  }
+  .td-color .color-pill {
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 9.5px;
+    color: #4b5563;
+    font-weight: 500;
+  }
+  .td-date { color: #6b7280; font-variant-numeric: tabular-nums; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 9.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Separador de página interna */
+  .divider {
+    border: none;
+    border-top: 2px dashed #e5e7eb;
+    margin: 22px 0;
+  }
+
+  /* Sección de reparto */
+  .reparto-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .reparto-card {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fff;
+    page-break-inside: avoid;
+  }
+  .reparto-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .reparto-order {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ff4fd6;
+  }
+  .reparto-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 8.5px;
+    font-weight: 700;
+  }
+  .reparto-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+  .reparto-key {
+    color: #9ca3af;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .reparto-val {
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+  }
+  .reparto-qty-big {
+    font-size: 18px;
+    font-weight: 900;
+    color: #111;
+    letter-spacing: -0.03em;
+  }
+  .check-box {
+    width: 14px; height: 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 3px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .reparto-verify {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #e5e7eb;
+    font-size: 9px;
+    color: #9ca3af;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    background: #f8f9fb;
+    border-top: 2px solid #e5e7eb;
+    padding: 14px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    color: #9ca3af;
+    margin-top: auto;
+  }
+  .footer strong { color: #6b7280; }
+  .footer-sig {
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; }
+    .page { width: 100%; margin: 0; box-shadow: none; }
+    .no-print { display: none !important; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    .reparto-card { page-break-inside: avoid; }
+  }
+
+  /* Botón imprimir (solo pantalla) */
+  .print-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 32px 0;
+    gap: 10px;
+  }
+  .btn-print {
+    background: #1a1a2e;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-close {
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Barra impresión (solo pantalla) -->
+<div class="print-bar no-print">
+  <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+  <button class="btn-print" onclick="window.print()">
+    🖨 Imprimir / Guardar PDF
+  </button>
+</div>
+
+<div class="page">
+  <!-- ENCABEZADO -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand">
+          <div class="brand-dot"></div>
+          <span class="brand-name">Sistema de Producción</span>
+        </div>
+        <div class="doc-title">Órdenes de Producción</div>
+        <div class="doc-subtitle">Informe administrativo y de reparto</div>
+      </div>
+      <div class="header-meta">
+        <div><strong>Fecha:</strong> ${fecha}</div>
+        <div><strong>Hora:</strong> ${hora}</div>
+        <div><strong>Total órdenes:</strong> ${filteredProductions.length}</div>
+        <div><span class="doc-id">OP-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- FILTROS ACTIVOS -->
+    ${filterInfo ? `<div class="filter-bar">
+      <span class="filter-icon">▼</span>
+      <strong>Filtros aplicados:</strong> ${filterInfo}
+    </div>` : ''}
+
+    <!-- RESUMEN NUMÉRICO -->
+    <div class="totals-row">
+      <div class="total-card">
+        <div class="total-val">${filteredProductions.length}</div>
+        <div class="total-label">Total de órdenes</div>
+      </div>
+      <div class="total-card pink">
+        <div class="total-val">${totalUnidades.toLocaleString('es-CO')}</div>
+        <div class="total-label">Unidades totales</div>
+      </div>
+      <div class="total-card" style="background:linear-gradient(135deg,#0f3460,#533483);">
+        <div class="total-val">${Object.keys(statusSummary).length}</div>
+        <div class="total-label">Estados activos</div>
+      </div>
+    </div>
+
+    <!-- DESGLOSE POR ESTADO -->
+    <div class="section-title">Desglose por estado</div>
+    <div class="summary">${summaryCards}</div>
+
+    <!-- ══════════════════════ TABLA ADMINISTRATIVA ══════════════════════ -->
+    <div class="section-title" style="margin-top:4px;">Detalle de órdenes</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:52px">Orden</th>
+          <th style="width:140px">Producto / Artículo</th>
+          <th>Cliente</th>
+          <th style="text-align:right;width:56px">Cant.</th>
+          <th style="width:70px">Color</th>
+          <th style="width:80px">F. Entrega</th>
+          <th style="width:90px">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af;">Sin órdenes para mostrar</td></tr>'}
+      </tbody>
+    </table>
+
+    <hr class="divider"/>
+
+    <!-- ══════════════════════ SECCIÓN REPARTO ══════════════════════ -->
+    <div class="section-title">Tarjetas de reparto</div>
+    <div class="reparto-grid">
+      ${filteredProductions.map((p) => {
+        const sc = statusColor(p.status);
+        return `
+        <div class="reparto-card">
+          <div class="reparto-card-header">
+            <div>
+              <div class="reparto-order">#${esc(p.orderNumber)}</div>
+              <div style="font-size:10px;color:#374151;font-weight:600;margin-top:2px;">${esc(p.producto || p.referencia || '—')}</div>
+            </div>
+            <div>
+              <span class="reparto-status-badge" style="background:${sc.bg};color:${sc.color};">
+                <span class="status-dot" style="background:${sc.dot};"></span>
+                ${esc(p.status || '—')}
+              </span>
+            </div>
+          </div>
+          <div class="reparto-field">
+            <span class="reparto-key">Cliente</span>
+            <span class="reparto-val">${esc(p.client || '—')}</span>
+          </div>
+          <div class="reparto-field">
+            <span class="reparto-key">Referencia</span>
+            <span class="reparto-val">${esc(p.referencia || '—')}</span>
+          </div>
+          <div class="reparto-field">
+            <span class="reparto-key">Color</span>
+            <span class="reparto-val">${esc(p.color || '—')}</span>
+          </div>
+          <div class="reparto-field">
+            <span class="reparto-key">Entrega</span>
+            <span class="reparto-val">${esc(p.deliveryDate || '—')}</span>
+          </div>
+          <div class="reparto-field" style="margin-top:6px;">
+            <span class="reparto-key">Cantidad</span>
+            <span class="reparto-qty-big">${esc(p.quantity ?? 0)} <span style="font-size:10px;font-weight:500;color:#9ca3af;">uds</span></span>
+          </div>
+          <div class="reparto-verify">
+            <span class="check-box"></span>
+            Verificado por: ____________________________
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+  </div><!-- /body -->
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      <strong>Sistema de Gestión de Producción</strong><br/>
+      Documento generado automáticamente · ${fecha} ${hora}
+    </div>
+    <div class="footer-sig">
+      <strong>Firma responsable:</strong><br/>
+      ___________________________<br/>
+      Cargo: ____________________
+    </div>
+  </div>
+</div>
+
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
   const getPageNumbers = () => {
     if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
     const pages = [1];
@@ -175,13 +859,14 @@ const ProductionsPage = () => {
 
       <style>{`
         @keyframes pSpin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
 
         /* ── Root padding ── */
         .prod-root { padding: 14px; }
         @media (min-width: 640px)  { .prod-root { padding: 20px 24px; } }
         @media (min-width: 1024px) { .prod-root { padding: 24px 32px; } }
 
-        /* ── Header: stack en móvil ── */
+        /* ── Header: título izquierda, búsqueda derecha ── */
         .prod-header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         @media (min-width: 640px) {
           .prod-header { flex-direction: row; justify-content: space-between; align-items: center; }
@@ -194,86 +879,84 @@ const ProductionsPage = () => {
           display: flex; flex-direction: column; gap: 10px;
         }
         @media (min-width: 768px) {
-          .prod-filters {
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-          }
+          .prod-filters { flex-direction: row; align-items: center; justify-content: space-between; }
         }
 
-        /* Grupo izquierdo: filtros wrapeados */
-        .prod-filter-left {
-          display: flex; align-items: center; gap: 8px;
-          flex-wrap: wrap; min-width: 0; flex: 1;
-        }
-
-        /* Grupo derecho: botones acción */
+        .prod-filter-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1; }
         .prod-filter-right { flex-shrink: 0; }
-
-        /* En móvil el grupo derecho va abajo y centrado */
         @media (max-width: 767px) {
-          .prod-filter-right {
-            width: 100%;
-            display: flex;
-            justify-content: flex-end;
-          }
+          .prod-filter-right { width: 100%; display: flex; justify-content: flex-end; }
         }
 
-        /* Selects adaptados */
         .prod-select {
           padding: 6px 10px; border-radius: 7px; border: 1px solid #e5e7eb;
           background: #fafafa; font-size: 12px; cursor: pointer;
           flex: 1; min-width: 110px; max-width: 160px;
         }
-        @media (max-width: 480px) {
-          .prod-select { max-width: none; width: auto; flex: 1 1 auto; }
-        }
+        @media (max-width: 480px) { .prod-select { max-width: none; width: auto; flex: 1 1 auto; } }
 
-        /* Inputs de fecha */
-        .prod-date-input {
-          border: none; background: transparent;
-          font-size: 12px; outline: none; cursor: pointer;
-          width: 110px;
-        }
-        @media (max-width: 420px) {
-          .prod-date-input { width: 90px; font-size: 11px; }
-        }
+        .prod-date-input { border: none; background: transparent; font-size: 12px; outline: none; cursor: pointer; width: 110px; }
+        @media (max-width: 420px) { .prod-date-input { width: 90px; font-size: 11px; } }
 
-        /* Bloque de fechas: stack vertical en pantallas muy pequeñas */
         .prod-date-block {
           display: flex; align-items: center; gap: 4px;
           border: 1px solid #e5e7eb; background: #fafafa;
-          border-radius: 7px; padding: 4px 8px;
-          flex-wrap: nowrap;
+          border-radius: 7px; padding: 4px 8px; flex-wrap: nowrap;
         }
         .prod-date-block.active { border-color: #FF4FD6; background: #fff0fb; }
 
-        /* Modal de anulación: ancho adaptativo */
+        /* Botón + Agregar destacado */
+        .btn-agregar {
+          border: none; border-radius: 8px; background: #ff4fd6; color: #fff;
+          font-size: 13px; font-weight: 600; padding: 8px 16px; cursor: pointer;
+          display: flex; align-items: center; gap: 6px;
+          box-shadow: 0 2px 8px rgba(255,79,214,0.3);
+          transition: background 0.15s, box-shadow 0.15s;
+        }
+        .btn-agregar:hover { background: #e040c0; box-shadow: 0 4px 14px rgba(255,79,214,0.4); }
+
+        /* Botones icono (descarga, calendario) */
+        .btn-icon {
+          border: 1.5px solid #e5e7eb; border-radius: 8px; background: #fff; color: #374151;
+          font-size: 13px; font-weight: 600; padding: 8px 11px; cursor: pointer;
+          display: flex; align-items: center; gap: 6px;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .btn-icon:hover { border-color: #d1d5db; background: #f9fafb; }
+
+        /* Modal anulación */
         .cancel-modal {
           border-radius: 16px; padding: 20px 18px;
           background: #fff; box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-          border: 2px solid #ef4444;
-          width: calc(100vw - 32px); max-width: 420px;
+          border: 2px solid #ef4444; width: calc(100vw - 32px); max-width: 420px;
         }
-        @media (min-width: 480px) {
-          .cancel-modal { padding: 24px; }
+        @media (min-width: 480px) { .cancel-modal { padding: 24px; } }
+
+        /* Modal de descarga */
+        .download-modal {
+          border-radius: 16px; padding: 24px;
+          background: #fff; box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+          width: calc(100vw - 32px); max-width: 360px;
+          animation: fadeIn 0.18s ease;
+        }
+        .download-opt-btn {
+          width: 100%; display: flex; align-items: center; gap: 14px;
+          padding: 14px 16px; border-radius: 10px; cursor: pointer;
+          border: 1.5px solid #e5e7eb; background: #fafafa;
+          text-align: left; transition: border-color 0.15s, background 0.15s;
+        }
+        .download-opt-btn:hover { border-color: #ff4fd6; background: #fff0fb; }
+        .download-opt-icon {
+          width: 40px; height: 40px; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
 
-        /* Paginación: más compacta en móvil */
-        .prod-page-btn {
-          padding: 6px 11px; border-radius: 6px;
-          border: 1px solid #ddd; background: #fff;
-          cursor: pointer; font-size: 13px;
-        }
-        @media (max-width: 480px) {
-          .prod-page-btn { padding: 5px 8px; font-size: 12px; }
-        }
+        /* Paginación */
+        .prod-page-btn { padding: 6px 11px; border-radius: 6px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 13px; }
+        @media (max-width: 480px) { .prod-page-btn { padding: 5px 8px; font-size: 12px; } }
 
-        /* Texto de hint de filtros: oculto en móvil muy pequeño */
         .prod-filter-hint { font-size: 10px; color: #9ca3af; font-style: italic; white-space: nowrap; }
-        @media (max-width: 400px) {
-          .prod-filter-hint { display: none; }
-        }
+        @media (max-width: 400px) { .prod-filter-hint { display: none; } }
       `}</style>
 
       {/* Alert anulación éxito/error */}
@@ -285,6 +968,51 @@ const ProductionsPage = () => {
         onConfirm={() => setCancelAlert(p => ({ ...p, open: false }))}
         onCancel={() => setCancelAlert(p => ({ ...p, open: false }))}
       />
+
+      {/* Modal selección formato descarga */}
+      {downloadModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1200, padding: '0 16px' }}>
+          <div className="download-modal">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111' }}>Descargar órdenes</h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>Elige el formato de exportación</p>
+              </div>
+              <button onClick={() => setDownloadModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Opción Excel/CSV */}
+              <button className="download-opt-btn" onClick={handleDownloadExcel}>
+                <div className="download-opt-icon" style={{ background: '#e6f4ea' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22863a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#111' }}>Excel / CSV</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>Tabla editable, compatible con Excel y Sheets</p>
+                </div>
+              </button>
+              {/* Opción PDF */}
+              <button className="download-opt-btn" onClick={handleDownloadPDF}>
+                <div className="download-opt-icon" style={{ background: '#fef2f2' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#111' }}>PDF</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>Documento listo para imprimir o compartir</p>
+                </div>
+              </button>
+            </div>
+            <p style={{ margin: '14px 0 0', fontSize: 11, color: '#d1d5db', textAlign: 'center' }}>
+              {filteredProductions.length} orden{filteredProductions.length !== 1 ? 'es' : ''} se exportará{filteredProductions.length !== 1 ? 'n' : ''}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Spinner creando orden */}
       {creatingNewOrder && (
@@ -460,25 +1188,29 @@ const ProductionsPage = () => {
             )}
           </div>
 
-          {/* Botones acción (derecha) */}
+          {/* Botones acción (derecha) — igual que captura */}
           <div className="prod-filter-right">
-            <button
-              type="button"
-              onClick={() => setShowCreateForm(true)}
-              style={{
-                border: 'none',
-                borderRadius: 8,
-                background: '#ff4fd6',
-                color: '#fff',
-                fontSize: 15,
-
-                fontWeight: 500,
-                padding: '8px 14px',
-                cursor: 'pointer',
-              }}
-            >
-              + Nueva orden
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+              {/* Botón + Agregar destacado (rosa, con ícono) */}
+              <button type="button" className="btn-agregar" onClick={() => setShowCreateForm(true)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                Agregar
+              </button>
+              {/* Botón descargar (ícono) */}
+              <button type="button" className="btn-icon" onClick={() => setDownloadModal(true)} title="Descargar órdenes">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </button>
+              {/* Botón calendario (ícono) */}
+              <button type="button" className="btn-icon" onClick={() => navigate('/layout/produccion/calendario')} title="Abrir calendario">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 

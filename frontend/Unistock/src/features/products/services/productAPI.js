@@ -54,6 +54,14 @@ const asArray = (response) => {
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.products)) return data.products;
   if (Array.isArray(data?.productos)) return data.productos;
+  if (Array.isArray(data?.technical_sheets)) return data.technical_sheets;
+  if (Array.isArray(data?.technicalSheets)) return data.technicalSheets;
+  if (Array.isArray(data?.tecnicas)) return data.tecnicas;
+  if (Array.isArray(data?.fichasTecnicas)) return data.fichasTecnicas;
+  if (data?.ficha_tecnica) return [data.ficha_tecnica];
+  if (data?.technicalSheet) return [data.technicalSheet];
+  if (data?.fichaTecnica) return [data.fichaTecnica];
+  if (data && typeof data === 'object') return [data];
   return [];
 };
 
@@ -140,6 +148,40 @@ const toUiProduct = (raw, categories = []) => {
   };
 };
 
+const hasValue = (value) => {
+  if (Array.isArray(value)) return value.some(hasValue);
+  if (value && typeof value === "object") return Object.values(value).some(hasValue);
+  return value !== null && value !== undefined && String(value).trim() !== "";
+};
+
+const sheetItemsToMaterials = (sheetData = {}) => {
+  const materials = [];
+
+  (sheetData.fabrics || []).forEach((item, index) => {
+    if (hasValue(item)) {
+      materials.push({
+        nombre: item.name || `Tela ${index + 1}`,
+        unidad: item.talla ? `Talla ${item.talla}` : "",
+        cantidades: item.consumption || item.pieces || item.talla || "1",
+        observaciones: [item.consumption && `Consumo: ${item.consumption}`, item.pieces && `Piezas: ${item.pieces}`].filter(Boolean).join(" | "),
+      });
+    }
+  });
+
+  [...(sheetData.cups || []), ...(sheetData.closures || []), ...(sheetData.accessories || []), ...(sheetData.measurements || [])]
+    .forEach((item) => {
+      if (hasValue(item)) {
+        materials.push({
+          nombre: item.name || item.type || "Material ficha tecnica",
+          unidad: "",
+          cantidades: (item.values || []).filter((value) => String(value || "").trim()).join(", ") || "1",
+          observaciones: "",
+        });
+      }
+    });
+
+  return materials;
+};
 const toUiSheet = (raw) => {
   if (!raw) return raw;
   return {
@@ -224,20 +266,67 @@ const buildProductPayloads = async (productData) => {
   ];
 };
 
+const buildProductCreatePayloads = async (productData) => {
+  const productPayloads = await buildProductPayloads(productData);
+  const sheet = productData.technicalSheet;
+  const date = sheet?.date || new Date().toISOString().split("T")[0];
+  const responsible = sheet?.createdBy || sheet?.client || "Sin responsable";
+  const description = sheet?.description || sheet?.observations || "Ficha tecnica";
+  const materials = sheetItemsToMaterials(sheet);
+
+  return productPayloads.map((payload) => ({
+    ...payload,
+    ficha_tecnica: {
+      responsable: responsible,
+      fecha_inicio: date,
+      fecha_fin: date,
+      versiones: Number(sheet?.version || 1),
+      descripciones: description,
+      client: sheet?.client || "",
+      ref: sheet?.ref || payload.referencia || payload.reference || "",
+      type: sheet?.type || "",
+      description,
+      observations: sheet?.observations || "",
+      createdBy: responsible,
+      image: sheet?.image || null,
+      fabrics: sheet?.fabrics || [],
+      cups: sheet?.cups || [],
+      closures: sheet?.closures || [],
+      accessories: sheet?.accessories || [],
+      measurements: sheet?.measurements || [],
+      materiales: materials,
+    },
+  }));
+};
 const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
-  const date = sheetData.date ?? new Date().toISOString().split("T")[0];
+  const date = toDateString(sheetData.date) || new Date().toISOString().split("T")[0];
   const version = Number(sheetData.version ?? 1);
-  const description = sheetData.description ?? sheetData.observations ?? "";
-  const responsible = sheetData.createdBy ?? sheetData.client ?? "Sin responsable";
+  const description = sheetData.description ?? sheetData.observations ?? sheetData.descripciones ?? sheetData.descripcion ?? "Ficha tecnica";
+  const responsible = sheetData.createdBy ?? sheetData.client ?? sheetData.responsable ?? sheetData.responsible ?? "Sin responsable";
+
+  const materials = sheetItemsToMaterials(sheetData);
 
   return [
     {
       id_producto: productId,
-      responsable: responsible,
+      responsable,
       fecha_inicio: date,
       fecha_fin: date,
       versiones: version,
-      descripciones: description || false,
+      descripciones: description,
+      client: sheetData.client ?? "",
+      ref: sheetData.ref ?? "",
+      type: sheetData.type ?? "",
+      description: sheetData.description ?? "",
+      observations: sheetData.observations ?? "",
+      createdBy: sheetData.createdBy ?? "",
+      image: sheetData.image ?? null,
+      fabrics: sheetData.fabrics ?? [],
+      cups: sheetData.cups ?? [],
+      closures: sheetData.closures ?? [],
+      accessories: sheetData.accessories ?? [],
+      measurements: sheetData.measurements ?? [],
+      materiales: materials,
     },
     {
       productId,
@@ -252,6 +341,8 @@ const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
       accessories: sheetData.accessories ?? [],
       observations: sheetData.observations ?? "",
       createdBy: responsible,
+      image: sheetData.image ?? null,
+      materials,
     },
   ];
 };
@@ -306,16 +397,16 @@ export const productAPI = {
   },
 
   create: async (productData) => {
-    const { technicalSheet } = productData || {};
-    const payloads = await buildProductPayloads(productData);
+    const payloads = await buildProductCreatePayloads(productData);
     const response = await sendWithPayloadFallback(PRODUCT_ENDPOINTS[0], "POST", payloads);
-    const created = toUiProduct(unwrapResponse(response), await getCategories());
+    const data = unwrapResponse(response);
+    const created = toUiProduct(data.product || data, await getCategories());
+    const createdSheet = data.ficha_tecnica || data.technicalSheet || data.fichaTecnica;
 
-    if (technicalSheet && created.id) {
-      const createdSheet = await productAPI.createTechnicalSheet({ ...technicalSheet, productId: created.id });
-      created.technicalSheet = createdSheet;
+    if (createdSheet) {
+      created.technicalSheet = toUiSheet(createdSheet);
       created.technicalSheetVersions = 1;
-      created.lastVersionDate = createdSheet?.date ?? created.lastVersionDate;
+      created.lastVersionDate = created.technicalSheet?.date ?? created.lastVersionDate;
     }
 
     return created;
@@ -378,7 +469,8 @@ export const productAPI = {
         return toUiSheet(unwrapResponse(response));
       } catch (error) {
         lastError = error;
-        if (![404, 400, 422].includes(error?.status)) throw error;
+        if (error?.status === 404) continue;
+        throw error;
       }
     }
 
