@@ -54,6 +54,14 @@ const asArray = (response) => {
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.products)) return data.products;
   if (Array.isArray(data?.productos)) return data.productos;
+  if (Array.isArray(data?.technical_sheets)) return data.technical_sheets;
+  if (Array.isArray(data?.technicalSheets)) return data.technicalSheets;
+  if (Array.isArray(data?.tecnicas)) return data.tecnicas;
+  if (Array.isArray(data?.fichasTecnicas)) return data.fichasTecnicas;
+  if (data?.ficha_tecnica) return [data.ficha_tecnica];
+  if (data?.technicalSheet) return [data.technicalSheet];
+  if (data?.fichaTecnica) return [data.fichaTecnica];
+  if (data && typeof data === 'object') return [data];
   return [];
 };
 
@@ -291,19 +299,34 @@ const buildProductCreatePayloads = async (productData) => {
   }));
 };
 const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
-  const date = sheetData.date ?? new Date().toISOString().split("T")[0];
+  const date = toDateString(sheetData.date) || new Date().toISOString().split("T")[0];
   const version = Number(sheetData.version ?? 1);
-  const description = sheetData.description ?? sheetData.observations ?? "";
-  const responsible = sheetData.createdBy ?? sheetData.client ?? "Sin responsable";
+  const description = sheetData.description ?? sheetData.observations ?? sheetData.descripciones ?? sheetData.descripcion ?? "Ficha tecnica";
+  const responsible = sheetData.createdBy ?? sheetData.client ?? sheetData.responsable ?? sheetData.responsible ?? "Sin responsable";
+
+  const materials = sheetItemsToMaterials(sheetData);
 
   return [
     {
       id_producto: productId,
-      responsable: responsible,
+      responsable,
       fecha_inicio: date,
       fecha_fin: date,
       versiones: version,
-      descripciones: description || false,
+      descripciones: description,
+      client: sheetData.client ?? "",
+      ref: sheetData.ref ?? "",
+      type: sheetData.type ?? "",
+      description: sheetData.description ?? "",
+      observations: sheetData.observations ?? "",
+      createdBy: sheetData.createdBy ?? "",
+      image: sheetData.image ?? null,
+      fabrics: sheetData.fabrics ?? [],
+      cups: sheetData.cups ?? [],
+      closures: sheetData.closures ?? [],
+      accessories: sheetData.accessories ?? [],
+      measurements: sheetData.measurements ?? [],
+      materiales: materials,
     },
     {
       productId,
@@ -318,6 +341,8 @@ const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
       accessories: sheetData.accessories ?? [],
       observations: sheetData.observations ?? "",
       createdBy: responsible,
+      image: sheetData.image ?? null,
+      materials,
     },
   ];
 };
@@ -444,7 +469,8 @@ export const productAPI = {
         return toUiSheet(unwrapResponse(response));
       } catch (error) {
         lastError = error;
-        if (![404, 400, 422].includes(error?.status)) throw error;
+        if (error?.status === 404) continue;
+        throw error;
       }
     }
 

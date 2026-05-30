@@ -212,9 +212,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                     <input style={inputStyle} value={formData.ref || ""} onChange={(e) => handleChange("ref", e.target.value)} />
                   ) : formData.ref}
                 </td>
-              </tr>
-
-              {/* ── Row 2: Tipo de prenda / Descripción ── */}
+              </tr>{/* ── Row 2: Tipo de prenda / Descripción ── */}
               <tr>
                 <td style={headerCellStyle}>Tipo de prenda:</td>
                 <td colSpan={2} style={cellStyle}>
@@ -228,9 +226,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                     <input style={inputStyle} value={formData.description || ""} onChange={(e) => handleChange("description", e.target.value)} />
                   ) : formData.description}
                 </td>
-              </tr>
-
-              {/* ── Fabrics: Tela 1, Tela 2, Tela 3 ── */}
+              </tr>{/* ── Fabrics: Tela 1, Tela 2, Tela 3 ── */}
               {(formData.fabrics || []).map((fabric, i) => (
                 <tr key={i}>
                   <td style={headerCellStyle}>Tela {i + 1}:</td>
@@ -278,7 +274,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 <td colSpan={6} style={{ ...headerCellStyle, textAlign: "left", fontSize: "14px", padding: "8px 12px" }}>
                   Cópiado
                 </td>
-              </tr>              {displayCups.map((cup, i) => (
+              </tr>{displayCups.map((cup, i) => (
                 <tr key={`cup-${i}`}>
                   <td style={headerCellStyle} colSpan={2}>
                     {isEditing ? (
@@ -321,8 +317,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                   <td colSpan={6} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
                     <AddRowBtn onClick={addCup} />
                   </td>
-                </tr>
-              )}              {displayClosures.map((closure, i) => (
+                </tr>)}{displayClosures.map((closure, i) => (
                 <tr key={`closure-${i}`}>
                   <td style={headerCellStyle} colSpan={2}>
                     {isEditing ? (
@@ -377,8 +372,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 <td style={headerCellStyle}>Aro</td>
                 <td style={headerCellStyle}>Tensor</td>
                 <td style={headerCellStyle}>Zeta</td>
-              </tr>
-              {[0, 1, 2].map((row) => (
+              </tr>{[0, 1, 2].map((row) => (
                 <tr key={row}>
                   <td style={cellStyle}>
                     {isEditing ? (
@@ -455,8 +449,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                 <td style={headerCellStyle}>Sesgo</td>
                 <td style={headerCellStyle}>Varilla plástic</td>
                 <td style={headerCellStyle}>Elastico senc</td>
-              </tr>
-              {[0, 1, 2].map((row) => (
+              </tr>{[0, 1, 2].map((row) => (
                 <tr key={`second-${row}`}>
                   <td style={cellStyle}>
                     {isEditing ? (
@@ -611,9 +604,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                     />
                   ) : displayMeasurements[1]?.values?.[1]}
                 </td>
-              </tr>
-
-              {displayMeasurements.slice(2).map((measurement, extraIndex) => {
+              </tr>{displayMeasurements.slice(2).map((measurement, extraIndex) => {
                 const measurementIndex = extraIndex + 2;
                 return (
                   <tr key={`extra-measurement-${measurementIndex}`}>

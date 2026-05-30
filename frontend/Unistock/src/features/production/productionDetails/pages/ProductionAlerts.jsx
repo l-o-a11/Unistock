@@ -16,15 +16,6 @@ import React, { useState, useEffect } from "react";
 const BRAND = "#FF4FD6";
 const BRAND_DARK = "#d93db8";
 
-// Carga terceros activos desde localStorage (igual que el módulo de terceros)
-const loadTerceros = () => {
-  try {
-    const raw = localStorage.getItem('app_third_parties');
-    const list = raw ? JSON.parse(raw) : [];
-    return list.filter(t => t.estado !== false).map(t => t.nombreEmpresa || t.nombre || t.codigo);
-  } catch { return ["Confección Aurora", "Taller Rojo"]; }
-};
-
 // Carga sedes activas desde localStorage
 const loadSedes = () => {
   try {
@@ -113,6 +104,8 @@ const ProductionAlerts = ({
   // Lista de asignaciones: [{ option: "", cantidad: "" }, ...]
   const [assignments, setAssignments] = useState([{ option: "", cantidad: "" }]);
   const [motivo, setMotivo] = useState("");
+  const [tercerosOptions, setTercerosOptions] = useState([]);
+  const [loadingTerceros, setLoadingTerceros] = useState(false);
 
   // Resetear assignments cada vez que se abre el modal
   useEffect(() => {
@@ -122,10 +115,35 @@ const ProductionAlerts = ({
     }
   }, [isOpen, type]);
 
+  useEffect(() => {
+    if (!isOpen || type !== "third") return;
+
+    let cancelled = false;
+    setLoadingTerceros(true);
+    (async () => {
+      try {
+        const { thirdPartyAPI } = await import("../../../third_parties/services/thirdPartyAPI");
+        const data = await thirdPartyAPI.getAll({ estado: true });
+        const options = (Array.isArray(data) ? data : [])
+          .filter((t) => t.estado !== false)
+          .map((t) => t.nombreEmpresa || t.nombre || t.nit)
+          .filter(Boolean);
+        if (!cancelled) setTercerosOptions(options);
+      } catch (err) {
+        console.error("Error cargando terceros:", err);
+        if (!cancelled) setTercerosOptions([]);
+      } finally {
+        if (!cancelled) setLoadingTerceros(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen, type]);
+
   if (!isOpen) return null;
 
   const isAssign = type === "third" || type === "assignSede";
-  const options  = type === "third" ? loadTerceros() : loadSedes();
+  const options  = type === "third" ? tercerosOptions : loadSedes();
 
   /* ── Total ya asignado en las filas actuales ── */
   const totalAsignado = assignments.reduce((s, a) => s + (Number(a.cantidad) || 0), 0);
@@ -291,6 +309,15 @@ const ProductionAlerts = ({
                 isOnly={assignments.length === 1}
               />
             ))}
+
+            {type === "third" && loadingTerceros && (
+              <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>Cargando terceros...</p>
+            )}
+            {type === "third" && !loadingTerceros && options.length === 0 && (
+              <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 }}>
+                No hay terceros activos para asignar.
+              </p>
+            )}
 
             {/* Error si excede */}
             {totalAsignado > totalUnidades && (
