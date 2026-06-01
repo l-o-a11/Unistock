@@ -2,24 +2,34 @@ import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { Categories } from "../../types/constants";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
+import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
 
-const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories = Categories }) => {
+const normalizeText = (text) =>
+  String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories = Categories, onCreateCategory }) => {
   const [open, setOpen] = useState(false);
   
   const handleSelect = (catName) => {
     onChange(catName);
     setOpen(false);
-    if (onBlur) onBlur();
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
       <div 
         onClick={() => setOpen((o) => !o)} 
         style={{ 
           display: "flex", 
           alignItems: "center", 
           justifyContent: "space-between", 
+          width: "100%",
+          minHeight: "42px",
+          boxSizing: "border-box",
           padding: "10px 14px", 
           borderBottom: touched && error ? "2px solid #ff4fd6" : "1.5px solid #d1d5db",
           cursor: "pointer", 
@@ -31,20 +41,20 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories 
           transition: "background-color 0.15s",
         }}
       >
-        <span>{value || "Seleccionar categoría"}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value || "Seleccionar categoria"}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </div>
       {open && (
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
-          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "0 0 8px 8px", boxShadow: "0 4px 16px rgba(0,0,0,0.10)", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 8px 20px rgba(0,0,0,0.12)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
             <div 
               style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "500", cursor: "pointer" }} 
               onClick={() => handleSelect("")}
             >
-              Seleccionar categoría
+              Seleccionar categoria
             </div>
             {categories.map((cat) => (
               <div 
@@ -55,7 +65,7 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories 
                   fontSize: "14px", 
                   color: "#333", 
                   cursor: "pointer", 
-                  backgroundColor: value === (cat.name ?? cat.nombre) ? "#fdf0f7" : "#fff", 
+                  backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf0f7" : "#fff", 
                   borderTop: "1px solid #f5f5f5", 
                   transition: "background-color 0.1s" 
                 }}
@@ -63,6 +73,23 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories 
                 {cat.icon} {cat.name ?? cat.nombre}
               </div>
             ))}
+            <div
+              onClick={() => {
+                setOpen(false);
+                onCreateCategory?.();
+              }}
+              style={{
+                padding: "12px 14px",
+                fontSize: "14px",
+                color: "#ff4fd6",
+                cursor: "pointer",
+                borderTop: "1px solid #f0f0f0",
+                backgroundColor: "#fff",
+                fontWeight: "600"
+              }}
+            >
+              + Crear nueva categoria
+            </div>
           </div>
         </>
       )}
@@ -88,6 +115,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
   const [formData, setFormData] = useState(initialData);
   const [categories, setCategories] = useState(Categories);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [errors, setErrors] = useState({
     reference: "",
     name: "",
@@ -105,18 +133,37 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
 
-  useEffect(() => {
-    productCategoryAPI
-      .getAll()
-      .then((apiCategories) => {
-        if (Array.isArray(apiCategories) && apiCategories.length > 0) {
-          setCategories(apiCategories);
-        }
-      })
-      .catch(() => setCategories(Categories));
+  const loadCategories = useCallback(async () => {
+    try {
+      const apiCategories = await productCategoryAPI.getAll();
+      if (Array.isArray(apiCategories) && apiCategories.length > 0) {
+        setCategories(apiCategories);
+      }
+    } catch {
+      setCategories(Categories);
+    }
   }, []);
 
-  // 🔥 DETECTAR SI HAY CAMBIOS EN EL PRODUCTO
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  const handleCreateCategory = async (categoryData) => {
+    const createdCategory = await productCategoryAPI.create(categoryData);
+    await loadCategories();
+    const categoryName = createdCategory?.name ?? createdCategory?.nombre ?? categoryData.name;
+    setFormData((prev) => ({ ...prev, category: categoryName }));
+    setTouched((prev) => ({ ...prev, category: true }));
+    setErrors((prev) => ({ ...prev, category: "" }));
+    setShowCategoryForm(false);
+    onShowAlert?.({
+      type: "success",
+      title: "Exito!",
+      message: "Categoria creada correctamente"
+    });
+  };
+
+  // �Y"� DETECTAR SI HAY CAMBIOS EN EL PRODUCTO
   const hasProductChanges = () => {
     if (!product) return true; // En creación siempre hay cambios potenciales
     return (
@@ -129,13 +176,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     );
   };
 
-  // 🔥 DETECTAR SI HAY CAMBIOS EN LA FICHA TÉCNICA
+  // �Y"� DETECTAR SI HAY CAMBIOS EN LA FICHA T�?CNICA
   const hasTechnicalSheetChanges = () => {
     if (!product) return !!technicalSheet; // En creación, hay cambios si existe technicalSheet
     return technicalSheet !== product.technicalSheet;
   };
 
-  // 🔥 VALIDACIONES EN TIEMPO REAL
+  // �Y"� VALIDACIONES EN TIEMPO REAL
   const validateReference = (value) => {
     if (!value.trim()) return "La referencia es obligatoria";
     if (value.trim().length < 3) return "La referencia debe tener al menos 3 caracteres";
@@ -150,7 +197,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   };
 
   const validateCategory = (value) => {
-    if (!value) return "Selecciona una categoría";
+    if (!value) return "Selecciona una categoria";
     return "";
   };
 
@@ -235,6 +282,23 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return true;
   };
 
+  const hasAnyValue = (value) => {
+    if (Array.isArray(value)) return value.some(hasAnyValue);
+    if (value && typeof value === "object") return Object.values(value).some(hasAnyValue);
+    return value !== null && value !== undefined && String(value).trim() !== "";
+  };
+
+  const hasTechnicalSheetMaterials = (sheet) => {
+    if (!sheet) return false;
+    return [sheet.fabrics, sheet.cups, sheet.closures, sheet.accessories, sheet.measurements]
+      .some((items) => Array.isArray(items) && items.some(hasAnyValue));
+  };
+
+  const hasTechnicalSheetContent = (sheet) => {
+    if (!sheet) return false;
+    return [sheet.client, sheet.date, sheet.ref, sheet.type, sheet.description, sheet.observations, sheet.createdBy]
+      .some(hasAnyValue) || hasTechnicalSheetMaterials(sheet);
+  };
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     
@@ -244,7 +308,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       return;
     }
     
-    // 🔥 VALIDACIÓN DE FICHA TÉCNICA
+    // �Y"� VALIDACI�"N DE FICHA T�?CNICA
     if (!technicalSheet) {
       onShowAlert({
         type: "warning",
@@ -254,7 +318,25 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       return;
     }
     
-    // 🔥 VALIDACIÓN DE CAMBIOS (solo para edición)
+    if (!hasTechnicalSheetContent(technicalSheet)) {
+      onShowAlert({
+        type: "warning",
+        title: "Ficha tecnica vacia",
+        message: "Completa los datos de la ficha tecnica antes de guardar el producto"
+      });
+      return;
+    }
+
+    if (!hasTechnicalSheetMaterials(technicalSheet)) {
+      onShowAlert({
+        type: "warning",
+        title: "Materiales requeridos",
+        message: "Agrega al menos un material en la ficha tecnica antes de guardar el producto"
+      });
+      return;
+    }
+
+    // �Y"� VALIDACI�"N DE CAMBIOS (solo para edición)
     if (product) {
       const hasProductChanges_ = hasProductChanges();
       const hasTechnicalSheetChanges_ = hasTechnicalSheetChanges();
@@ -287,10 +369,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setShowVersions(false);
   };
 
-  // 🔥 TAMBIÉN CAMBIADO A "confirm" PARA CONSISTENCIA
+  // �Y"� TAMBI�?N CAMBIADO A "confirm" PARA CONSISTENCIA
   const handleDeleteVersionClick = () => {
     onShowConfirm({
-      type: "confirm", // 👈 CAMBIADO DE "cancel" A "confirm"
+      type: "confirm", // �Y'^ CAMBIADO DE "cancel" A "confirm"
       title: "Confirmar eliminación",
       message: "¿Seguro que deseas eliminar esta versión?",
       confirmText: "Eliminar",
@@ -315,10 +397,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setTechnicalSheet(sheetData);
   };
 
-  // 🔥 AHORA USA "confirm" PARA EL DISEÑO ORIGINAL (AZUL CON ?)
+  // �Y"� AHORA USA "confirm" PARA EL DISE�'O ORIGINAL (AZUL CON ?)
   const handleCancelClick = useCallback(() => {
     onShowConfirm({
-      type: "confirm", // 👈 CAMBIADO DE "cancel" A "confirm"
+      type: "confirm", // �Y'^ CAMBIADO DE "cancel" A "confirm"
       title: "¿Seguro que deseas cancelar?",
       message: "Los cambios no guardados se perderán.",
       confirmText: "Confirmar",
@@ -333,7 +415,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return () => window.removeEventListener("keydown", handleEsc);
   }, [handleCancelClick]);
 
-  // 🔥 ESTILO PARA INPUTS CON ERROR - SOLO BORDE ROSA, SIN FONDO
+  // �Y"� ESTILO PARA INPUTS CON ERROR - SOLO BORDE ROSA, SIN FONDO
   const getInputStyle = (field) => {
     const baseStyle = {
       width: "100%",
@@ -356,7 +438,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return baseStyle;
   };
 
-  // 🔥 ESTILO PARA MENSAJES DE ERROR EN NEGRITA
+  // �Y"� ESTILO PARA MENSAJES DE ERROR EN NEGRITA
   const errorStyle = {
     color: "#ff4fd6",
     fontSize: "11px",
@@ -473,19 +555,21 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
                   {/* Categoría */}
                   <tr>
-                    <td style={headerCellStyle}>Categoría:</td>
+                    <td style={headerCellStyle}>Categoria:</td>
                     <td style={cellStyle} colSpan={5}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
                         <CategoryDropdown 
                           value={formData.category} 
                           onChange={(val) => {
-                            handleChange({ target: { name: "category", value: val } });
-                            handleBlur("category");
+                            setFormData((prev) => ({ ...prev, category: val }));
+                            setTouched((prev) => ({ ...prev, category: true }));
+                            setErrors((prev) => ({ ...prev, category: validateCategory(val) }));
                           }}
                           onBlur={() => handleBlur("category")}
                           touched={touched.category}
                           error={errors.category}
                           categories={categories}
+                          onCreateCategory={() => setShowCategoryForm(true)}
                         />
                         {requiredStar}
                       </div>
@@ -642,7 +726,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                     });
                   }
                 }}
-                // disabled={hasInvalidFields()}  // 👈 ELIMINADO PARA QUE EL ONCLICK FUNCIONE
+                // disabled={hasInvalidFields()}  // �Y'^ ELIMINADO PARA QUE EL ONCLICK FUNCIONE
               >
                 {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
               </button>
@@ -747,6 +831,43 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
             )}
           </div>
         </>
+      )}
+      {showCategoryForm && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          zIndex: 1200,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          minHeight: "100vh",
+          boxSizing: "border-box",
+          padding: "32px 20px",
+          overflowY: "auto",
+          overscrollBehavior: "contain"
+        }}>
+          <div
+            style={{ position: "absolute", inset: 0 }}
+            onClick={() => setShowCategoryForm(false)}
+          />
+          <div style={{
+            position: "relative",
+            width: "90%",
+            maxWidth: "600px",
+            backgroundColor: "#fff",
+            borderRadius: "12px",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+            zIndex: 1201
+          }}>
+            <ProductCategoryForm
+              onSubmit={handleCreateCategory}
+              onCancel={() => setShowCategoryForm(false)}
+              onShowAlert={onShowAlert}
+              onShowConfirm={onShowConfirm}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

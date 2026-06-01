@@ -134,6 +134,12 @@ const ProductionDetailsPage = () => {
           orderNumber: data.numero_orden,
           cliente: data.cliente,
           client: data.cliente,
+          tipo: data.tipo || data.type || 'produccion',
+          techSpecification: data.techSpecification || data.techSheet || null,
+          designImages: Array.isArray(data.designImages) ? data.designImages : [],
+          fromDamaged: data.fromDamaged || false,
+          originalOrderNumber: data.originalOrderNumber || null,
+          originalOrderStatus: data.originalOrderStatus || null,
           // Campos de producto: derivados del primer detalle o genéricos
           producto: (data.detalles && data.detalles.length > 0)
             ? (data.detalles[0].id_producto || 'Orden de producción')
@@ -291,6 +297,8 @@ const ProductionDetailsPage = () => {
       try {
         const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
+
+        // Intentamos persistir en localStorage como referencia local (no crítico)
         try {
           const terceroRaw = localStorage.getItem('app_third_parties');
           const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
@@ -312,19 +320,13 @@ const ProductionDetailsPage = () => {
             }
           });
           if (updated) localStorage.setItem('app_third_parties', JSON.stringify(tercerosList));
-        } catch(e) { console.warn('Error linking tercero:', e); }
-        const savedProd = await ProductionAPI.update(production.id, {
-          ...production, terceroAsignaciones: assignmentsList,
-          history: [...(production.history || []), {
-            status: "Tercero asignado", date: today, user: ProductionAPI.getCurrentUser(),
-            motivo: assignmentsList.map(a => `${a.option}: ${a.cantidad} uds`).join(" | "),
-            distribución: assignmentsList,
-          }]
-        });
-        setProduction(savedProd);
+        } catch(e) { console.warn('Error linking tercero en localStorage:', e); }
+
+        // Avanzamos el estado con el backend real — no usamos el mock ProductionAPI.update
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Tercero asignado", message: `El tercero fue asignado y la orden avanzó a "${targetStep}".` });
-      } catch {
+      } catch (err) {
+        console.error('[Tercero] Error al asignar:', err?.message || err);
         setGlobalAlert({ open: true, type: "error", title: "Error al asignar tercero", message: "No se pudo asignar el tercero. Intenta de nuevo." });
       }
       return;
@@ -334,6 +336,8 @@ const ProductionDetailsPage = () => {
       try {
         const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
+
+        // Limpiar localStorage (no crítico)
         try {
           const terceroRaw = localStorage.getItem('app_third_parties');
           const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
@@ -342,19 +346,13 @@ const ProductionDetailsPage = () => {
           }));
           localStorage.setItem('app_third_parties', JSON.stringify(updatedTerceros));
         } catch(e) { console.warn('Error unlinking tercero:', e); }
-        const savedProd = await ProductionAPI.update(production.id, {
-          ...production, sedeAsignaciones: assignmentsList,
-          history: [...(production.history || []), {
-            status: "Sede asignada", date: today, user: ProductionAPI.getCurrentUser(),
-            motivo: assignmentsList.map(a => `${a.option}: ${a.cantidad} uds`).join(" | "),
-            distribución: assignmentsList,
-          }]
-        });
-        setProduction(savedProd);
+
+        // Avanzamos el estado con el backend real
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
         setTimeout(() => setPendingFinishedImg("request"), 800);
-      } catch {
+      } catch (err) {
+        console.error('[Sede] Error al asignar:', err?.message || err);
         setGlobalAlert({ open: true, type: "error", title: "Error al asignar sede", message: "No se pudo asignar la sede. Intenta de nuevo." });
       }
       return;
@@ -370,25 +368,16 @@ const ProductionDetailsPage = () => {
     }
   };
 
-  const handleEditConfirm = async (updatedDetail) => {
+  const handleEditConfirm = async (updatedData) => {
     try {
       const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const detail = editAlert.detail;
       
-      // Mapear detalles de vuelta a formato que el backend espera
-      const newDetails = (production.rawData?.detalles || []).map(d => {
-        if (d.id_producto === updatedDetail.ref) {
-          return {
-            ...d,
-            cantidad: updatedDetail.quantity,
-            color: updatedDetail.color,
-          };
-        }
-        return d;
-      });
-      
-      // Usar backend para actualizar
-      await ProductionAPIClient.updateOrder(production.id, {
-        detalles: newDetails,
+      // Mapear detalles: actualizar el que coincida con ref
+      // Usar backend para actualizar solo el detalle específico
+      await ProductionAPIClient.updateOrderDetail(detail.id, {
+        cantidad: Number(updatedData.cantidad) || 0,
+        color: updatedData.color,
       });
       
       // Recargar datos frescos del backend
@@ -413,7 +402,7 @@ const ProductionDetailsPage = () => {
       }));
       
       setEditAlert({ isOpen: false, detail: null });
-      setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${updatedDetail.ref} fue actualizado correctamente.` });
+      setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${detail.ref} fue actualizado correctamente.` });
     } catch (err) {
       console.error('Error al editar detalle:', err);
       setGlobalAlert({ open: true, type: "error", title: "Error al editar", message: "No se pudo actualizar el artículo. Intenta de nuevo." });
@@ -476,48 +465,63 @@ const ProductionDetailsPage = () => {
       customTitle: "Anular artículo",
       customMessage: `¿Deseas anular el artículo ${d.ref} (${d.color}, ${d.quantity} uds)? Se eliminará de la tabla y quedará registrado en el historial.`,
       onConfirmOverride: async (_motivo) => {
-        const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const currentUser = ProductionAPI.getCurrentUser();
-        const newDetails = (production.details || []).filter(x => x !== d);
-        if (newDetails.length === 0) {
-          const saved = await ProductionAPI.update(production.id, {
-            ...production, quantity: 0, details: newDetails,
-            techSpecification: recalcCosts(newDetails, production.techSpecification),
-            history: [...(production.history || []), { status: "Artículo anulado", date: today, user: currentUser, motivo: `Ref: ${d.ref} | Color: ${d.color} | Cantidad: ${d.quantity} uds | Ref_corte: ${d.refCorte}` }]
-          });
-          setProduction(saved);
-          setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado. La orden quedó sin referencias.` });
-          setTimeout(() => {
-            openProductionAlert({
-              type: "anular",
-              customTitle: "¿Anular orden completa?",
-              customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
-              onConfirmOverride: async (motivo) => {
-                try {
-                  await ProductionAPIClient.cancelOrder(saved.id, motivo || "Sin referencias");
-                  const freshC = await ProductionAPIClient.getOrderById(saved.id);
-                  const cDate = freshC.updatedAt ? new Date(freshC.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-                  setProduction((prev) => ({
-                    ...prev, status: 'Anulada', estado: 'Anulada', statusDate: cDate,
-                    history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.id_usuario || 'Sistema', motivo: h.motivo })),
-                    rawData: freshC,
-                  }));
-                  setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
-                } catch {
-                  setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+        try {
+          const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+          
+          // Mapear detalles: filtrar el detalle a eliminar
+          // Usar backend para eliminar solo el detalle seleccionado
+          await ProductionAPIClient.deleteOrderDetail(d.id);
+          
+          const freshData = await ProductionAPIClient.getOrderById(production.id);
+          const remainingDetails = freshData.detalles || [];
+          const statusDate = freshData.updatedAt
+            ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : today;
+
+          if (remainingDetails.length === 0) {
+            setTimeout(() => {
+              openProductionAlert({
+                type: "anular",
+                customTitle: "¿Anular orden completa?",
+                customMessage: "La orden quedó sin referencias. ¿Deseas anular la orden de producción completa?",
+                onConfirmOverride: async (motivo) => {
+                  try {
+                    await ProductionAPIClient.cancelOrder(production.id, motivo || "Sin referencias");
+                    const freshC = await ProductionAPIClient.getOrderById(production.id);
+                    const cDate = freshC.updatedAt ? new Date(freshC.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                    setProduction((prev) => ({
+                      ...prev, status: 'Anulada', estado: 'Anulada', statusDate: cDate,
+                      history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.id_usuario || 'Sistema', motivo: h.motivo })),
+                      rawData: freshC,
+                    }));
+                    setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
+                  } catch {
+                    setGlobalAlert({ open: true, type: "error", title: "Error al anular", message: "No se pudo anular la orden. Intenta de nuevo." });
+                  }
                 }
-              }
-            });
-          }, 800);
-          return;
+              });
+            }, 800);
+          } else {
+            setProduction((prev) => ({
+              ...prev,
+              details: (remainingDetails || []).map((d) => ({
+                id: d.id || d._id,
+                refCorte: d.id_producto || '',
+                ref: d.id_producto || '',
+                quantity: d.cantidad || 0,
+                color: d.color || '—',
+                status: freshData.estado,
+                statusDate,
+                estado: d.estado !== false,
+              })),
+              rawData: freshData,
+            }));
+            setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado correctamente.` });
+          }
+        } catch (err) {
+          console.error('Error al eliminar detalle:', err);
+          setGlobalAlert({ open: true, type: "error", title: "Error al eliminar", message: "No se pudo eliminar el artículo. Intenta de nuevo." });
         }
-        const saved = await ProductionAPI.update(production.id, {
-          ...production, quantity: newDetails.reduce((s, x) => s + x.quantity, 0), details: newDetails,
-          techSpecification: recalcCosts(newDetails, production.techSpecification),
-          history: [...(production.history || []), { status: "Artículo anulado", date: today, user: currentUser, motivo: `Ref: ${d.ref} | Color: ${d.color} | Cantidad: ${d.quantity} uds | Ref_corte: ${d.refCorte}` }]
-        });
-        setProduction(saved);
-        setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado correctamente y quedó registrado en el historial.` });
       }
     });
   };

@@ -15,6 +15,7 @@ import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
 import { blockInput } from '../../../shared/utils/blockInput';
 import TechnicalSheet from '../TechnicalSheet';
+import ThirdPartiesSection from './ThirdPartiesSection';
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -101,6 +102,19 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors
 // ─────────────────────────────────────────────────────────────────────────────
 const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice = null }) => {
   const modalRef = useRef(null);
+  const colorRef = useRef(null);
+
+  // Cierra el accordion de color al hacer clic fuera de él
+  useEffect(() => {
+    if (!colorAccordionOpen) return;
+    const handler = (e) => {
+      if (colorRef.current && !colorRef.current.contains(e.target)) {
+        setColorAccordionOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [colorAccordionOpen]);
 
   const [type,          setType]         = useState('produccion');
   const [products,      setProducts]     = useState([]);
@@ -120,14 +134,38 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [techSheetData, setTechSheetData]= useState(null);
   const [techSheetPreview, setTechSheetPreview] = useState(null);
   const [loadingSheet,  setLoadingSheet] = useState(false);
-  const [savedColors,   setSavedColors]  = useState([]);
-  const [savedClients,  setSavedClients] = useState([]);
-  const [designImages,  setDesignImages] = useState([]);
+   const [savedColors,   setSavedColors]  = useState([]);
+   const [savedClients,  setSavedClients] = useState([]);
+   const [designImages,  setDesignImages] = useState([]);
+   const [terceros,      setTerceros]     = useState([]);
+
+   // Load saved colors and clients from localStorage
+   useEffect(() => {
+     const savedColors = localStorage.getItem('productionColors');
+     if (savedColors) {
+       try {
+         setSavedColors(JSON.parse(savedColors));
+       } catch (e) {
+         console.error('Error parsing saved colors', e);
+       }
+     }
+   }, []);
+
+   useEffect(() => {
+     const savedClients = localStorage.getItem('productionClients');
+     if (savedClients) {
+       try {
+         setSavedClients(JSON.parse(savedClients));
+       } catch (e) {
+         console.error('Error parsing saved clients', e);
+       }
+     }
+   }, []);
 
   // ── Nueva referencia (solo tipo diseño) ───────────────────────────────────
   const [nuevaRefOpen, setNuevaRefOpen] = useState(false);
   const [nuevaRef, setNuevaRef] = useState({
-    reference: '', name: '', category: '', description: '',
+    reference: '', name: '', category: '', description: '', price: '',
   });
   const [nuevaRefErrors, setNuevaRefErrors] = useState({});
   const [categories,    setCategories]    = useState([]);
@@ -152,8 +190,23 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       try {
         const { productAPI } = await import('../../../products/services/productAPI');
         const data = await productAPI.getAll();
-        setProducts(data || []);
-      } catch {
+        console.log('[ProductionForm] Productos cargados:', data?.length || 0, 'items'); // DEBUG
+        
+        const normalized = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+        
+        if (normalized.length === 0) {
+          console.warn('[ProductionForm] ⚠️ No hay productos cargados');
+        } else {
+          console.log('[ProductionForm] ✓ Productos normalizados:', normalized.length);
+        }
+        
+        setProducts(normalized);
+      } catch (err) {
+        console.error('[ProductionForm] ❌ Error cargando productos:', err?.message || err);
         setProducts([]);
       } finally {
         setLoadingProducts(false);
@@ -166,8 +219,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       try {
         const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
         const cats = await productCategoryAPI.getAll();
-        setCategories((cats || []).map(c => c.name)); 
-      } catch {
+        console.log('[ProductionForm] Categorías cargadas:', cats?.length || 0, 'items'); // DEBUG
+        
+        const categoryNames = (cats || []).map(c => c.name);
+        if (categoryNames.length === 0) {
+          console.warn('[ProductionForm] ⚠️ No hay categorías, usando fallback');
+          setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
+        } else {
+          console.log('[ProductionForm] ✓ Categorías cargadas:', categoryNames);
+          setCategories(categoryNames);
+        }
+      } catch (err) {
+        console.error('[ProductionForm] ❌ Error cargando categorías:', err?.message || err);
         setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
       }
     })();
@@ -270,43 +333,73 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     return true;
   };
 
+  const hasTechnicalSheetMaterials = (sheet) => {
+    if (!sheet) return false;
+    const items = [
+      ...(sheet.fabrics || []),
+      ...(sheet.cups || []),
+      ...(sheet.closures || []),
+      ...(sheet.accessories || []),
+      ...(sheet.measurements || []),
+    ];
+    return items.some((item) => {
+      if (!item) return false;
+      return Object.values(item).some((value) => {
+        if (Array.isArray(value)) return value.some((v) => String(v || "").trim() !== "");
+        return String(value || "").trim() !== "";
+      });
+    });
+  };
+
   const handleSubmit = (e) => { e.preventDefault(); if (validate()) setShowConfirm(true); };
 
   const handleConfirm = async () => {
     saveColor(formData.color); saveClient(formData.cliente);
     let referenciaFinal = formData.referencia;
     let productoFinal   = formData.producto;
+    const shouldCreateReference = type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim();
+    const canCreateProduct = shouldCreateReference && hasTechnicalSheetMaterials(techSheetData);
 
-    if (type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim()) {
+    if (shouldCreateReference && canCreateProduct) {
       try {
         const { productAPI } = await import('../../../products/services/productAPI');
         const created = await productAPI.create({
-          reference:   nuevaRef.reference.trim(),
-          name:        nuevaRef.name.trim(),
-          category:    nuevaRef.category.trim(),
-          price:       0,
-          description: nuevaRef.description.trim(),
-          stock: 0,
+          reference:      nuevaRef.reference.trim(),
+          name:           nuevaRef.name.trim(),
+          category:       nuevaRef.category.trim(),
+          price:          Number(nuevaRef.price) || 0,
+          description:    nuevaRef.description.trim(),
+          stock:          totalCantidad,
+          technicalSheet: techSheetData,
         });
-        referenciaFinal = created.reference || created.id;
-        productoFinal   = created.name;
+        referenciaFinal = created.reference || created.id || referenciaFinal;
+        productoFinal   = created.name || productoFinal;
       } catch (err) {
         console.error('Error creando referencia:', err);
         setAlertConfig({ open: true, type: 'error', title: 'Error al crear referencia', message: 'No se pudo registrar la nueva referencia. Intenta de nuevo.', onConfirm: null });
         setShowConfirm(false);
         return;
       }
+    } else if (shouldCreateReference) {
+      referenciaFinal = nuevaRef.reference.trim();
+      productoFinal = nuevaRef.name.trim();
     }
 
     onSubmit({
-      tipo: type, ...formData,
-      referencia:  referenciaFinal,
-      producto:    productoFinal,
+      tipo: type,
+      ...formData,
+      referencia: referenciaFinal,
+      producto: productoFinal,
       referencias: extraRefs,
-      techSheet:   type === 'diseno' ? techSheetData : null,
+      terceros,
+      techSheet: type === 'diseno' ? techSheetData : null,
       designImages: type === 'diseno' ? designImages : [],
-      nuevaRef:    type === 'diseno' && nuevaRefOpen ? nuevaRef : null,
-      ...(damageNotice ? { fromDamaged: true, originalOrderNumber: damageNotice.originalOrderNumber } : {}),
+      nuevaRef: type === 'diseno' && nuevaRefOpen ? nuevaRef : null,
+      ...(damageNotice ? {
+        fromDamaged: true,
+        originalOrderNumber: damageNotice.originalOrderNumber,
+        originalOrderStatus: damageNotice.originalOrderStatus,
+      } : {}),
     });
     setShowConfirm(false);
     setAlertConfig({ open: true, type: 'success', title: 'Orden creada', message: 'La orden de producción fue creada correctamente.', onConfirm: null });
@@ -384,7 +477,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 {[['produccion','Producción','Artículo con ficha técnica existente'],['diseno','Diseño','Nuevo diseño o boceto a crear']].map(([val, label, desc]) => (
                   <div key={val} style={typeBox(type === val)} onClick={() => {
                     setType(val);
-                    if (val !== 'diseno') { setNuevaRefOpen(false); setNuevaRef({ reference:'', name:'', category:'', description:'' }); setNuevaRefErrors({}); }
+                    if (val !== 'diseno') { setNuevaRefOpen(false); setNuevaRef({ reference:'', name:'', category:'', description:'', price:'' }); setNuevaRefErrors({}); }
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${type === val ? '#ff4fd6' : '#d1d5db'}`, background: type === val ? '#ff4fd6' : 'transparent', flexShrink: 0 }} />
@@ -410,7 +503,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                         setFormData(prev => ({ ...prev, referencia: '', producto: '' }));
                       } else {
                         // Al cerrar, limpiar los datos de nueva ref
-                        setNuevaRef({ reference:'', name:'', category:'', description:'' });
+                        setNuevaRef({ reference:'', name:'', category:'', description:'', price:'' });
                         setNuevaRefErrors({});
                       }
                     }}
@@ -522,6 +615,24 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           style={{ ...getInputStyle(false), resize: 'none', fontFamily: 'inherit' }}
                         />
                       </div>
+                      {/* Precio */}
+                      <div>
+                        <label style={labelStyle}>
+                          Precio unitario (COP)
+                          <span style={{ color: '#9ca3af', fontSize: 10, marginLeft: 6 }}>(opcional)</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={nuevaRef.price}
+                          onChange={e => setNuevaRef(p => ({ ...p, price: e.target.value }))}
+                          min="0"
+                          placeholder="Ej: 45000"
+                          style={getInputStyle(false)}
+                        />
+                        <p style={{ margin: '3px 0 0', fontSize: 10, color: '#a78bfa' }}>
+                          El stock inicial se tomará de la cantidad total de la orden.
+                        </p>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#fff', borderRadius: 8, border: '1px solid #f0abfc' }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2" strokeLinecap="round">
                           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" strokeWidth="2.5"/><line x1="12" y1="11" x2="12" y2="16"/>
@@ -584,7 +695,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                 <div>
                   <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
-                  <div style={{ position: 'relative' }}>
+                  <div ref={colorRef} style={{ position: 'relative' }}>
                     <input
                       name="color" value={formData.color}
                       onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); setColorAccordionOpen(false); }}
@@ -798,6 +909,12 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 style={{ background: 'none', border: '1.5px dashed #f9a8d4', borderRadius: 8, color: '#ff4fd6', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '8px 14px', marginBottom: 20, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 + Agregar otro artículo a la orden
               </button>
+
+              {/* ── Sección de Terceros ─────────────────────────────────── */}
+              <ThirdPartiesSection
+                terceros={terceros}
+                onTercerosChange={setTerceros}
+              />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4, borderTop: '1px solid #f3f4f6' }}>
                 <Button type="button" variant="secondary" onClick={handleCancelClick}>Cancelar</Button>

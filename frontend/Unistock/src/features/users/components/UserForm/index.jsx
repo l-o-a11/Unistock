@@ -133,24 +133,23 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
       return;
     }
 
+    // FIX: rolId y sedeId son ObjectId (strings MongoDB) — no usar parseInt.
+    // FIX: la API genera la contraseña internamente en CreateUser,
+    //      no se debe enviar password ni llamar prepareWelcome.
+    const payload = {
+      tipoDocumento: formData.documentType,
+      numeroDocumento: formData.documentNumber,
+      nombreCompleto: formData.name,
+      correo: formData.email,
+      rolId: formData.role || null,
+      sedeId: formData.sede || null,
+    };
+
     try {
       setSending(true);
 
-      if (!user) {
-        // 1. Generar contraseña ANTES de guardar el usuario
-        const { password } = await AuthAPI.prepareWelcome(formData.email);
-        // 2. Guardar usuario CON la contraseña ya incluida
-        await Promise.resolve(onSubmit({ ...formData, password }));
-        // 3. Enviar correo de bienvenida
-        await AuthAPI.sendWelcomeEmail({
-          email: formData.email,
-          nombreCompleto: formData.name,
-          password,
-        });
-      } else {
-        // Editar: solo guardar sin correo
-        await Promise.resolve(onSubmit(formData));
-      }
+      // La API genera y envía la contraseña por correo automáticamente.
+      await Promise.resolve(onSubmit(payload));
 
       setPendingClose(true);
       setAlertConfig({
