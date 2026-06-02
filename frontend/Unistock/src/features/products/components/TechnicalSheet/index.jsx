@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { AuthAPI } from "../../../auth/services/AuthAPI";
 
 // ── Shared cell/input styles ──────────────────────────────────────────────────
 const cellStyle = {
@@ -65,11 +66,38 @@ const EMPTY_SHEET = {
   measurements: [],
   observations: "",
   createdBy: "",
+  costPerUnit: "",
+  totalCost: "",
 };
 
-const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
-  const [formData, setFormData] = useState(sheet || EMPTY_SHEET);
+const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productName = "", categoryDescription = "", productRef = "" }) => {
+  const [formData, setFormData] = useState(() => {
+    const initialData = sheet || { ...EMPTY_SHEET };
+    
+    // Auto-fill fields if not already set
+    const currentUser = AuthAPI.getSession();
+    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+    
+    return {
+      ...initialData,
+      date: initialData.date || today,
+      createdBy: initialData.createdBy || currentUser?.nombre || "",
+      type: initialData.type || productName || "",
+      description: initialData.description || categoryDescription || "",
+      ref: initialData.ref || productRef || "",
+    };
+  });
   const [imagePreview, setImagePreview] = useState(sheet?.image || null);
+
+  // Update form data when productName, categoryDescription, or productRef changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      type: prev.type || productName,
+      description: prev.description || categoryDescription,
+      ref: prev.ref || productRef,
+    }));
+  }, [productName, categoryDescription, productRef]);
 
   const handleChange = (field, value) => {
     const newData = { ...formData, [field]: value };
@@ -679,6 +707,31 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave }) => {
                       onChange={(e) => handleChange("createdBy", e.target.value)} 
                     />
                   ) : formData.createdBy}
+                </td>
+              </tr>
+              {/* ── Costos ── */}
+              <tr>
+                <td style={headerCellStyle} colSpan={2}>COSTO UNITARIO:</td>
+                <td style={cellStyle} colSpan={2}>
+                  {isEditing ? (
+                    <input
+                      style={{ ...inputStyle, textAlign: "right" }}
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.costPerUnit === 0 || formData.costPerUnit === undefined ? "" : String(formData.costPerUnit)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d]/g, "");
+                        const val = raw === "" ? 0 : parseInt(raw, 10);
+                        const newData = { ...formData, costPerUnit: val, totalCost: val };
+                        setFormData(newData); onChange?.(newData);
+                      }}
+                      placeholder="Ej: 35000"
+                    />
+                  ) : `$${(formData.costPerUnit || 0).toLocaleString("es-CO")}`}
+                </td>
+                <td style={headerCellStyle} colSpan={1}>TOTAL:</td>
+                <td style={{ ...cellStyle, fontWeight: 700, color: "#FF4FD6" }} colSpan={2}>
+                  ${(formData.costPerUnit || 0).toLocaleString("es-CO")}
                 </td>
               </tr>
             </tbody>

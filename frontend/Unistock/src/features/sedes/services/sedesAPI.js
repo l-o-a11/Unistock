@@ -1,89 +1,112 @@
-const STORAGE_KEY = "app_sedes";
+/**
+ * sedesAPI.js
+ *
+ * FIX #9: getAll ahora devuelve la metadata de paginación completa
+ * { data, total, page, limit, totalPages } en lugar de solo el array.
+ * Esto permite que useSedes y sedesPage usen la paginación del servidor
+ * en lugar de recargar todos los registros y paginar en el cliente.
+ */
 
-const INITIAL_SEDES = [
-  {
-    id: 1,
-    nombre: "Sede Principal",
-    ciudad: "Medellín",
-    barrio: "Parque Berrío",
-    direccion: "Calle 50 #45-30",
-    telefono: "6042345678",
-    estado: true,
-  },
-  {
-    id: 2,
-    nombre: "Sede Norte",
-    ciudad: "Medellín",
-    barrio: "Parque Berrio",
-    direccion: "Carrera 52 #90-15",
-    telefono: "6042987654",
-    estado: true,
-  },
-];
+import httpClient from "../../shared/utils/httpClient";
 
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return null;
-};
-
-const saveToStorage = (sedes) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sedes));
-  } catch (e) {
-    console.error("No se pudo guardar en localStorage:", e);
-  }
-};
-
-let mockSedes = loadFromStorage() ?? [...INITIAL_SEDES];
+// Normaliza una sede recibida del backend
+const normalizeSede = (raw) => ({
+  id:        String(raw.id ?? raw._id ?? ""),
+  nombre:    raw.nombre    ?? "",
+  ciudad:    raw.ciudad    ?? "",
+  barrio:    raw.barrio    ?? "",
+  direccion: raw.direccion ?? "",
+  telefono:  String(raw.telefono ?? ""),
+  estado:    raw.estado    ?? true,
+});
 
 export const sedesAPI = {
-  getAll: async () => new Promise((resolve) => setTimeout(() => resolve([...mockSedes]), 400)),
+  /**
+   * GET /api/sites
+   * Soporta: ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
+   *
+   * FIX #9: antes descartaba total/totalPages y devolvía solo el array.
+   * Ahora devuelve: { data: Sede[], total, page, limit, totalPages }
+   */
+  getAll: async (filters = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+    ).toString();
 
-  getById: async (id) => new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const sede = mockSedes.find((s) => s.id === id);
-      if (sede) resolve({ ...sede });
-      else reject(new Error("Sede no encontrada"));
-    }, 300);
-  }),
+    const result = await httpClient.get(`/sites${qs ? `?${qs}` : ""}`);
 
-  create: async (sedeData) => new Promise((resolve) => {
-    setTimeout(() => {
-      const newSede = {
-        id: mockSedes.length > 0 ? Math.max(...mockSedes.map((s) => s.id)) + 1 : 1,
-        estado: true,
-        ...sedeData,
-      };
-      mockSedes.push(newSede);
-      saveToStorage(mockSedes);
-      resolve({ ...newSede });
-    }, 400);
-  }),
+    // La API responde: { success: true, data: { data: [...], total, page, ... } }
+    const payload = result?.data ?? result;
 
-  update: async (id, updatedData) => new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = mockSedes.findIndex((s) => s.id === id);
-      if (index !== -1) {
-        mockSedes[index] = { ...mockSedes[index], ...updatedData };
-        saveToStorage(mockSedes);
-        resolve({ ...mockSedes[index] });
-      } else reject(new Error("Sede no encontrada"));
-    }, 400);
-  }),
+    // Soporta tanto respuesta paginada { data: [...], total, ... } como array directo
+    if (Array.isArray(payload)) {
+      return { data: payload.map(normalizeSede), total: payload.length, page: 1, limit: payload.length, totalPages: 1 };
+    }
 
-  delete: async (id) => new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = mockSedes.findIndex((s) => s.id === id);
-      if (index !== -1) {
-        mockSedes.splice(index, 1);
-        saveToStorage(mockSedes);
-        resolve();
-      } else reject(new Error("Sede no encontrada"));
-    }, 400);
-  }),
+    return {
+      data:       (payload?.data ?? []).map(normalizeSede),
+      total:      payload?.total      ?? 0,
+      page:       payload?.page       ?? 1,
+      limit:      payload?.limit      ?? 10,
+      totalPages: payload?.totalPages ?? 1,
+    };
+  },
 
-  reset: () => { localStorage.removeItem(STORAGE_KEY); mockSedes = [...INITIAL_SEDES]; },
+  /**
+   * GET /api/sites/:id
+   */
+  getById: async (id) => {
+    const result = await httpClient.get(`/sites/${id}`);
+    const raw = result?.data ?? result;
+    return normalizeSede(raw);
+  },
+
+  /**
+   * POST /api/sites
+   */
+  create: async (sedeData) => {
+    const result = await httpClient.post("/sites", {
+      nombre:    sedeData.nombre,
+      ciudad:    sedeData.ciudad,
+      barrio:    sedeData.barrio,
+      direccion: sedeData.direccion,
+      telefono:  String(sedeData.telefono),
+      estado:    sedeData.estado ?? true,
+    });
+    const raw = result?.data ?? result;
+    return normalizeSede(raw);
+  },
+
+  /**
+   * PUT /api/sites/:id
+   */
+  update: async (id, sedeData) => {
+    const body = {};
+    if (sedeData.nombre    !== undefined) body.nombre    = sedeData.nombre;
+    if (sedeData.ciudad    !== undefined) body.ciudad    = sedeData.ciudad;
+    if (sedeData.barrio    !== undefined) body.barrio    = sedeData.barrio;
+    if (sedeData.direccion !== undefined) body.direccion = sedeData.direccion;
+    if (sedeData.telefono  !== undefined) body.telefono  = String(sedeData.telefono);
+    if (sedeData.estado    !== undefined) body.estado    = sedeData.estado;
+
+    const result = await httpClient.put(`/sites/${id}`, body);
+    const raw = result?.data ?? result;
+    return normalizeSede(raw);
+  },
+
+  /**
+   * DELETE /api/sites/:id
+   */
+  delete: async (id) => {
+    return httpClient.delete(`/sites/${id}`);
+  },
+
+  /**
+   * PATCH /api/sites/:id/toggle
+   */
+  toggle: async (id) => {
+    const result = await httpClient.patch(`/sites/${id}/toggle`);
+    const raw = result?.data ?? result;
+    return normalizeSede(raw);
+  },
 };

@@ -14,6 +14,13 @@ const normalizeText = (text) =>
 const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories = Categories, onCreateCategory }) => {
   const [open, setOpen] = useState(false);
   
+  // Filter to only show categories that actually exist (from API)
+  const filteredCategories = categories.filter(cat => {
+    const name = cat.name ?? cat.nombre;
+    // Show category if it has an id (from API) or if it's not from the default Categories list
+    return cat.id || cat._id || (cat.id_categoria_producto);
+  });
+  
   const handleSelect = (catName) => {
     onChange(catName);
     setOpen(false);
@@ -56,23 +63,29 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories 
             >
               Seleccionar categoria
             </div>
-            {categories.map((cat) => (
-              <div 
-                key={cat.id ?? cat._id} 
-                onClick={() => handleSelect(cat.name ?? cat.nombre)} 
-                style={{ 
-                  padding: "10px 14px", 
-                  fontSize: "14px", 
-                  color: "#333", 
-                  cursor: "pointer", 
-                  backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf0f7" : "#fff", 
-                  borderTop: "1px solid #f5f5f5", 
-                  transition: "background-color 0.1s" 
-                }}
-              >
-                {cat.icon} {cat.name ?? cat.nombre}
+            {filteredCategories.length > 0 ? (
+              filteredCategories.map((cat) => (
+                <div 
+                  key={cat.id ?? cat._id} 
+                  onClick={() => handleSelect(cat.name ?? cat.nombre)} 
+                  style={{ 
+                    padding: "10px 14px", 
+                    fontSize: "14px", 
+                    color: "#333", 
+                    cursor: "pointer", 
+                    backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf0f7" : "#fff", 
+                    borderTop: "1px solid #f5f5f5", 
+                    transition: "background-color 0.1s" 
+                  }}
+                >
+                  {cat.icon} {cat.name ?? cat.nombre}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: "10px 14px", fontSize: "13px", color: "#999", textAlign: "center" }}>
+                Sin categorías disponibles
               </div>
-            ))}
+            )}
             <div
               onClick={() => {
                 setOpen(false);
@@ -147,6 +160,14 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  // Get selected category details
+  const getSelectedCategoryDescription = () => {
+    const selected = categories.find(cat => 
+      (cat.name ?? cat.nombre) === formData.category
+    );
+    return selected?.description ?? selected?.descripcion ?? "";
+  };
 
   const handleCreateCategory = async (categoryData) => {
     const createdCategory = await productCategoryAPI.create(categoryData);
@@ -802,6 +823,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
             sheet={product && selectedVersion ? { ...product?.technicalSheet, version: selectedVersion } : product?.technicalSheet}
             isEditing={product ? (isLastVersion && !viewMode) : true}
             onChange={handleTechnicalSheetChange}
+            productName={formData.name}
+            categoryDescription={getSelectedCategoryDescription()}
+            productRef={formData.reference}
           />
 
           <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>

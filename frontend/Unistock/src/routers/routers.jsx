@@ -92,7 +92,7 @@ export function RouterApp() {
           <PrivateRoute modulo="insumos"><SuppliesPage /></PrivateRoute>
         } />
         <Route path="categorias-insumos" element={
-          <PrivateRoute modulo="categorias-insumos"><CategoriesSupplyPage /></PrivateRoute>
+          <PrivateRoute modulo="categorias de insumos"><CategoriesSupplyPage /></PrivateRoute>
         } />
 
         {/* Proveedores */}
@@ -110,7 +110,7 @@ export function RouterApp() {
           <PrivateRoute modulo="productos"><ProductsPage /></PrivateRoute>
         } />
         <Route path="categorias-productos" element={
-          <PrivateRoute modulo="categorias-productos"><ProductCategoriesPage /></PrivateRoute>
+          <PrivateRoute modulo="categorias de productos"><ProductCategoriesPage /></PrivateRoute>
         } />
         <Route path="productos/crear" element={
           <PrivateRoute modulo="productos"><ProductForm /></PrivateRoute>

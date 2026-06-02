@@ -1,12 +1,43 @@
 /**
  * ProductionAPIClient.js
  * Cliente API Real para Producción — conecta con el backend en /api/produccion
+ * 
+ * Normalización: camelCase (frontend) ↔ snake_case (backend)
  */
 import { httpRequest } from "../../shared/utils/httpClient";
 
-export const ProductionAPIClient = {
+// ─── Mapeo Frontend → Backend ──────────────────────────────────────────────────
+const toBackendFormat = (frontendData) => {
+  if (!frontendData) return {};
+  return {
+    cliente: frontendData.cliente || frontendData.client || null,
+    fecha_entrega: frontendData.fecha_entrega || frontendData.deliveryDate || null,
+    id_usuario: frontendData.id_usuario || frontendData.userId || null,
+    asignaciones: frontendData.asignaciones || frontendData.terceros || [],
+  };
+};
 
-  // ── Órdenes ────────────────────────────────────────────────────────────────
+// ─── Mapeo Backend → Frontend ──────────────────────────────────────────────────
+const toFrontendFormat = (backendData) => {
+  if (!backendData) return {};
+  return {
+    id: backendData._id || backendData.id,
+    orderNumber: backendData.numero_orden || backendData.orderNumber,
+    cliente: backendData.cliente,
+    client: backendData.cliente,
+    deliveryDate: backendData.fecha_entrega,
+    fecha_entrega: backendData.fecha_entrega,
+    estado: backendData.estado,
+    status: backendData.estado,
+    detalles: backendData.detalles || [],
+    asignaciones: backendData.asignaciones || [],
+    terceros: backendData.asignaciones || [],
+    historial: backendData.historial || [],
+    history: backendData.historial || [],
+  };
+};
+
+export const ProductionAPIClient = {
 
   getOrders: async (filters = {}) => {
     const q = new URLSearchParams();
@@ -21,22 +52,28 @@ export const ProductionAPIClient = {
     if (filters.order)       q.append("order",       filters.order);
     const endpoint = `/produccion/ordenes${q.toString() ? "?" + q : ""}`;
     const res = await httpRequest(endpoint, { method: "GET" });
-    return res?.data || res;
+    const data = res?.data || res;
+    return Array.isArray(data) ? data.map(toFrontendFormat) : data;
   },
 
   getOrderById: async (id) => {
     const res = await httpRequest(`/produccion/ordenes/${id}`, { method: "GET" });
-    return res?.data || res;
+    const data = res?.data || res;
+    return toFrontendFormat(data);
   },
 
   createOrder: async (data) => {
-    const res = await httpRequest("/produccion/ordenes", { method: "POST", body: data });
-    return res?.data || res;
+    const backendData = toBackendFormat(data);
+    const res = await httpRequest("/produccion/ordenes", { method: "POST", body: backendData });
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
   },
 
   updateOrder: async (id, data) => {
-    const res = await httpRequest(`/produccion/ordenes/${id}`, { method: "PUT", body: data });
-    return res?.data || res;
+    const backendData = toBackendFormat(data);
+    const res = await httpRequest(`/produccion/ordenes/${id}`, { method: "PUT", body: backendData });
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
   },
 
   changeOrderStatus: async (id, estado) => {
@@ -44,7 +81,8 @@ export const ProductionAPIClient = {
       method: "PATCH",
       body: { estado },
     });
-    return res?.data || res;
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
   },
 
   cancelOrder: async (id, motivo) => {
@@ -52,7 +90,8 @@ export const ProductionAPIClient = {
       method: "PATCH",
       body: { motivo },
     });
-    return res?.data || res;
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
   },
 
   getEstados: async () => {
@@ -105,16 +144,53 @@ export const ProductionAPIClient = {
     return res?.data || res;
   },
 
-  // ── Asignaciones ───────────────────────────────────────────────────────────
+  // ── Asignaciones de Terceros ───────────────────────────────────────────────
 
+  /**
+   * Obtiene asignaciones (terceros) para una orden.
+   */
   getAssignments: async (id_orden) => {
     const q = id_orden ? `?id_orden=${id_orden}` : "";
     const res = await httpRequest(`/produccion/asignaciones${q}`, { method: "GET" });
+    const data = res?.data || res;
+    return Array.isArray(data) ? data : [];
+  },
+
+  /**
+   * Crea una asignación de tercero a una orden.
+   * @param {{ id_orden: string, id_tercero: string, cantidad: number }} data
+   */
+  createAssignment: async (data) => {
+    const payload = {
+      id_orden: data.id_orden || data.idOrden,
+      id_tercero: data.id_tercero || data.idTercero || data.terceroId,
+      cantidad: Number(data.cantidad || 0),
+    };
+    const res = await httpRequest("/produccion/asignaciones", { method: "POST", body: payload });
     return res?.data || res;
   },
 
-  createAssignment: async (data) => {
-    const res = await httpRequest("/produccion/asignaciones", { method: "POST", body: data });
+  /**
+   * Actualiza una asignación existente.
+   */
+  updateAssignment: async (assignmentId, data) => {
+    const payload = {
+      cantidad: Number(data.cantidad || 0),
+    };
+    const res = await httpRequest(`/produccion/asignaciones/${assignmentId}`, {
+      method: "PUT",
+      body: payload,
+    });
+    return res?.data || res;
+  },
+
+  /**
+   * Elimina una asignación.
+   */
+  deleteAssignment: async (assignmentId) => {
+    const res = await httpRequest(`/produccion/asignaciones/${assignmentId}`, {
+      method: "DELETE",
+    });
     return res?.data || res;
   },
 };

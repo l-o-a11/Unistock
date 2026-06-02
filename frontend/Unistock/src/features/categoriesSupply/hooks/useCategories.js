@@ -1,102 +1,120 @@
-import { useState, useEffect } from 'react';
-import { categoryAPI } from '../services/categoryAPI';
+/**
+ * categoriesSupply/hooks/useCategories.js
+ *
+ * Reemplaza la lógica de localStorage/mock por llamadas reales vía categoryAPI.
+ *
+ * Cambios respecto a la versión anterior:
+ *  - Sin localStorage: la fuente de verdad es el backend
+ *  - Paginación server-side: { data, total, page, limit, totalPages }
+ *  - La validación de "tiene insumos asociados" la hace el backend (422)
+ *  - Nuevo: toggleCategory (PATCH /:id/toggle)
+ */
 
-const STORAGE_KEY = 'app_categorias';
+import { useState, useEffect, useCallback } from "react";
+import { categoryAPI } from "../services/categoryAPI";
 
-// ── Helpers de localStorage ────────────────────────────────────────────────
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // JSON corrupto — ignorar y usar seed
-  }
-  return null;
-};
+export const useCategories = (initialFilters = {}) => {
+  const [categories,  setCategories]  = useState([]);
+  const [pagination,  setPagination]  = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [filters,     setFilters]     = useState({ limit: 50, ...initialFilters });
 
-const saveToStorage = (categories) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
-  } catch (e) {
-    console.error('No se pudo guardar en localStorage:', e);
-  }
-};
-
-export const useCategories = () => {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Carga inicial: localStorage primero, API como fallback
-  useEffect(() => {
-    const cached = loadFromStorage();
-    if (cached) {
-      setCategories(cached);
-      setLoading(false);
-    } else {
-      loadCategories();
-    }
-  }, []);
-
-  // Persistir cada vez que categories cambia
-  useEffect(() => {
-    if (!loading) {
-      saveToStorage(categories);
-    }
-  }, [categories, loading]);
-
-  const loadCategories = async () => {
+  // ── Carga paginada ─────────────────────────────────────────────────────────
+  const loadCategories = useCallback(async (overrideFilters = {}) => {
     try {
       setLoading(true);
-      const data = await categoryAPI.getAll();
-      setCategories(data);
+      setError(null);
+      const merged = { ...filters, ...overrideFilters };
+      const result = await categoryAPI.getAll(merged);
+      setCategories(result.data);
+      setPagination({
+        total:      result.total,
+        page:       result.page,
+        limit:      result.limit,
+        totalPages: result.totalPages,
+      });
     } catch (err) {
-      setError('Error al cargar categorías');
-      console.error(err);
+      setError(err.message || "Error al cargar categorías");
+      console.error("[useCategories] loadCategories:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => { loadCategories(); }, [loadCategories]);
+
+  // ── Cambiar página / filtros ───────────────────────────────────────────────
+  const goToPage = (page) => setFilters((prev) => ({ ...prev, page }));
+
+  const applyFilters = (newFilters) =>
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
+
+  // ── CRUD ───────────────────────────────────────────────────────────────────
 
   const createCategory = async (categoryData) => {
     try {
       const newCategory = await categoryAPI.create(categoryData);
-      setCategories(prev => [...prev, newCategory]);
+      await loadCategories();
       return newCategory;
     } catch (err) {
-      setError('Error al crear categoría');
-      throw err;
+      const msg = err.data?.error || err.message || "Error al crear la categoría";
+      setError(msg);
+      throw new Error(msg);
     }
   };
 
   const updateCategory = async (id, categoryData) => {
     try {
-      const updatedCategory = await categoryAPI.update(id, categoryData);
-      setCategories(prev => prev.map(c => c.id === id ? updatedCategory : c));
-      return updatedCategory;
+      const updated = await categoryAPI.update(id, categoryData);
+      setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      return updated;
     } catch (err) {
-      setError('Error al actualizar categoría');
-      throw err;
+      const msg = err.data?.error || err.message || "Error al actualizar la categoría";
+      setError(msg);
+      throw new Error(msg);
     }
   };
 
   const deleteCategory = async (id) => {
     try {
       await categoryAPI.delete(id);
-      setCategories(prev => prev.filter(c => c.id !== id));
+      // Si la página queda vacía, retroceder
+      const newTotal   = pagination.total - 1;
+      const maxPage    = Math.max(1, Math.ceil(newTotal / pagination.limit));
+      const targetPage = Math.min(pagination.page, maxPage);
+      await loadCategories({ page: targetPage });
     } catch (err) {
-      setError(err.message || 'Error al eliminar categoría');
-      throw err;
+      // El backend devuelve 422 con mensaje descriptivo si tiene insumos activos
+      const msg = err.data?.error || err.message || "Error al eliminar la categoría";
+      setError(msg);
+      throw new Error(msg);
+    }
+  };
+
+  const toggleCategory = async (id) => {
+    try {
+      const updated = await categoryAPI.toggle(id);
+      setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      return updated;
+    } catch (err) {
+      const msg = err.data?.error || err.message || "Error al cambiar el estado de la categoría";
+      setError(msg);
+      throw new Error(msg);
     }
   };
 
   return {
     categories,
+    pagination,
     loading,
     error,
     createCategory,
     updateCategory,
     deleteCategory,
+    toggleCategory,
+    goToPage,
+    applyFilters,
     refreshCategories: loadCategories,
   };
 };
