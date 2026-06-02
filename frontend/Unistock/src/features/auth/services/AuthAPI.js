@@ -131,16 +131,23 @@ export const authService = {
 
   verifyCode: async (correo, code) => {
     try {
-      const res = await post("/auth/verify-code", { correo, code }, { skipAuth: true });
+      // FIX: la API espera el campo "codigo", no "code"
+      const res = await post("/auth/verify-code", { correo, codigo: code }, { skipAuth: true });
       return res?.data ?? res;
     } catch (err) {
       throw err?.data || err;
     }
   },
 
-  changePassword: async (correo, code, newPassword) => {
+  // FIX: la API espera { resetToken, password, confirmarPassword }
+  // resetToken lo devuelve verifyCode y lo guarda useAuth en verifiedCode
+  changePassword: async (resetToken, newPassword) => {
     try {
-      const res = await post("/auth/reset-password", { correo, code, newPassword }, { skipAuth: true });
+      const res = await post("/auth/reset-password", {
+        resetToken,
+        password: newPassword,
+        confirmarPassword: newPassword,
+      }, { skipAuth: true });
       return res?.data ?? res;
     } catch (err) {
       throw err?.data || err;

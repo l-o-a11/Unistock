@@ -141,7 +141,7 @@ const UsersPage = () => {
         </div>
       </div>
 
-      <div style={{ backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', padding: '12px 16px' }}>
+      <div style={{ backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', padding: '12px 16px', borderRadius: '10px' }}>
         <AddUserButton onClick={() => setShowCreate(true)} />
       </div>
 
