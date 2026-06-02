@@ -143,6 +143,14 @@ export const useProductions = () => {
       const backendData = {
         cliente:       (productionData.client || productionData.cliente || '').trim(),
         fecha_entrega: productionData.deliveryDate || productionData.fecha_entrega || productionData.fechaSolicitud,
+        tipo:          productionData.tipo || 'produccion',
+        referencia:    productionData.referencia || productionData.reference || '',
+        producto:      productionData.producto || productionData.product || '',
+        techSheet:     productionData.techSheet || productionData.techSpecification || null,
+        designImages:  productionData.designImages || [],
+        fromDamaged:   productionData.fromDamaged || false,
+        originalOrderNumber: productionData.originalOrderNumber || null,
+        originalOrderStatus: productionData.originalOrderStatus || null,
       };
 
       const newOrder = await ProductionAPIClient.createOrder(backendData);
@@ -250,6 +258,52 @@ export const useProductions = () => {
   const changeProductionStatus = async (id, nuevoEstado) => {
     const updated = await ProductionAPIClient.changeOrderStatus(id, nuevoEstado);
     const today   = fmtDate(new Date());
+
+    // Cuando la orden llega a "Entregado", sumamos la cantidad producida
+    // al stock del producto correspondiente en el catálogo.
+    if (nuevoEstado === 'Entregado') {
+      try {
+        const produccion = Productions.find(p => p.id === id);
+        if (produccion) {
+          const { productAPI } = await import('../../products/services/productAPI');
+
+          // Agrupamos por referencia para hacer una sola llamada por producto
+          const porRef = {};
+          const detalles = produccion.details && produccion.details.length > 0
+            ? produccion.details
+            : [{ ref: produccion.referencia, quantity: produccion.quantity || produccion.cantidad || 0 }];
+
+          detalles.forEach(d => {
+            const ref = d.ref || d.refCorte || d.id_producto;
+            if (ref) porRef[ref] = (porRef[ref] || 0) + (d.quantity || 0);
+          });
+
+          for (const [ref, qty] of Object.entries(porRef)) {
+            if (!ref || qty <= 0) continue;
+            try {
+              // Buscamos el producto por referencia para obtener su id y stock actual
+              const todos = await productAPI.getAll();
+              const producto = (Array.isArray(todos) ? todos : []).find(
+                p => p.reference === ref || p.referencia === ref || p.id === ref
+              );
+              if (producto) {
+                const nuevoStock = (Number(producto.stock) || 0) + qty;
+                await productAPI.update(producto.id, {
+                  ...producto,
+                  stock: nuevoStock,
+                });
+                console.log(`[Producción] Stock de "${ref}" actualizado: +${qty} → ${nuevoStock}`);
+              }
+            } catch (stockErr) {
+              console.error(`[Producción] Error actualizando stock de "${ref}":`, stockErr?.message);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Producción] Error en actualización de stock al entregar:', err?.message);
+      }
+    }
+
     setProductions((prev) =>
       prev.map((p) =>
         p.id === id

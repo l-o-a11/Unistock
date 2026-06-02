@@ -9,11 +9,37 @@ import { httpRequest } from "../../shared/utils/httpClient";
 // ─── Mapeo Frontend → Backend ──────────────────────────────────────────────────
 const toBackendFormat = (frontendData) => {
   if (!frontendData) return {};
+
+  const parseDateInput = (value) => {
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'number' && !Number.isNaN(value)) return new Date(value).toISOString();
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+      const [day, month, year] = trimmed.split('/');
+      return new Date(`${year}-${month}-${day}`).toISOString();
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+      const [day, month, year] = trimmed.split('-');
+      return new Date(`${year}-${month}-${day}`).toISOString();
+    }
+    const date = new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? frontendData.fecha_entrega || frontendData.deliveryDate || null : date.toISOString();
+  };
+
   return {
     cliente: frontendData.cliente || frontendData.client || null,
-    fecha_entrega: frontendData.fecha_entrega || frontendData.deliveryDate || null,
+    fecha_entrega: parseDateInput(frontendData.fecha_entrega || frontendData.deliveryDate || frontendData.fechaSolicitud || null),
     id_usuario: frontendData.id_usuario || frontendData.userId || null,
     asignaciones: frontendData.asignaciones || frontendData.terceros || [],
+    tipo: frontendData.tipo || frontendData.type || null,
+    referencia: frontendData.referencia || frontendData.reference || null,
+    producto: frontendData.producto || frontendData.product || null,
+    techSpecification: frontendData.techSpecification || frontendData.techSheet || null,
+    designImages: Array.isArray(frontendData.designImages) ? frontendData.designImages : [],
+    fromDamaged: frontendData.fromDamaged || false,
+    originalOrderNumber: frontendData.originalOrderNumber || null,
+    originalOrderStatus: frontendData.originalOrderStatus || null,
   };
 };
 
@@ -23,12 +49,23 @@ const toFrontendFormat = (backendData) => {
   return {
     id: backendData._id || backendData.id,
     orderNumber: backendData.numero_orden || backendData.orderNumber,
+    numero_orden: backendData.numero_orden || backendData.orderNumber,
     cliente: backendData.cliente,
     client: backendData.cliente,
+    tipo: backendData.tipo || backendData.type || 'produccion',
+    techSpecification: backendData.techSpecification || backendData.techSheet || null,
+    designImages: Array.isArray(backendData.designImages) ? backendData.designImages : [],
+    fromDamaged: backendData.fromDamaged || false,
+    originalOrderNumber: backendData.originalOrderNumber || null,
+    originalOrderStatus: backendData.originalOrderStatus || null,
     deliveryDate: backendData.fecha_entrega,
     fecha_entrega: backendData.fecha_entrega,
+    createdAt: backendData.createdAt,
+    updatedAt: backendData.updatedAt,
     estado: backendData.estado,
     status: backendData.estado,
+    producto: backendData.producto || null,
+    referencia: backendData.referencia || null,
     detalles: backendData.detalles || [],
     asignaciones: backendData.asignaciones || [],
     terceros: backendData.asignaciones || [],
@@ -83,6 +120,21 @@ export const ProductionAPIClient = {
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
+  },
+
+  updateOrderDetail: async (id, data) => {
+    const res = await httpRequest(`/produccion/detalle-orden/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+    return res?.data || res;
+  },
+
+  deleteOrderDetail: async (id) => {
+    const res = await httpRequest(`/produccion/detalle-orden/${id}`, {
+      method: "DELETE",
+    });
+    return res?.data || res;
   },
 
   cancelOrder: async (id, motivo) => {

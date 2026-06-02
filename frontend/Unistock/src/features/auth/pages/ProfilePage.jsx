@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AuthAPI } from "../services/AuthAPI";
+import AuthAPI from "../services/AuthAPI";
 
 const USERS_KEY = "app_users";
 const SESSION_KEY = "session_user";
