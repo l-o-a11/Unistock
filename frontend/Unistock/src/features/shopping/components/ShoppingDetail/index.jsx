@@ -74,6 +74,33 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
           </button>
         </div>
 
+        {/* Banner anulación */}
+        {shopping.anulada && shopping.motivoAnulacion && (
+          <div style={{
+            margin: "16px 24px 0",
+            padding: "10px 14px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "8px",
+            display: "flex", gap: "8px", alignItems: "flex-start",
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: "1px" }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#dc2626" }}>Motivo de anulación: </span>
+              <span style={{ fontSize: 11, color: "#b91c1c" }}>{shopping.motivoAnulacion}</span>
+              {shopping.fechaAnulacion && (
+                <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: "8px" }}>
+                  · {new Date(shopping.fechaAnulacion).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Info general */}
         <div style={{ padding: "20px 24px", borderBottom: "1px solid #f0f0f0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "20px", alignItems: "start" }}>
@@ -160,8 +187,6 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
             </div>
           )}
         </div>
-
-        
       </div>
     </div>
   );

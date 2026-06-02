@@ -3,7 +3,6 @@ import { shoppingAPI } from "../services/shoppingAPI";
 
 const STORAGE_KEY = "app_shoppings";
 
-// ── Helpers localStorage ─────────────────────────────
 const loadFromStorage = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -72,8 +71,9 @@ export const useShoppings = () => {
   };
 
   // ── Obtener por ID ─────────────────────────────────
+  // ✅ FIX: sin parseInt — compatible con IDs string de MongoDB
   const getShoppingById = (id) =>
-    shoppings.find((p) => p.id === parseInt(id));
+    shoppings.find((p) => String(p.id) === String(id));
 
   // ── Crear compra ───────────────────────────────────
   const createShopping = async (shoppingData) => {
@@ -100,14 +100,19 @@ export const useShoppings = () => {
     }
   };
 
-  
-  // ── Anular compra (reemplaza eliminar y toggle) ────
-  const anularShopping = async (id) => {
+  // ── Anular compra ──────────────────────────────────
+  // ✅ Ahora recibe motivo y guarda motivoAnulacion + fechaAnulacion
+  const anularShopping = async (id, motivo) => {
     try {
       setLoading(true);
-      await shoppingAPI.anular(id);
+      await shoppingAPI.anular(id, motivo);
+      const fechaAnulacion = new Date().toISOString();
       setShoppings((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, anulada: true } : p))
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, anulada: true, motivoAnulacion: motivo, fechaAnulacion }
+            : p
+        )
       );
     } catch (err) {
       setError("Error al anular la compra");
@@ -120,7 +125,7 @@ export const useShoppings = () => {
 
   // ── Helper proveedor ───────────────────────────────
   const getProveedorNombre = (proveedorId) =>
-    proveedores.find((p) => p.id === proveedorId)?.nombre ?? "Sin proveedor";
+    proveedores.find((p) => String(p.id) === String(proveedorId))?.nombre ?? "Sin proveedor";
 
   return {
     shoppings,
