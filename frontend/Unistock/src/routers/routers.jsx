@@ -63,8 +63,12 @@ export function RouterApp() {
           <AppLayout />
         </PrivateRoute>
       }>
-        <Route index element={<DashboardPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route index element={
+          <PrivateRoute modulo="dashboard"><DashboardPage /></PrivateRoute>
+        } />
+        <Route path="dashboard" element={
+          <PrivateRoute modulo="dashboard"><DashboardPage /></PrivateRoute>
+        } />
 
         {/* Usuarios */}
         <Route path="usuarios" element={

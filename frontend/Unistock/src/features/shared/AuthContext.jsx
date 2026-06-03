@@ -182,8 +182,40 @@ export const AuthProvider = ({ children }) => {
     if (user) cargarPermisos(user);
   };
 
+  // Devuelve la primera ruta a la que el usuario tiene acceso
+  const getFirstAccessibleRoute = (u = user) => {
+    if (!u) return "/";
+    const rolNombre = (u.rolNombre ?? "").toLowerCase();
+    if (rolNombre === "gerente" || rolNombre === "administrador") return "/layout/dashboard";
+    const ORDER = [
+      "dashboard", "usuarios", "roles", "sedes", "insumos",
+      "categorias de insumos", "proveedores", "compras",
+      "productos", "categorias de productos", "produccion",
+      "terceros", "empleados",
+    ];
+    const ROUTE_MAP = {
+      "dashboard": "/layout/dashboard",
+      "usuarios": "/layout/usuarios",
+      "roles": "/layout/roles",
+      "sedes": "/layout/sedes",
+      "insumos": "/layout/insumos",
+      "categorias de insumos": "/layout/categorias-insumos",
+      "proveedores": "/layout/proveedores",
+      "compras": "/layout/compras",
+      "productos": "/layout/productos",
+      "categorias de productos": "/layout/categorias-productos",
+      "produccion": "/layout/produccion",
+      "terceros": "/layout/terceros",
+      "empleados": "/layout/empleados",
+    };
+    for (const modulo of ORDER) {
+      if (canAccess(modulo)) return ROUTE_MAP[modulo];
+    }
+    return "/layout/perfil"; // fallback: solo puede ver su perfil
+  };
+
   return (
-    <AuthContext.Provider value={{ user, permisos, loading, login, logout, canAccess, refrescarPermisos }}>
+    <AuthContext.Provider value={{ user, permisos, loading, login, logout, canAccess, refrescarPermisos, getFirstAccessibleRoute }}>
       {children}
     </AuthContext.Provider>
   );
