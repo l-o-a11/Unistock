@@ -17,4 +17,3 @@ const CreateRolPage = ({ onClose, createRol }) => {
 
 export default CreateRolPage;
 
-
