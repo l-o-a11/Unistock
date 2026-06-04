@@ -21,7 +21,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [detalleActual, setDetalleActual] = useState({
-    supplyId: "", nombre: "", medidaId: "",
+    supplyId: "", nombre: "", medida: "",   // medida: string valor (ej: "kg", "und")
     cantidad: "", costo: "", costoUnitario: "", descripcionAdicional: "",
   });
   const [insumoSearch, setInsumoSearch] = useState("");
@@ -105,7 +105,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
       ...prev,
       supplyId: supply.id,
       nombre: supply.nombre,
-      medidaId: supply.medidaId || "",
+      medida: supply.medida || "",   // supply.medida es string: "kg", "und", etc.
     }));
     setInsumoSearch(supply.nombre);
     setShowInsumoDD(false);
@@ -142,14 +142,14 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
         id: Date.now(),
         supplyId: detalleActual.supplyId || null,
         nombre: detalleActual.nombre.trim(),
-        medidaId: detalleActual.medidaId ? parseInt(detalleActual.medidaId) : null,
+        medida: detalleActual.medida || null,   // string: "kg", "und", etc.
         cantidad: parseFloat(detalleActual.cantidad),
         costo: parseFloat(detalleActual.costo),
         costoUnitario: parseFloat(detalleActual.costoUnitario) || 0,
         descripcionAdicional: detalleActual.descripcionAdicional.trim(),
       }],
     }));
-    setDetalleActual({ supplyId: "", nombre: "", medidaId: "", cantidad: "", costo: "", costoUnitario: "", descripcionAdicional: "" });
+    setDetalleActual({ supplyId: "", nombre: "", medida: "", cantidad: "", costo: "", costoUnitario: "", descripcionAdicional: "" });
     setInsumoSearch("");
   };
 
@@ -394,11 +394,11 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
               </div>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>Medida</label>
-                <select name="medidaId" value={detalleActual.medidaId} onChange={handleDetalleChange}
+                <select name="medida" value={detalleActual.medida} onChange={handleDetalleChange}
                   style={inp(false)} onFocus={onFocus}>
                   <option value="">Seleccionar</option>
                   {medidas.map((m) => (
-                    <option key={m.id} value={m.id}>{m.nombre}</option>
+                    <option key={m.valor} value={m.valor}>{m.label}</option>
                   ))}
                 </select>
               </div>
@@ -463,7 +463,8 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                 </thead>
                 <tbody>
                   {formData.detalles.map((d, index) => {
-                    const medida = medidas.find((m) => m.id === d.medidaId);
+                    // medida es el string valor directamente: "kg", "und", etc.
+                    const medidaLabel = medidas.find((m) => m.valor === d.medida)?.label ?? d.medida ?? "—";
                     return (
                       <tr key={d.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
                         <td style={{ padding: "10px 6px", color: "#ccc", fontSize: "11px", fontWeight: 600 }}>{index + 1}</td>
@@ -473,7 +474,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                             <div style={{ fontSize: "11px", color: "#aaa", marginTop: "2px" }}>{d.descripcionAdicional}</div>
                           )}
                         </td>
-                        <td style={{ padding: "10px 6px", color: "#555" }}>{medida?.nombre || "—"}</td>
+                        <td style={{ padding: "10px 6px", color: "#555" }}>{medidaLabel}</td>
                         <td style={{ padding: "10px 6px", textAlign: "right", color: "#555" }}>{d.cantidad}</td>
                         <td style={{ padding: "10px 6px", textAlign: "right", color: "#555" }}>${Number(d.costoUnitario).toFixed(2)}</td>
                         <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600, color: "#333" }}>${Number(d.costo).toFixed(2)}</td>

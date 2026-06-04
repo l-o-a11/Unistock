@@ -8,56 +8,70 @@ export const useShoppings = () => {
   const [error, setError] = useState(null);
   const [proveedores, setProveedores] = useState([]);
 
-  // ── Carga inicial ──────────────────────────────────
-  useEffect(() => {
-    loadData();
-    loadProveedores();
-  }, []);
-
-  // ── Normalizar compra del backend al formato del frontend ──
+  // ── Normalizar compra del backend al formato del frontend ──────────────────
+  // Convierte los nombres de campos del backend (total, precioUnitario, insumoId)
+  // al formato que usa el frontend (costoTotal, costoUnitario, supplyId).
+  // Se define ANTES de loadData para que esté disponible en su closure.
   const normalizar = (c) => ({
     ...c,
     id: c._id ?? c.id,
-    costoTotal: c.total ?? c.costoTotal,   // backend: total → frontend: costoTotal
+    costoTotal: c.total ?? c.costoTotal,
     detalles: (c.detalles || []).map((d) => ({
       ...d,
       id: d._id ?? d.id,
       supplyId: d.insumoId ?? null,
-      costoUnitario: d.precioUnitario ?? 0,  // campo correcto del detalle
+      costoUnitario: d.precioUnitario ?? 0,
       costo: d.subtotal ?? 0,
     })),
   });
 
-  // ── Carga desde API (siempre fresco, sin cache localStorage) ──
+  // ── Carga desde API ────────────────────────────────────────────────────────
+  // La API devuelve { success: true, data: [...] }.
+  // httpClient devuelve el JSON crudo, por eso accedemos a response.data.
+  // El fallback `?? response` cubre el caso en que la API devuelva el array directo.
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await shoppingAPI.getAll();
-      setShoppings(data.map(normalizar));
+      const response = await shoppingAPI.getAll();
+
+      // Unwrap defensivo: soporta { data: [...] } o array directo
+      const lista = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      setShoppings(lista.map(normalizar));
       setError(null);
     } catch (err) {
       setError("Error al cargar compras");
-      console.error(err);
+      console.error("[useShoppings] loadData:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Proveedores desde localStorage (módulo proveedores) ──
+  useEffect(() => {
+    loadData();
+    loadProveedores();
+  }, []);
+
+  // ── Proveedores ────────────────────────────────────────────────────────────
   const loadProveedores = () => {
     try {
       const raw = localStorage.getItem("app_proveedores");
       if (raw) setProveedores(JSON.parse(raw));
     } catch (err) {
-      console.error("Error cargando proveedores:", err);
+      console.error("[useShoppings] loadProveedores:", err);
     }
   };
 
-  // ── Obtener por ID ─────────────────────────────────
+  // ── Obtener por ID ─────────────────────────────────────────────────────────
   const getShoppingById = (id) =>
     shoppings.find((p) => String(p.id) === String(id));
 
-  // ── Crear compra ───────────────────────────────────
+  // ── Crear compra ───────────────────────────────────────────────────────────
+  // Traduce nombres frontend → backend antes de enviar
   const createShopping = async (shoppingData) => {
     const payload = {
       numeroFactura: shoppingData.numeroFactura,
@@ -68,6 +82,7 @@ export const useShoppings = () => {
       detalles: (shoppingData.detalles || []).map((d) => ({
         insumoId: d.supplyId ?? null,
         nombre: d.nombre ?? null,
+        medida: d.medida ?? null,
         cantidad: d.cantidad,
         precioUnitario: d.costoUnitario ?? 0,
         subtotal: d.costo ?? 0,
@@ -76,20 +91,22 @@ export const useShoppings = () => {
 
     try {
       setLoading(true);
-      const newShopping = await shoppingAPI.create(payload);
-      const normalizado = normalizar(newShopping);
+      const response = await shoppingAPI.create(payload);
+      // Mismo unwrap defensivo que en loadData
+      const raw = response?.data ?? response;
+      const normalizado = normalizar(raw);
       setShoppings((prev) => [...prev, normalizado]);
       return normalizado;
     } catch (err) {
       setError("Error al crear la compra");
-      console.error(err);
+      console.error("[useShoppings] createShopping:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Anular compra ──────────────────────────────────
+  // ── Anular compra ──────────────────────────────────────────────────────────
   const anularShopping = async (id, motivo) => {
     try {
       setLoading(true);
@@ -104,14 +121,14 @@ export const useShoppings = () => {
       );
     } catch (err) {
       setError("Error al anular la compra");
-      console.error(err);
+      console.error("[useShoppings] anularShopping:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Helper proveedor ───────────────────────────────
+  // ── Helper proveedor ───────────────────────────────────────────────────────
   const getProveedorNombre = (proveedorId) =>
     proveedores.find((p) => String(p.id) === String(proveedorId))?.nombre ?? "Sin proveedor";
 

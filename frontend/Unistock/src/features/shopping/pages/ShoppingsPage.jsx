@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { useShoppings } from "../hooks/useShoppings";
+import { shoppingAPI } from "../services/shoppingAPI";
 import ShoppingTable from "../components/ShoppingTable";
 import SearchInput from "../../shared/components/SearchInput";
 import AddShoppingButton from "../components/AddShoppingButton";
@@ -66,7 +67,26 @@ const ShoppingsPage = () => {
   const paginatedShoppings = filteredShoppings.slice(startIndex, startIndex + itemsPerPage);
 
   // ── Acciones ──────────────────────────────────────────────────────────────
-  const handleView = (shopping) => setSelectedShopping(shopping);
+  const handleView = async (shopping) => {
+    try {
+      const response = await shoppingAPI.getById(shopping.id);
+      const full = response?.data ?? response;
+      const normalizado = {
+        ...full,
+        id: full._id ?? full.id,
+        costoTotal: full.total ?? full.costoTotal,
+        detalles: (full.detalles || []).map((d) => ({
+          ...d,
+          id: d._id ?? d.id,
+          costoUnitario: d.precioUnitario ?? 0,
+          costo: d.subtotal ?? 0,
+        })),
+      };
+      setSelectedShopping(normalizado);
+    } catch {
+      setSelectedShopping(shopping);
+    }
+  };
 
   const handleAnular = (id) => {
     const shopping = shoppings.find((p) => p.id === id);

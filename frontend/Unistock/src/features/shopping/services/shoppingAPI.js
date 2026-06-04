@@ -7,60 +7,50 @@ import httpClient from "../../shared/utils/httpClient";
 export const shoppingAPI = {
 
   // GET /api/compras?anulada=false&proveedorId=xxx
+  // httpClient devuelve el JSON crudo { success, data } — el hook desenvuelve con response?.data ?? response
   getAll: async (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.anulada !== undefined) params.set("anulada", filters.anulada);
     if (filters.proveedorId) params.set("proveedorId", filters.proveedorId);
     if (filters.numeroFactura) params.set("numeroFactura", filters.numeroFactura);
-
     const query = params.toString();
-    const response = await httpClient.get(`/compras${query ? `?${query}` : ""}`);
-    return response.data; // Array de compras
+    return httpClient.get(`/compras${query ? `?${query}` : ""}`);
   },
 
   // GET /api/compras/:id  →  compra + detalles[]
   getById: async (id) => {
-    const response = await httpClient.get(`/compras/${id}`);
-    return response.data;
+    return httpClient.get(`/compras/${id}`);
   },
 
   // POST /api/compras
-  // Body: { fecha, proveedorId, total, observaciones, numeroFactura, detalles[] }
   create: async (shoppingData) => {
-    const response = await httpClient.post("/compras", shoppingData);
-    return response.data;
+    return httpClient.post("/compras", shoppingData);
   },
 
   // PUT /api/compras/:id
   update: async (id, updatedData) => {
-    const response = await httpClient.put(`/compras/${id}`, updatedData);
-    return response.data;
+    return httpClient.put(`/compras/${id}`, updatedData);
   },
 
-  // PATCH /api/compras/:id/anular
-  // Body: { motivo: "texto obligatorio" }
+  // PATCH /api/compras/:id/anular  — body: { motivo }
   anular: async (id, motivo) => {
-    const response = await httpClient.patch(`/compras/${id}/anular`, { motivo });
-    return response.data;
+    return httpClient.patch(`/compras/${id}/anular`, { motivo });
   },
 
   // DELETE /api/compras/:id
   delete: async (id) => {
-    const response = await httpClient.delete(`/compras/${id}`);
-    return response.data;
+    return httpClient.delete(`/compras/${id}`);
   },
 
   // ── Detalles ──────────────────────────────────────────────────────────────
 
   // GET /api/compras/detalle-purchase?compraId=xxx
   getDetallesByCompra: async (compraId) => {
-    const response = await httpClient.get(`/compras/detalle-purchase?compraId=${compraId}`);
-    return response.data;
+    return httpClient.get(`/compras/detalle-purchase?compraId=${compraId}`);
   },
 
   // POST /api/compras/detalle-purchase
   createDetalle: async (detalle) => {
-    const response = await httpClient.post("/compras/detalle-purchase", detalle);
-    return response.data;
+    return httpClient.post("/compras/detalle-purchase", detalle);
   },
 };
