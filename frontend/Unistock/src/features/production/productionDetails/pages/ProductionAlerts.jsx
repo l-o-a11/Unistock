@@ -12,12 +12,13 @@
  *   anular     — anulación de orden con campo de motivo obligatorio
  */
 import React, { useState, useEffect } from "react";
+import { userAPI } from "../../../users/services/usersAPI";
 
 const BRAND = "#FF4FD6";
 const BRAND_DARK = "#d93db8";
 
-// Carga sedes activas desde localStorage
-const loadSedes = () => {
+// Carga sedes activas desde localStorage (fallback)
+const loadLocalSedes = () => {
   try {
     const raw = localStorage.getItem('app_sedes');
     const list = raw ? JSON.parse(raw) : [];
@@ -48,7 +49,11 @@ const AssignRow = ({ options, value, cantidad, onChangeOption, onChangeCantidad,
       onBlur={(e)  => (e.target.style.borderColor = "#e5e7eb")}
     >
       <option value="">Seleccionar...</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o) => {
+        const optionValue = typeof o === "string" ? o : o.value;
+        const optionLabel = typeof o === "string" ? o : o.label;
+        return <option key={optionValue} value={optionValue}>{optionLabel}</option>;
+      })}
     </select>
 
     <input
@@ -106,6 +111,8 @@ const ProductionAlerts = ({
   const [motivo, setMotivo] = useState("");
   const [tercerosOptions, setTercerosOptions] = useState([]);
   const [loadingTerceros, setLoadingTerceros] = useState(false);
+  const [sedesOptions, setSedesOptions] = useState([]);
+  const [loadingSedes, setLoadingSedes] = useState(false);
 
   // Resetear assignments cada vez que se abre el modal
   useEffect(() => {
@@ -126,7 +133,10 @@ const ProductionAlerts = ({
         const data = await thirdPartyAPI.getAll({ estado: true });
         const options = (Array.isArray(data) ? data : [])
           .filter((t) => t.estado !== false)
-          .map((t) => t.nombreEmpresa || t.nombre || t.nit)
+          .map((t) => {
+            const label = t.nombreEmpresa || t.nombre || t.nit;
+            return t.id && label ? { value: t.id, label } : null;
+          })
           .filter(Boolean);
         if (!cancelled) setTercerosOptions(options);
       } catch (err) {
@@ -140,10 +150,42 @@ const ProductionAlerts = ({
     return () => { cancelled = true; };
   }, [isOpen, type]);
 
+  useEffect(() => {
+    if (!isOpen || type !== "assignSede") return;
+
+    let cancelled = false;
+    setLoadingSedes(true);
+    setSedesOptions([]);
+
+    (async () => {
+      try {
+        const data = await userAPI.getSedes();
+        const options = (Array.isArray(data) ? data : [])
+          .filter((s) => s.estado !== false)
+          .map((s) => s.nombre)
+          .filter(Boolean);
+        if (!cancelled) setSedesOptions(options);
+      } catch (err) {
+        console.error("Error cargando sedes:", err);
+        if (!cancelled) setSedesOptions(loadLocalSedes());
+      } finally {
+        if (!cancelled) setLoadingSedes(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen, type]);
+
   if (!isOpen) return null;
 
   const isAssign = type === "third" || type === "assignSede";
-  const options  = type === "third" ? tercerosOptions : loadSedes();
+  const options  = type === "third" ? tercerosOptions : sedesOptions;
+  const optionByValue = new Map(
+    options.map((option) => {
+      const value = typeof option === "string" ? option : option.value;
+      return [value, option];
+    }),
+  );
 
   /* ── Total ya asignado en las filas actuales ── */
   const totalAsignado = assignments.reduce((s, a) => s + (Number(a.cantidad) || 0), 0);
@@ -221,7 +263,15 @@ const ProductionAlerts = ({
     if (type === "anular" || type === "password") { onAccept(motivo.trim()); setMotivo(""); return; }
     if (isAssign) {
       // Retorna el array de asignaciones al padre
-      onAccept(assignments);
+      onAccept(assignments.map((assignment) => {
+        const selectedOption = optionByValue.get(assignment.option);
+        if (!selectedOption || typeof selectedOption === "string") return assignment;
+        return {
+          ...assignment,
+          option: selectedOption.label,
+          id_tercero: selectedOption.value,
+        };
+      }));
       // También dispara los legacy props si existen (compatibilidad)
       onChangeTercero?.(assignments[0]?.option || "");
       onChangeSede?.(assignments[0]?.option || "");
@@ -313,9 +363,17 @@ const ProductionAlerts = ({
             {type === "third" && loadingTerceros && (
               <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>Cargando terceros...</p>
             )}
+            {type === "assignSede" && loadingSedes && (
+              <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>Cargando sedes...</p>
+            )}
             {type === "third" && !loadingTerceros && options.length === 0 && (
               <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 }}>
                 No hay terceros activos para asignar.
+              </p>
+            )}
+            {type === "assignSede" && !loadingSedes && options.length === 0 && (
+              <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 }}>
+                No hay sedes activas para asignar.
               </p>
             )}
 
