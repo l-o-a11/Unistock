@@ -256,12 +256,15 @@ export const useProductions = () => {
 
   // ── Cambiar estado ────────────────────────────────────────────────────────
   const changeProductionStatus = async (id, nuevoEstado) => {
-    const updated = await ProductionAPIClient.changeOrderStatus(id, nuevoEstado);
+    // Intentar incluir imágenes de finalización si están presentes en la producción
+    const produccion = Productions.find(p => p.id === id) || {};
+    const finishedImages = produccion.rawData?.finishedImages || produccion.finishedImages || [];
+    const updated = await ProductionAPIClient.changeOrderStatus(id, nuevoEstado, { extra: { finishedImages } });
     const today   = fmtDate(new Date());
 
-    // Cuando la orden llega a "Entregado", sumamos la cantidad producida
+    // Cuando la orden llega a "Enviado", sumamos la cantidad producida
     // al stock del producto correspondiente en el catálogo.
-    if (nuevoEstado === 'Entregado') {
+    if (nuevoEstado === 'Enviado') {
       try {
         const produccion = Productions.find(p => p.id === id);
         if (produccion) {

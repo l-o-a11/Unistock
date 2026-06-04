@@ -217,8 +217,8 @@ const STATUS_OPTIONS = [
   'Corte',
   'Compras',
   'Producción',
-  'Recepción',
-  'Entregado',
+  'Empaque',
+  'Enviado',
   'Anulada',
 ];
 

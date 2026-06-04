@@ -8,7 +8,7 @@
  *          contra el endpoint POST /api/auth/verify-password del backend.
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useSedes } from "../hooks/useSedes";
 import Alert from "../../shared/components/Alert";
 import AddSedesButton from "../components/AddSedesButton";
@@ -47,6 +47,14 @@ const SedesPage = () => {
   const [alertConfig,  setAlertConfig]  = useState({
     open: false, type: "success", title: "", message: "", onConfirm: null,
   });
+
+  useEffect(() => {
+    if (!selectedSede) return;
+    const updated = sedes.find((s) => s.id === selectedSede.id);
+    if (updated && updated !== selectedSede) {
+      setSelectedSede(updated);
+    }
+  }, [sedes, selectedSede]);
 
   const closeAlert = () => setAlertConfig((p) => ({ ...p, open: false }));
   const showAlert  = (type, title, message, onConfirm = null) =>
