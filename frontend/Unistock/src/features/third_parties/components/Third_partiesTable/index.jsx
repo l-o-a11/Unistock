@@ -75,7 +75,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
         }}>
           <thead>
             <tr>
-              <th style={thStyle}>Código</th>
+              <th style={thStyle}>NIT</th>
               <th style={thStyle}>Nombre</th>
               <th style={thStyle}>Contacto principal</th>
               <th style={thStyle}>Acciones</th>
@@ -121,7 +121,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
                       background: isSelected ? '#fce7f3' : '#fdf2f8',
                       padding: '3px 8px', borderRadius: 6, fontSize: 12,
                     }}>
-                      {t.codigo || `#${t.id}`}
+                      {t.nit || t.codigo || `#${t.id}`}
                     </span>
                   </td>
 

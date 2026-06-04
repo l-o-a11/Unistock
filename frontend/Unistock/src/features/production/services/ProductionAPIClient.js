@@ -6,9 +6,28 @@
  */
 import { httpRequest } from "../../shared/utils/httpClient";
 
+const getCurrentUserName = () => {
+  try {
+    const raw = localStorage.getItem('session_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      return u.nombreCompleto || u.nombre || u.username || u.id || 'Admin';
+    }
+  } catch {}
+  return 'Admin';
+};
+
 // ─── Mapeo Frontend → Backend ──────────────────────────────────────────────────
 const toBackendFormat = (frontendData) => {
   if (!frontendData) return {};
+
+  const hasAny = (...keys) => keys.some((key) => Object.prototype.hasOwnProperty.call(frontendData, key));
+  const firstValue = (...keys) => {
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(frontendData, key)) return frontendData[key];
+    }
+    return undefined;
+  };
 
   const parseDateInput = (value) => {
     if (value instanceof Date) return value.toISOString();
@@ -27,20 +46,28 @@ const toBackendFormat = (frontendData) => {
     return Number.isNaN(date.getTime()) ? frontendData.fecha_entrega || frontendData.deliveryDate || null : date.toISOString();
   };
 
-  return {
-    cliente: frontendData.cliente || frontendData.client || null,
-    fecha_entrega: parseDateInput(frontendData.fecha_entrega || frontendData.deliveryDate || frontendData.fechaSolicitud || null),
-    id_usuario: frontendData.id_usuario || frontendData.userId || null,
-    asignaciones: frontendData.asignaciones || frontendData.terceros || [],
-    tipo: frontendData.tipo || frontendData.type || null,
-    referencia: frontendData.referencia || frontendData.reference || null,
-    producto: frontendData.producto || frontendData.product || null,
-    techSpecification: frontendData.techSpecification || frontendData.techSheet || null,
-    designImages: Array.isArray(frontendData.designImages) ? frontendData.designImages : [],
-    fromDamaged: frontendData.fromDamaged || false,
-    originalOrderNumber: frontendData.originalOrderNumber || null,
-    originalOrderStatus: frontendData.originalOrderStatus || null,
-  };
+  const backendData = {};
+
+  if (hasAny('cliente', 'client')) backendData.cliente = firstValue('cliente', 'client');
+  if (hasAny('fecha_entrega', 'deliveryDate', 'fechaSolicitud')) {
+    backendData.fecha_entrega = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
+  }
+  if (hasAny('id_usuario', 'userId')) backendData.id_usuario = firstValue('id_usuario', 'userId');
+  if (hasAny('asignaciones', 'terceros')) backendData.asignaciones = firstValue('asignaciones', 'terceros');
+  if (hasAny('tipo', 'type')) backendData.tipo = firstValue('tipo', 'type');
+  if (hasAny('referencia', 'reference')) backendData.referencia = firstValue('referencia', 'reference');
+  if (hasAny('producto', 'product')) backendData.producto = firstValue('producto', 'product');
+  if (hasAny('techSpecification', 'techSheet')) backendData.techSpecification = firstValue('techSpecification', 'techSheet');
+  if (hasAny('designImages')) backendData.designImages = Array.isArray(frontendData.designImages) ? frontendData.designImages : [];
+  if (hasAny('finishedImages')) backendData.finishedImages = Array.isArray(frontendData.finishedImages) ? frontendData.finishedImages : [];
+  if (hasAny('finishedImageUrl')) backendData.finishedImageUrl = frontendData.finishedImageUrl;
+  if (hasAny('fromDamaged')) backendData.fromDamaged = frontendData.fromDamaged;
+  if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = frontendData.originalOrderNumber;
+  if (hasAny('originalOrderStatus')) backendData.originalOrderStatus = frontendData.originalOrderStatus;
+
+  if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
+
+  return backendData;
 };
 
 // ─── Mapeo Backend → Frontend ──────────────────────────────────────────────────
@@ -55,6 +82,8 @@ const toFrontendFormat = (backendData) => {
     tipo: backendData.tipo || backendData.type || 'produccion',
     techSpecification: backendData.techSpecification || backendData.techSheet || null,
     designImages: Array.isArray(backendData.designImages) ? backendData.designImages : [],
+    finishedImages: Array.isArray(backendData.finishedImages) ? backendData.finishedImages : [],
+    finishedImageUrl: backendData.finishedImageUrl || null,
     fromDamaged: backendData.fromDamaged || false,
     originalOrderNumber: backendData.originalOrderNumber || null,
     originalOrderStatus: backendData.originalOrderStatus || null,
@@ -113,10 +142,12 @@ export const ProductionAPIClient = {
     return toFrontendFormat(resData);
   },
 
-  changeOrderStatus: async (id, estado) => {
+  changeOrderStatus: async (id, estado, options = {}) => {
+    const body = { estado, id_usuario: getCurrentUserName(), user: getCurrentUserName(), ...options.extra };
+    if (options.force) body.force = true;
     const res = await httpRequest(`/produccion/ordenes/${id}/estado`, {
       method: "PATCH",
-      body: { estado },
+      body,
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -140,7 +171,7 @@ export const ProductionAPIClient = {
   cancelOrder: async (id, motivo) => {
     const res = await httpRequest(`/produccion/ordenes/${id}/anular`, {
       method: "PATCH",
-      body: { motivo },
+      body: { motivo, id_usuario: getCurrentUserName() },
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);

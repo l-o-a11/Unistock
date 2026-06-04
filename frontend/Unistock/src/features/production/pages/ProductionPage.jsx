@@ -44,7 +44,7 @@ const ProductionsPage = () => {
     return new Date(str);
   };
 
-  const HIDDEN_STATUSES = ['Anulada', 'Entregado'];
+  const HIDDEN_STATUSES = ['Anulada', 'Enviado'];
 
   const filteredProductions = (productions || []).filter(prod => {
     const term = (searchTerm || '').toLowerCase();
@@ -200,7 +200,7 @@ const ProductionsPage = () => {
 
     const statusColor = (s) => {
       const map = {
-        'Entregado':   { bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
+        'Enviado':     { bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
         'Producción':  { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
         'Corte':       { bg: '#fef9c3', color: '#854d0e', dot: '#eab308' },
         'Anulada':     { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
