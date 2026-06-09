@@ -14,8 +14,8 @@ import TechnicalSheet from "../../components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
 
-const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Recepción", "Entrega"];
-const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Recepción", "Entregado"];
+const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
+const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
 
 const SIZE_ORDER = ["3XS","2XS","XS","S","M","L","XL","2XL","XXL","3XL","XXXL","4XL","5XL"];
 const extractSize = (refCorte = "") => {
@@ -121,10 +121,50 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // ProductionAPIClient está importado estáticamente al inicio del archivo
-        const data = await ProductionAPIClient.getOrderById(id); // id es string de MongoDB, no número
-        
-        // Mapear respuesta del backend al formato del frontend
+        const [data, asignacionesRaw] = await Promise.all([
+          ProductionAPIClient.getOrderById(id),
+          ProductionAPIClient.getAssignments(id).catch(() => []),
+        ]);
+
+        let terceroMap = {};
+        try {
+          const { thirdPartyAPI } = await import('../../../third_parties/services/thirdPartyAPI');
+          const terceros = await thirdPartyAPI.getAll({ limit: 500 });
+          (Array.isArray(terceros) ? terceros : []).forEach(t => {
+            const tid = t._id || t.id;
+            if (tid) terceroMap[tid] = t.nombreEmpresa || t.nombre || t.nit || tid;
+          });
+        } catch(e) { console.warn('[Detalle] No se pudo cargar terceros:', e); }
+
+        const terceroAsignaciones = (() => {
+          try {
+            const key = `app_prod_terceros_${data._id || data.id}`;
+            const raw = localStorage.getItem(key);
+            if (raw) { const parsed = JSON.parse(raw); if (parsed.length > 0) return parsed; }
+          } catch {}
+          return asignacionesRaw
+            .filter(a => !a.id_orden || a.id_orden === id || a.id_orden === data._id || a.id_orden === data.id)
+            .map(a => ({
+              option:   terceroMap[a.id_tercero] || a.nombre_tercero || a.id_tercero || '—',
+              cantidad: Number(a.cantidad) || 0,
+            }))
+            .filter(a => a.cantidad > 0);
+        })();
+
+        const sedeAsignaciones = (() => {
+          try {
+            const key = `app_prod_sedes_${data._id || data.id}`;
+            const raw = localStorage.getItem(key);
+            if (raw) { const parsed = JSON.parse(raw); if (parsed.length > 0) return parsed; }
+          } catch {}
+          return (
+            data.sedeAsignaciones ||
+            data.sede_asignaciones ||
+            data.rawData?.sedeAsignaciones ||
+            []
+          ).filter(a => a.option && Number(a.cantidad) > 0);
+        })();
+
         const statusDate = data.updatedAt
           ? new Date(data.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
           : (data.createdAt ? new Date(data.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '');
@@ -137,10 +177,13 @@ const ProductionDetailsPage = () => {
           tipo: data.tipo || data.type || 'produccion',
           techSpecification: data.techSpecification || data.techSheet || null,
           designImages: Array.isArray(data.designImages) ? data.designImages : [],
+          // ✅ Mapear imágenes del producto terminado
+          finishedImages: Array.isArray(data.finishedImages) ? data.finishedImages
+            : (data.finishedImageUrl ? [data.finishedImageUrl] : []),
+          finishedImageUrl: data.finishedImageUrl || null,
           fromDamaged: data.fromDamaged || false,
           originalOrderNumber: data.originalOrderNumber || null,
           originalOrderStatus: data.originalOrderStatus || null,
-          // Campos de producto: derivados del primer detalle o genéricos
           producto: (data.detalles && data.detalles.length > 0)
             ? (data.detalles[0].id_producto || 'Orden de producción')
             : 'Orden de producción',
@@ -156,20 +199,21 @@ const ProductionDetailsPage = () => {
           history: (data.historial || []).map(h => ({
             status: h.estado,
             date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-            user: h.id_usuario || 'Sistema',
+            user: h.user || h.id_usuario || 'Sistema',
             motivo: h.motivo
           })),
-          // ── DETALLES: mapeados desde backend ──────────────────────────────
           details: (data.detalles || []).map((d) => ({
             id:         d.id || d._id,
-            refCorte:   d.id_producto || '',   // código/referencia del producto
+            refCorte:   d.id_producto || '',
             ref:        d.id_producto || '',
             quantity:   d.cantidad    || 0,
             color:      d.color       || '—',
-            status:     data.estado,           // hereda el estado de la orden
+            status:     data.estado,
             statusDate,
-            estado:     d.estado !== false,    // true = activo
+            estado:     d.estado !== false,
           })),
+          terceroAsignaciones,
+          sedeAsignaciones,
           rawData: data,
         };
         
@@ -217,7 +261,7 @@ const ProductionDetailsPage = () => {
 
   const getAlertType = (from, to) => {
     if (from === "Compras" && to === "Producción") return "third";
-    if (from === "Producción" && to === "Recepción") return "assignSede";
+    if (from === "Producción" && to === "Empaque") return "assignSede";
     return "advance";
   };
 
@@ -226,12 +270,17 @@ const ProductionDetailsPage = () => {
 
   const closeProductionAlert = () => setProductionAlert((p) => ({ ...p, isOpen: false }));
 
-  const applyStepChange = async (newStatus) => {
-    // Persistir el cambio de estado en el backend real
-    await ProductionAPIClient.changeOrderStatus(production.id, newStatus);
+  const applyStepChange = async (newStatus, opts = {}) => {
+    const extra = {};
+    if (newStatus === 'Enviado') {
+      const imgs = Array.isArray(production.finishedImages) ? production.finishedImages : (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+      if (imgs.length) extra.finishedImages = imgs;
+    }
+    await ProductionAPIClient.changeOrderStatus(production.id, newStatus, { force: !!opts.force, extra });
 
-    // Recargar datos frescos del backend (historial actualizado)
     const freshData = await ProductionAPIClient.getOrderById(production.id);
+    const { terceroAsignaciones: freshTerceros, sedeAsignaciones: freshSedes } =
+      await enrichAsignaciones(production.id, freshData);
     const statusDate = freshData.updatedAt
       ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
       : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -241,10 +290,20 @@ const ProductionDetailsPage = () => {
       status: freshData.estado || newStatus,
       estado: freshData.estado || newStatus,
       statusDate,
+      // ✅ Preservar imágenes: usar las del servidor si existen, si no conservar las del estado anterior
+      finishedImages: (Array.isArray(freshData.finishedImages) && freshData.finishedImages.length > 0)
+        ? freshData.finishedImages
+        : (prev.finishedImages || []),
+      finishedImageUrl: freshData.finishedImageUrl || prev.finishedImageUrl || null,
+      designImages: (Array.isArray(freshData.designImages) && freshData.designImages.length > 0)
+        ? freshData.designImages
+        : (prev.designImages || []),
+      terceroAsignaciones: freshTerceros.length > 0 ? freshTerceros : (prev.terceroAsignaciones || []),
+      sedeAsignaciones:    freshSedes.length    > 0 ? freshSedes    : (prev.sedeAsignaciones    || []),
       history: (freshData.historial || []).map((h) => ({
         status: h.estado,
         date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-        user: h.id_usuario || 'Sistema',
+        user: h.user || h.id_usuario || 'Sistema',
         motivo: h.motivo,
       })),
       details: (freshData.detalles || prev.details || []).map((d) => ({
@@ -261,6 +320,48 @@ const ProductionDetailsPage = () => {
     }));
   };
 
+  const enrichAsignaciones = async (orderId, rawData) => {
+    try {
+      const [asigs, { thirdPartyAPI }] = await Promise.all([
+        ProductionAPIClient.getAssignments(orderId).catch(() => []),
+        import('../../../third_parties/services/thirdPartyAPI'),
+      ]);
+      let terceroMap = {};
+      const terceros = await thirdPartyAPI.getAll({ limit: 500 }).catch(() => []);
+      (Array.isArray(terceros) ? terceros : []).forEach(t => {
+        const tid = t._id || t.id;
+        if (tid) terceroMap[tid] = t.nombreEmpresa || t.nombre || t.nit || tid;
+      });
+
+      const lsKeyT = `app_prod_terceros_${orderId}`;
+      const lsKeyS = `app_prod_sedes_${orderId}`;
+      let terceroAsignaciones = [];
+      let sedeAsignaciones    = [];
+
+      try { const r = localStorage.getItem(lsKeyT); if (r) terceroAsignaciones = JSON.parse(r); } catch {}
+      try { const r = localStorage.getItem(lsKeyS); if (r) sedeAsignaciones    = JSON.parse(r); } catch {}
+
+      if (terceroAsignaciones.length === 0 && asigs.length > 0) {
+        terceroAsignaciones = asigs
+          .filter(a => !a.id_orden || a.id_orden === orderId)
+          .map(a => ({
+            option:   terceroMap[a.id_tercero] || a.nombre_tercero || a.id_tercero || '—',
+            cantidad: Number(a.cantidad) || 0,
+          }))
+          .filter(a => a.cantidad > 0);
+      }
+
+      if (sedeAsignaciones.length === 0) {
+        sedeAsignaciones = (rawData?.sedeAsignaciones || rawData?.sede_asignaciones || [])
+          .filter(a => a.option && Number(a.cantidad) > 0);
+      }
+
+      return { terceroAsignaciones, sedeAsignaciones };
+    } catch(e) {
+      return { terceroAsignaciones: [], sedeAsignaciones: [] };
+    }
+  };
+
   const ADMIN_PASSWORD = "1234";
 
   const handleProductionAlertConfirm = async (motivo = "") => {
@@ -273,7 +374,7 @@ const ProductionDetailsPage = () => {
         return;
       }
       try {
-        await applyStepChange(targetStep);
+        await applyStepChange(targetStep, { force: true });
         setGlobalAlert({ open: true, type: "success", title: "Estado retrocedido", message: `La orden retrocedió al estado "${targetStep}" correctamente.` });
       } catch {
         setGlobalAlert({ open: true, type: "error", title: "Error al retroceder", message: "No se pudo retroceder el estado. Intenta de nuevo." });
@@ -295,34 +396,30 @@ const ProductionDetailsPage = () => {
 
     if (type === "third") {
       try {
-        const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
+        const terceroAsignaciones = assignmentsList
+          .filter(a => a.option && Number(a.cantidad) > 0)
+          .map(a => ({
+            id_tercero: a.id_tercero || a.terceroId || null,
+            option: a.option,
+            cantidad: Number(a.cantidad),
+          }));
 
-        // Intentamos persistir en localStorage como referencia local (no crítico)
+        await Promise.all(
+          terceroAsignaciones
+            .filter(a => a.id_tercero)
+            .map(a => ProductionAPIClient.createAssignment({
+              id_orden: production.id,
+              id_tercero: a.id_tercero,
+              cantidad: a.cantidad,
+            })),
+        );
+
         try {
-          const terceroRaw = localStorage.getItem('app_third_parties');
-          const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
-          let updated = false;
-          assignmentsList.forEach(a => {
-            const idx = tercerosList.findIndex(t => t.nombreEmpresa === a.option || t.nombre === a.option);
-            if (idx > -1) {
-              const alreadyLinked = (tercerosList[idx].producciones || []).some(p => p.produccionId === production.id);
-              if (!alreadyLinked) {
-                tercerosList[idx] = {
-                  ...tercerosList[idx],
-                  producciones: [...(tercerosList[idx].producciones || []), {
-                    orden: production.orderNumber, fecha: today,
-                    produccionId: production.id, cantidad: Number(a.cantidad) || 0,
-                  }]
-                };
-                updated = true;
-              }
-            }
-          });
-          if (updated) localStorage.setItem('app_third_parties', JSON.stringify(tercerosList));
-        } catch(e) { console.warn('Error linking tercero en localStorage:', e); }
+          localStorage.setItem(`app_prod_terceros_${production.id}`, JSON.stringify(terceroAsignaciones));
+        } catch(e) {}
 
-        // Avanzamos el estado con el backend real — no usamos el mock ProductionAPI.update
+        setProduction(prev => ({ ...prev, terceroAsignaciones }));
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Tercero asignado", message: `El tercero fue asignado y la orden avanzó a "${targetStep}".` });
       } catch (err) {
@@ -334,10 +431,16 @@ const ProductionDetailsPage = () => {
 
     if (type === "assignSede") {
       try {
-        const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
+        const sedeAsignaciones = assignmentsList
+          .filter(a => a.option && Number(a.cantidad) > 0)
+          .map(a => ({ option: a.option, cantidad: Number(a.cantidad) }));
 
-        // Limpiar localStorage (no crítico)
+        try {
+          const key = `app_prod_sedes_${production.id}`;
+          localStorage.setItem(key, JSON.stringify(sedeAsignaciones));
+        } catch(e) {}
+
         try {
           const terceroRaw = localStorage.getItem('app_third_parties');
           const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
@@ -345,9 +448,9 @@ const ProductionDetailsPage = () => {
             ...t, producciones: (t.producciones || []).filter(p => p.produccionId !== production.id),
           }));
           localStorage.setItem('app_third_parties', JSON.stringify(updatedTerceros));
-        } catch(e) { console.warn('Error unlinking tercero:', e); }
+        } catch(e) {}
 
-        // Avanzamos el estado con el backend real
+        setProduction(prev => ({ ...prev, sedeAsignaciones }));
         await applyStepChange(targetStep);
         setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
         setTimeout(() => setPendingFinishedImg("request"), 800);
@@ -373,14 +476,11 @@ const ProductionDetailsPage = () => {
       const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
       const detail = editAlert.detail;
       
-      // Mapear detalles: actualizar el que coincida con ref
-      // Usar backend para actualizar solo el detalle específico
       await ProductionAPIClient.updateOrderDetail(detail.id, {
         cantidad: Number(updatedData.cantidad) || 0,
         color: updatedData.color,
       });
       
-      // Recargar datos frescos del backend
       const freshData = await ProductionAPIClient.getOrderById(production.id);
       const statusDate = freshData.updatedAt
         ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -418,14 +518,12 @@ const ProductionDetailsPage = () => {
   const handleSaveRef = async () => {
     if (!newRef.cantidad || !newRef.color) { setAddRefError("Completa cantidad y color."); return; }
     try {
-      // Crear detalle en el backend real
       await ProductionAPIClient.createOrderDetail({
         id_orden: production.id,
         id_producto: production.referencia,
         cantidad: Number(newRef.cantidad),
         color: newRef.color,
       });
-      // Recargar la orden completa para reflejar el nuevo detalle e historial
       const freshData = await ProductionAPIClient.getOrderById(production.id);
       const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
       setProduction((prev) => ({
@@ -443,7 +541,7 @@ const ProductionDetailsPage = () => {
         history: (freshData.historial || []).map((h) => ({
           status: h.estado,
           date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-          user: h.id_usuario || 'Sistema',
+          user: h.user || h.id_usuario || 'Sistema',
           motivo: h.motivo,
         })),
         rawData: freshData,
@@ -468,8 +566,6 @@ const ProductionDetailsPage = () => {
         try {
           const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
           
-          // Mapear detalles: filtrar el detalle a eliminar
-          // Usar backend para eliminar solo el detalle seleccionado
           await ProductionAPIClient.deleteOrderDetail(d.id);
           
           const freshData = await ProductionAPIClient.getOrderById(production.id);
@@ -491,7 +587,7 @@ const ProductionDetailsPage = () => {
                     const cDate = freshC.updatedAt ? new Date(freshC.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
                     setProduction((prev) => ({
                       ...prev, status: 'Anulada', estado: 'Anulada', statusDate: cDate,
-                      history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.id_usuario || 'Sistema', motivo: h.motivo })),
+                      history: (freshC.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo })),
                       rawData: freshC,
                     }));
                     setGlobalAlert({ open: true, type: "success", title: "Orden anulada", message: "La orden fue anulada correctamente al quedar sin referencias." });
@@ -534,30 +630,24 @@ const ProductionDetailsPage = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
-        /* ── Responsive root padding ── */
         .pd-root { padding: 14px; }
         @media (min-width: 640px)  { .pd-root { padding: 18px 20px; } }
         @media (min-width: 1024px) { .pd-root { padding: 24px 28px; } }
 
-        /* ── Main 2-col grid: stacks on mobile ── */
         .pd-main-grid { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
         @media (min-width: 900px) { .pd-main-grid { grid-template-columns:1fr 300px; } }
 
-        /* ── field-row: 1 col on small, 2 col on wider ── */
         .pd-field-row { display:grid; grid-template-columns:1fr; gap:12px 20px; }
         @media (min-width: 480px) { .pd-field-row { grid-template-columns:1fr 1fr; } }
 
-        /* ── Modals: fit viewport on mobile ── */
         .pd-modal-inner { border-radius:18px; padding:20px 18px; width:calc(100vw - 32px); max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
         @media (min-width: 480px) { .pd-modal-inner { padding:28px 28px 24px; } }
 
-        .pd-card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); }
+        .pd-card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04), margin-bottom:20 ; }
         .pd-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#FF4FD6; margin-bottom:3px; }
         .pd-value { font-size:13px; font-weight:600; color:#1a1a2e; }
         .pd-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10.5px; font-weight:700; letter-spacing:0.03em; }
-        .pd-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
 
-        /* ── Nav buttons ── */
         .pd-btn-nav { border:1.5px solid #e5e7eb; background:#fff; color:#374151; border-radius:9px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s; }
         .pd-btn-nav:hover { border-color:#FF4FD6; color:#FF4FD6; }
         .pd-btn-primary { background:#FF4FD6; color:#fff; border:none; border-radius:9px; padding:7px 16px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 4px 12px rgba(255,79,214,0.3); transition:all 0.15s; }
@@ -565,59 +655,29 @@ const ProductionDetailsPage = () => {
         .pd-btn-danger { border:1.5px solid #fca5a5; background:#fff5f5; color:#ef4444; border-radius:9px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
         .pd-btn-danger:hover { background:#fee2e2; }
 
-        /* ── Table base ── */
         .pd-table th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#9ca3af; padding-bottom:8px; }
         .pd-table td { padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:12.5px; }
         .pd-table tr:last-child td { border-bottom:none; }
 
-        /* ── Action buttons ── */
         .pd-action-btn { width:26px; height:26px; border-radius:7px; border:1.5px solid #e5e7eb; background:#fafafa; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; color:#9ca3af; }
         .pd-action-btn:hover.edit { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
         .pd-action-btn:hover.del { border-color:#ef4444; color:#ef4444; background:#fff5f5; }
 
-        /* ── Input ── */
         .pd-input { width:100%; border:1.5px solid #e5e7eb; border-radius:9px; padding:8px 12px; font-size:13px; color:#374151; outline:none; transition:border 0.15s; box-sizing:border-box; }
         .pd-input:focus { border-color:#FF4FD6; box-shadow:0 0 0 3px rgba(255,79,214,0.1); }
 
-        /* ── Stat card ── */
         .pd-stat-card { border-radius:11px; padding:13px 15px; }
 
-        /* ═══════════════════════════════════════════════════════
-           HISTORIAL COMPLETO — tabla responsive
-           ═══════════════════════════════════════════════════════ */
-        .pd-hist-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-        }
-        .pd-hist-th {
-          font-size: 10px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: #9ca3af;
-          padding: 0 8px 8px 0;
-          text-align: left;
-          overflow: hidden;
-        }
-        .pd-hist-td {
-          padding: 10px 8px 10px 0;
-          border-bottom: 1px solid #f3f4f6;
-          font-size: 12px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          vertical-align: middle;
-        }
+        .pd-hist-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .pd-hist-th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; padding: 0 8px 8px 0; text-align: left; overflow: hidden; }
+        .pd-hist-td { padding: 10px 8px 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
         .pd-hist-td:last-child { padding-right: 0; }
 
-        /* Anchos de columna por defecto (escritorio) */
         .col-hist-estado { width: 28%; }
         .col-hist-fecha  { width: 18%; }
         .col-hist-resp   { width: 24%; }
         .col-hist-motivo { width: 30%; }
 
-        /* Móvil ≤ 640px: ocultar Motivo, ajustar anchos, permitir wrap en estado */
         @media (max-width: 640px) {
           .col-hist-motivo { display: none; }
           .col-hist-estado { width: 40%; white-space: normal; }
@@ -626,79 +686,32 @@ const ProductionDetailsPage = () => {
           .pd-hist-td      { font-size: 11px; }
         }
 
-        /* ═══════════════════════════════════════════════════════
-           STEPPER — texto adaptativo en móvil
-           ═══════════════════════════════════════════════════════ */
-        .pd-step-label {
-          font-size: 9px;
-          font-weight: 500;
-          text-align: center;
-          line-height: 1.2;
-        }
-        .pd-step-sublabel {
-          font-size: 8px;
-          font-weight: 400;
-          display: block;
-        }
+        .pd-step-label { font-size: 9px; font-weight: 500; text-align: center; line-height: 1.2; }
+        .pd-step-sublabel { font-size: 8px; font-weight: 400; display: block; }
         @media (max-width: 480px) {
           .pd-step-label    { font-size: 7px; }
           .pd-step-sublabel { font-size: 6.5px; }
-          /* Círculos del stepper más pequeños */
           .pd-step-circle   { width: 20px !important; height: 20px !important; font-size: 8px !important; }
-          /* Botones nav compactos */
           .pd-btn-nav     { padding: 6px 9px !important; font-size: 11px !important; }
           .pd-btn-primary { padding: 6px 10px !important; font-size: 11px !important; }
-          /* Botón anular — debajo del título en móvil */
           .pd-anular-btn  { margin-left: 0 !important; margin-top: 8px; width: 100%; justify-content: center; }
-          /* Header de orden: stack en móvil */
           .pd-order-header { flex-wrap: wrap; gap: 8px !important; }
         }
 
-        /* ═══════════════════════════════════════════════════════
-           SIDEBAR DERECHO — sin altura fija en móvil
-           ═══════════════════════════════════════════════════════ */
-        .pd-side-scroll {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          max-height: 620px;
-          overflow-y: auto;
-          padding-right: 2px;
-        }
+        .pd-side-scroll {  flex-direction: column; gap: 14px; max-height: 620px; overflow-y: auto; padding-right: 2px; padding-bottom: 4px; }
         @media (max-width: 900px) {
-          .pd-side-scroll {
-            max-height: none;
-            overflow-y: visible;
-            padding-right: 0;
-          }
+          .pd-side-scroll { max-height: none; overflow-y: visible; padding-right: 0; }
         }
 
-        /* ═══════════════════════════════════════════════════════
-           PRODUCTO TOP — imagen + info en móvil
-           ═══════════════════════════════════════════════════════ */
-        .pd-product-top {
-          padding: 18px 20px;
-          display: flex;
-          gap: 18px;
-          align-items: flex-start;
-          max-height: 240px;
-          overflow: hidden;
-        }
+        .pd-product-top { padding: 18px 20px; display: flex; gap: 18px; align-items: flex-start; max-height: 240px; overflow: hidden; }
         @media (max-width: 480px) {
           .pd-product-top { flex-direction: column; max-height: none; gap: 12px; }
           .pd-product-img-wrap { flex-direction: row !important; align-items: flex-start; }
           .pd-product-main-img { width: 100px !important; height: 130px !important; }
         }
 
-        /* ═══════════════════════════════════════════════════════
-           DISTRIBUCIÓN tooltip — posición en móvil
-           ═══════════════════════════════════════════════════════ */
         @media (max-width: 480px) {
-          .dist-tooltip, .dist-tt {
-            left: auto !important;
-            right: 0 !important;
-            margin-left: 0 !important;
-          }
+          .dist-tooltip, .dist-tt { left: auto !important; right: 0 !important; margin-left: 0 !important; }
         }
       `}</style>
 
@@ -767,7 +780,7 @@ const ProductionDetailsPage = () => {
       {/* ── Add Article Modal ── */}
       {addRefOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "0 16px" }}>
-          <div className="pd-card" style={{ padding: 24, width: "100%", maxWidth: 320, animation: "fadeIn 0.2s ease" }}>
+          <div className="pd-card" style={{ padding: 24, width: "100%", maxWidth: 320, animation: "fadeIn 0.2s ease", marginBottom: 20 }}>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 18 }}>Agregar talla / artículo</h2>
             <div style={{ marginBottom: 14 }}>
               <div className="pd-label">Cantidad</div>
@@ -865,16 +878,39 @@ const ProductionDetailsPage = () => {
                 onChange={async (e) => {
                   const files = Array.from(e.target.files || []);
                   if (!files.length) return;
+                  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+                  const MAX_TOTAL_SIZE = 18 * 1024 * 1024;
+                  const tooLarge = files.find((file) => file.size > MAX_FILE_SIZE);
+                  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+                  if (tooLarge || totalSize > MAX_TOTAL_SIZE) {
+                    setGlobalAlert({
+                      open: true,
+                      type: "error",
+                      title: "Imagen demasiado grande",
+                      message: tooLarge
+                        ? "Cada imagen debe pesar máximo 5MB."
+                        : "Selecciona menos imágenes para no superar el límite de carga.",
+                    });
+                    e.target.value = "";
+                    return;
+                  }
                   const toBase64 = (file) => new Promise((res) => { const r = new FileReader(); r.onload = (ev) => res(ev.target.result); r.readAsDataURL(file); });
                   try {
                     const bases = await Promise.all(files.map(toBase64));
-                    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
                     const existingFinished = Array.isArray(production.finishedImages) ? production.finishedImages : (production.finishedImageUrl ? [production.finishedImageUrl] : []);
-                    const saved = await ProductionAPI.update(production.id, {
-                      ...production, finishedImages: [...existingFinished, ...bases], finishedImageUrl: bases[0],
-                      history: [...(production.history || []), { status: "Foto producto terminado", date: today, user: ProductionAPI.getCurrentUser(), motivo: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} agregada${bases.length !== 1 ? "s" : ""}` }]
+                    const newFinishedImages = [...existingFinished, ...bases];
+                    // Guardar en el servidor
+                    await ProductionAPIClient.updateOrder(production.id, {
+                      ...production,
+                      finishedImages: newFinishedImages,
+                      finishedImageUrl: bases[0]
                     });
-                    setProduction(saved);
+                    // ✅ Solo actualizar las imágenes sin reemplazar todo el estado mapeado
+                    setProduction(prev => ({
+                      ...prev,
+                      finishedImages: newFinishedImages,
+                      finishedImageUrl: bases[0],
+                    }));
                     setPendingFinishedImg(null);
                     setGlobalAlert({ open: true, type: "success", title: "Fotos guardadas", message: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} guardada${bases.length !== 1 ? "s" : ""} correctamente.` });
                   } catch {
@@ -895,7 +931,7 @@ const ProductionDetailsPage = () => {
       {showTechSheet && production.techSpecification && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           onClick={() => setShowTechSheet(false)}>
-          <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
+          <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column", margin: 20 }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
@@ -930,12 +966,10 @@ const ProductionDetailsPage = () => {
                   onClick={async () => {
                     if (!techSheetDraft) { setGlobalAlert({ open: true, type: "warning", title: "Ficha vacía", message: "Completa al menos los datos básicos de la ficha antes de guardar." }); return; }
                     try {
-                      const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
                       const costPerUnit = Number(techSheetDraft.costPerUnit) || 0;
-                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true, createdAt: today };
-                      const saved = await ProductionAPI.update(production.id, {
-                        ...production, techSpecification: newSpec,
-                        history: [...(production.history || []), { status: "Ficha técnica creada", date: today, user: ProductionAPI.getCurrentUser(), motivo: null }]
+                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
+                      const saved = await ProductionAPIClient.updateOrder(production.id, {
+                        ...production, techSpecification: newSpec
                       });
                       setProduction(saved); setShowTechSheetForm(false); setTechSheetDraft(null);
                       setGlobalAlert({ open: true, type: "success", title: "Ficha guardada", message: "La ficha técnica fue creada correctamente." });
@@ -997,7 +1031,7 @@ const ProductionDetailsPage = () => {
                   history: (freshCancelled.historial || []).map((h) => ({
                     status: h.estado,
                     date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-                    user: h.id_usuario || 'Sistema', motivo: h.motivo,
+                    user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo,
                   })),
                   rawData: freshCancelled,
                 };
@@ -1028,9 +1062,18 @@ const ProductionDetailsPage = () => {
       {!isAnulada && (
         <div className="pd-card" style={{ padding: "14px 20px", marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>Flujo de Proceso</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {prevStep && (
+                <button title="Retroceder (requiere contraseña admin)"
+                  onClick={() => openProductionAlert({ type: 'password', targetStep: prevStep, customTitle: 'Revertir estado', customMessage: `Se requiere contraseña de administrador para retroceder al estado "${prevStep}".` })}
+                  style={{ width: 28, height: 28, borderRadius: 6, background: '#f3f4f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+              )}
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>Flujo de Proceso</p>
+            </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              {prevStep && safeStepIndex < stepsReal.indexOf("Recepción") && (
+              {prevStep && safeStepIndex < stepsReal.indexOf("Empaque") && (
                 <button className="pd-btn-nav"
                   onClick={() => openProductionAlert({
                     type: "password", targetStep: prevStep,
@@ -1227,7 +1270,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
 
-            {/* Tabla de referencias — scroll horizontal en móvil */}
+            {/* Tabla de referencias */}
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 320 }}>
                 <thead>
@@ -1293,36 +1336,50 @@ const ProductionDetailsPage = () => {
           </div>
         </div>
 
-        {/* RIGHT: Sidebar */}
+        
         <div className="pd-side-scroll">
 
-          {/* Ficha Técnica y Costos */}
+          {/* ── Ficha Técnica y Costos ── */}
           <div className="pd-card" style={{ padding: 16 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px" }}>
               Ficha Técnica y Costos
             </p>
+
             {production.techSpecification ? (
               <>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#f9fafb", borderRadius: 9, border: "1px solid #e5e7eb", marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 28, height: 28, background: "#fee2e2", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <FileIcon />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", margin: 0 }}>FT_{production.referencia || production.orderNumber}.pdf</p>
-                      <p style={{ fontSize: 10, color: "#9ca3af", margin: 0 }}>Versión {production.techSpecification.version || 1}</p>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 9, fontWeight: 700, background: "#d1fae5", color: "#065f46", padding: "2px 7px", borderRadius: 20 }}>COMPUTADO</span>
-                </div>
+                {/* Badge Aprobada — alineado a la derecha */}
                 <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#65a30d", background: "#f7fee7", border: "1px solid #bef264", padding: "2px 8px", borderRadius: 20 }}>Aprobada</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: "#16a34a",
+                    background: "#dcfce7", border: "1px solid #bbf7d0",
+                    padding: "3px 10px", borderRadius: 20,
+                  }}>
+                    Aprobada
+                  </span>
                 </div>
-                <div style={{ background: "#fce7f3", borderRadius: 9, padding: "10px 13px" }}>
-                  <p style={{ fontSize: 10, color: "#9d174d", fontWeight: 600, margin: "0 0 2px", textTransform: "uppercase" }}>COSTO UNIDAD: <strong>${(production.techSpecification.costPerUnit || 0).toLocaleString("es-CO")}</strong></p>
-                  <p style={{ fontSize: 10, color: "#9d174d", fontWeight: 600, margin: 0, textTransform: "uppercase" }}>TOTAL: <strong>${(production.techSpecification.totalCost || 0).toLocaleString("es-CO")}</strong></p>
+
+                {/* Costos en rosa */}
+                <div style={{ background: "#fce7f3", borderRadius: 9, padding: "12px 14px", marginBottom: 10 }}>
+                  <p style={{ fontSize: 12, color: "#9d174d", fontWeight: 700, margin: "0 0 4px" }}>
+                    COSTO UNIDAD:{" "}
+                    <strong style={{ color: "#be185d" }}>
+                      ${(production.techSpecification.costPerUnit || 0).toLocaleString("es-CO")}
+                    </strong>
+                  </p>
+                  <p style={{ fontSize: 12, color: "#9d174d", fontWeight: 700, margin: 0 }}>
+                    TOTAL:{" "}
+                    <strong style={{ color: "#be185d" }}>
+                      ${(production.techSpecification.totalCost || 0).toLocaleString("es-CO")}
+                    </strong>
+                  </p>
                 </div>
-                <button className="pd-btn-nav" style={{ width: "100%", justifyContent: "center", marginTop: 10 }} onClick={() => setShowTechSheet(true)}>
+
+                {/* Botón ver ficha */}
+                <button
+                  className="pd-btn-nav"
+                  style={{ width: "100%", justifyContent: "center" }}
+                  onClick={() => setShowTechSheet(true)}
+                >
                   <EyeIcon /> Ver ficha técnica
                 </button>
               </>
@@ -1342,81 +1399,151 @@ const ProductionDetailsPage = () => {
             )}
           </div>
 
-          {/* Distribución Terceros */}
-          {(production.terceroAsignaciones || []).length > 0 && (
-            <div className="pd-card" style={{ padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 7, background: "#fdf4ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2" strokeLinecap="round">
-                    <path d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
-                  </svg>
-                </div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Terceros Asignados</p>
-              </div>
-              {(production.terceroAsignaciones || []).map((a, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: i % 2 === 0 ? "#fdf4ff" : "#fff", borderRadius: 8, marginBottom: 4, border: "1px solid #f5d0fe" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6b21a8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>{a.option}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#FF4FD6", flexShrink: 0 }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
-                </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTop: "1px solid #f5d0fe" }}>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                  Total: <strong style={{ color: "#FF4FD6" }}>
-                    {(production.terceroAsignaciones || []).reduce((s, a) => s + (Number(a.cantidad) || 0), 0).toLocaleString("es-CO")} uds
-                  </strong>
-                </span>
-              </div>
-            </div>
-          )}
+          {/* ── Asignaciones: Terceros + Sedes ── */}
+          {(() => {
+            const terceros = production.terceroAsignaciones || [];
+            const sedes    = production.sedeAsignaciones    || [];
+            const totalT   = terceros.reduce((s, a) => s + (Number(a.cantidad) || 0), 0);
+            const totalS   = sedes.reduce((s, a)   => s + (Number(a.cantidad) || 0), 0);
 
-          {/* Distribución Sedes */}
-          {(production.sedeAsignaciones || []).length > 0 && (
-            <div className="pd-card" style={{ padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 7, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                  </svg>
-                </div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Distribución por Sede</p>
-              </div>
-              {(production.sedeAsignaciones || []).map((a, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: i % 2 === 0 ? "#f0fdf4" : "#fff", borderRadius: 8, marginBottom: 4, border: "1px solid #bbf7d0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.option}</span>
+            return (
+              <>
+                {/* ── Card Terceros (solo si hay datos) ── */}
+                {terceros.length > 0 && (
+                  <div className="pd-card" style={{ padding: 0, marginBottom: 20, marginTop: 20, overflow: "hidden" }}>
+                    <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1.5px solid #ede9fe" }}>
+                      <div style={{ width: 26, height: 26, borderRadius: 7, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round">
+                          <path d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+                        </svg>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#4c1d95", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        Distribución de producción
+                      </span>
+                    </div>
+
+                    <div style={{ padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 5 }}>
+                      {terceros.map((a, i) => (
+                        <div key={i} style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "9px 12px", borderRadius: 10,
+                          background: "#fff", border: "1px solid #ede9fe",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden", flex: 1 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round">
+                                <path d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+                              </svg>
+                            </div>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {a.option}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#7c3aed", flexShrink: 0, marginLeft: 8 }}>
+                            {Number(a.cantidad).toLocaleString("es-CO")} uds
+                          </span>
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 2, marginTop: 3 }}>
+                        <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                          Total enviado: <strong style={{ color: "#7c3aed" }}>{totalT.toLocaleString("es-CO")} uds</strong>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#16a34a", flexShrink: 0, marginLeft: 8 }}>{Number(a.cantidad).toLocaleString("es-CO")} uds</span>
-                </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTop: "1px solid #bbf7d0" }}>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                  Total enviado: <strong style={{ color: "#16a34a" }}>
-                    {(production.sedeAsignaciones || []).reduce((s, a) => s + (Number(a.cantidad) || 0), 0).toLocaleString("es-CO")} uds
-                  </strong>
-                </span>
-              </div>
-            </div>
-          )}
+                )}
 
-          {/* Historial Operativo (últimas 4 entradas) */}
+                {/* ── Card Sedes ── */}
+                <div className="pd-card" style={{ padding: 0,marginBottom: 20, overflow: "hidden" }}>
+                  {/* Header */}
+                  <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1.5px solid #dcfce7" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                      </svg>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#14532d", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Distribución por sede
+                    </span>
+                  </div>
+
+                  {/* Filas de sedes */}
+                  <div style={{ padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 5 }}>
+                    {sedes.length === 0 ? (
+                      <p style={{ fontSize: 11, color: "#d1d5db", textAlign: "center", padding: "10px 0", margin: 0 }}>
+                        Sin sedes asignadas
+                      </p>
+                    ) : (
+                      <>
+                        {sedes.map((a, i) => (
+                          <div key={i} style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "9px 12px", borderRadius: 10,
+                            background: "#fff", border: "1px solid #dcfce7",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden", flex: 1 }}>
+                              <div style={{ width: 22, height: 22, borderRadius: 6, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round">
+                                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                                </svg>
+                              </div>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {a.option}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: "#16a34a", flexShrink: 0, marginLeft: 8 }}>
+                              {Number(a.cantidad).toLocaleString("es-CO")} uds
+                            </span>
+                          </div>
+                        ))}
+                        <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 2, marginTop: 3 }}>
+                          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                            Total enviado: <strong style={{ color: "#16a34a" }}>{totalS.toLocaleString("es-CO")} uds</strong>
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+
+          {/* ── Historial Operativo (últimas 4 entradas) ── */}
           <div className="pd-card" style={{ padding: 16, flex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 13 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Historial Operativo</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>
+                Historial Operativo
+              </p>
               <ClockIcon />
             </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {(production.history || []).slice(-4).reverse().map((h, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, paddingBottom: 12, position: "relative" }}>
-                  {i < Math.min((production.history || []).length, 4) - 1 && (
-                    <div style={{ position: "absolute", left: 3.5, top: 16, bottom: 0, width: 1, background: "#f3f4f6" }} />
+              {(production.history || []).slice(-4).reverse().map((h, i, arr) => (
+                <div key={i} style={{ display: "flex", gap: 10, paddingBottom: 14, position: "relative" }}>
+                  {/* Línea vertical conectora */}
+                  {i < arr.length - 1 && (
+                    <div style={{ position: "absolute", left: 4, top: 16, bottom: 0, width: 1, background: "#f3f4f6" }} />
                   )}
-                  <div className="pd-dot" style={{ background: dotColor(h.status), marginTop: 3 }} />
+                  {/* Punto magenta */}
+                  <div style={{
+                    width: 9, height: 9, borderRadius: "50%",
+                    background: "#FF4FD6",
+                    flexShrink: 0, marginTop: 4,
+                  }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Nombre del estado */}
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", margin: "0 0 1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.status}</p>
+                      <p style={{
+                        fontSize: 13, fontWeight: 700, color: "#111827",
+                        margin: "0 0 2px",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {h.status}
+                      </p>
+                      {/* Tooltip distribución si existe */}
                       {h.distribución && h.distribución.length > 0 && (
                         <div style={{ position: "relative", display: "inline-block", flexShrink: 0 }}
                           onMouseEnter={e => e.currentTarget.querySelector('.dist-tooltip').style.display = 'block'}
@@ -1440,11 +1567,19 @@ const ProductionDetailsPage = () => {
                         </div>
                       )}
                     </div>
-                    <p style={{ fontSize: 10, color: "#9ca3af", margin: 0 }}>
+                    {/* Fecha · Usuario */}
+                    <p style={{ fontSize: 10.5, color: "#9ca3af", margin: 0 }}>
                       {h.date}
-                      {h.user && <span style={{ color: "#6b7280", fontWeight: 600 }}> · {h.user}</span>}
+                      {h.user && (
+                        <span style={{ color: "#9ca3af" }}> · {h.user}</span>
+                      )}
                     </p>
-                    {h.motivo && <p style={{ fontSize: 10, color: "#f59e0b", margin: "2px 0 0", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.motivo}</p>}
+                    {/* Motivo si existe */}
+                    {h.motivo && (
+                      <p style={{ fontSize: 10, color: "#f59e0b", margin: "2px 0 0", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {h.motivo}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1453,8 +1588,9 @@ const ProductionDetailsPage = () => {
               )}
             </div>
           </div>
-        </div>
-      </div>
+
+        </div>{/* /sidebar */}
+      </div>{/* /pd-main-grid */}
 
       {/* ── Historial Completo (expandible) ── */}
       {(production.history || []).length > 4 && (
@@ -1464,7 +1600,6 @@ const ProductionDetailsPage = () => {
             Ver historial completo ({(production.history || []).length} entradas)
           </summary>
           <div className="pd-card" style={{ padding: "16px 20px", marginTop: 8, overflowX: "auto" }}>
-            {/* Nota en móvil: Motivo oculto */}
             <p style={{ margin: "0 0 8px", fontSize: 10, color: "#9ca3af", fontStyle: "italic" }}
                className="col-hist-motivo">
               * La columna Motivo se oculta en pantallas pequeñas
@@ -1482,7 +1617,6 @@ const ProductionDetailsPage = () => {
               <tbody>
                 {(production.history || []).map((h, i) => (
                   <tr key={i}>
-                    {/* Estado */}
                     <td className="pd-hist-td col-hist-estado" style={{ paddingRight: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                         <span className="pd-badge" style={{ ...statusStyle(h.status), fontSize: 10, whiteSpace: "nowrap" }}>{h.status}</span>
@@ -1510,18 +1644,15 @@ const ProductionDetailsPage = () => {
                         )}
                       </div>
                     </td>
-                    {/* Fecha */}
                     <td className="pd-hist-td col-hist-fecha" style={{ color: "#6b7280" }}>
                       {h.date}
                     </td>
-                    {/* Responsable — truncado con title para ver completo en hover/tap */}
                     <td
                       className="pd-hist-td col-hist-resp"
                       style={{ color: "#374151", fontWeight: 500 }}
                       title={h.user || "—"}>
                       {h.user || "—"}
                     </td>
-                    {/* Motivo — oculto en móvil ≤640px */}
                     <td className="pd-hist-td col-hist-motivo">
                       {h.motivo
                         ? <span style={{ color: "#f59e0b", fontStyle: "italic" }}>{h.motivo}</span>
