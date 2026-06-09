@@ -167,7 +167,7 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
-                      <td style={tdStyle}>{d.id || index + 101}</td>
+                      <td style={tdStyle}>{index + 1}</td>
                       <td style={tdStyle}>{d.nombre}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>{d.cantidad}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>
