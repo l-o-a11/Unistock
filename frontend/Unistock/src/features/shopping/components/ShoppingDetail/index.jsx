@@ -158,23 +158,55 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
-                      <td style={{ ...tdStyle, color: "#ccc", fontSize: "11px", fontWeight: 700, textAlign: "center" }}>
+                      <td
+                        style={{
+                          ...tdStyle,
+                          color: "#ccc",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          textAlign: "center",
+                        }}
+                      >
                         {index + 1}
                       </td>
+
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 500 }}>{d.nombre}</div>
+
                         {(d.descripcionAdicional || d.unidades) && (
-                          <div style={{ fontSize: "11px", color: "#aaa", marginTop: "2px" }}>
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "#aaa",
+                              marginTop: "2px",
+                            }}
+                          >
                             {d.descripcionAdicional || d.unidades}
                           </div>
                         )}
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "right", color: "#555" }}>{d.cantidad}</td>
+
                       <td style={{ ...tdStyle, textAlign: "right", color: "#555" }}>
-                        ${Number(d.costoUnitario || 0).toLocaleString("es-CO", { minimumFractionDigits: 2 })}
+                        {d.cantidad}
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "right", fontWeight: 600, color: "#333" }}>
-                        ${Number(d.costo || 0).toLocaleString("es-CO", { minimumFractionDigits: 2 })}
+
+                      <td style={{ ...tdStyle, textAlign: "right", color: "#555" }}>
+                        ${Number(d.costoUnitario || 0).toLocaleString("es-CO", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+
+                      <td
+                        style={{
+                          ...tdStyle,
+                          textAlign: "right",
+                          fontWeight: 600,
+                          color: "#333",
+                        }}
+                      >
+                        ${Number(d.costo || 0).toLocaleString("es-CO", {
+                          minimumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
                   ))}
