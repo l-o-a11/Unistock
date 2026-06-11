@@ -103,6 +103,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors
 const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice = null }) => {
   const modalRef = useRef(null);
   const colorRef = useRef(null);
+  const [colorAccordionOpen, setColorAccordionOpen] = useState(false);
 
   // Cierra el accordion de color al hacer clic fuera de él
   useEffect(() => {
@@ -169,9 +170,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   });
   const [nuevaRefErrors, setNuevaRefErrors] = useState({});
   const [categories,    setCategories]    = useState([]);
-
-  // ── Acordeón de color ─────────────────────────────────────────────────────
-  const [colorAccordionOpen, setColorAccordionOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     referencia:     initialData?.referencia     || '',
@@ -250,13 +248,31 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     })();
   }, [formData.referencia, type]);
 
+  const isFormBlank = () => {
+    const mainEmpty = !formData.referencia && !formData.cantidad && !formData.color && !formData.cliente && !formData.fechaSolicitud && !formData.producto;
+    const extrasEmpty = extraRefs.every((r) => !r.cantidad && !r.color);
+    const nuevaRefEmpty = !nuevaRefOpen || (
+      !String(nuevaRef.reference || '').trim() &&
+      !String(nuevaRef.name || '').trim() &&
+      !String(nuevaRef.category || '').trim() &&
+      !String(nuevaRef.price || '').trim() &&
+      !String(nuevaRef.description || '').trim()
+    );
+    return mainEmpty && extrasEmpty && nuevaRefEmpty;
+  };
+
   const handleCancelClick = useCallback(() => {
+    if (isFormBlank()) {
+      onCancel();
+      return;
+    }
+
     setAlertConfig({
       open: true, type: 'confirm', title: 'Cancelar',
       message: '¿Seguro que deseas cancelar? Se perderán los cambios.',
       onConfirm: () => { setAlertConfig(prev => ({ ...prev, open: false })); onCancel(); },
     });
-  }, [onCancel]);
+  }, [onCancel, formData, extraRefs, nuevaRefOpen, nuevaRef]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') handleCancelClick(); };
@@ -909,12 +925,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 style={{ background: 'none', border: '1.5px dashed #f9a8d4', borderRadius: 8, color: '#ff4fd6', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '8px 14px', marginBottom: 20, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 + Agregar otro artículo a la orden
               </button>
-
-              {/* ── Sección de Terceros ─────────────────────────────────── */}
-              <ThirdPartiesSection
-                terceros={terceros}
-                onTercerosChange={setTerceros}
-              />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4, borderTop: '1px solid #f3f4f6' }}>
                 <Button type="button" variant="secondary" onClick={handleCancelClick}>Cancelar</Button>

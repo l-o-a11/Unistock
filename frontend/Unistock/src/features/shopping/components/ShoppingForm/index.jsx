@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Alert from "../../../shared/components/Alert";
 import { useSuppliers } from "../../../suppliers/hooks/mockSuppliers";
 import { useSupplies } from "../../../supplies/hooks/useSupplies";
@@ -6,41 +6,53 @@ import SupplyForm from "../../../supplies/components/SupplyForm";
 import SupplierForm from "../../../suppliers/components/SupplierForm";
 
 const ShoppingForm = ({ onSubmit, onCancel }) => {
-  // ── Solo para CREAR — no recibe prop "shopping" (no hay edición)
   const { suppliers, createSupplier } = useSuppliers();
   const { supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
 
   const [formData, setFormData] = useState({
     numeroFactura: "",
-    proveedorId:   "",
-    proveedor:     "", // nombre resuelto para guardar junto al id
-    fecha:         "",
+    proveedorId: "",
+    proveedor: "",
+    fecha: "",
     observaciones: "",
-    costoTotal:    "",
-    detalles:      [],
+    costoTotal: "",
+    detalles: [],
   });
 
-  const [errors, setErrors]               = useState({});
+  const [errors, setErrors] = useState({});
   const [detalleActual, setDetalleActual] = useState({
-    supplyId: "", nombre: "", medidaId: "",
-    cantidad: "", costo: "", costoUnitario: "", unidades: "",
+    supplyId: "", nombre: "", medida: "",   // medida: string valor (ej: "kg", "und")
+    cantidad: "", costo: "", costoUnitario: "", descripcionAdicional: "",
   });
-  const [insumoSearch, setInsumoSearch]   = useState("");
-  const [showInsumoDD, setShowInsumoDD]   = useState(false);
-  const [showCreateSupply, setShowCreateSupply]     = useState(false);
+  const [insumoSearch, setInsumoSearch] = useState("");
+  const [showInsumoDD, setShowInsumoDD] = useState(false);
+  const [showCreateSupply, setShowCreateSupply] = useState(false);
 
-  const [proveedorSearch, setProveedorSearch]       = useState("");
-  const [showProveedorDD, setShowProveedorDD]       = useState(false);
+  const [proveedorSearch, setProveedorSearch] = useState("");
+  const [showProveedorDD, setShowProveedorDD] = useState(false);
   const [showCreateSupplier, setShowCreateSupplier] = useState(false);
 
   const [alertConfig, setAlertConfig] = useState({ open: false, type: "success", title: "", message: "", onConfirm: null });
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
-  const showAlert  = (type, title, message, onConfirm = null) =>
+  const showAlert = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
+
+  // ── Costo total = suma automática de detalles ──────────────────────────
+  const totalDetalles = useMemo(
+    () => formData.detalles.reduce((acc, d) => acc + (d.costo || 0), 0),
+    [formData.detalles]
+  );
+
+  useEffect(() => {
+    if (formData.detalles.length > 0) {
+      setFormData((prev) => ({ ...prev, costoTotal: totalDetalles.toFixed(2) }));
+      setErrors((prev) => ({ ...prev, costoTotal: "" }));
+    }
+  }, [totalDetalles, formData.detalles.length]);
 
   // ── Validaciones ─────────────────────────────────────────────────────────
   const validators = {
-    required:       (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
+    required: (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) => (isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : ""),
   };
 
@@ -48,9 +60,9 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     let error = "";
     switch (name) {
       case "numeroFactura": error = validators.required(value); break;
-      case "proveedorId":   error = validators.required(value); break;
-      case "fecha":         error = validators.required(value); break;
-      case "costoTotal":    error = validators.required(value) || validators.positiveNumber(value); break;
+      case "proveedorId": error = validators.required(value); break;
+      case "fecha": error = validators.required(value); break;
+      case "costoTotal": error = validators.required(value) || validators.positiveNumber(value); break;
       default: break;
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
@@ -73,16 +85,10 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     );
   }, [suppliers, proveedorSearch]);
 
-  // ✅ FIX: actualiza formData.proveedorId y formData.proveedor (no detalleActual)
   const handleSelectProveedor = (supplier) => {
-    setFormData((prev) => ({
-      ...prev,
-      proveedorId: supplier.id,
-      proveedor:   supplier.nombreEmpresa,
-    }));
+    setFormData((prev) => ({ ...prev, proveedorId: supplier.id, proveedor: supplier.nombreEmpresa }));
     setProveedorSearch(supplier.nombreEmpresa);
     setShowProveedorDD(false);
-    // Limpiar error de proveedor al seleccionar
     setErrors((prev) => ({ ...prev, proveedorId: "" }));
   };
 
@@ -98,8 +104,8 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     setDetalleActual((prev) => ({
       ...prev,
       supplyId: supply.id,
-      nombre:   supply.nombre,
-      medidaId: supply.medidaId || "",
+      nombre: supply.nombre,
+      medida: supply.medida || "",   // supply.medida es string: "kg", "und", etc.
     }));
     setInsumoSearch(supply.nombre);
     setShowInsumoDD(false);
@@ -111,7 +117,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     setDetalleActual((prev) => {
       const updated = { ...prev, [name]: value };
       if (name === "costo" || name === "cantidad") {
-        const costo    = parseFloat(name === "costo"    ? value : prev.costo)    || 0;
+        const costo = parseFloat(name === "costo" ? value : prev.costo) || 0;
         const cantidad = parseFloat(name === "cantidad" ? value : prev.cantidad) || 0;
         updated.costoUnitario = cantidad > 0 ? (costo / cantidad).toFixed(2) : "";
       }
@@ -133,24 +139,24 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     setFormData((prev) => ({
       ...prev,
       detalles: [...prev.detalles, {
-        id:            Date.now(),
-        supplyId:      detalleActual.supplyId || null,
-        nombre:        detalleActual.nombre.trim(),
-        medidaId:      detalleActual.medidaId ? parseInt(detalleActual.medidaId) : null,
-        cantidad:      parseFloat(detalleActual.cantidad),
-        costo:         parseFloat(detalleActual.costo),
+        id: Date.now(),
+        supplyId: detalleActual.supplyId || null,
+        nombre: detalleActual.nombre.trim(),
+        medida: detalleActual.medida || null,   // string: "kg", "und", etc.
+        cantidad: parseFloat(detalleActual.cantidad),
+        costo: parseFloat(detalleActual.costo),
         costoUnitario: parseFloat(detalleActual.costoUnitario) || 0,
-        unidades:      detalleActual.unidades.trim(),
+        descripcionAdicional: detalleActual.descripcionAdicional.trim(),
       }],
     }));
-    setDetalleActual({ supplyId: "", nombre: "", medidaId: "", cantidad: "", costo: "", costoUnitario: "", unidades: "" });
+    setDetalleActual({ supplyId: "", nombre: "", medida: "", cantidad: "", costo: "", costoUnitario: "", descripcionAdicional: "" });
     setInsumoSearch("");
   };
 
   const handleEliminarDetalle = (id) =>
     setFormData((prev) => ({ ...prev, detalles: prev.detalles.filter((d) => d.id !== id) }));
 
-  // ── Crear proveedor desde el form ─────────────────────────────────────────
+  // ── Crear proveedor/insumo ─────────────────────────────────────────────────
   const handleCreateSupplierSubmit = async (supplierData) => {
     try {
       const newSupplier = await createSupplier(supplierData);
@@ -162,7 +168,6 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     }
   };
 
-  // ── Crear insumo desde el form ────────────────────────────────────────────
   const handleCreateSupplySubmit = async (supplyData) => {
     try {
       const newSupply = await createSupply(supplyData);
@@ -180,19 +185,14 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     let newErrors = {};
     fields.forEach((f) => { const e = validateField(f, formData[f]); if (e) newErrors[f] = e; });
     setErrors(newErrors);
-
     if (Object.values(newErrors).some((e) => e)) {
       showAlert("warning", "Campos inválidos", "Corrige los campos marcados antes de guardar."); return;
     }
     if (formData.detalles.length === 0) {
       showAlert("warning", "Sin detalles", "Agrega al menos un producto o insumo a la compra."); return;
     }
-
     try {
-      await onSubmit({
-        ...formData,
-        costoTotal: parseFloat(formData.costoTotal),
-      });
+      await onSubmit({ ...formData, costoTotal: parseFloat(formData.costoTotal) });
     } catch (error) {
       showAlert("error", "Error al guardar", error.message || "No se pudo guardar la compra.");
     }
@@ -202,8 +202,6 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     showAlert("confirm", "¿Cancelar?", "Los datos ingresados se perderán.", () => { closeAlert(); onCancel?.(); });
   };
 
-  const totalDetalles = formData.detalles.reduce((acc, d) => acc + (d.costo || 0), 0);
-
   // ── Estilos ───────────────────────────────────────────────────────────────
   const inp = (hasError) => ({
     width: "100%", padding: "9px 12px", borderRadius: "6px",
@@ -211,20 +209,17 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     fontSize: "13px", color: "#333", outline: "none",
     boxSizing: "border-box", backgroundColor: "#fff", transition: "border-color 0.15s",
   });
-  const lbl  = { display: "block", fontSize: "12px", fontWeight: "600", color: "#555", marginBottom: "5px" };
+  const lbl = { display: "block", fontSize: "12px", fontWeight: "600", color: "#555", marginBottom: "5px" };
   const errS = { color: "#E91E8C", fontWeight: "bold", fontSize: "11px", marginTop: "3px" };
-  const req  = <span style={{ color: "#FF4FD6" }}> *</span>;
-  const onFocus  = (e) => { e.target.style.borderColor = "#FF4FD6"; e.target.style.boxShadow = "0 0 0 3px #FF4FD620"; };
-  const onBlurS  = (e) => { e.target.style.borderColor = "#e5e7eb"; e.target.style.boxShadow = "none"; };
+  const req = <span style={{ color: "#FF4FD6" }}> *</span>;
+  const onFocus = (e) => { e.target.style.borderColor = "#FF4FD6"; e.target.style.boxShadow = "0 0 0 3px #FF4FD620"; };
+  const onBlurS = (e) => { e.target.style.borderColor = "#e5e7eb"; e.target.style.boxShadow = "none"; };
 
   // ── Modales anidados ──────────────────────────────────────────────────────
   if (showCreateSupplier) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
-        <SupplierForm
-          onSubmit={handleCreateSupplierSubmit}
-          onCancel={() => setShowCreateSupplier(false)}
-        />
+        <SupplierForm onSubmit={handleCreateSupplierSubmit} onCancel={() => setShowCreateSupplier(false)} />
       </div>
     );
   }
@@ -233,11 +228,8 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
         <SupplyForm
-          categorias={categorias}
-          medidas={medidas}
-          propiedades={propiedades}
-          onSubmit={handleCreateSupplySubmit}
-          onCancel={() => setShowCreateSupply(false)}
+          categorias={categorias} medidas={medidas} propiedades={propiedades}
+          onSubmit={handleCreateSupplySubmit} onCancel={() => setShowCreateSupply(false)}
         />
       </div>
     );
@@ -261,7 +253,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
             {errors.numeroFactura && <p style={errS}>{errors.numeroFactura}</p>}
           </div>
 
-          {/* Proveedor con buscador */}
+          {/* Proveedor */}
           <div style={{ marginBottom: "14px" }}>
             <label style={lbl}>Proveedor{req}</label>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -271,10 +263,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                   onChange={(e) => {
                     setProveedorSearch(e.target.value);
                     setShowProveedorDD(true);
-                    // Si el usuario borra el texto, limpiar proveedorId
-                    if (!e.target.value) {
-                      setFormData((prev) => ({ ...prev, proveedorId: "", proveedor: "" }));
-                    }
+                    if (!e.target.value) setFormData((prev) => ({ ...prev, proveedorId: "", proveedor: "" }));
                   }}
                   onFocus={() => setShowProveedorDD(true)}
                   onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)}
@@ -291,9 +280,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                         {s.nombreEmpresa}
                       </div>
                     )) : (
-                      <div style={{ padding: "10px 12px", fontSize: "12px", color: "#999" }}>
-                        No se encontraron proveedores
-                      </div>
+                      <div style={{ padding: "10px 12px", fontSize: "12px", color: "#999" }}>No se encontraron proveedores</div>
                     )}
                   </div>
                 )}
@@ -322,11 +309,40 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
               style={inp(false)} onFocus={onFocus} onBlur={onBlurS} />
           </div>
 
-          {/* Costo total */}
+          {/* Costo total — readonly, calculado de detalles */}
           <div style={{ marginBottom: "20px" }}>
-            <label style={lbl}>Costo total{req}</label>
-            <input type="number" name="costoTotal" value={formData.costoTotal} onChange={handleChange}
-              onBlur={handleBlur} style={inp(errors.costoTotal)} onFocus={onFocus} />
+            <label style={lbl}>
+              Costo total{req}
+              {formData.detalles.length > 0 && (
+                <span style={{ fontWeight: 400, color: "#aaa", marginLeft: "6px", fontSize: "11px" }}>
+                  calculado automáticamente
+                </span>
+              )}
+            </label>
+            <div style={{ position: "relative" }}>
+              <span style={{
+                position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)",
+                fontSize: "13px", color: formData.detalles.length > 0 ? "#FF4FD6" : "#aaa", fontWeight: 600,
+              }}>$</span>
+              <input
+                type="number"
+                name="costoTotal"
+                value={formData.costoTotal}
+                onChange={formData.detalles.length === 0 ? handleChange : undefined}
+                onBlur={formData.detalles.length === 0 ? handleBlur : undefined}
+                readOnly={formData.detalles.length > 0}
+                placeholder="0.00"
+                style={{
+                  ...inp(errors.costoTotal),
+                  paddingLeft: "24px",
+                  backgroundColor: formData.detalles.length > 0 ? "#fdf0f7" : "#fff",
+                  color: formData.detalles.length > 0 ? "#e91e8c" : "#333",
+                  fontWeight: formData.detalles.length > 0 ? 600 : 400,
+                  cursor: formData.detalles.length > 0 ? "default" : "text",
+                }}
+                onFocus={formData.detalles.length === 0 ? onFocus : undefined}
+              />
+            </div>
             {errors.costoTotal && <p style={errS}>{errors.costoTotal}</p>}
           </div>
 
@@ -334,7 +350,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
           <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: "16px" }}>
             <p style={{ margin: "0 0 12px", fontSize: "13px", fontWeight: 600, color: "#333" }}>Detalles de la compra</p>
 
-            {/* Insumo con búsqueda + botón crear */}
+            {/* Insumo */}
             <div style={{ marginBottom: "10px" }}>
               <label style={lbl}>Producto o insumo</label>
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -357,9 +373,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                           {s.nombre}
                         </div>
                       )) : (
-                        <div style={{ padding: "10px 12px", fontSize: "12px", color: "#999" }}>
-                          No se encontraron insumos
-                        </div>
+                        <div style={{ padding: "10px 12px", fontSize: "12px", color: "#999" }}>No se encontraron insumos</div>
                       )}
                     </div>
                   )}
@@ -380,17 +394,17 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
               </div>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>Medida</label>
-                <select name="medidaId" value={detalleActual.medidaId} onChange={handleDetalleChange}
+                <select name="medida" value={detalleActual.medida} onChange={handleDetalleChange}
                   style={inp(false)} onFocus={onFocus}>
                   <option value="">Seleccionar</option>
                   {medidas.map((m) => (
-                    <option key={m.id} value={m.id}>{m.nombre}</option>
+                    <option key={m.valor} value={m.valor}>{m.label}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Cantidad + Costo unitario */}
+            {/* Cantidad + Costo unitario (readonly) */}
             <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>Cantidad{req}</label>
@@ -398,17 +412,29 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                   style={inp(false)} onFocus={onFocus} onBlur={onBlurS} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Costo unitario</label>
+                <label style={lbl}>
+                  Costo unitario
+                  <span style={{ fontWeight: 400, color: "#bbb", marginLeft: "4px", fontSize: "10px" }}>auto</span>
+                </label>
                 <input type="number" name="costoUnitario" value={detalleActual.costoUnitario} readOnly
-                  style={{ ...inp(false), backgroundColor: "#f9fafb", color: "#888" }} />
+                  placeholder="—"
+                  style={{ ...inp(false), backgroundColor: "#f9fafb", color: "#888", cursor: "default" }} />
               </div>
             </div>
 
-            {/* Unidades */}
+            {/* Descripción adicional (antes: Unidades) */}
             <div style={{ marginBottom: "14px" }}>
-              <label style={lbl}>Unidades</label>
-              <input name="unidades" value={detalleActual.unidades} onChange={handleDetalleChange}
-                style={inp(false)} onFocus={onFocus} onBlur={onBlurS} />
+              <label style={lbl}>
+                Descripción adicional
+                <span style={{ fontWeight: 400, color: "#bbb", marginLeft: "4px", fontSize: "10px" }}>opcional</span>
+              </label>
+              <input
+                name="descripcionAdicional"
+                value={detalleActual.descripcionAdicional}
+                onChange={handleDetalleChange}
+                placeholder="Ej. Cajas de 12, presentación 500ml..."
+                style={inp(false)} onFocus={onFocus} onBlur={onBlurS}
+              />
             </div>
 
             <button type="button" onClick={handleAgregarDetalle}
@@ -421,35 +447,42 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
         {/* ── COLUMNA DERECHA ── */}
         <div style={{ flex: 1, backgroundColor: "#fafafa", borderLeft: "1px solid #f0f0f0", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, padding: "28px 20px", overflowY: "auto" }}>
-            <p style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: "#333" }}>Detalles de la compra (cada valor ya incluye IVA)</p>
+            <p style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: "#333" }}>
+              Detalles de la compra
+              <span style={{ fontSize: "11px", fontWeight: 400, color: "#aaa", marginLeft: "8px" }}>IVA incluido</span>
+            </p>
 
             {formData.detalles.length > 0 ? (
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                    {["Producto", "Medida", "Cant.", "Unitario", "Subtotal", ""].map((h, i) => (
-                      <th key={i} style={{ padding: "8px 6px", textAlign: i >= 2 ? "right" : "left", color: "#888", fontWeight: 600 }}>{h}</th>
+                    {["#", "Producto", "Medida", "Cant.", "Unitario", "Subtotal", ""].map((h, i) => (
+                      <th key={i} style={{ padding: "8px 6px", textAlign: i >= 3 ? "right" : "left", color: "#bbb", fontWeight: 600, fontSize: "11px" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {formData.detalles.map((d) => {
-                    const medida = medidas.find((m) => m.id === d.medidaId);
+                  {formData.detalles.map((d, index) => {
+                    // medida es el string valor directamente: "kg", "und", etc.
+                    const medidaLabel = medidas.find((m) => m.valor === d.medida)?.label ?? d.medida ?? "—";
                     return (
                       <tr key={d.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                        <td style={{ padding: "10px 6px", color: "#ccc", fontSize: "11px", fontWeight: 600 }}>{index + 1}</td>
                         <td style={{ padding: "10px 6px", color: "#333" }}>
                           <div style={{ fontWeight: 500 }}>{d.nombre}</div>
-                          {d.unidades && <div style={{ fontSize: "11px", color: "#999" }}>{d.unidades}</div>}
+                          {d.descripcionAdicional && (
+                            <div style={{ fontSize: "11px", color: "#aaa", marginTop: "2px" }}>{d.descripcionAdicional}</div>
+                          )}
                         </td>
-                        <td style={{ padding: "10px 6px", color: "#555" }}>{medida?.nombre || "—"}</td>
+                        <td style={{ padding: "10px 6px", color: "#555" }}>{medidaLabel}</td>
                         <td style={{ padding: "10px 6px", textAlign: "right", color: "#555" }}>{d.cantidad}</td>
                         <td style={{ padding: "10px 6px", textAlign: "right", color: "#555" }}>${Number(d.costoUnitario).toFixed(2)}</td>
                         <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600, color: "#333" }}>${Number(d.costo).toFixed(2)}</td>
                         <td style={{ padding: "10px 6px", textAlign: "center" }}>
                           <button type="button" onClick={() => handleEliminarDetalle(d.id)}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: "16px" }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#ddd", fontSize: "16px", lineHeight: 1 }}
                             onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = "#ccc")}>×</button>
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "#ddd")}>×</button>
                         </td>
                       </tr>
                     );
@@ -457,7 +490,8 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                 </tbody>
               </table>
             ) : (
-              <div style={{ padding: "40px 20px", textAlign: "center", color: "#bbb", fontSize: "13px" }}>
+              <div style={{ padding: "40px 20px", textAlign: "center", color: "#ddd", fontSize: "13px" }}>
+                <div style={{ fontSize: "32px", marginBottom: "10px" }}>🧾</div>
                 Los productos agregados aparecerán aquí
               </div>
             )}
@@ -466,9 +500,9 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
           {/* Total + Botones */}
           <div style={{ borderTop: "1px solid #e5e7eb", padding: "16px 20px" }}>
             {formData.detalles.length > 0 && (
-              <div style={{ textAlign: "right", marginBottom: "14px", fontSize: "13px" }}>
-                <span style={{ color: "#888" }}>TOTAL </span>
-                <span style={{ color: "#FF4FD6", fontWeight: 700, fontSize: "15px" }}>
+              <div style={{ textAlign: "right", marginBottom: "14px" }}>
+                <span style={{ fontSize: "11px", color: "#bbb", letterSpacing: "0.05em" }}>TOTAL </span>
+                <span style={{ color: "#FF4FD6", fontWeight: 700, fontSize: "18px", marginLeft: "6px" }}>
                   ${totalDetalles.toLocaleString("es-CO", { minimumFractionDigits: 2 })}
                 </span>
               </div>

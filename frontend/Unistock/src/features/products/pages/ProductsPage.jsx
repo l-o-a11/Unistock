@@ -483,8 +483,15 @@ const ProductsPage = () => {
 
       {showCreateForm && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
-          <div style={modalContentStyle}>
+          <div style={modalBackgroundStyle} onClick={() => handleShowConfirm({
+            type: "confirm",
+            title: "¿Seguro que deseas cancelar?",
+            message: "Los cambios no guardados se perderán.",
+            confirmText: "Confirmar",
+            cancelText: "Cancelar",
+            onConfirm: handleCloseForm
+          })} />
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
             <ProductForm
               onSubmit={handleCreateSubmit}
               onCancel={handleCloseForm}
@@ -497,8 +504,15 @@ const ProductsPage = () => {
 
       {showEditForm && editingProduct && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
-          <div style={modalContentStyle}>
+          <div style={modalBackgroundStyle} onClick={() => handleShowConfirm({
+            type: "confirm",
+            title: "¿Seguro que deseas cancelar?",
+            message: "Los cambios no guardados se perderán.",
+            confirmText: "Confirmar",
+            cancelText: "Cancelar",
+            onConfirm: handleCloseForm
+          })} />
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
             <ProductForm
               product={editingProduct}
               onSubmit={handleEditSubmit}

@@ -86,6 +86,24 @@ export const userAPI = {
       throw err?.data || err;
     }
   },
+
+  // POST /api/auth/verify-password — valida la contraseña del usuario autenticado.
+  // Lanza error si la contraseña es incorrecta (401), lo que permite al llamador
+  // detener la acción y mostrar feedback sin ejecutar la operación sensible.
+  // POST /api/auth/verify-password
+  // Valida la contraseña del usuario autenticado antes de operaciones sensibles.
+  // Lanza si la contraseña es incorrecta — el llamador detiene la acción.
+  // POST /api/auth/verify-password
+  // skipAuth: true → evita que httpClient haga logout automático si la
+  // contraseña es incorrecta (401). El llamador maneja el error manualmente.
+  verifyPassword: async (password) => {
+    try {
+      const res = await post("/auth/verify-password", { password }, { skipAuth: true });
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
 };
 
 export default userAPI;

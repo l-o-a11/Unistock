@@ -5,7 +5,7 @@ import { AuthAPI } from "../services/AuthAPI";
 export const useAuth = () => {
   const [activeModal, setActiveModal] = useState(AUTH_MODALS.NONE);
   const [recoveryEmail, setRecoveryEmail] = useState("");
-  const [verifiedCode, setVerifiedCode] = useState(""); // ← guarda el código verificado
+  const [resetToken, setResetToken] = useState(""); // ← guarda el resetToken que devuelve verifyCode
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [forceChange, setForceChange] = useState(null);
@@ -113,8 +113,9 @@ export const useAuth = () => {
     setLoading(true);
     setError("");
     try {
-      await AuthAPI.verifyCode(recoveryEmail, code);
-      setVerifiedCode(code); // ← guarda el código para usarlo en el siguiente paso
+      const result = await AuthAPI.verifyCode(recoveryEmail, code);
+      // FIX: guardar el resetToken que devuelve la API, no el código
+      setResetToken(result?.resetToken ?? result?.data?.resetToken ?? "");
       setActiveModal(AUTH_MODALS.CHANGE_PASSWORD);
     } catch (err) {
       setError(err.message);
@@ -128,9 +129,9 @@ export const useAuth = () => {
     setLoading(true);
     setError("");
     try {
-      // Pasa el código verificado — no null
-      await AuthAPI.changePassword(recoveryEmail, verifiedCode, newPassword);
-      setVerifiedCode("");
+      // FIX: pasar resetToken (no correo ni código) a reset-password
+      await AuthAPI.changePassword(resetToken, newPassword);
+      setResetToken("");
       closeModal();
       showAlert(
         "success",

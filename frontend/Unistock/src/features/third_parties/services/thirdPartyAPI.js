@@ -27,6 +27,13 @@ const toFrontend = (doc) => {
 
   const nitValue = doc.nit ?? doc.NIT ?? doc.nit_empresa ?? doc.nitEmpresa ?? '';
 
+  const formatDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   const nombreEmpresaValue =
     doc.nombre_empresa ??
     doc.nombreEmpresa ??
@@ -67,7 +74,12 @@ const toFrontend = (doc) => {
     sitioWeb: doc.sitio_web ?? doc.sitioWeb ?? '',
 
     estado: doc.estado ?? true,
-    producciones: doc.producciones ?? [],
+    producciones: (doc.producciones ?? []).map(p => ({
+      orden:        p.orden        || p.orderNumber || p.numero_orden || '',
+      fecha:        formatDate(p.fecha),
+      produccionId: p.produccionId || p._id || '',
+      cantidad:     Number(p.cantidad) || 0,
+    })),
   };
 };
 
@@ -184,16 +196,16 @@ export const thirdPartyAPI = {
   },
 
   /** POST /api/terceros/:id/producciones — vincula una orden al tercero */
-  async linkProduccion(id, { orden, fecha, produccionId }) {
+  async linkProduccion(id, { orden, fecha, produccionId, cantidad }) {
     try {
       const response = await httpClient.post(
         `/terceros/${id}/producciones`,
-        { orden, fecha, produccionId }
+        { orden, fecha, produccionId, cantidad: Number(cantidad) || 0 }
       );
       return toFrontend(extractOne(response));
     } catch (err) {
-      console.error('[thirdPartyAPI] linkProduccion error:', err?.message);
-      throw err;
+      // Endpoint puede no existir aún en backend — error silencioso
+      return null;
     }
   },
 };

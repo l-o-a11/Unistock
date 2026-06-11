@@ -169,6 +169,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const loadCategories = async () => {
     try {
@@ -459,6 +460,29 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setTechnicalSheet(prev => ({ ...prev, ...sheetData }));
   };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setFormData((prev) => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCancelClick = useCallback(() => {
     onShowConfirm({
       type: "confirm",
@@ -554,9 +578,34 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
   return (
     <div style={{ padding: "36px 40px" }}>
-      <h2 style={{ margin: "0 0 28px 0", fontSize: "20px", fontWeight: "600", color: "#1a1a1a", textAlign: "center" }}>
+      <h2 style={{ margin: "0 0 20px 0", fontSize: "20px", fontWeight: "600", color: "#1a1a1a", textAlign: "center" }}>
         {product ? "Editar Producto" : "Crear Nuevo Producto"}
       </h2>
+
+      {/* Indicador de pasos */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{
+            width: "28px", height: "28px", borderRadius: "50%",
+            background: currentStep === 1 ? "#ff4fd6" : "#e9d5f5",
+            color: currentStep === 1 ? "#fff" : "#ff4fd6",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "13px", fontWeight: "700"
+          }}>1</div>
+          <span style={{ fontSize: "13px", fontWeight: currentStep === 1 ? "600" : "400", color: currentStep === 1 ? "#ff4fd6" : "#999" }}>Datos del producto</span>
+        </div>
+        <div style={{ width: "48px", height: "2px", background: currentStep === 2 ? "#ff4fd6" : "#e5e7eb", margin: "0 8px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{
+            width: "28px", height: "28px", borderRadius: "50%",
+            background: currentStep === 2 ? "#ff4fd6" : "#f3f4f6",
+            color: currentStep === 2 ? "#fff" : "#aaa",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "13px", fontWeight: "700"
+          }}>2</div>
+          <span style={{ fontSize: "13px", fontWeight: currentStep === 2 ? "600" : "400", color: currentStep === 2 ? "#ff4fd6" : "#aaa" }}>Ficha Técnica</span>
+        </div>
+      </div>
 
       {currentStep === 1 ? (
         <>
@@ -674,17 +723,22 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
             </div>
 
             <div style={{ flex: 1 }}>
-              <div style={{ 
-                border: "1px solid #e5e7eb", 
-                borderRadius: "8px", 
-                padding: "16px", 
-                backgroundColor: "#fafafa", 
-                minHeight: "250px", 
-                display: "flex", 
-                flexDirection: "column", 
-                alignItems: "center", 
-                justifyContent: "center" 
-              }}>
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{ 
+                  border: isDragging ? "2px dashed #ff4fd6" : "1px solid #e5e7eb", 
+                  borderRadius: "8px", 
+                  padding: "16px", 
+                  backgroundColor: isDragging ? "#fdf0f7" : "#fafafa", 
+                  minHeight: "250px", 
+                  display: "flex", 
+                  flexDirection: "column", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  transition: "all 0.2s"
+                }}>
                 {imagePreview ? (
                   <div style={{ textAlign: "center", width: "100%" }}>
                     <img 
@@ -706,7 +760,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                   </div>
                 ) : (
                   <>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={isDragging ? "#ff4fd6" : "#aaa"} strokeWidth="1.5">
                       <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
                       <line x1="8" y1="2" x2="8" y2="22" />
                       <line x1="16" y1="2" x2="16" y2="22" />

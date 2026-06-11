@@ -242,6 +242,7 @@ const EmployeesPage = () => {
           justifyContent: "flex-end",
           marginBottom: "20px",
           padding: "12px 16px",
+          borderRadius: "10px",
         }}
       >
         <AddEmployeeButton onClick={() => setShowCreate(true)} />

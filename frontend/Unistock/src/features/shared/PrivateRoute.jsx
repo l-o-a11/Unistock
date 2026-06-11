@@ -7,14 +7,15 @@ import { useAuthContext } from "./AuthContext";
  * - Si no tiene permiso → redirige a /layout/dashboard con mensaje
  */
 const PrivateRoute = ({ children, modulo }) => {
-  const { user, canAccess, loading } = useAuthContext();
+  const { user, canAccess, loading, getFirstAccessibleRoute } = useAuthContext();
 
-  if (loading) return null; // o un spinner
+  if (loading) return null;
 
   if (!user) return <Navigate to="/" replace />;
 
   if (modulo && !canAccess(modulo)) {
-    return <Navigate to="/layout/dashboard" replace />;
+    // Redirigir al primer módulo accesible en vez del dashboard hardcodeado
+    return <Navigate to={getFirstAccessibleRoute()} replace />;
   }
 
   return children;

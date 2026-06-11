@@ -7,6 +7,13 @@ import AddSupplyButton from "../components/AddSupplyButton";
 import SupplyForm from "../components/SupplyForm";
 import SupplyDetail from "../components/SupplyDetail";
 import Alert from "../../shared/components/Alert";
+import SupplyCategoriesModal from "../components/SupplyCategoriesModal"; // 👈 nuevo
+import CategoryForm from "../../categoriesSupply/components/CategoryForm";
+import { useCategories } from "../../categoriesSupply/hooks/useCategories";
+import { supplyAPI } from "../services/supplyAPI";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
@@ -22,16 +29,31 @@ const SuppliesPage = () => {
     propiedades,
     getCategoriaNombre,
     getMedidaNombre,
+    refreshCatalogos,
   } = useSupplies();
 
   const { searchTerm, handleSearch } = useSupplySearch();
+  const statusSuggestions = ["activo", "inactivo"];
+  const searchSuggestions = searchTerm.trim()
+    ? statusSuggestions.filter((option) =>
+        option.startsWith(searchTerm.trim().toLowerCase()),
+      )
+    : [];
+  const { createCategory, updateCategory, deleteCategory } = useCategories();
 
   const [selectedSupply, setSelectedSupply] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSupply, setEditingSupply] = useState(null);
-  const [estadoFiltro, setEstadoFiltro] = useState("todos");
+  const estadoFiltro = "todos"; // Always show all (filter via search)
+  const [statusFilter, setStatusFilter] = useState("todos"); // For filtering by estado:
+  const [showCategories, setShowCategories] = useState(false); // 👈 nuevo
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showCreateCategoryForm, setShowCreateCategoryForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categorySupplyCounts, setCategorySupplyCounts] = useState({});
 
   const [alertConfig, setAlertConfig] = useState({
     open: false,
@@ -49,17 +71,6 @@ const SuppliesPage = () => {
   };
 
   // ── Filtrado y paginación ──────────────────────────────────────────────────
-  /*const filteredSupplies = supplies.filter((s) => {
-    const text = searchTerm.toLowerCase();
-    return (
-      s.id?.toString().includes(searchTerm) ||
-      s.stock?.toString().includes(searchTerm) ||
-      s.nombre?.toLowerCase().includes(text) ||
-      s.valorMedida?.toString().includes(searchTerm) ||
-      getCategoriaNombre(s.categoriaId)?.toLowerCase().includes(text) ||
-      getMedidaNombre(s.medidaId)?.toLowerCase().includes(text)
-    );
-  });*/
   const filteredSupplies = supplies.filter((s) => {
     const text = searchTerm.toLowerCase();
 
@@ -72,9 +83,9 @@ const SuppliesPage = () => {
       getMedidaNombre(s.medidaId)?.toLowerCase().includes(text);
 
     const coincideEstado =
-      estadoFiltro === "todos" ||
-      (estadoFiltro === "activos" && s.estado) ||
-      (estadoFiltro === "inactivos" && !s.estado);
+      statusFilter === "todos" ||
+      (statusFilter === "activos" && s.estado) ||
+      (statusFilter === "inactivos" && !s.estado);
 
     return coincideBusqueda && coincideEstado;
   });
@@ -104,19 +115,159 @@ const SuppliesPage = () => {
     setEditingSupply(null);
   };
 
-  const handleView = (supply) => setSelectedSupply(supply);
+  const handleCategoryCloseForm = () => {
+    setShowCategoryForm(false);
+    setEditingCategory(null);
+  };
+
+  const handleOpenCreateCategoryForm = () => {
+    setShowCreateCategoryForm(true);
+  };
+
+  const handleCreateCategoryCloseForm = () => {
+    setShowCreateCategoryForm(false);
+  };
+
+  const handleCategoryEdit = (category) => {
+    setEditingCategory(category);
+    setShowCategoryForm(true);
+  };
+
+  // Wrapper for search input: allow special directives to change statusFilter
+  const handleSearchWithState = (term) => {
+    const t = String(term || "").trim();
+    if (!t) {
+      setCurrentPage(1);
+      setStatusFilter("todos");
+      handleSearch("");
+      return;
+    }
+
+    const lower = t.toLowerCase();
+
+    // Accept explicit directives: "estado:activo", "estado=activo", "estado activo"
+    const m = lower.match(/^estado\s*[:= ]\s*(activos?|inactivos?|todos?)$/);
+    if (m) {
+      const val = m[1];
+      if (val.startsWith("activo")) setStatusFilter("activos");
+      else if (val.startsWith("inactivo")) setStatusFilter("inactivos");
+      else setStatusFilter("todos");
+      setCurrentPage(1);
+      // clear the textual search when using directive
+      handleSearch("");
+      return;
+    }
+
+    // Also accept exact shorthand: "activos" or "inactivos"
+    if (lower === "activos" || lower === "activo") {
+      setStatusFilter("activos");
+      setCurrentPage(1);
+      handleSearch("");
+      return;
+    }
+    if (lower === "inactivos" || lower === "inactivo") {
+      setStatusFilter("inactivos");
+      setCurrentPage(1);
+      handleSearch("");
+      return;
+    }
+
+    // Default: normal search (doesn't change statusFilter)
+    setStatusFilter("todos");
+    setCurrentPage(1);
+    handleSearch(term);
+  };
+
+  const loadCategorySupplyCounts = async () => {
+    try {
+      const result = await supplyAPI.getAll({ limit: 1000 });
+      const counts = (result.data || []).reduce((acc, supply) => {
+        const catId = String(supply.categoriaId ?? supply.categoriaId ?? "");
+        if (!catId) return acc;
+        acc[catId] = (acc[catId] || 0) + 1;
+        return acc;
+      }, {});
+      setCategorySupplyCounts(counts);
+    } catch (error) {
+      console.error("Error cargando conteo de insumos por categoría:", error);
+      setCategorySupplyCounts({});
+    }
+  };
+
+  const openCategoriesModal = async () => {
+    await loadCategorySupplyCounts();
+    setShowCategories(true);
+  };
+
+  const handleCategoryDelete = (id) => {
+    const category = categorias.find((c) => c.id === id);
+
+    showAlert(
+      "confirm",
+      "¿Eliminar categoría?",
+      `La categoría "${category?.nombre}" será eliminada permanentemente.`,
+      async () => {
+        closeAlert();
+        try {
+          await deleteCategory(id);
+          showAlert(
+            "success",
+            "Categoría eliminada",
+            `"${category?.nombre}" fue eliminada correctamente.`,
+          );
+        } catch (error) {
+          showAlert(
+            "error",
+            "Error al eliminar",
+            error.message || "No se pudo eliminar la categoría.",
+          );
+        }
+      },
+    );
+  };
+
+  const handleCategorySubmit = async (categoryData) => {
+    try {
+      await updateCategory(editingCategory.id, categoryData);
+      handleCategoryCloseForm();
+      showAlert(
+        "success",
+        "Categoría actualizada",
+        `"${categoryData.nombre}" fue actualizada correctamente.`,
+      );
+    } catch (error) {
+      showAlert(
+        "error",
+        "Error al actualizar",
+        error.message || "No se pudo actualizar la categoría.",
+      );
+    }
+  };
+
+  const handleCreateCategorySubmit = async (categoryData) => {
+    try {
+      await createCategory(categoryData);
+      await refreshCatalogos();
+      handleCreateCategoryCloseForm();
+      showAlert(
+        "success",
+        "Categoría creada",
+        `"${categoryData.nombre}" fue creada correctamente.`,
+      );
+    } catch (error) {
+      showAlert(
+        "error",
+        "Error al crear",
+        error.message || "No se pudo crear la categoría.",
+      );
+    }
+  };
+
+  const handleView = (supply, displayId) =>
+    setSelectedSupply({ ...supply, displayId });
 
   const handleDelete = async (id) => {
     const supply = supplies.find((s) => s.id === id);
-
-    // TODO: validar fichas técnicas enlazadas
-    // Cuando el módulo de fichas esté listo, descomenta:
-    // const fichasEnlazadas = getFichasEnlazadas(id); // ver useSupplies.js
-    // if (fichasEnlazadas > 0) {
-    //   showAlert("error", "No se puede eliminar",
-    //     `"${supply?.nombre}" está enlazado a ${fichasEnlazadas} ficha(s) técnica(s). Desasócialo primero.`);
-    //   return;
-    // }
 
     showAlert(
       "password",
@@ -211,30 +362,97 @@ const SuppliesPage = () => {
     }
   };
 
-  // El SupplyForm maneja su propia alerta de confirmación antes de llamar onCancel
   const handleCancelCreate = () => handleCloseForm();
   const handleCancelEdit = () => handleCloseForm();
 
-  const handleDownload = () => {
-    const csv = [
-      ["id", "Nombre", "Categoría", "Stock"],
-      ...filteredSupplies.map((s) => [
-        s.id,
-        s.nombre,
-        getCategoriaNombre(s.categoriaId),
-        s.stock,
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
+  const getExportData = () =>
+    filteredSupplies.map((s) => ({
+      ID: s.id,
+      Nombre: s.nombre,
+      Categoría: getCategoriaNombre(s.categoriaId) || "",
+      Medida: getMedidaNombre(s.medidaId) || "",
+      "Valor medida": s.valorMedida,
+      Stock: s.stock,
+      Estado: s.estado ? "Activo" : "Inactivo",
+    }));
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "insumos.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadExcel = () => {
+    try {
+      const data = getExportData();
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      worksheet["!cols"] = [
+        { wch: 8 },
+        { wch: 30 },
+        { wch: 18 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 10 },
+        { wch: 12 },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Insumos");
+
+      const fecha = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `insumos_${fecha}.xlsx`);
+      showAlert(
+        "success",
+        "Descarga lista",
+        "El archivo Excel se descargó correctamente.",
+      );
+    } catch (error) {
+      console.error("Error exportando Excel:", error);
+      showAlert("error", "Error", "No se pudo descargar el archivo Excel.");
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    try {
+      const data = getExportData();
+      const doc = new jsPDF({ orientation: "landscape" });
+      const fecha = new Date().toISOString().split("T")[0];
+
+      doc.setFontSize(16);
+      doc.text("Reporte de insumos", 14, 16);
+
+      autoTable(doc, {
+        startY: 22,
+        head: [
+          [
+            "ID",
+            "Nombre",
+            "Categoría",
+            "Medida",
+            "Valor medida",
+            "Stock",
+            "Estado",
+          ],
+        ],
+        body: data.map((item) => [
+          item.ID,
+          item.Nombre,
+          item.Categoría,
+          item.Medida,
+          item["Valor medida"],
+          item.Stock,
+          item.Estado,
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [255, 79, 214], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        margin: { left: 14, right: 14 },
+      });
+
+      doc.save(`insumos_${fecha}.pdf`);
+      showAlert(
+        "success",
+        "Descarga lista",
+        "El archivo PDF se descargó correctamente.",
+      );
+    } catch (error) {
+      console.error("Error exportando PDF:", error);
+      showAlert("error", "Error", "No se pudo descargar el archivo PDF.");
+    }
   };
 
   // ── Paginación visual ──────────────────────────────────────────────────────
@@ -269,7 +487,6 @@ const SuppliesPage = () => {
       style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
     >
       {/* HEADER */}
-
       <div
         style={{
           display: "flex",
@@ -288,98 +505,338 @@ const SuppliesPage = () => {
         >
           Insumos
         </h1>
-        <SupplySearch value={searchTerm} onChange={handleSearch} />
+        <SupplySearch
+          value={searchTerm}
+          onChange={handleSearchWithState}
+          helpText="Escribe activo o inactivo para filtrar por estado. Deja vacío para ver todos."
+          suggestions={searchSuggestions}
+        />
       </div>
 
-        <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    background: "#fff",
-    padding: "12px 20px",
-    borderRadius: "10px",
-    marginBottom: "20px",
-    alignItems: "center",
-  }}
->
-  {/* IZQUIERDA */}
-  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-    
-    {/* BOTÓN EXPORTAR */}
-    <button
-      onClick={handleDownload}
-      title="Exportar insumos"
-      style={{
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        color: "#555",
-        display: "flex",
-        alignItems: "center",
-        padding: "4px",
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
-      onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
-    >
-      <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      {/* BARRA DE HERRAMIENTAS */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          background: "#fff",
+          padding: "12px 20px",
+          borderRadius: "10px",
+          marginBottom: "20px",
+          alignItems: "center",
+        }}
+      >
+        {/* IZQUIERDA */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* BOTÓN EXPORTAR (abre modal de elección) */}
+          <button
+            onClick={() => setShowDownloadModal(true)}
+            title="Exportar insumos"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#555",
+              display: "flex",
+              alignItems: "center",
+              padding: "4px",
+              gap: "6px",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
           >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        </button>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar
+          </button>
 
-    {/* CHIPS */}
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-  <label style={{ fontSize: "13px", color: "#555" }}>
-    Estado:
-  </label>
+          {/* BOTÓN CATEGORÍAS 👈 nuevo */}
+          <button
+            onClick={openCategoriesModal}
+            title="Ver categorías de insumos"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#555",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 8px",
+              borderRadius: "6px",
+              fontSize: "13px",
+              fontWeight: 500,
+              transition: "color 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#E91E8C";
+              e.currentTarget.style.background = "#fdf5fb";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#555";
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            {/* Icono tag/categoría */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+            Categorías
+            {/* Badge con conteo */}
+            {categorias?.length > 0 && (
+              <span
+                style={{
+                  background: "#FF4FD6",
+                  color: "#fff",
+                  borderRadius: "999px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  padding: "1px 6px",
+                  lineHeight: "1.5",
+                }}
+              >
+                {categorias.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-  <select
-    value={estadoFiltro}
-    onChange={(e) => {
-      setEstadoFiltro(e.target.value);
-      setCurrentPage(1); // reset paginación
-    }}
-    style={{
-      padding: "6px 10px",
-      borderRadius: "6px",
-      border: "1px solid #ddd",
-      fontSize: "13px",
-      cursor: "pointer",
-      outline: "none",
-    }}
-  >
-    <option value="todos">Todos</option>
-    <option value="activos">Activos</option>
-    <option value="inactivos">Inactivos</option>
-  </select>
-</div>
-  </div>
+        {/* DERECHA */}
+        <AddSupplyButton onClick={handleAddSupply} />
+      </div>
 
-  {/* DERECHA */}
-  <AddSupplyButton onClick={handleAddSupply} />
-</div>
-
-      
       {/* TABLA */}
       <SupplyTable
         supplies={paginatedSupplies}
         getCategoriaNombre={getCategoriaNombre}
         getMedidaNombre={getMedidaNombre}
         onView={handleView}
+        startIndex={startIndex}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggle={handleToggle}
       />
+
+      {/* MODAL CATEGORÍAS 👈 nuevo */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "420px",
+              padding: "24px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  color: "#111827",
+                }}
+              >
+                Descargar insumos
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDownloadModal(false)}
+                style={{
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  color: "#9ca3af",
+                  fontSize: "20px",
+                }}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <p
+              style={{ margin: "0 0 18px", color: "#6b7280", fontSize: "14px" }}
+            >
+              Elige el formato para exportar la lista actual.
+            </p>
+            <div style={{ display: "grid", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  handleDownloadExcel();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  background: "#f9fafb",
+                  padding: "12px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    background: "#e8f5ee",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#15803d",
+                    fontWeight: 700,
+                  }}
+                >
+                  X
+                </span>
+                <span>
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#111827",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Excel
+                  </strong>
+                  <small style={{ color: "#6b7280" }}>
+                    Compatible con Excel y Google Sheets
+                  </small>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  handleDownloadPDF();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  background: "#f9fafb",
+                  padding: "12px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    background: "#fee2e2",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#b91c1c",
+                    fontWeight: 700,
+                  }}
+                >
+                  P
+                </span>
+                <span>
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#111827",
+                      fontSize: "14px",
+                    }}
+                  >
+                    PDF
+                  </strong>
+                  <small style={{ color: "#6b7280" }}>
+                    Versión lista para imprimir o compartir
+                  </small>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCategories && (
+        <SupplyCategoriesModal
+          categorias={categorias}
+          supplyCounts={categorySupplyCounts}
+          onEdit={handleCategoryEdit}
+          onDelete={handleCategoryDelete}
+          onClose={() => setShowCategories(false)}
+        />
+      )}
+
+      {showCategoryForm && editingCategory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-8">
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "520px",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
+            }}
+          >
+            <CategoryForm
+              category={editingCategory}
+              onSubmit={handleCategorySubmit}
+              onCancel={handleCategoryCloseForm}
+            />
+          </div>
+        </div>
+      )}
+
+      {showCreateCategoryForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-8">
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "520px",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
+            }}
+          >
+            <CategoryForm
+              onSubmit={handleCreateCategorySubmit}
+              onCancel={handleCreateCategoryCloseForm}
+            />
+          </div>
+        </div>
+      )}
 
       {/* MODAL CREAR */}
       {showCreateForm && (
@@ -390,6 +847,7 @@ const SuppliesPage = () => {
             propiedades={propiedades}
             onSubmit={handleCreateSubmit}
             onCancel={handleCancelCreate}
+            onCreateCategory={handleOpenCreateCategoryForm}
           />
         </div>
       )}
@@ -404,6 +862,7 @@ const SuppliesPage = () => {
             propiedades={propiedades}
             onSubmit={handleEditSubmit}
             onCancel={handleCancelEdit}
+            onCreateCategory={handleOpenCreateCategoryForm}
           />
         </div>
       )}

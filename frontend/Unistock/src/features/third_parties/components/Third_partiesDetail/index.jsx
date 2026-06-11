@@ -158,53 +158,84 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
 
       {/* ── PESTAÑA PRODUCCIONES ── */}
       {tab === 'prod' && (
-        <div className="tp-prod-table-wrap">
+        <div style={{ marginTop: 16 }}>
           {producciones.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#bbb' }}>
-              <p style={{ fontSize: 13 }}>No hay producciones asociadas</p>
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" strokeWidth="1.5" strokeLinecap="round" style={{ margin: '0 auto 10px', display: 'block' }}>
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+              </svg>
+              <p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>Sin producciones asociadas</p>
             </div>
           ) : (
-            <table className="tp-prod-table">
-              <thead>
-                <tr>
-                  <th className="tp-prod-th">Orden</th>
-                  <th className="tp-prod-th">Fecha</th>
-                  <th className="tp-prod-th">Ver</th>
-                </tr>
-              </thead>
-              <tbody>
-                {producciones.map((prod, i) => (
-                  <tr key={i}>
-                    <td className="tp-prod-td">
-                      <span style={{ fontWeight: 700, color: '#FF4FD6', fontSize: 13 }}>
-                        #{prod.orden || prod.orderNumber}
-                      </span>
-                    </td>
-                    <td className="tp-prod-td">{prod.fecha || '—'}</td>
-                    <td className="tp-prod-td">
-                      {prod.produccionId && (
-                        <button
-                          onClick={() => navigate(`/layout/produccion/detalle/${prod.produccionId}`)}
-                          style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#FF4FD6', fontSize: 12, fontWeight: 600,
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '4px 0',
-                            fontFamily: 'inherit',
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                          </svg>
-                          Ver
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Resumen total */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#fdf4ff', borderRadius: 10, border: '1px solid #f5d0fe', marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#9333ea', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {producciones.length} orden{producciones.length !== 1 ? 'es' : ''} asignada{producciones.length !== 1 ? 's' : ''}
+                </span>
+                {producciones.some(p => p.cantidad) && (
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#FF4FD6' }}>
+                    Total: {producciones.reduce((s, p) => s + (Number(p.cantidad) || 0), 0).toLocaleString('es-CO')} uds
+                  </span>
+                )}
+              </div>
+
+              {/* Cards por orden */}
+              {producciones.map((prod, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 14px', borderRadius: 12,
+                  background: '#fff', border: '1.5px solid #f3e8ff',
+                  gap: 8,
+                }}>
+                  {/* Número de orden */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#fdf4ff,#f5d0fe)', border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2.2" strokeLinecap="round">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                      </svg>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#FF4FD6' }}>
+                        Orden #{prod.orden || prod.orderNumber || '—'}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>{prod.fecha || '—'}</p>
+                    </div>
+                  </div>
+
+                  {/* Cantidad */}
+                  {prod.cantidad ? (
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#7c3aed' }}>
+                        {Number(prod.cantidad).toLocaleString('es-CO')}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>uds</p>
+                    </div>
+                  ) : null}
+
+                  {/* Botón ver */}
+                  {prod.produccionId && (
+                    <button
+                      onClick={() => navigate(`/layout/produccion/detalle/${prod.produccionId}`)}
+                      style={{
+                        flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+                        background: '#fdf4ff', border: '1px solid #e9d5ff',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                      title="Ver detalle de producción"
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f5d0fe'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#fdf4ff'; }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2.2" strokeLinecap="round">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

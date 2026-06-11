@@ -1,22 +1,31 @@
 // supplies/components/pages/SupplyDetail.jsx
 import React from "react";
 
-const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [], onClose }) => {
+const SupplyDetail = ({
+  supply,
+  medidas = [],
+  propiedades = [],
+  categorias = [],
+  onClose,
+}) => {
   if (!supply) return null;
 
   // Encontrar nombres de categoría y medida
-  const categoriaNombre = categorias.find(c => c.id === supply.categoriaId)?.nombre || "Sin categoría";
-  const medidaNombre = medidas.find(m => m.id === supply.medidaId)?.nombre || "Sin medida";
+  const categoriaNombre =
+    categorias.find((c) => c.id === supply.categoriaId)?.nombre ||
+    "Sin categoría";
+  const medidaNombre =
+    medidas.find((m) => m.id === supply.medidaId)?.nombre || "Sin medida";
 
   // Formatear fecha si existe
   const formatDate = (dateString) => {
     if (!dateString) return "No disponible";
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -53,7 +62,6 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
         {/* Header con gradiente */}
         <div
           style={{
-            
             padding: "24px",
             display: "flex",
             justifyContent: "space-between",
@@ -99,8 +107,12 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
               transition: "background 0.2s",
               backdropFilter: "blur(4px)",
             }}
-            onMouseEnter={(e) => e.target.style.background = "rgba(255, 255, 255, 0.3)"}
-            onMouseLeave={(e) => e.target.style.background = "rgba(255, 255, 255, 0.2)"}
+            onMouseEnter={(e) =>
+              (e.target.style.background = "rgba(255, 255, 255, 0.3)")
+            }
+            onMouseLeave={(e) =>
+              (e.target.style.background = "rgba(255, 255, 255, 0.2)")
+            }
           >
             ×
           </button>
@@ -154,13 +166,26 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       stroke="#ddd"
                       strokeWidth="1.5"
                     >
-                      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                      <rect
+                        x="2"
+                        y="2"
+                        width="20"
+                        height="20"
+                        rx="2.18"
+                        ry="2.18"
+                      />
                       <line x1="8" y1="2" x2="8" y2="22" />
                       <line x1="16" y1="2" x2="16" y2="22" />
                       <line x1="2" y1="8" x2="22" y2="8" />
                       <line x1="2" y1="16" x2="22" y2="16" />
                     </svg>
-                    <p style={{ margin: "12px 0 0 0", fontSize: "14px", color: "#999" }}>
+                    <p
+                      style={{
+                        margin: "12px 0 0 0",
+                        fontSize: "14px",
+                        color: "#999",
+                      }}
+                    >
                       Sin imagen
                     </p>
                   </div>
@@ -177,19 +202,36 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                     textAlign: "center",
                   }}
                 >
-                  <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: "#666",
+                      marginBottom: "4px",
+                    }}
+                  >
                     Stock actual
                   </div>
                   <div
                     style={{
                       fontSize: "32px",
                       fontWeight: "600",
-                      color: supply.stock > 10 ? "#10b981" : supply.stock > 0 ? "#f59e0b" : "#ef4444",
+                      color:
+                        supply.stock > 10
+                          ? "#10b981"
+                          : supply.stock > 0
+                            ? "#f59e0b"
+                            : "#ef4444",
                     }}
                   >
                     {supply.stock || 0}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#999",
+                      marginTop: "4px",
+                    }}
+                  >
                     unidades disponibles
                   </div>
                 </div>
@@ -207,7 +249,13 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                   marginBottom: "24px",
                 }}
               >
-                <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#666",
+                    marginBottom: "4px",
+                  }}
+                >
                   Nombre del insumo
                 </div>
                 <div
@@ -248,15 +296,30 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       marginBottom: "8px",
                     }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ff4fd6"
+                      strokeWidth="2"
+                    >
                       <rect x="3" y="3" width="8" height="8" rx="2" />
                       <rect x="13" y="3" width="8" height="8" rx="2" />
                       <rect x="3" y="13" width="8" height="8" rx="2" />
                       <rect x="13" y="13" width="8" height="8" rx="2" />
                     </svg>
-                    <span style={{ fontSize: "13px", color: "#666" }}>Categoría</span>
+                    <span style={{ fontSize: "13px", color: "#666" }}>
+                      Categoría
+                    </span>
                   </div>
-                  <div style={{ fontSize: "16px", fontWeight: "500", color: "#1a1a1a" }}>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "500",
+                      color: "#1a1a1a",
+                    }}
+                  >
                     {categoriaNombre}
                   </div>
                 </div>
@@ -278,13 +341,28 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       marginBottom: "8px",
                     }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ff4fd6"
+                      strokeWidth="2"
+                    >
                       <path d="M20 7 L9 18 L4 13" />
                       <path d="M17 7 L20 7 L20 10" />
                     </svg>
-                    <span style={{ fontSize: "13px", color: "#666" }}>Medida</span>
+                    <span style={{ fontSize: "13px", color: "#666" }}>
+                      Medida
+                    </span>
                   </div>
-                  <div style={{ fontSize: "16px", fontWeight: "500", color: "#1a1a1a" }}>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "500",
+                      color: "#1a1a1a",
+                    }}
+                  >
                     {medidaNombre}
                   </div>
                 </div>
@@ -306,14 +384,32 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       marginBottom: "8px",
                     }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ff4fd6"
+                      strokeWidth="2"
+                    >
                       <circle cx="12" cy="12" r="10" />
                       <path d="M12 6 L12 12 L16 14" />
                     </svg>
-                    <span style={{ fontSize: "13px", color: "#666" }}>Valor medida</span>
+                    <span style={{ fontSize: "13px", color: "#666" }}>
+                      Valor medida
+                    </span>
                   </div>
-                  <div style={{ fontSize: "16px", fontWeight: "500", color: "#1a1a1a" }}>
-                    {supply.valorMedida || 0} <span style={{ fontSize: "13px", color: "#666" }}>unidades</span>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "500",
+                      color: "#1a1a1a",
+                    }}
+                  >
+                    {supply.valorMedida || 0}{" "}
+                    <span style={{ fontSize: "13px", color: "#666" }}>
+                      unidades
+                    </span>
                   </div>
                 </div>
 
@@ -334,14 +430,28 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       marginBottom: "8px",
                     }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ff4fd6"
+                      strokeWidth="2"
+                    >
                       <circle cx="12" cy="8" r="4" />
                       <path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2" />
                     </svg>
                     <span style={{ fontSize: "13px", color: "#666" }}>ID</span>
                   </div>
-                  <div style={{ fontSize: "14px", fontWeight: "400", color: "#666", fontFamily: "monospace" }}>
-                    #{supply.id || "N/A"}
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "400",
+                      color: "#666",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    #{supply.displayId || supply.id || "N/A"}
                   </div>
                 </div>
               </div>
@@ -359,7 +469,14 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                     gap: "8px",
                   }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ff4fd6"
+                    strokeWidth="2"
+                  >
                     <path d="M20 7 L9 18 L4 13" />
                   </svg>
                   Propiedades del insumo
@@ -385,7 +502,9 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       overflow: "hidden",
                     }}
                   >
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
                       <thead>
                         <tr style={{ backgroundColor: "#fdf0f7" }}>
                           <th
@@ -416,16 +535,35 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                       </thead>
                       <tbody>
                         {supply.propiedades.map((prop, index) => {
-                          const propData = propiedades.find(p => p.id === prop.propiedadId);
+                          const propData = propiedades.find(
+                            (p) =>
+                              String(p.id) ===
+                              String(prop.propiedadId || prop.clave || prop.id),
+                          );
+                          const propLabel =
+                            prop.label ||
+                            prop.nombre ||
+                            prop.clave ||
+                            propData?.label ||
+                            propData?.nombre ||
+                            propData?.clave ||
+                            `Propiedad ${index + 1}`;
                           return (
                             <tr
                               key={prop.propiedadId}
                               style={{
-                                backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa",
+                                backgroundColor:
+                                  index % 2 === 0 ? "#fff" : "#fafafa",
                                 transition: "background 0.2s",
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#fff0f7"}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? "#fff" : "#fafafa"}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "#fff0f7")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  index % 2 === 0 ? "#fff" : "#fafafa")
+                              }
                             >
                               <td
                                 style={{
@@ -433,17 +571,23 @@ const SupplyDetail = ({ supply, medidas = [], propiedades = [], categorias = [],
                                   fontSize: "14px",
                                   color: "#1a1a1a",
                                   fontWeight: "500",
-                                  borderBottom: index < supply.propiedades.length - 1 ? "1px solid #e5e7eb" : "none",
+                                  borderBottom:
+                                    index < supply.propiedades.length - 1
+                                      ? "1px solid #e5e7eb"
+                                      : "none",
                                 }}
                               >
-                                {propData?.nombre || `Propiedad ID: ${prop.propiedadId}`}
+                                {propLabel}
                               </td>
                               <td
                                 style={{
                                   padding: "12px 16px",
                                   fontSize: "14px",
                                   color: "#666",
-                                  borderBottom: index < supply.propiedades.length - 1 ? "1px solid #e5e7eb" : "none",
+                                  borderBottom:
+                                    index < supply.propiedades.length - 1
+                                      ? "1px solid #e5e7eb"
+                                      : "none",
                                 }}
                               >
                                 {prop.valor}

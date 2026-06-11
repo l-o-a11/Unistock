@@ -174,6 +174,7 @@ export const useSupplies = (initialFilters = {}) => {
     goToPage,
     applyFilters,
     refreshSupplies: loadData,
+    refreshCatalogos: loadCatalogos,
     // Helpers
     getSupplyById,
     getCategoriaNombre,

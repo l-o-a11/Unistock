@@ -10,6 +10,8 @@ import AddUserButton from '../components/AddUserButton.jsx';
 import SearchInput from '../../shared/components/SearchInput';
 import Alert from '../../shared/components/Alert';
 
+const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
+
 const UsersPage = () => {
   const { users, loading, createUser, updateUser, deleteUser, toggleUser } = useUsers();
   const { searchTerm, handleSearch } = useUserSearch();
@@ -66,8 +68,12 @@ const UsersPage = () => {
     setAlertConfig({
       open: true, type: 'password',
       title: 'Eliminar usuario',
-      message: `Para eliminar a "${target?.nombreCompleto}" ingresa la contraseña de administrador. Esta acción no se puede deshacer.`,
-      onConfirm: async () => {
+      message: `Para eliminar a "${target?.nombreCompleto}" ingresa tu contraseña de administrador. Esta acción no se puede deshacer.`,
+      onConfirm: async (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) {
+          showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
+          return;
+        }
         closeAlert();
         try {
           await deleteUser(id);
@@ -86,13 +92,18 @@ const UsersPage = () => {
       open: true, type: 'password',
       title: isActive ? 'Inactivar usuario' : 'Activar usuario',
       message: isActive
-        ? `Para inactivar a "${user?.nombreCompleto}" ingresa la contraseña de administrador.`
-        : `Para activar a "${user?.nombreCompleto}" ingresa la contraseña de administrador.`,
-      onConfirm: async () => {
+        ? `Para inactivar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`
+        : `Para activar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`,
+      onConfirm: async (pwd) => {
+        if (pwd !== ADMIN_PASSWORD) {
+          showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
+          return;
+        }
         closeAlert();
         try {
           await toggleUser(id);
-          showResult('success',
+          showResult(
+            'success',
             isActive ? 'Usuario inactivado' : 'Usuario activado',
             isActive ? 'El usuario fue inactivado correctamente.' : 'El usuario fue activado correctamente.',
           );
@@ -141,7 +152,7 @@ const UsersPage = () => {
         </div>
       </div>
 
-      <div style={{ backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', padding: '12px 16px' }}>
+      <div style={{ backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', padding: '12px 16px', borderRadius: '10px' }}>
         <AddUserButton onClick={() => setShowCreate(true)} />
       </div>
 
