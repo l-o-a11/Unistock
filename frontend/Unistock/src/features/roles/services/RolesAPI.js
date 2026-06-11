@@ -15,26 +15,26 @@ import httpClient from "../../shared/utils/httpClient";
 // ── Catálogos locales ─────────────────────────────────────────────────────────
 // Nombres exactos del seed. Los IDs son locales al frontend (no son ObjectIds).
 export const MODULOS_PREDETERMINADOS = [
-  { id: 1,  nombre: "usuarios"               },
-  { id: 2,  nombre: "dashboard"              },
-  { id: 3,  nombre: "empleados"              },
-  { id: 4,  nombre: "roles"                  },
-  { id: 5,  nombre: "compras"                },
-  { id: 6,  nombre: "insumos"                },
-  { id: 7,  nombre: "categorias de insumos"  },
-  { id: 8,  nombre: "produccion"             },
-  { id: 9,  nombre: "proveedores"            },
-  { id: 10, nombre: "terceros"               },
-  { id: 11, nombre: "sedes"                  },
-  { id: 12, nombre: "productos"              },
-  { id: 13, nombre: "categorias de productos"},
+  { id: 1, nombre: "usuarios" },
+  { id: 2, nombre: "dashboard" },
+  { id: 3, nombre: "empleados" },
+  { id: 4, nombre: "roles" },
+  { id: 5, nombre: "compras" },
+  { id: 6, nombre: "insumos" },
+  { id: 7, nombre: "categorias de insumos" },
+  { id: 8, nombre: "produccion" },
+  { id: 9, nombre: "proveedores" },
+  { id: 10, nombre: "terceros" },
+  { id: 11, nombre: "sedes" },
+  { id: 12, nombre: "productos" },
+  { id: 13, nombre: "categorias de productos" },
 ];
 
 export const PRIVILEGIOS_PREDETERMINADOS = [
-  { id: 1, nombre: "Leer",       key: "leer"       },
-  { id: 2, nombre: "Crear",      key: "crear"      },
+  { id: 1, nombre: "Leer", key: "leer" },
+  { id: 2, nombre: "Crear", key: "crear" },
   { id: 3, nombre: "Actualizar", key: "actualizar" },
-  { id: 4, nombre: "Eliminar",   key: "eliminar"   },
+  { id: 4, nombre: "Eliminar", key: "eliminar" },
 ];
 
 // ── Backend → Frontend ────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ const permisosBackToFront = (permisos = []) =>
             typeof priv === "object" ? (priv.nombre ?? "") : (priv ?? "");
           return PRIVILEGIOS_PREDETERMINADOS.find(
             (pr) =>
-              pr.key.toLowerCase()    === nombre.toLowerCase() ||
+              pr.key.toLowerCase() === nombre.toLowerCase() ||
               pr.nombre.toLowerCase() === nombre.toLowerCase()
           )?.id;
         })
@@ -86,7 +86,7 @@ const permisosFrontToBack = (modulos = []) =>
         .filter(Boolean);
 
       return {
-        modulo:      modulo.nombre, // string directo que acepta el validador del backend
+        modulo: modulo.nombre, // string directo que acepta el validador del backend
         privilegios,                // array de strings
       };
     })
@@ -96,11 +96,11 @@ const permisosFrontToBack = (modulos = []) =>
 // backend:  { id, nombre, descripcion, estado, permisos }
 // frontend: { id, nombre, descripcion, estado, modulos }
 const normalizeRol = (rol) => ({
-  id:          String(rol.id ?? rol._id ?? ""),
-  nombre:      rol.nombre      ?? "",
+  id: String(rol.id ?? rol._id ?? ""),
+  nombre: rol.nombre ?? "",
   descripcion: rol.descripcion ?? "",
-  estado:      rol.estado      ?? true,
-  modulos:     permisosBackToFront(rol.permisos ?? []),
+  estado: rol.estado ?? true,
+  modulos: permisosBackToFront(rol.permisos ?? []),
 });
 
 // ── API pública ───────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ export const RolesAPI = {
       Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
     const result = await httpClient.get(`/roles${qs ? `?${qs}` : ""}`);
-    const lista  = Array.isArray(result) ? result : (result?.data ?? []);
+    const lista = Array.isArray(result) ? result : (result?.data ?? []);
     return lista.map(normalizeRol);
   },
 
@@ -130,44 +130,66 @@ export const RolesAPI = {
   // POST /api/roles
   create: async (rolData) => {
     const body = {
-      nombre:      rolData.nombre,
+      nombre: rolData.nombre,
       descripcion: rolData.descripcion,
-      estado:      rolData.estado ?? true,
-      permisos:    permisosFrontToBack(rolData.modulos ?? []),
+      estado: rolData.estado ?? true,
+      permisos: permisosFrontToBack(rolData.modulos ?? []),
     };
     const result = await httpClient.post("/roles", body);
-    const rol    = result?.data ?? result;
+    const rol = result?.data ?? result;
     return normalizeRol(rol);
   },
 
   // PUT /api/roles/:id
   update: async (id, rolData) => {
     const body = {
-      ...(rolData.nombre      !== undefined && { nombre:      rolData.nombre }),
+      ...(rolData.nombre !== undefined && { nombre: rolData.nombre }),
       ...(rolData.descripcion !== undefined && { descripcion: rolData.descripcion }),
-      ...(rolData.estado      !== undefined && { estado:      rolData.estado }),
-      ...(rolData.modulos     !== undefined && {
+      ...(rolData.estado !== undefined && { estado: rolData.estado }),
+      ...(rolData.modulos !== undefined && {
         permisos: permisosFrontToBack(rolData.modulos),
       }),
     };
     const result = await httpClient.put(`/roles/${id}`, body);
-    const rol    = result?.data ?? result;
+    const rol = result?.data ?? result;
     return normalizeRol(rol);
   },
 
   // DELETE /api/roles/:id
-  delete: async (id) => {
-    return httpClient.delete(`/roles/${id}`);
+  delete: async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para eliminar el rol.");
+    }
+    try {
+      return await httpClient.delete(`/roles/${id}`, {
+        body: { password: managerPassword },
+      });
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error("Contraseña del gerente incorrecta.");
+      throw err;
+    }
   },
 
   // PATCH /api/roles/:id/toggle
-  toggle: async (id) => {
-    const result = await httpClient.patch(`/roles/${id}/toggle`);
-    const rol    = result?.data ?? result;
-    return normalizeRol(rol);
+  toggle: async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para cambiar el estado del rol.");
+    }
+    try {
+      const result = await httpClient.patch(`/roles/${id}/toggle`, {
+        password: managerPassword,
+      });
+      const rol = result?.data ?? result;
+      return normalizeRol(rol);
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error("Contraseña del gerente incorrecta.");
+      throw err;
+    }
   },
 
   // Catálogos locales (sin petición extra al servidor)
-  getModulos:     async () => [...MODULOS_PREDETERMINADOS],
+  getModulos: async () => [...MODULOS_PREDETERMINADOS],
   getPrivilegios: async () => [...PRIVILEGIOS_PREDETERMINADOS],
 };

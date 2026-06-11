@@ -7,15 +7,13 @@ import AddSupplyButton from "../components/AddSupplyButton";
 import SupplyForm from "../components/SupplyForm";
 import SupplyDetail from "../components/SupplyDetail";
 import Alert from "../../shared/components/Alert";
-import SupplyCategoriesModal from "../components/SupplyCategoriesModal"; // 👈 nuevo
+import SupplyCategoriesModal from "../components/SupplyCategoriesModal";
 import CategoryForm from "../../categoriesSupply/components/CategoryForm";
 import { useCategories } from "../../categoriesSupply/hooks/useCategories";
 import { supplyAPI } from "../services/supplyAPI";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
-const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
 const SuppliesPage = () => {
   const {
@@ -274,26 +272,19 @@ const SuppliesPage = () => {
       "¿Eliminar insumo?",
       `Para eliminar "${supply?.nombre}" confirma tu contraseña de administrador.`,
       async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
-          showAlert(
-            "error",
-            "Contraseña incorrecta",
-            "Verifica tu contraseña e intenta nuevamente.",
-          );
-          return;
-        }
         try {
-          await deleteSupply(id);
+          await deleteSupply(id, pwd);
           showAlert(
             "success",
             "Insumo eliminado",
             `"${supply?.nombre}" fue eliminado correctamente.`,
           );
-        } catch {
+        } catch (error) {
           showAlert(
             "error",
             "Error",
-            "No se pudo eliminar el insumo. Intenta nuevamente.",
+            error.message ||
+              "No se pudo eliminar el insumo. Intenta nuevamente.",
           );
         }
       },
@@ -307,21 +298,22 @@ const SuppliesPage = () => {
       "password",
       `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} insumo?`,
       `Para ${accion} "${supply?.nombre}" confirma tu contraseña de administrador.`,
-      (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
+      async (pwd) => {
+        try {
+          await toggleSupply(id, pwd);
+          showAlert(
+            "success",
+            `Insumo ${accion === "activar" ? "activado" : "inactivado"}`,
+            `"${supply?.nombre}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`,
+          );
+        } catch (error) {
           showAlert(
             "error",
-            "Contraseña incorrecta",
-            "Verifica tu contraseña e intenta nuevamente.",
+            "Error",
+            error.message ||
+              "No se pudo cambiar el estado del insumo. Intenta nuevamente.",
           );
-          return;
         }
-        toggleSupply(id);
-        showAlert(
-          "success",
-          `Insumo ${accion === "activar" ? "activado" : "inactivado"}`,
-          `"${supply?.nombre}" fue ${accion === "activar" ? "activado" : "inactivado"} correctamente.`,
-        );
       },
     );
   };
