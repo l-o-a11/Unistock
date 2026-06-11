@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useProductCategories } from '../hooks/useProductCategories';
 import Alert from '../../shared/components/Alert';
+import { AuthAPI } from '../../auth/services/AuthAPI';
 import ProductCategoryTable from '../components/ProductCategoryTable';
 import ProductCategorySearch from '../components/ProductCategorySearch';
 import ProductCategoryForm from '../components/ProductCategoryForm';
@@ -191,8 +192,9 @@ const ProductCategoriesPage = () => {
     });
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (password) => {
     try {
+      await AuthAPI.verifyPassword(password);
       await deleteProductCategory(deleteAlert.productCategoryId);
 
       setDeleteAlert({
@@ -208,18 +210,22 @@ const ProductCategoriesPage = () => {
       });
 
     } catch (error) {
+      const isInvalidPassword = error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
 
       handleShowAlert({
         type: "error",
-        title: "Error",
-        message: error.message
+        title: isInvalidPassword ? "Contraseña incorrecta" : "Error",
+        message: isInvalidPassword
+          ? "La contraseña no coincide con tu usuario actual."
+          : error.message
       });
 
-      setDeleteAlert({
-        open: false,
-        step: "confirm",
+      setDeleteAlert((prev) => ({
+        ...prev,
+        open: isInvalidPassword,
+        step: isInvalidPassword ? "password" : "confirm",
         key: Date.now()
-      });
+      }));
     }
   };
 

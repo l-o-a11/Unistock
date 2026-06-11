@@ -118,9 +118,11 @@ const categoryNameFromId = (categoryId, categories = []) => {
 const toUiCategory = (raw) => {
   if (!raw) return raw;
   return {
-    id: raw.id ?? raw._id ?? raw.id_categoria_producto ?? raw.id_categorias ?? raw.id_categoria,
-    _id: raw._id,
-    name: raw.name ?? raw.nombre ?? raw.categoryName ?? raw.nombre_categoria ?? "",
+    id:          raw.id ?? raw._id ?? raw.id_categoria_producto ?? raw.id_categorias ?? raw.id_categoria,
+    _id:         raw._id,
+    name:        raw.name        ?? raw.nombre        ?? raw.categoryName    ?? raw.nombre_categoria ?? "",
+    description: raw.description ?? raw.descripcion   ?? raw.descripciones  ?? "",
+    icon:        raw.icon        ?? raw.icono         ?? "",
   };
 };
 
@@ -182,23 +184,31 @@ const sheetItemsToMaterials = (sheetData = {}) => {
 
   return materials;
 };
+
+// ✅ CORREGIDO: ahora mapea todos los campos incluyendo
+// ref, measurements, responsable y sus aliases
 const toUiSheet = (raw) => {
   if (!raw) return raw;
+  const responsable = raw.responsable ?? raw.createdBy ?? raw.client ?? "Sin responsable";
   return {
-    id: raw.id ?? raw._id,
-    productId: raw.productId ?? raw.id_producto ?? raw.id_productos,
-    version: raw.version ?? raw.versiones ?? 1,
-    date: toDateString(raw.date ?? raw.fecha_inicio ?? raw.createdAt) ?? new Date().toISOString().split("T")[0],
-    client: raw.client ?? raw.responsable ?? raw.createdBy ?? "",
-    type: raw.type ?? "Ficha tecnica",
-    description: raw.description ?? raw.descripcion ?? raw.descripciones ?? "",
-    fabrics: raw.fabrics ?? [],
-    cups: raw.cups ?? [],
-    closures: raw.closures ?? [],
-    accessories: raw.accessories ?? [],
-    observations: raw.observations ?? "",
-    createdBy: raw.createdBy ?? raw.responsable ?? "",
-    raw,
+    id:            raw.id          ?? raw._id,
+    productId:     raw.productId   ?? raw.id_producto ?? raw.id_productos,
+    version:       raw.version     ?? raw.versiones   ?? 1,
+    date:          toDateString(raw.date ?? raw.fecha_inicio ?? raw.createdAt) ?? new Date().toISOString().split("T")[0],
+    responsable,
+    client:        raw.client      ?? responsable,
+    ref:           raw.ref         ?? raw.reference   ?? "",
+    type:          raw.type        ?? "",
+    description:   raw.description ?? raw.descripcion ?? raw.descripciones ?? "",
+    descripciones: raw.descripciones ?? raw.description ?? raw.descripcion ?? "",
+    observations:  raw.observations ?? raw.observaciones ?? "",
+    createdBy:     raw.createdBy   ?? responsable,
+    image:         raw.image       ?? raw.imagen      ?? null,
+    fabrics:       raw.fabrics     ?? [],
+    cups:          raw.cups        ?? [],
+    closures:      raw.closures    ?? [],
+    accessories:   raw.accessories ?? [],
+    measurements:  raw.measurements ?? [],
   };
 };
 
@@ -298,18 +308,23 @@ const buildProductCreatePayloads = async (productData) => {
     },
   }));
 };
+
 const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
+  // Ignorar el campo raw para no mezclar datos viejos con nuevos
+  const { raw: _raw, ...cleanSheetData } = sheetData;
+  sheetData = cleanSheetData;
   const date = toDateString(sheetData.date) || new Date().toISOString().split("T")[0];
   const version = Number(sheetData.version ?? 1);
-  const description = sheetData.description ?? sheetData.observations ?? sheetData.descripciones ?? sheetData.descripcion ?? "Ficha tecnica";
-  const responsible = sheetData.createdBy ?? sheetData.client ?? sheetData.responsable ?? sheetData.responsible ?? "Sin responsable";
+  // Usar || en vez de ?? para que string vacío "" también active el fallback
+  const description = sheetData.description || sheetData.descripciones || sheetData.descripcion || sheetData.observations || "";
+  const responsible = sheetData.createdBy || sheetData.client || sheetData.responsable || sheetData.responsible || "Sin responsable";
 
   const materials = sheetItemsToMaterials(sheetData);
 
   return [
     {
       id_producto: productId,
-      responsable,
+      responsable: responsible,
       fecha_inicio: date,
       fecha_fin: date,
       versiones: version,
@@ -317,7 +332,7 @@ const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
       client: sheetData.client ?? "",
       ref: sheetData.ref ?? "",
       type: sheetData.type ?? "",
-      description: sheetData.description ?? "",
+      description: sheetData.description || "",
       observations: sheetData.observations ?? "",
       createdBy: sheetData.createdBy ?? "",
       image: sheetData.image ?? null,
@@ -409,6 +424,22 @@ export const productAPI = {
       created.lastVersionDate = created.technicalSheet?.date ?? created.lastVersionDate;
     }
 
+    // ✅ Si el backend no procesó la ficha técnica, crearla por separado
+    if (!created.technicalSheet && productData.technicalSheet && created.id) {
+      try {
+        const sheet = await productAPI.createTechnicalSheet({
+          ...productData.technicalSheet,
+          productId: created.id,
+          version: 1,
+        });
+        created.technicalSheet = sheet;
+        created.technicalSheetVersions = 1;
+        created.lastVersionDate = sheet?.date ?? created.lastVersionDate;
+      } catch {
+        // No bloquear si falla la ficha
+      }
+    }
+
     return created;
   },
 
@@ -433,12 +464,33 @@ export const productAPI = {
     return unwrapResponse(response);
   },
 
-  toggleActive: async (id) => {
-    const response = await requestEndpointFallback(
-      [`${PRODUCT_ENDPOINTS[0]}/${id}/status`, `${PRODUCT_ENDPOINTS[0]}/${id}/toggle-active`],
-      { method: "PATCH", body: {} }
-    );
-    return toUiProduct(unwrapResponse(response), await getCategories());
+  toggleActive: async (id, nextActive) => {
+    const patchEndpoints = [
+      `${PRODUCT_ENDPOINTS[0]}/${id}/status`,
+      `${PRODUCT_ENDPOINTS[0]}/${id}/toggle-active`,
+    ];
+
+    try {
+      const response = await requestEndpointFallback(patchEndpoints, {
+        method: "PATCH",
+        body: {},
+      });
+      return toUiProduct(unwrapResponse(response), await getCategories());
+    } catch (error) {
+      if (error?.status !== 404 || typeof nextActive !== "boolean") {
+        throw error;
+      }
+
+      const response = await httpRequest(`${PRODUCT_ENDPOINTS[0]}/${id}`, {
+        method: "PUT",
+        body: {
+          estado: nextActive,
+          active: nextActive,
+        },
+      });
+
+      return toUiProduct(unwrapResponse(response), await getCategories());
+    }
   },
 
   getTechnicalSheetVersions: async (productId) => {
@@ -480,8 +532,9 @@ export const productAPI = {
   updateTechnicalSheet: async (productId, sheetData) => {
     const versions = await productAPI.getTechnicalSheetVersions(productId).catch(() => []);
     const current = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
+    const { raw: _raw, id: _id, ...cleanSheetData } = sheetData;
     return productAPI.createTechnicalSheet({
-      ...sheetData,
+      ...cleanSheetData,
       productId,
       version: (current?.version ?? 0) + 1,
     });

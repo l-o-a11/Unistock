@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
-import { Categories } from "../../types/constants";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
 
@@ -11,14 +10,17 @@ const normalizeText = (text) =>
     .toLowerCase()
     .trim();
 
-const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories = Categories, onCreateCategory }) => {
+const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory }) => {
   const [open, setOpen] = useState(false);
   
-  // Filter to only show categories that actually exist (from API)
-  const filteredCategories = categories.filter(cat => {
-    const name = cat.name ?? cat.nombre;
-    // Show category if it has an id (from API) or if it's not from the default Categories list
-    return cat.id || cat._id || (cat.id_categoria_producto);
+  const filteredCategories = categories.filter((cat) => {
+    return Boolean(
+      cat?.id ??
+      cat?._id ??
+      cat?.id_categoria_producto ??
+      cat?.id_categorias ??
+      cat?.id_categoria
+    );
   });
   
   const handleSelect = (catName) => {
@@ -116,7 +118,6 @@ const CategoryDropdown = ({ value, onChange, onBlur, touched, error, categories 
 };
 
 const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
-  // Guardar valores iniciales para comparar
   const initialData = {
     reference: product?.reference || "",
     name: product?.name || "",
@@ -127,7 +128,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   };
 
   const [formData, setFormData] = useState(initialData);
-  const [categories, setCategories] = useState(Categories);
+  const [categories, setCategories] = useState([]);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [errors, setErrors] = useState({
     reference: "",
@@ -138,30 +139,60 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   });
 
   const [touched, setTouched] = useState({});
-  const [technicalSheet, setTechnicalSheet] = useState(product?.technicalSheet || null);
+
+  // ✅ CORREGIDO: estado inicial expande todos los campos con fallback
+  const [technicalSheet, setTechnicalSheet] = useState(() => {
+    if (!product?.technicalSheet) return null;
+    return {
+      client:        product.technicalSheet.client        ?? "",
+      ref:           product.technicalSheet.ref           ?? "",
+      type:          product.technicalSheet.type          ?? "",
+      description:   product.technicalSheet.description   ?? "",
+      descripciones: product.technicalSheet.descripciones ?? "",
+      observations:  product.technicalSheet.observations  ?? "",
+      createdBy:     product.technicalSheet.createdBy     ?? "",
+      responsable:   product.technicalSheet.responsable   ?? "",
+      image:         product.technicalSheet.image         ?? null,
+      date:          product.technicalSheet.date          ?? "",
+      fabrics:       product.technicalSheet.fabrics       ?? [],
+      cups:          product.technicalSheet.cups          ?? [],
+      closures:      product.technicalSheet.closures      ?? [],
+      accessories:   product.technicalSheet.accessories   ?? [],
+      measurements:  product.technicalSheet.measurements  ?? [],
+      id:            product.technicalSheet.id,
+      version:       product.technicalSheet.version,
+    };
+  });
+
   const [currentStep, setCurrentStep] = useState(1);
   const [imagePreview, setImagePreview] = useState(product?.image || null);
-  
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
 
-  const loadCategories = useCallback(async () => {
+  const loadCategories = async () => {
     try {
       const apiCategories = await productCategoryAPI.getAll();
-      if (Array.isArray(apiCategories) && apiCategories.length > 0) {
-        setCategories(apiCategories);
-      }
+      setCategories(Array.isArray(apiCategories) && apiCategories.length > 0 ? apiCategories : []);
     } catch {
-      setCategories(Categories);
+      setCategories([]);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    let cancelled = false;
+    productCategoryAPI.getAll()
+      .then((apiCategories) => {
+        if (!cancelled) {
+          setCategories(Array.isArray(apiCategories) && apiCategories.length > 0 ? apiCategories : []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
-  // Get selected category details
   const getSelectedCategoryDescription = () => {
     const selected = categories.find(cat => 
       (cat.name ?? cat.nombre) === formData.category
@@ -184,9 +215,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     });
   };
 
-  // �Y"� DETECTAR SI HAY CAMBIOS EN EL PRODUCTO
   const hasProductChanges = () => {
-    if (!product) return true; // En creación siempre hay cambios potenciales
+    if (!product) return true;
     return (
       formData.reference !== product.reference ||
       formData.name !== product.name ||
@@ -197,13 +227,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     );
   };
 
-  // �Y"� DETECTAR SI HAY CAMBIOS EN LA FICHA T�?CNICA
   const hasTechnicalSheetChanges = () => {
-    if (!product) return !!technicalSheet; // En creación, hay cambios si existe technicalSheet
+    if (!product) return !!technicalSheet;
     return technicalSheet !== product.technicalSheet;
   };
 
-  // �Y"� VALIDACIONES EN TIEMPO REAL
   const validateReference = (value) => {
     if (!value.trim()) return "La referencia es obligatoria";
     if (value.trim().length < 3) return "La referencia debe tener al menos 3 caracteres";
@@ -234,7 +262,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return "";
   };
 
-  // Validar campo específico y actualizar errores
   const validateField = (name, value) => {
     let error = '';
     if (name === 'reference') error = validateReference(value);
@@ -242,7 +269,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     if (name === 'category') error = validateCategory(value);
     if (name === 'price') error = validatePrice(value);
     if (name === 'stock') error = validateStock(value);
-    
     setErrors(prev => ({ ...prev, [name]: error }));
     return error;
   };
@@ -258,7 +284,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     validateField(field, formData[field]);
   };
 
-  // Validar todos los campos antes de enviar
   const validateForm = () => {
     const referenceError = validateReference(formData.reference);
     const nameError = validateName(formData.name);
@@ -311,8 +336,16 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
   const hasTechnicalSheetMaterials = (sheet) => {
     if (!sheet) return false;
-    return [sheet.fabrics, sheet.cups, sheet.closures, sheet.accessories, sheet.measurements]
-      .some((items) => Array.isArray(items) && items.some(hasAnyValue));
+    // Para fabrics, cups, closures: verificar que tengan items con valores reales
+    const hasRealFabrics = Array.isArray(sheet.fabrics) && sheet.fabrics.some(hasAnyValue);
+    const hasRealCups = Array.isArray(sheet.cups) && sheet.cups.some(hasAnyValue);
+    const hasRealClosures = Array.isArray(sheet.closures) && sheet.closures.some(hasAnyValue);
+    const hasRealMeasurements = Array.isArray(sheet.measurements) && sheet.measurements.some(hasAnyValue);
+    // Para accessories: ignorar los 14 slots vacíos fijos, verificar que algún value tenga dato real
+    const hasRealAccessories = Array.isArray(sheet.accessories) && sheet.accessories.some(
+      (acc) => acc && Array.isArray(acc.values) && acc.values.some((v) => v && String(v).trim() !== "")
+    );
+    return hasRealFabrics || hasRealCups || hasRealClosures || hasRealMeasurements || hasRealAccessories;
   };
 
   const hasTechnicalSheetContent = (sheet) => {
@@ -320,6 +353,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return [sheet.client, sheet.date, sheet.ref, sheet.type, sheet.description, sheet.observations, sheet.createdBy]
       .some(hasAnyValue) || hasTechnicalSheetMaterials(sheet);
   };
+
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     
@@ -329,7 +363,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       return;
     }
     
-    // �Y"� VALIDACI�"N DE FICHA T�?CNICA
     if (!technicalSheet) {
       onShowAlert({
         type: "warning",
@@ -357,7 +390,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
       return;
     }
 
-    // �Y"� VALIDACI�"N DE CAMBIOS (solo para edición)
     if (product) {
       const hasProductChanges_ = hasProductChanges();
       const hasTechnicalSheetChanges_ = hasTechnicalSheetChanges();
@@ -390,10 +422,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     setShowVersions(false);
   };
 
-  // �Y"� TAMBI�?N CAMBIADO A "confirm" PARA CONSISTENCIA
   const handleDeleteVersionClick = () => {
+    const totalVersions = product?.technicalSheetVersions || 1;
+    if (totalVersions <= 1) {
+      onShowAlert({
+        type: "warning",
+        title: "No permitido",
+        message: "No puedes eliminar la única versión de la ficha técnica."
+      });
+      return;
+    }
     onShowConfirm({
-      type: "confirm", // �Y'^ CAMBIADO DE "cancel" A "confirm"
+      type: "confirm",
       title: "Confirmar eliminación",
       message: "¿Seguro que deseas eliminar esta versión?",
       confirmText: "Eliminar",
@@ -414,14 +454,14 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     }
   };
 
+  // ✅ CORREGIDO: fusiona cambios sobre la base anterior
   const handleTechnicalSheetChange = (sheetData) => {
-    setTechnicalSheet(sheetData);
+    setTechnicalSheet(prev => ({ ...prev, ...sheetData }));
   };
 
-  // �Y"� AHORA USA "confirm" PARA EL DISE�'O ORIGINAL (AZUL CON ?)
   const handleCancelClick = useCallback(() => {
     onShowConfirm({
-      type: "confirm", // �Y'^ CAMBIADO DE "cancel" A "confirm"
+      type: "confirm",
       title: "¿Seguro que deseas cancelar?",
       message: "Los cambios no guardados se perderán.",
       confirmText: "Confirmar",
@@ -436,7 +476,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return () => window.removeEventListener("keydown", handleEsc);
   }, [handleCancelClick]);
 
-  // �Y"� ESTILO PARA INPUTS CON ERROR - SOLO BORDE ROSA, SIN FONDO
   const getInputStyle = (field) => {
     const baseStyle = {
       width: "100%",
@@ -459,7 +498,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     return baseStyle;
   };
 
-  // �Y"� ESTILO PARA MENSAJES DE ERROR EN NEGRITA
   const errorStyle = {
     color: "#ff4fd6",
     fontSize: "11px",
@@ -510,7 +548,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     cursor: "pointer",
   };
 
-  // Verificar si hay campos inválidos
   const hasInvalidFields = () => {
     return errors.reference || errors.name || errors.category || errors.price || errors.stock;
   };
@@ -527,7 +564,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
             <div style={{ flex: 2 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <tbody>
-                  {/* Referencia */}
                   <tr>
                     <td style={headerCellStyle}>Referencia:</td>
                     <td style={cellStyle} colSpan={5}>
@@ -544,14 +580,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.reference || formData.reference) && errors.reference && (
-                        <span style={errorStyle}>
-                          {errors.reference}
-                        </span>
+                        <span style={errorStyle}>{errors.reference}</span>
                       )}
                     </td>
                   </tr>
 
-                  {/* Nombre */}
                   <tr>
                     <td style={headerCellStyle}>Nombre:</td>
                     <td style={cellStyle} colSpan={5}>
@@ -567,14 +600,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.name || formData.name) && errors.name && (
-                        <span style={errorStyle}>
-                          {errors.name}
-                        </span>
+                        <span style={errorStyle}>{errors.name}</span>
                       )}
                     </td>
                   </tr>
 
-                  {/* Categoría */}
                   <tr>
                     <td style={headerCellStyle}>Categoria:</td>
                     <td style={cellStyle} colSpan={5}>
@@ -586,7 +616,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                             setTouched((prev) => ({ ...prev, category: true }));
                             setErrors((prev) => ({ ...prev, category: validateCategory(val) }));
                           }}
-                          onBlur={() => handleBlur("category")}
                           touched={touched.category}
                           error={errors.category}
                           categories={categories}
@@ -595,14 +624,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.category || formData.category) && errors.category && (
-                        <span style={errorStyle}>
-                          {errors.category}
-                        </span>
+                        <span style={errorStyle}>{errors.category}</span>
                       )}
                     </td>
                   </tr>
 
-                  {/* Precio y Stock */}
                   <tr>
                     <td style={headerCellStyle}>Precio:</td>
                     <td style={cellStyle}>
@@ -620,9 +646,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.price || formData.price) && errors.price && (
-                        <span style={errorStyle}>
-                          {errors.price}
-                        </span>
+                        <span style={errorStyle}>{errors.price}</span>
                       )}
                     </td>
                     <td style={headerCellStyle}>Stock:</td>
@@ -641,9 +665,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                         {requiredStar}
                       </div>
                       {(touched.stock || formData.stock) && errors.stock && (
-                        <span style={errorStyle}>
-                          {errors.stock}
-                        </span>
+                        <span style={errorStyle}>{errors.stock}</span>
                       )}
                     </td>
                   </tr>
@@ -747,7 +769,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                     });
                   }
                 }}
-                // disabled={hasInvalidFields()}  // �Y'^ ELIMINADO PARA QUE EL ONCLICK FUNCIONE
               >
                 {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
               </button>
@@ -820,12 +841,14 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
           )}
 
           <TechnicalSheet
+            key={selectedVersion || "current"}
             sheet={product && selectedVersion ? { ...product?.technicalSheet, version: selectedVersion } : product?.technicalSheet}
             isEditing={product ? (isLastVersion && !viewMode) : true}
             onChange={handleTechnicalSheetChange}
             productName={formData.name}
             categoryDescription={getSelectedCategoryDescription()}
             productRef={formData.reference}
+            productImage={imagePreview}
           />
 
           <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
@@ -833,7 +856,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
               ← Volver
             </button>
 
-            {product && isLastVersion && !viewMode && (
+            {product && isLastVersion && !viewMode && (product?.technicalSheetVersions || 1) > 1 && (
               <button
                 type="button"
                 style={{
@@ -856,6 +879,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
           </div>
         </>
       )}
+
       {showCategoryForm && (
         <div style={{
           position: "fixed",

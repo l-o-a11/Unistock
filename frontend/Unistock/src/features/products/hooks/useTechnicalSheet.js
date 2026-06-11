@@ -11,11 +11,14 @@ export const useTechnicalSheet = (productId) => {
     if (!productId) return;
     try {
       setLoading(true);
+      setError(null);
       const data = await productAPI.getTechnicalSheetVersions(productId);
       setVersions(data);
       setCurrentVersion(data[0] || null);
     } catch (err) {
-      setError('Error al cargar versiones');
+      const message = err?.message || 'Error al cargar versiones';
+      setError(message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -24,6 +27,7 @@ export const useTechnicalSheet = (productId) => {
   const createVersion = async (sheetData) => {
     try {
       setLoading(true);
+      setError(null);
       const newVersion = await productAPI.createTechnicalSheet({
         ...sheetData,
         productId,
@@ -33,7 +37,8 @@ export const useTechnicalSheet = (productId) => {
       setCurrentVersion(newVersion);
       return newVersion;
     } catch (err) {
-      setError('Error al crear versión');
+      const message = err?.message || 'Error al crear versión';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -43,11 +48,13 @@ export const useTechnicalSheet = (productId) => {
   const deleteLastVersion = async (versionId) => {
     if (versions.length === 0) return;
     try {
+      setError(null);
       await productAPI.deleteTechnicalSheet(productId, versionId);
       setVersions([]);
       setCurrentVersion(null);
     } catch (err) {
-      setError(err.message || 'Error al eliminar versión');
+      const message = err?.message || 'Error al eliminar versión';
+      setError(message);
       throw err;
     }
   };

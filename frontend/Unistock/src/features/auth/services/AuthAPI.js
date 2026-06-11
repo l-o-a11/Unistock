@@ -146,6 +146,16 @@ export const authService = {
       throw err?.data || err;
     }
   },
+
+  // Valida la contraseña del usuario autenticado para acciones sensibles.
+  verifyPassword: async (password) => {
+    try {
+      const res = await post("/auth/verify-password", { password });
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
 };
 
 // Exportar también con el nombre esperado por muchos módulos: AuthAPI

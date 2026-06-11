@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
 
-// ── Shared cell/input styles ──────────────────────────────────────────────────
 const cellStyle = {
   border: "1px solid #e5e7eb",
   padding: "8px 12px",
   fontSize: "13px",
   color: "#333",
+  height: "36px",        // altura mínima uniforme — igual que Excel
+  verticalAlign: "middle",
 };
 
 const headerCellStyle = {
@@ -27,6 +28,29 @@ const inputStyle = {
   background: "transparent",
   padding: "4px 0",
 };
+
+// Estilo para modo vista — misma estructura visual que el input
+const readStyle = {
+  display: "block",
+  width: "100%",
+  fontSize: "13px",
+  color: "#333",
+  padding: "4px 0",
+  minHeight: "22px",
+};
+
+// ✅ Declarado fuera del componente para evitar recreación en cada render
+const Field = ({ value, onChangeFn, style = {}, placeholder = "", isEditing }) =>
+  isEditing ? (
+    <input
+      style={{ ...inputStyle, ...style }}
+      value={value || ""}
+      placeholder={placeholder}
+      onChange={(e) => onChangeFn(e.target.value)}
+    />
+  ) : (
+    <span style={{ ...readStyle, ...style }}>{value || ""}</span>
+  );
 
 const AddRowBtn = ({ onClick }) => (
   <button
@@ -66,38 +90,47 @@ const EMPTY_SHEET = {
   measurements: [],
   observations: "",
   createdBy: "",
-  costPerUnit: "",
-  totalCost: "",
 };
 
-const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productName = "", categoryDescription = "", productRef = "" }) => {
-  const [formData, setFormData] = useState(() => {
-    const initialData = sheet || { ...EMPTY_SHEET };
-    
-    // Auto-fill fields if not already set
-    const currentUser = AuthAPI.getSession();
-    const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-    
-    return {
-      ...initialData,
-      date: initialData.date || today,
-      createdBy: initialData.createdBy || currentUser?.nombre || "",
-      type: initialData.type || productName || "",
-      description: initialData.description || categoryDescription || "",
-      ref: initialData.ref || productRef || "",
-    };
-  });
-  const [imagePreview, setImagePreview] = useState(sheet?.image || null);
+// Garantiza 14 slots fijos para accesorios (columnas fijas de la tabla)
+const buildEmptyAccessories = () =>
+  Array.from({ length: 14 }, () => ({ name: "", values: ["", "", ""] }));
 
-  // Update form data when productName, categoryDescription, or productRef changes
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      type: prev.type || productName,
-      description: prev.description || categoryDescription,
-      ref: prev.ref || productRef,
-    }));
-  }, [productName, categoryDescription, productRef]);
+const mergeAccessories = (existing = []) => {
+  const base = buildEmptyAccessories();
+  existing.forEach((item, i) => {
+    if (i < 14) base[i] = { ...base[i], ...item };
+    // los extras (>= 14) se agregan al final después
+  });
+  const extras = existing.slice(14);
+  return [...base, ...extras];
+};
+
+const buildInitialData = (sheet, productName, categoryDescription, productRef) => {
+  const initialData = sheet || { ...EMPTY_SHEET };
+  const currentUser = AuthAPI.getSession();
+  const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  // Usar trim() para que strings vacíos "" se traten como vacíos
+  const hasValue = (v) => v && String(v).trim() !== "";
+
+  return {
+    ...initialData,
+    date:        hasValue(initialData.date)        ? initialData.date        : today,
+    createdBy:   hasValue(initialData.createdBy)   ? initialData.createdBy   : (currentUser?.nombre || ""),
+    type:        hasValue(initialData.type)        ? initialData.type        : (productName || ""),
+    description: hasValue(initialData.description) ? initialData.description : (categoryDescription || ""),
+    ref:         hasValue(initialData.ref)         ? initialData.ref         : (productRef || ""),
+    // Siempre 14 slots fijos para que las celdas de la tabla nunca colapsen
+    accessories: mergeAccessories(initialData.accessories || []),
+  };
+};
+
+const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", categoryDescription = "", productRef = "" }) => {
+  const [formData, setFormData] = useState(() =>
+    buildInitialData(sheet, productName, categoryDescription, productRef)
+  );
+  const [imagePreview, setImagePreview] = useState(sheet?.image || null);
 
   const handleChange = (field, value) => {
     const newData = { ...formData, [field]: value };
@@ -117,22 +150,32 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
     }
   };
 
-  // Fabrics
+  // ── Fabrics ───────────────────────────────────────────────────────────────
   const handleFabricChange = (i, field, value) => {
     const updated = [...(formData.fabrics || [])];
     if (!updated[i]) updated[i] = { name: "", consumption: "", pieces: "", talla: "" };
     updated[i] = { ...updated[i], [field]: value };
     handleChange("fabrics", updated);
   };
-  const addFabric = () => {
-    console.log("➕ Añadiendo tela");
+  const addFabric = () =>
     handleChange("fabrics", [...(formData.fabrics || []), { name: "", consumption: "", pieces: "", talla: "" }]);
+
+  // ── Cups ──────────────────────────────────────────────────────────────────
+  const blankCup        = () => ({ type: "", values: ["", "", ""] });
+  const blankClosure    = () => ({ type: "", values: ["", "", ""] });
+  const blankAccessory  = () => ({ name: "", values: ["", "", ""] });
+  const blankMeasurement = () => ({ name: "", values: ["", ""] });
+
+  const withMinimumRows = (items, minimum, factory) => {
+    const current = items || [];
+    return current.length >= minimum
+      ? current
+      : [...current, ...Array.from({ length: minimum - current.length }, factory)];
   };
 
-  // Cups
   const handleCupChange = (i, vi, value) => {
     const updated = [...(formData.cups || [])];
-    if (!updated[i]) updated[i] = { type: "", values: ["", "", ""] };
+    if (!updated[i]) updated[i] = blankCup();
     const vals = [...(updated[i].values || ["", "", ""])];
     vals[vi] = value;
     updated[i] = { ...updated[i], values: vals };
@@ -143,10 +186,10 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
     handleChange("cups", [...current, blankCup()]);
   };
 
-  // Closures
+  // ── Closures ──────────────────────────────────────────────────────────────
   const handleClosureChange = (i, vi, value) => {
     const updated = [...(formData.closures || [])];
-    if (!updated[i]) updated[i] = { type: "", values: ["", "", ""] };
+    if (!updated[i]) updated[i] = blankClosure();
     const vals = [...(updated[i].values || ["", "", ""])];
     vals[vi] = value;
     updated[i] = { ...updated[i], values: vals };
@@ -157,24 +200,27 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
     handleChange("closures", [...current, blankClosure()]);
   };
 
-  // Accessories
+  // ── Accessories ───────────────────────────────────────────────────────────
   const handleAccessoryChange = (i, vi, value) => {
-    const updated = [...(formData.accessories || [])];
-    if (!updated[i]) updated[i] = { name: "", values: ["", "", ""] };
-    const vals = [...(updated[i].values || ["", "", ""])];
+    // Garantizar que siempre haya al menos 14 slots antes de modificar
+    const base = formData.accessories && formData.accessories.length >= 14
+      ? [...formData.accessories]
+      : mergeAccessories(formData.accessories || []);
+    if (!base[i]) base[i] = blankAccessory();
+    const vals = [...(base[i].values || ["", "", ""])];
     vals[vi] = value;
-    updated[i] = { ...updated[i], values: vals };
-    handleChange("accessories", updated);
+    base[i] = { ...base[i], values: vals };
+    handleChange("accessories", base);
   };
   const addAccessory = () => {
     const current = withMinimumRows(formData.accessories, 14, blankAccessory);
     handleChange("accessories", [...current, blankAccessory()]);
   };
 
-  // Measurements
+  // ── Measurements ──────────────────────────────────────────────────────────
   const handleMeasurementChange = (i, vi, value) => {
     const updated = [...(formData.measurements || [])];
-    if (!updated[i]) updated[i] = { name: "", values: ["", ""] };
+    if (!updated[i]) updated[i] = blankMeasurement();
     const vals = [...(updated[i].values || ["", ""])];
     vals[vi] = value;
     updated[i] = { ...updated[i], values: vals };
@@ -185,213 +231,173 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
     handleChange("measurements", [...current, blankMeasurement()]);
   };
 
-  const tableStyle = {
-    width: "100%",
-    borderCollapse: "collapse",
-    marginBottom: "0",
-  };
-  const blankCup = () => ({ type: "", values: ["", "", ""] });
-  const blankClosure = () => ({ type: "", values: ["", "", ""] });
-  const blankAccessory = () => ({ name: "", values: ["", "", ""] });
-  const blankMeasurement = () => ({ name: "", values: ["", ""] });
+  const tableStyle = { width: "100%", borderCollapse: "collapse", marginBottom: "0" };
 
-  const withMinimumRows = (items, minimum, factory) => {
-    const current = items || [];
-    return current.length >= minimum
-      ? current
-      : [...current, ...Array.from({ length: minimum - current.length }, factory)];
-  };
-
-  // Valores seguros para renderizado (NO modificar el estado original)
-  const getDisplayAccessories = () => formData.accessories || [];
-
-  const getDisplayMeasurements = () => formData.measurements || [];
-
-  const displayAccessories = getDisplayAccessories();
-  const displayMeasurements = getDisplayMeasurements();
-  const displayCups = formData.cups || [];
-  const displayClosures = formData.closures || [];
+  const displayAccessories = formData.accessories || [];
+  const displayMeasurements = formData.measurements || [];
+  const displayCups         = formData.cups         || [];
+  const displayClosures     = formData.closures      || [];
 
   return (
     <div style={{ backgroundColor: "#fff", fontFamily: "sans-serif" }}>
-      {/* Contenedor de dos columnas: tabla a la izquierda, imagen a la derecha */}
       <div style={{ display: "flex", gap: "20px" }}>
-        {/* Columna izquierda: tablas de la ficha técnica */}
+        {/* Columna izquierda */}
         <div style={{ flex: 2 }}>
           <table style={tableStyle}>
             <tbody>
+
               {/* ── Row 1: Cliente / Fecha / REF ── */}
               <tr>
                 <td style={{ ...headerCellStyle, width: "80px" }}>Cliente:</td>
                 <td style={{ ...cellStyle, width: "160px" }}>
-                  {isEditing ? (
-                    <input style={inputStyle} value={formData.client || ""} onChange={(e) => handleChange("client", e.target.value)} />
-                  ) : formData.client}
+                  <Field
+                        isEditing={isEditing} value={formData.client} onChangeFn={(v) => handleChange("client", v)} />
                 </td>
                 <td style={{ ...headerCellStyle, width: "60px" }}>Fecha:</td>
                 <td style={{ ...cellStyle, width: "120px" }}>
-                  {isEditing ? (
-                    <input style={inputStyle} value={formData.date || ""} onChange={(e) => handleChange("date", e.target.value)} />
-                  ) : formData.date}
+                  <Field
+                        isEditing={isEditing} value={formData.date} onChangeFn={(v) => handleChange("date", v)} />
                 </td>
                 <td style={{ ...headerCellStyle, width: "40px" }}>REF:</td>
-                <td style={cellStyle}>
-                  {isEditing ? (
-                    <input style={inputStyle} value={formData.ref || ""} onChange={(e) => handleChange("ref", e.target.value)} />
-                  ) : formData.ref}
+                <td colSpan={2} style={cellStyle}>
+                  <Field
+                        isEditing={isEditing} value={formData.ref} onChangeFn={(v) => handleChange("ref", v)} />
                 </td>
-              </tr>{/* ── Row 2: Tipo de prenda / Descripción ── */}
+              </tr>
+
+              {/* ── Row 2: Tipo de prenda / Descripción ── */}
               <tr>
                 <td style={headerCellStyle}>Tipo de prenda:</td>
-                <td colSpan={2} style={cellStyle}>
-                  {isEditing ? (
-                    <input style={inputStyle} value={formData.type || ""} onChange={(e) => handleChange("type", e.target.value)} />
-                  ) : formData.type}
+                <td colSpan={3} style={cellStyle}>
+                  <Field
+                        isEditing={isEditing} value={formData.type} onChangeFn={(v) => handleChange("type", v)} />
                 </td>
                 <td style={headerCellStyle}>Descripción:</td>
                 <td colSpan={2} style={cellStyle}>
-                  {isEditing ? (
-                    <input style={inputStyle} value={formData.description || ""} onChange={(e) => handleChange("description", e.target.value)} />
-                  ) : formData.description}
+                  <Field
+                        isEditing={isEditing} value={formData.description} onChangeFn={(v) => handleChange("description", v)} />
                 </td>
-              </tr>{/* ── Fabrics: Tela 1, Tela 2, Tela 3 ── */}
+              </tr>
+
+              {/* ── Fabrics ── */}
               {(formData.fabrics || []).map((fabric, i) => (
                 <tr key={i}>
                   <td style={headerCellStyle}>Tela {i + 1}:</td>
                   <td style={cellStyle}>
-                    {isEditing ? (
-                      <input style={inputStyle} value={fabric?.name || ""} onChange={(e) => handleFabricChange(i, "name", e.target.value)} />
-                    ) : fabric?.name}
+                    <Field
+                        isEditing={isEditing} value={fabric?.name} onChangeFn={(v) => handleFabricChange(i, "name", v)} />
                   </td>
                   <td style={headerCellStyle}>Consumo:</td>
                   <td style={cellStyle}>
-                    {isEditing ? (
-                      <input style={inputStyle} value={fabric?.consumption || ""} onChange={(e) => handleFabricChange(i, "consumption", e.target.value)} />
-                    ) : fabric?.consumption}
+                    <Field
+                        isEditing={isEditing} value={fabric?.consumption} onChangeFn={(v) => handleFabricChange(i, "consumption", v)} />
                   </td>
                   <td style={headerCellStyle}>{i === 2 ? "Talla:" : "# De piezas:"}</td>
                   <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={inputStyle} 
-                        value={i === 2 ? (fabric?.talla || "") : (fabric?.pieces || "")} 
-                        onChange={(e) => {
-                          if (i === 2) {
-                            handleFabricChange(i, "talla", e.target.value);
-                          } else {
-                            handleFabricChange(i, "pieces", e.target.value);
-                          }
-                        }} 
-                      />
-                    ) : (i === 2 ? fabric?.talla : fabric?.pieces)}
+                    <Field
+                        isEditing={isEditing}
+                      value={i === 2 ? fabric?.talla : fabric?.pieces}
+                      onChangeFn={(v) => handleFabricChange(i, i === 2 ? "talla" : "pieces", v)}
+                    />
                   </td>
+                  <td style={cellStyle} />
                 </tr>
               ))}
-              
-              {/* Botón + para Telas */}
+
               {isEditing && (
                 <tr>
-                  <td colSpan={6} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
+                  <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
                     <AddRowBtn onClick={addFabric} />
                   </td>
                 </tr>
               )}
 
-              {/* ── Copas (Cópiado) ── */}
+              {/* ── Copiado ── */}
               <tr>
-                <td colSpan={6} style={{ ...headerCellStyle, textAlign: "left", fontSize: "14px", padding: "8px 12px" }}>
+                <td colSpan={7} style={{ ...headerCellStyle, textAlign: "left", fontSize: "14px", padding: "8px 12px" }}>
                   Cópiado
                 </td>
-              </tr>{displayCups.map((cup, i) => (
+              </tr>
+
+              {displayCups.map((cup, i) => (
                 <tr key={`cup-${i}`}>
                   <td style={headerCellStyle} colSpan={2}>
-                    {isEditing ? (
-                      <input
-                        style={inputStyle}
-                        value={cup?.type || ""}
-                        placeholder={`Copa ${i + 1}`}
-                        onChange={(e) => {
-                          const updated = [...(formData.cups || [])];
-                          if (!updated[i]) updated[i] = blankCup();
-                          updated[i] = { ...updated[i], type: e.target.value };
-                          handleChange("cups", updated);
-                        }}
-                      />
-                    ) : (cup?.type || `Copa ${i + 1}`)}
+                    <Field
+                        isEditing={isEditing}
+                      value={cup?.type}
+                      placeholder={`Copa ${i + 1}`}
+                      onChangeFn={(v) => {
+                        const updated = [...(formData.cups || [])];
+                        if (!updated[i]) updated[i] = blankCup();
+                        updated[i] = { ...updated[i], type: v };
+                        handleChange("cups", updated);
+                      }}
+                    />
                   </td>
-                  <td colSpan={4} style={cellStyle}>
+                  <td colSpan={5} style={cellStyle}>
                     <div style={{ display: "flex", gap: "20px" }}>
                       {(cup?.values || ["", "", ""]).map((val, vi) => (
-                        <div key={vi}>
-                          {isEditing ? (
-                            <input
-                              style={{ ...inputStyle, width: "50px", textAlign: "center" }}
-                              value={val}
-                              onChange={(e) => handleCupChange(i, vi, e.target.value)}
-                            />
-                          ) : (
-                            <span>{val}</span>
-                          )}
-                        </div>
+                        <Field
+                        isEditing={isEditing}
+                          key={vi}
+                          value={val}
+                          style={{ width: "50px", textAlign: "center" }}
+                          onChangeFn={(v) => handleCupChange(i, vi, v)}
+                        />
                       ))}
                     </div>
                   </td>
                 </tr>
               ))}
 
-              {/* Bot�n + para Copas */}
               {isEditing && (
                 <tr>
-                  <td colSpan={6} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
+                  <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
                     <AddRowBtn onClick={addCup} />
                   </td>
-                </tr>)}{displayClosures.map((closure, i) => (
+                </tr>
+              )}
+
+              {displayClosures.map((closure, i) => (
                 <tr key={`closure-${i}`}>
                   <td style={headerCellStyle} colSpan={2}>
-                    {isEditing ? (
-                      <input
-                        style={inputStyle}
-                        value={closure?.type || ""}
-                        placeholder={i === 0 ? "Abrochadura o gafete" : i === 1 ? "Elastico cargadera" : `Cierre ${i + 1}`}
-                        onChange={(e) => {
-                          const updated = [...(formData.closures || [])];
-                          if (!updated[i]) updated[i] = blankClosure();
-                          updated[i] = { ...updated[i], type: e.target.value };
-                          handleChange("closures", updated);
-                        }}
-                      />
-                    ) : (closure?.type || `Cierre ${i + 1}`)}
+                    <Field
+                        isEditing={isEditing}
+                      value={closure?.type}
+                      placeholder={i === 0 ? "Abrochadura o gafete" : i === 1 ? "Elastico cargadera" : `Cierre ${i + 1}`}
+                      onChangeFn={(v) => {
+                        const updated = [...(formData.closures || [])];
+                        if (!updated[i]) updated[i] = blankClosure();
+                        updated[i] = { ...updated[i], type: v };
+                        handleChange("closures", updated);
+                      }}
+                    />
                   </td>
-                  <td colSpan={4} style={cellStyle}>
+                  <td colSpan={5} style={cellStyle}>
                     <div style={{ display: "flex", gap: "20px" }}>
                       {(closure?.values || ["", "", ""]).map((val, vi) => (
-                        <div key={vi}>
-                          {isEditing ? (
-                            <input
-                              style={{ ...inputStyle, width: "80px", minWidth: "64px", textAlign: "center" }}
-                              value={val}
-                              onChange={(e) => handleClosureChange(i, vi, e.target.value)}
-                            />
-                          ) : (
-                            <span>{val}</span>
-                          )}
-                        </div>
+                        <Field
+                        isEditing={isEditing}
+                          key={vi}
+                          value={val}
+                          style={{ width: "80px", minWidth: "64px", textAlign: "center" }}
+                          onChangeFn={(v) => handleClosureChange(i, vi, v)}
+                        />
                       ))}
                     </div>
                   </td>
                 </tr>
               ))}
 
-              {/* Bot�n + para Abrochaduras y El�sticos */}
               {isEditing && (
                 <tr>
-                  <td colSpan={6} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
+                  <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
                     <AddRowBtn onClick={addClosure} />
                   </td>
                 </tr>
               )}
 
-              {/* ── Accessories primera fila (7 columnas) ── */}
+              {/* ── Accesorios fila 1 ── */}
               <tr>
                 <td style={headerCellStyle}>Varilla mi</td>
                 <td style={headerCellStyle}>Elastico envivar</td>
@@ -400,75 +406,23 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
                 <td style={headerCellStyle}>Aro</td>
                 <td style={headerCellStyle}>Tensor</td>
                 <td style={headerCellStyle}>Zeta</td>
-              </tr>{[0, 1, 2].map((row) => (
+              </tr>
+              {[0, 1, 2].map((row) => (
                 <tr key={row}>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[0]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(0, row, e.target.value)}
+                  {[0, 1, 2, 3, 4, 5, 6].map((col) => (
+                    <td key={col} style={cellStyle}>
+                      <Field
+                        isEditing={isEditing}
+                        value={displayAccessories[col]?.values?.[row]}
+                        style={{ textAlign: "center" }}
+                        onChangeFn={(v) => handleAccessoryChange(col, row, v)}
                       />
-                    ) : displayAccessories[0]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[1]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(1, row, e.target.value)}
-                      />
-                    ) : displayAccessories[1]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[2]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(2, row, e.target.value)}
-                      />
-                    ) : displayAccessories[2]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[3]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(3, row, e.target.value)}
-                      />
-                    ) : displayAccessories[3]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[4]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(4, row, e.target.value)}
-                      />
-                    ) : displayAccessories[4]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[5]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(5, row, e.target.value)}
-                      />
-                    ) : displayAccessories[5]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[6]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(6, row, e.target.value)}
-                      />
-                    ) : displayAccessories[6]?.values?.[row]}
-                  </td>
+                    </td>
+                  ))}
                 </tr>
               ))}
 
-              {/* ── Accessories segunda fila (7 columnas) ── */}
+              {/* ── Accesorios fila 2 ── */}
               <tr>
                 <td style={headerCellStyle}>Cinta ilus</td>
                 <td style={headerCellStyle}>Elastico con base moi</td>
@@ -477,71 +431,19 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
                 <td style={headerCellStyle}>Sesgo</td>
                 <td style={headerCellStyle}>Varilla plástic</td>
                 <td style={headerCellStyle}>Elastico senc</td>
-              </tr>{[0, 1, 2].map((row) => (
+              </tr>
+              {[0, 1, 2].map((row) => (
                 <tr key={`second-${row}`}>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[7]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(7, row, e.target.value)}
+                  {[7, 8, 9, 10, 11, 12, 13].map((col) => (
+                    <td key={col} style={cellStyle}>
+                      <Field
+                        isEditing={isEditing}
+                        value={displayAccessories[col]?.values?.[row]}
+                        style={{ textAlign: "center" }}
+                        onChangeFn={(v) => handleAccessoryChange(col, row, v)}
                       />
-                    ) : displayAccessories[7]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[8]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(8, row, e.target.value)}
-                      />
-                    ) : displayAccessories[8]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[9]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(9, row, e.target.value)}
-                      />
-                    ) : displayAccessories[9]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[10]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(10, row, e.target.value)}
-                      />
-                    ) : displayAccessories[10]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[11]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(11, row, e.target.value)}
-                      />
-                    ) : displayAccessories[11]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[12]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(12, row, e.target.value)}
-                      />
-                    ) : displayAccessories[12]?.values?.[row]}
-                  </td>
-                  <td style={cellStyle}>
-                    {isEditing ? (
-                      <input 
-                        style={{ ...inputStyle, textAlign: "center" }} 
-                        value={displayAccessories[13]?.values?.[row] || ""} 
-                        onChange={(e) => handleAccessoryChange(13, row, e.target.value)}
-                      />
-                    ) : displayAccessories[13]?.values?.[row]}
-                  </td>
+                    </td>
+                  ))}
                 </tr>
               ))}
 
@@ -550,28 +452,27 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
                 return (
                   <tr key={`extra-accessory-${accessoryIndex}`}>
                     <td style={headerCellStyle} colSpan={2}>
-                      {isEditing ? (
-                        <input
-                          style={inputStyle}
-                          value={accessory?.name || ""}
-                          placeholder={`Accesorio ${accessoryIndex + 1}`}
-                          onChange={(e) => {
-                            const updated = [...(formData.accessories || [])];
-                            if (!updated[accessoryIndex]) updated[accessoryIndex] = blankAccessory();
-                            updated[accessoryIndex] = { ...updated[accessoryIndex], name: e.target.value };
-                            handleChange("accessories", updated);
-                          }}
-                        />
-                      ) : accessory?.name}
+                      <Field
+                        isEditing={isEditing}
+                        value={accessory?.name}
+                        placeholder={`Accesorio ${accessoryIndex + 1}`}
+                        onChangeFn={(v) => {
+                          const updated = [...(formData.accessories || [])];
+                          if (!updated[accessoryIndex]) updated[accessoryIndex] = blankAccessory();
+                          updated[accessoryIndex] = { ...updated[accessoryIndex], name: v };
+                          handleChange("accessories", updated);
+                        }}
+                      />
                     </td>
                     <td colSpan={5} style={cellStyle}>
                       <div style={{ display: "flex", gap: "20px" }}>
                         {(accessory?.values || ["", "", ""]).map((val, vi) => (
-                          <input
+                          <Field
+                        isEditing={isEditing}
                             key={vi}
-                            style={{ ...inputStyle, width: "80px", minWidth: "64px", textAlign: "center" }}
                             value={val}
-                            onChange={(e) => handleAccessoryChange(accessoryIndex, vi, e.target.value)}
+                            style={{ width: "80px", minWidth: "64px", textAlign: "center" }}
+                            onChangeFn={(v) => handleAccessoryChange(accessoryIndex, vi, v)}
                           />
                         ))}
                       </div>
@@ -579,7 +480,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
                   </tr>
                 );
               })}
-              {/* Bot�n + para Accesorios */}
+
               {isEditing && (
                 <tr>
                   <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
@@ -595,70 +496,67 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
               </tr>
               <tr>
                 <td style={cellStyle} colSpan={4}>
-                  {isEditing ? (
-                    <input 
-                      style={{ ...inputStyle, textAlign: "center" }} 
-                      value={displayMeasurements[0]?.values?.[0] || ""} 
-                      onChange={(e) => handleMeasurementChange(0, 0, e.target.value)}
-                    />
-                  ) : displayMeasurements[0]?.values?.[0]}
+                  <Field
+                        isEditing={isEditing}
+                    value={displayMeasurements[0]?.values?.[0]}
+                    style={{ textAlign: "center" }}
+                    onChangeFn={(v) => handleMeasurementChange(0, 0, v)}
+                  />
                 </td>
                 <td style={cellStyle} colSpan={3}>
-                  {isEditing ? (
-                    <input 
-                      style={{ ...inputStyle, textAlign: "center" }} 
-                      value={displayMeasurements[1]?.values?.[0] || ""} 
-                      onChange={(e) => handleMeasurementChange(1, 0, e.target.value)}
-                    />
-                  ) : displayMeasurements[1]?.values?.[0]}
+                  <Field
+                        isEditing={isEditing}
+                    value={displayMeasurements[1]?.values?.[0]}
+                    style={{ textAlign: "center" }}
+                    onChangeFn={(v) => handleMeasurementChange(1, 0, v)}
+                  />
                 </td>
               </tr>
               <tr>
                 <td style={cellStyle} colSpan={4}>
-                  {isEditing ? (
-                    <input 
-                      style={{ ...inputStyle, textAlign: "center" }} 
-                      value={displayMeasurements[0]?.values?.[1] || ""} 
-                      onChange={(e) => handleMeasurementChange(0, 1, e.target.value)}
-                    />
-                  ) : displayMeasurements[0]?.values?.[1]}
+                  <Field
+                        isEditing={isEditing}
+                    value={displayMeasurements[0]?.values?.[1]}
+                    style={{ textAlign: "center" }}
+                    onChangeFn={(v) => handleMeasurementChange(0, 1, v)}
+                  />
                 </td>
                 <td style={cellStyle} colSpan={3}>
-                  {isEditing ? (
-                    <input 
-                      style={{ ...inputStyle, textAlign: "center" }} 
-                      value={displayMeasurements[1]?.values?.[1] || ""} 
-                      onChange={(e) => handleMeasurementChange(1, 1, e.target.value)}
-                    />
-                  ) : displayMeasurements[1]?.values?.[1]}
+                  <Field
+                        isEditing={isEditing}
+                    value={displayMeasurements[1]?.values?.[1]}
+                    style={{ textAlign: "center" }}
+                    onChangeFn={(v) => handleMeasurementChange(1, 1, v)}
+                  />
                 </td>
-              </tr>{displayMeasurements.slice(2).map((measurement, extraIndex) => {
+              </tr>
+
+              {displayMeasurements.slice(2).map((measurement, extraIndex) => {
                 const measurementIndex = extraIndex + 2;
                 return (
                   <tr key={`extra-measurement-${measurementIndex}`}>
                     <td style={headerCellStyle} colSpan={2}>
-                      {isEditing ? (
-                        <input
-                          style={inputStyle}
-                          value={measurement?.name || ""}
-                          placeholder={`Medida ${measurementIndex + 1}`}
-                          onChange={(e) => {
-                            const updated = [...(formData.measurements || [])];
-                            if (!updated[measurementIndex]) updated[measurementIndex] = blankMeasurement();
-                            updated[measurementIndex] = { ...updated[measurementIndex], name: e.target.value };
-                            handleChange("measurements", updated);
-                          }}
-                        />
-                      ) : measurement?.name}
+                      <Field
+                        isEditing={isEditing}
+                        value={measurement?.name}
+                        placeholder={`Medida ${measurementIndex + 1}`}
+                        onChangeFn={(v) => {
+                          const updated = [...(formData.measurements || [])];
+                          if (!updated[measurementIndex]) updated[measurementIndex] = blankMeasurement();
+                          updated[measurementIndex] = { ...updated[measurementIndex], name: v };
+                          handleChange("measurements", updated);
+                        }}
+                      />
                     </td>
                     <td style={cellStyle} colSpan={5}>
                       <div style={{ display: "flex", gap: "20px" }}>
                         {(measurement?.values || ["", ""]).map((val, vi) => (
-                          <input
+                          <Field
+                        isEditing={isEditing}
                             key={vi}
-                            style={{ ...inputStyle, width: "90px", textAlign: "center" }}
                             value={val}
-                            onChange={(e) => handleMeasurementChange(measurementIndex, vi, e.target.value)}
+                            style={{ width: "90px", textAlign: "center" }}
+                            onChangeFn={(v) => handleMeasurementChange(measurementIndex, vi, v)}
                           />
                         ))}
                       </div>
@@ -666,7 +564,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
                   </tr>
                 );
               })}
-              {/* Bot�n + para Medidas */}
+
               {isEditing && (
                 <tr>
                   <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
@@ -679,59 +577,24 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
               <tr>
                 <td style={headerCellStyle} colSpan={2}>OBSERVACIONES:</td>
                 <td style={cellStyle} colSpan={5}>
-                  {isEditing ? (
-                    <input 
-                      style={{ ...inputStyle }} 
-                      value={formData.observations || ""} 
-                      onChange={(e) => handleChange("observations", e.target.value)} 
-                    />
-                  ) : formData.observations}
+                  <Field
+                        isEditing={isEditing} value={formData.observations} onChangeFn={(v) => handleChange("observations", v)} />
                 </td>
               </tr>
               <tr>
                 <td style={headerCellStyle} colSpan={2}>ELABORÓ:</td>
                 <td style={cellStyle} colSpan={5}>
-                  {isEditing ? (
-                    <input 
-                      style={{ ...inputStyle }} 
-                      value={formData.createdBy || ""} 
-                      onChange={(e) => handleChange("createdBy", e.target.value)} 
-                    />
-                  ) : formData.createdBy}
-                </td>
-              </tr>
-              {/* ── Costos ── */}
-              <tr>
-                <td style={headerCellStyle} colSpan={2}>COSTO UNITARIO:</td>
-                <td style={cellStyle} colSpan={2}>
-                  {isEditing ? (
-                    <input
-                      style={{ ...inputStyle, textAlign: "right" }}
-                      type="text"
-                      inputMode="numeric"
-                      value={formData.costPerUnit === 0 || formData.costPerUnit === undefined ? "" : String(formData.costPerUnit)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^\d]/g, "");
-                        const val = raw === "" ? 0 : parseInt(raw, 10);
-                        const newData = { ...formData, costPerUnit: val, totalCost: val };
-                        setFormData(newData); onChange?.(newData);
-                      }}
-                      placeholder="Ej: 35000"
-                    />
-                  ) : `$${(formData.costPerUnit || 0).toLocaleString("es-CO")}`}
-                </td>
-                <td style={headerCellStyle} colSpan={1}>TOTAL:</td>
-                <td style={{ ...cellStyle, fontWeight: 700, color: "#FF4FD6" }} colSpan={2}>
-                  ${(formData.costPerUnit || 0).toLocaleString("es-CO")}
+                  <Field
+                        isEditing={isEditing} value={formData.createdBy} onChangeFn={(v) => handleChange("createdBy", v)} />
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Columna derecha: RECUADRO PARA IMAGEN */}
+        {/* Columna derecha: imagen */}
         <div style={{ flex: 1 }}>
-          <div style={{ 
+          <div style={{
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
             padding: "16px",
@@ -744,34 +607,16 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
           }}>
             {imagePreview ? (
               <div style={{ textAlign: "center", width: "100%" }}>
-                <img 
-                  src={imagePreview} 
-                  alt="Producto" 
-                  style={{ 
-                    maxWidth: "100%", 
-                    maxHeight: "300px", 
-                    objectFit: "contain",
-                    borderRadius: "4px"
-                  }} 
+                <img
+                  src={imagePreview}
+                  alt="Producto"
+                  style={{ maxWidth: "100%", maxHeight: "300px", objectFit: "contain", borderRadius: "4px" }}
                 />
                 {isEditing && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setImagePreview(null);
-                      handleChange("image", null);
-                    }}
-                    style={{
-                      marginTop: "10px",
-                      padding: "4px 12px",
-                      backgroundColor: "#ff4fd6",
-                      border: "none",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      color: "#fff",
-                      cursor: "pointer"
-                    }}
+                    onClick={(e) => { e.preventDefault(); setImagePreview(null); handleChange("image", null); }}
+                    style={{ marginTop: "10px", padding: "4px 12px", backgroundColor: "#ff4fd6", border: "none", borderRadius: "4px", fontSize: "12px", color: "#fff", cursor: "pointer" }}
                   >
                     Eliminar imagen
                   </button>
@@ -779,14 +624,7 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
               </div>
             ) : (
               <>
-                <svg
-                  width="64"
-                  height="64"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#aaa"
-                  strokeWidth="1.5"
-                >
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
                   <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
                   <line x1="8" y1="2" x2="8" y2="22" />
                   <line x1="16" y1="2" x2="16" y2="22" />
@@ -795,42 +633,14 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, onSave, productNam
                 </svg>
                 <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
                   {isEditing ? (
-                    <>
-                      <span style={{ color: "#ff4fd6", fontWeight: "500", cursor: "pointer" }}>
-                        Sube una imagen
-                      </span>
-                      <br />
-                      o arrastra y suelta
-                    </>
-                  ) : (
-                    "Sin imagen"
-                  )}
+                    <><span style={{ color: "#ff4fd6", fontWeight: "500", cursor: "pointer" }}>Sube una imagen</span><br />o arrastra y suelta</>
+                  ) : "Sin imagen"}
                 </p>
                 {isEditing && (
                   <>
-                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>
-                      PNG, JPG, GIF hasta 10MB
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      style={{ display: "none" }}
-                      id="image-upload"
-                    />
-                    <label
-                      htmlFor="image-upload"
-                      style={{
-                        marginTop: "10px",
-                        padding: "6px 16px",
-                        backgroundColor: "#f3f4f6",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        color: "#555",
-                        cursor: "pointer"
-                      }}
-                    >
+                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} id="image-upload" />
+                    <label htmlFor="image-upload" style={{ marginTop: "10px", padding: "6px 16px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "12px", color: "#555", cursor: "pointer" }}>
                       Seleccionar archivo
                     </label>
                   </>
