@@ -375,7 +375,7 @@ export default function ProductionDashboard() {
 
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Dashboard de Producción</h1>
+        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500 font-medium">Período:</span>
           <GlobalTimeFilter/>
