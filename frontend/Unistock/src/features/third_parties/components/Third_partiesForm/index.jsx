@@ -126,6 +126,27 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   };
 
   const handleCancelClick = () => {
+    // ✅ Solo mostrar alerta de confirmación si el formulario tiene algún campo llenado
+    const INITIAL_VALUES = { nombre: '', nit: '', direccion: '', telefono: '', contacto: '', correo: '' };
+    const initialData = isEdit
+      ? {
+          nombre:    Third_partie?.nombreEmpresa || Third_partie?.nombre    || '',
+          nit:       Third_partie?.nit       || '',
+          direccion: Third_partie?.direccion || '',
+          telefono:  Third_partie?.telefono  || '',
+          contacto:  Third_partie?.nombreContacto || Third_partie?.contacto || '',
+          correo:    Third_partie?.correo    || Third_partie?.email || '',
+        }
+      : INITIAL_VALUES;
+
+    const hasChanges = Object.keys(formData).some(k => formData[k] !== initialData[k]);
+
+    if (!hasChanges) {
+      // Sin cambios — cerrar directamente sin alerta
+      onCancel();
+      return;
+    }
+
     setAlertConfig({
       open: true, type: 'confirm', title: 'Cancelar',
       message: '¿Seguro que deseas cancelar? Se perderán los cambios.',

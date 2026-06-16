@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login: ctxLogin } = useAuthContext();
+  const { login: ctxLogin, getFirstAccessibleRoute } = useAuthContext();
 
   const {
     activeModal,
@@ -51,24 +51,24 @@ const LoginPage = () => {
 
       <div className="h-screen overflow-hidden flex bg-[#F8F9FA]">
         {/* Imagen izquierda — oculta en móvil */}
-<div className="hidden md:block md:w-1/2 relative flex-shrink-0 overflow-hidden">
-  <img
-    src={logo}
-    alt="Login"
-    className="w-full h-full object-cover animate-zoom"
-  />
+        <div className="hidden md:block md:w-1/2 relative flex-shrink-0 overflow-hidden">
+          <img
+            src={logo}
+            alt="Login"
+            className="w-full h-full object-cover animate-zoom"
+          />
 
-  {/* Capa de difuminación lateral hacia la derecha */}
-  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F8F9FA]/30 to-[#F8F9FA]"></div>
+          {/* Capa de difuminación lateral hacia la derecha */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F8F9FA]/30 to-[#F8F9FA]"></div>
 
-  {/* Capa superior e inferior para suavizar bordes */}
-  <div className="absolute inset-0 bg-gradient-to-b from-[#F8F9FA]/20 via-transparent to-[#F8F9FA]/20"></div>
-</div>
+          {/* Capa superior e inferior para suavizar bordes */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#F8F9FA]/20 via-transparent to-[#F8F9FA]/20"></div>
+        </div>
 
         {/* Panel derecho */}
         <div className="flex-1 flex items-center justify-center px-5 sm:px-10">
           <LoginForm
-            onLogin={(u, p) => handleLogin(u, p, ctxLogin, () => navigate("/Layout"))}
+            onLogin={(u, p) => handleLogin(u, p, (s) => { ctxLogin(s); }, () => navigate(getFirstAccessibleRoute()))}
             onForgotPassword={() => openModal(AUTH_MODALS.RECOVER_PASSWORD)}
             loading={loading && activeModal === AUTH_MODALS.NONE}
             error={activeModal === AUTH_MODALS.NONE ? error : ""}
@@ -81,7 +81,7 @@ const LoginPage = () => {
         <ForceChangePasswordModal
           userName={forceChange.userName}
           onChangePassword={(pwd) =>
-            handleForceChangePassword(pwd, () => navigate("/Layout"))
+            handleForceChangePassword(pwd, () => navigate(getFirstAccessibleRoute()))
           }
           loading={loading}
         />

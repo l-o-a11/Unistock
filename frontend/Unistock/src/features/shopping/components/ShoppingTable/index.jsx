@@ -5,7 +5,7 @@ const EstadoBadge = ({ anulada }) => (
     display: "inline-block", padding: "3px 10px", borderRadius: "20px",
     fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em",
     background: anulada ? "#fde8e8" : "#e8f5e9",
-    color:      anulada ? "#c0392b" : "#27ae60",
+    color: anulada ? "#c0392b" : "#27ae60",
   }}>
     {anulada ? "Anulada" : "Activa"}
   </span>
@@ -61,7 +61,7 @@ const ShoppingTable = ({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
 
-                  <td style={tdStyle}>{shopping.id}</td>
+                  <td style={tdStyle}>{shopping.consecutivo ?? shopping.id}</td>
 
                   <td style={tdStyle}>
                     {shopping.fecha ? new Date(shopping.fecha).toLocaleDateString("es-CO") : "—"}
@@ -112,25 +112,25 @@ const ShoppingTable = ({
                         title={shopping.anulada ? "Compra ya anulada" : "Anular compra"}
                         style={{
                           padding: "5px 12px", borderRadius: "6px",
-                          border:      shopping.anulada ? "1px solid #e5e7eb" : "1px solid #fca5a5",
-                          background:  shopping.anulada ? "#f9fafb" : "#fff5f5",
-                          color:       shopping.anulada ? "#d1d5db" : "#ef4444",
+                          border: shopping.anulada ? "1px solid #e5e7eb" : "1px solid #fca5a5",
+                          background: shopping.anulada ? "#f9fafb" : "#fff5f5",
+                          color: shopping.anulada ? "#d1d5db" : "#ef4444",
                           fontSize: "12px", fontWeight: 600,
-                          cursor:    shopping.anulada ? "not-allowed" : "pointer",
+                          cursor: shopping.anulada ? "not-allowed" : "pointer",
                           transition: "all 0.15s", whiteSpace: "nowrap",
                         }}
                         onMouseEnter={(e) => {
                           if (!shopping.anulada) {
-                            e.currentTarget.style.background   = "#ef4444";
-                            e.currentTarget.style.color        = "#fff";
-                            e.currentTarget.style.borderColor  = "#ef4444";
+                            e.currentTarget.style.background = "#ef4444";
+                            e.currentTarget.style.color = "#fff";
+                            e.currentTarget.style.borderColor = "#ef4444";
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!shopping.anulada) {
-                            e.currentTarget.style.background   = "#fff5f5";
-                            e.currentTarget.style.color        = "#ef4444";
-                            e.currentTarget.style.borderColor  = "#fca5a5";
+                            e.currentTarget.style.background = "#fff5f5";
+                            e.currentTarget.style.color = "#ef4444";
+                            e.currentTarget.style.borderColor = "#fca5a5";
                           }
                         }}>
                         Anular

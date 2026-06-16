@@ -14,7 +14,7 @@ import Alert from '../../../shared/components/Alert';
 import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
 import { blockInput } from '../../../shared/utils/blockInput';
-import TechnicalSheet from '../TechnicalSheet';
+import TechnicalSheet from '../../../products/components/TechnicalSheet';
 import ThirdPartiesSection from './ThirdPartiesSection';
 import {
   getInputStyleBox,

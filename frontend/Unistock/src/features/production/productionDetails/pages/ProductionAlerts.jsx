@@ -195,6 +195,26 @@ const ProductionAlerts = ({
   const updateRow = (i, field, val) => {
     setAssignments((prev) => {
       const next = [...prev];
+
+      // ── Prevenir sedes/terceros duplicados ──────────────────────────────
+      // Si el campo que cambia es "option" y ya existe otra fila con ese valor,
+      // auto-sumar la cantidad en lugar de crear una fila duplicada.
+      if (field === "option" && val) {
+        const duplicateIdx = prev.findIndex((a, idx) => idx !== i && a.option === val);
+        if (duplicateIdx !== -1) {
+          // Sumar la cantidad de la fila actual a la fila existente y eliminar la actual
+          const currentCantidad = Number(prev[i].cantidad) || 0;
+          const existingCantidad = Number(prev[duplicateIdx].cantidad) || 0;
+          const merged = [...prev];
+          merged[duplicateIdx] = {
+            ...merged[duplicateIdx],
+            cantidad: String(existingCantidad + currentCantidad),
+          };
+          // Eliminar la fila actual (i) después de fusionar
+          return merged.filter((_, idx) => idx !== i);
+        }
+      }
+
       next[i] = { ...next[i], [field]: val };
       return next;
     });
@@ -231,7 +251,7 @@ const ProductionAlerts = ({
     },
     password: {
       title:   customTitle   || "Autorización requerida",
-      message: customMessage || "Ingresa la contraseña de administrador para continuar.",
+      message: customMessage || "Ingresa tu contraseña para confirmar esta acción.",
       icon: <IconWarn />, iconBg: "#fdf0fa",
     },
   };
@@ -345,7 +365,13 @@ const ProductionAlerts = ({
             {assignments.map((a, i) => (
               <AssignRow
                 key={i}
-                options={options}
+                options={options.filter((o) => {
+                  // Permitir la opción ya seleccionada en esta fila; excluir las usadas en otras filas
+                  const optionValue = typeof o === "string" ? o : o.value;
+                  const currentValue = a.option;
+                  if (optionValue === currentValue) return true; // siempre mostrar la actual
+                  return !assignments.some((other, idx) => idx !== i && other.option === optionValue);
+                })}
                 value={a.option}
                 cantidad={a.cantidad}
                 onChangeOption={(v) => updateRow(i, "option", v)}
@@ -417,13 +443,13 @@ const ProductionAlerts = ({
         {type === "password" && (
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>
-              Contraseña de administrador <span style={{ color: "#ef4444" }}>*</span>
-            </label>
-            <input
-              type="password"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Contraseña de administrador..."
+            Tu contraseña <span style={{ color: "#ef4444" }}>*</span>
+          </label>
+          <input
+            type="password"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ingresa tu contraseña..."
               autoFocus
               style={{
                 width: "100%", border: "1.5px solid #e5e7eb", borderRadius: 10,
