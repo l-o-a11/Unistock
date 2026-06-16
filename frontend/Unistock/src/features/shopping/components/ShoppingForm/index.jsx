@@ -248,7 +248,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
           {/* Número de factura */}
           <div style={{ marginBottom: "14px" }}>
             <label style={lbl}>Número de factura{req}</label>
-            <input name="numeroFactura" value={formData.numeroFactura} onChange={handleChange} onBlur={handleBlur}
+            <input type="number" name="numeroFactura" value={formData.numeroFactura} onChange={handleChange} onBlur={handleBlur}
               placeholder="Ej. 0231" style={inp(errors.numeroFactura)} onFocus={onFocus} />
             {errors.numeroFactura && <p style={errS}>{errors.numeroFactura}</p>}
           </div>
