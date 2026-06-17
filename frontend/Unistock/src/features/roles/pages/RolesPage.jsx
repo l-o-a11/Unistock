@@ -368,6 +368,7 @@ const RolesPage = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggle={handleToggle}
+        startIndex={startIndex}
       />
 
       {/* Modal Crear / Editar */}

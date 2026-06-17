@@ -3,7 +3,9 @@ import React from "react";
 // Roles que no se pueden modificar ni eliminar
 const ROLES_PROTEGIDOS = ["Gerente"];
 
-const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
+// startIndex: índice global del primer elemento de la página actual (0-based)
+// Ej: página 1 → startIndex=0, página 2 → startIndex=5
+const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex = 0 }) => {
   const thStyle = {
     padding: "14px 20px",
     textAlign: "left",
@@ -38,16 +40,17 @@ const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={thStyle}>ID</th>
+              <th style={{ ...thStyle, width: "60px" }}>#</th>
               <th style={thStyle}>Nombre del rol</th>
               <th style={thStyle}>Descripción</th>
               <th style={thStyle}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {roles.map((rol) => {
+            {roles.map((rol, index) => {
               const isActive = rol.estado !== false;
               const protegido = ROLES_PROTEGIDOS.includes(rol.nombre);
+              const displayId = startIndex + index + 1; // 1, 2, 3...
 
               return (
                 <tr
@@ -55,7 +58,10 @@ const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  <td style={tdStyle}>{rol.id}</td>
+                  {/* ID consecutivo */}
+                  <td style={{ ...tdStyle, color: "#aaa", fontSize: "13px" }}>
+                    {displayId}
+                  </td>
 
                   <td style={tdStyle}>
                     {rol.nombre && rol.nombre.length > 12 ? rol.nombre.slice(0, 12) + "..." : rol.nombre}
@@ -70,7 +76,6 @@ const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
                   {/* Acciones */}
                   <td style={tdStyle}>
                     {protegido ? (
-                      /* Rol protegido — solo ver detalle + mensaje */
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <button onClick={() => onView(rol)} title="Ver detalles del rol"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
@@ -88,7 +93,6 @@ const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
                         </span>
                       </div>
                     ) : (
-                      /* Rol normal — todas las acciones */
                       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
 
                         <button onClick={() => onView(rol)} title="Ver detalles del rol"
@@ -128,7 +132,9 @@ const RolTable = ({ roles=[], onView, onEdit, onDelete, onToggle }) => {
                           </svg>
                         </button>
 
-                        <button onClick={() => onToggle?.(rol.id)}
+                        <button
+                          onClick={() => onToggle?.(rol.id)}
+                          title={isActive ? "Inactivar rol" : "Activar rol"}
                           style={{ position: "relative", width: "44px", height: "24px", borderRadius: "20px", border: "none", backgroundColor: isActive ? "#22c55e" : "#d1d5db", cursor: "pointer" }}
                         >
                           <span style={{ position: "absolute", top: "2px", left: isActive ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s" }} />
