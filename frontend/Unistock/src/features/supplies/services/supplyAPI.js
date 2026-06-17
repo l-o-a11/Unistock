@@ -6,7 +6,7 @@
  * Reglas de negocio aplicadas en el frontend:
  *  1. create: datos obligatorios + al menos 1 propiedad antes de enviar.
  *  2. create/update: normalización de valores de propiedades (mayúscula inicial).
- *  3. create: corrección del bug de precedencia en imagenes_Url.
+ *  3. create/update: imagen se envía como multipart/form-data (campo "imagen", File object).
  *  4. delete: la contraseña del gerente es obligatoria.
  *  5. delete / toggle: los errores del backend (409, 403) se relanzan con mensaje claro.
  *  6. Duplicados: el backend responde 409; se captura y relanza con mensaje legible.
@@ -14,6 +14,50 @@
  */
 
 import httpClient from "../../shared/utils/httpClient";
+
+// ── fetch nativo para multipart/form-data ─────────────────────────────────────
+// El httpClient centralizado serializa el body como JSON y fija Content-Type:
+// application/json, lo que impide enviar FormData correctamente.
+// Este helper usa fetch directo SOLO para las llamadas que llevan imagen;
+// el resto del módulo sigue usando httpClient sin cambios.
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+const getToken = () => {
+  try {
+    const raw = localStorage.getItem("session_user") || sessionStorage.getItem("session_user");
+    return raw ? JSON.parse(raw).token : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Envía un FormData al backend usando fetch nativo.
+ * NO fijar Content-Type — el browser lo genera con el boundary correcto.
+ */
+const fetchForm = async (method, path, formData) => {
+  const headers = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method,
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const error = new Error(err.message || `HTTP Error ${res.status}`);
+    error.status = res.status;
+    error.data = err;
+    throw error;
+  }
+
+  if (res.status === 204) return null;
+  return res.json();
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +117,13 @@ const extractErrorMessage = (err, fallback) =>
 
 // ── Normaliza un insumo recibido del backend ──────────────────────────────────
 
+/**
+ * El backend guarda la imagen como:
+ *   imagen:         String  → URL pública de Cloudinary (o null)
+ *   imagenPublicId: String  → public_id para poder eliminarla (o null)
+ *
+ * No existe imagenes_Url en el schema; ese campo se descarta en el backend.
+ */
 const normalizeSupply = (raw) => ({
   id: String(raw.id ?? raw._id ?? ""),
   nombre: raw.nombre ?? "",
@@ -85,12 +136,35 @@ const normalizeSupply = (raw) => ({
   valorMedida: raw.valor_medida ?? 0,
   medida: raw.medida ?? "",
   medidaId: raw.medida ?? "",
-  imagenes_Url: Array.isArray(raw.imagenes_Url) ? raw.imagenes_Url : [],
+  imagen: raw.imagen ?? null,               // URL string de Cloudinary
+  imagenPublicId: raw.imagenPublicId ?? null,
   estado: raw.estado ?? true,
   propiedades: Array.isArray(raw.propiedades) ? raw.propiedades : [],
   createdAt: raw.createdAt,
   updatedAt: raw.updatedAt,
 });
+
+/**
+ * Construye un FormData listo para enviar a multer en el backend.
+ * Las propiedades se serializan como JSON string porque multer/body-parser
+ * no puede parsear arrays anidados desde campos form normales.
+ *
+ * @param {object} fields   - campos de texto { nombre, categoria, ... }
+ * @param {File|null} imageFile - File object del input[type=file] (o null)
+ */
+const buildFormData = (fields, imageFile) => {
+  const fd = new FormData();
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      // Arrays/objetos se serializan como JSON
+      fd.append(key, typeof value === "object" ? JSON.stringify(value) : value);
+    }
+  });
+  if (imageFile instanceof File) {
+    fd.append("imagen", imageFile);
+  }
+  return fd;
+};
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -134,11 +208,18 @@ export const supplyAPI = {
   /**
    * POST /api/insumos
    *
+   * Envía multipart/form-data para que multer procese el archivo "imagen".
+   * Si no hay imagen, envía igualmente FormData (multer lo acepta sin req.file).
+   *
    * Antes de enviar:
    *  - Resuelve medida y categoría (pueden llegar como objeto o string).
    *  - Valida campos obligatorios.
    *  - Exige al menos 1 propiedad con estructura completa.
    *  - Normaliza valores de propiedades.
+   *
+   * supplyData espera:
+   *  { nombre, categoriaId, medidaId, valorMedida, stock, propiedades, imageFile? }
+   *  imageFile debe ser un File object del input[type=file] (no base64).
    */
   create: async (supplyData) => {
     // Resolver campos que el selector puede entregar como objeto o string
@@ -176,17 +257,24 @@ export const supplyAPI = {
     }
 
     try {
-      const result = await httpClient.post("/insumos", {
+      const body = {
         nombre: supplyData.nombre.trim(),
         categoria,
         stock: supplyData.stock ?? 0,
         valor_medida: supplyData.valorMedida ?? supplyData.valor_medida,
         medida,
-        // Bug fix: paréntesis correctos en el ternario
-        imagenes_Url: supplyData.imagenes_Url ??
-          (supplyData.image ? [supplyData.image] : []),
         propiedades: propiedadesNorm,
-      });
+      };
+
+      let result;
+      if (supplyData.imageFile instanceof File) {
+        // Con imagen: fetch nativo con FormData para que multer reciba el archivo
+        const fd = buildFormData(body, supplyData.imageFile);
+        result = await fetchForm("POST", "/insumos", fd);
+      } else {
+        // Sin imagen: JSON normal a través del httpClient habitual
+        result = await httpClient.post("/insumos", body);
+      }
       const raw = result?.data ?? result;
       return normalizeSupply(raw);
     } catch (err) {
@@ -199,39 +287,51 @@ export const supplyAPI = {
 
   /**
    * PUT /api/insumos/:id
-   * Resuelve objetos, normaliza propiedades si se envían.
+   *
+   * Envía multipart/form-data igual que create.
+   * Para eliminar la imagen sin subir una nueva, incluir { eliminarImagen: true }.
+   *
+   * supplyData espera los mismos campos que create, todos opcionales, más:
+   *  { imageFile?: File, eliminarImagen?: boolean }
    */
   update: async (id, supplyData) => {
-    const body = {};
+    const fields = {};
 
-    if (supplyData.nombre != null) body.nombre = supplyData.nombre.trim();
+    if (supplyData.nombre != null) fields.nombre = supplyData.nombre.trim();
 
-    // categoría puede llegar como objeto o string
     const categoria = resolveString(supplyData.categoriaId, "id")
       ?? resolveString(supplyData.categoria, "id");
-    if (categoria != null) body.categoria = categoria;
+    if (categoria != null) fields.categoria = categoria;
 
-    if (supplyData.stock != null) body.stock = supplyData.stock;
+    if (supplyData.stock != null) fields.stock = supplyData.stock;
 
     const vm = supplyData.valorMedida ?? supplyData.valor_medida;
-    if (vm != null) body.valor_medida = vm;
+    if (vm != null) fields.valor_medida = vm;
 
-    // medida puede llegar como objeto o string
     const medida = resolveString(supplyData.medidaId, "valor")
       ?? resolveString(supplyData.medida, "valor");
-    if (medida != null) body.medida = medida;
+    if (medida != null) fields.medida = medida;
 
-    if (supplyData.imagenes_Url != null) body.imagenes_Url = supplyData.imagenes_Url;
+    // Señal para que el backend elimine la imagen actual sin reemplazarla
+    if (supplyData.eliminarImagen) fields.eliminarImagen = "true";
 
     if (supplyData.propiedades != null) {
       if (supplyData.propiedades.length === 0) {
         throw new Error("El insumo debe mantener al menos una propiedad.");
       }
-      body.propiedades = normalizeProperties(supplyData.propiedades);
+      fields.propiedades = normalizeProperties(supplyData.propiedades);
     }
 
     try {
-      const result = await httpClient.put(`/insumos/${id}`, body);
+      let result;
+      if (supplyData.imageFile instanceof File || supplyData.eliminarImagen) {
+        // Con imagen o eliminación: fetch nativo con FormData para multer
+        const fd = buildFormData(fields, supplyData.imageFile ?? null);
+        result = await fetchForm("PUT", `/insumos/${id}`, fd);
+      } else {
+        // Sin cambio de imagen: JSON normal a través del httpClient habitual
+        result = await httpClient.put(`/insumos/${id}`, fields);
+      }
       const raw = result?.data ?? result;
       return normalizeSupply(raw);
     } catch (err) {

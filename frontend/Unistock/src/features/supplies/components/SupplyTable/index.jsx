@@ -94,9 +94,9 @@ const SupplyTable = ({
                   <td style={tdStyle}>
                     <div className="relative group w-fit">
                       {/* Imagen pequeña */}
-                      {supply.image ? (
+                      {supply.imagen ? (
                         <img
-                          src={supply.image}
+                          src={supply.imagen}
                           alt={supply.name}
                           className="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer"
                         />
@@ -107,9 +107,9 @@ const SupplyTable = ({
                       )}
 
                       {/* Hover cuando SÍ hay imagen */}
-                      {supply.image && (
+                      {supply.imagen && (
                         <img
-                          src={supply.image}
+                          src={supply.imagen}
                           className="
           absolute left-12 top-0
          max-w-60 max-h-60
@@ -126,7 +126,7 @@ const SupplyTable = ({
                       )}
 
                       {/* Hover cuando NO hay imagen */}
-                      {!supply.image && (
+                      {!supply.imagen && (
                         <div
                           className="
           absolute left-12 top-0

@@ -500,7 +500,7 @@ const SuppliesPage = () => {
         <SupplySearch
           value={searchTerm}
           onChange={handleSearchWithState}
-          helpText="Escribe activo o inactivo para filtrar por estado. Deja vacío para ver todos."
+          helpText="Escribe activo o inactivo para filtrar por estado."
           suggestions={searchSuggestions}
         />
       </div>
