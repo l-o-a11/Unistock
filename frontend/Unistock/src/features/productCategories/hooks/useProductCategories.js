@@ -6,12 +6,20 @@ export const useProductCategories = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const sortCategoriesAsc = (list) => {
+    return [...(list || [])].sort((a, b) => {
+      const idA = String(a.id ?? a._id ?? '');
+      const idB = String(b.id ?? b._id ?? '');
+      return idA.localeCompare(idB);
+    });
+  };
+
   const loadProductCategories = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await productCategoryAPI.getAll();
-      setProductCategories(data || []);
+      setProductCategories(sortCategoriesAsc(data || []));
     } catch (err) {
       setError(err?.message || 'Error al cargar categorías');
       console.error(err);

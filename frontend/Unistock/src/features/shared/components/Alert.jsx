@@ -260,7 +260,7 @@ const overlay = {
   backdropFilter: "blur(3px)",
   WebkitBackdropFilter: "blur(3px)",
   display: "flex", justifyContent: "center", alignItems: "center",
-  zIndex: 999,
+  zIndex: 2000,
 };
 
 const modal = {

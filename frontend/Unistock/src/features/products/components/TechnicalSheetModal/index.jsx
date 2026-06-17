@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import TechnicalSheet from '../TechnicalSheet';
 import { useTechnicalSheet } from '../../hooks/useTechnicalSheet';
 import Alert from '../../../shared/components/Alert';
+import { AuthAPI } from '../../../auth/services/AuthAPI';
 
 const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   const { versions, currentVersion, loadVersions, deleteLastVersion } = useTechnicalSheet(product?.id);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorAlert, setErrorAlert] = useState({ open: false, message: "" });
   
   // 🔥 IGUAL A TERCEROS: estado para alerta de eliminación
   const [deleteAlert, setDeleteAlert] = useState({
@@ -31,9 +33,10 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   };
 
   // 🔥 IGUAL A TERCEROS: función final de eliminar versión
-  const handleDelete = async () => {
+  const handleDelete = async (password) => {
     try {
       setLoading(true);
+      await AuthAPI.verifyPassword(password);
       await deleteLastVersion(currentVersionObj.id);
       console.log("Versión eliminada:", currentVersionObj.id);
       setDeleteAlert({ open: false });
@@ -45,6 +48,19 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
       onTechnicalSheetChanged?.();
     } catch (error) {
       console.error("Error al eliminar:", error);
+      const isInvalidPassword = error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
+      if (isInvalidPassword) {
+        setErrorAlert({
+          open: true,
+          message: "La contraseña no coincide con tu usuario actual.",
+        });
+        setDeleteAlert({ open: true, step: "password" });
+        return;
+      }
+      setErrorAlert({
+        open: true,
+        message: error?.message || "No se pudo eliminar la versión.",
+      });
       setDeleteAlert({ open: false });
     } finally {
       setLoading(false);
@@ -205,14 +221,14 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
             justifyContent: 'flex-end',
             gap: '12px'
           }}>
-            {/* Botón Eliminar - Solo para la última versión */}
-            {isLastVersion && versions.length === 1 && (
+            {/* Botón Eliminar: solo cuando hay más de una versión y estás en la última */}
+            {isLastVersion && versions.length > 1 && (
               <button
                 style={styles.deleteBtn}
                 onClick={() =>
                   setDeleteAlert({
                     open: true,
-                    step: "confirm",
+                    step: "password",
                   })
                 }
                 disabled={loading}
@@ -233,17 +249,6 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
 
       {/* 🔥 ALERTAS - IGUAL A TERCEROS */}
 
-      {/* ALERTA CONFIRMAR */}
-      <Alert
-        isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
-        type="confirm"
-        message="¿Seguro que deseas eliminar esta versión?"
-        onConfirm={() =>
-          setDeleteAlert({ open: true, step: "password" })
-        }
-        onCancel={() => setDeleteAlert({ open: false })}
-      />
-
       {/* ALERTA PASSWORD */}
       <Alert
         isOpen={deleteAlert.open && deleteAlert.step === "password"}
@@ -251,6 +256,15 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
         message="Ingresa la contraseña para eliminar"
         onConfirm={handleDelete}
         onCancel={() => setDeleteAlert({ open: false })}
+      />
+
+      <Alert
+        isOpen={errorAlert.open}
+        type="error"
+        title="Error"
+        message={errorAlert.message}
+        onConfirm={() => setErrorAlert({ open: false, message: "" })}
+        onCancel={() => setErrorAlert({ open: false, message: "" })}
       />
     </>
   );

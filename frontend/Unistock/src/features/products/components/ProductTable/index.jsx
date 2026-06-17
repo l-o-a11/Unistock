@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import HoverCard from "../../../shared/components/HoverCart";
 import Alert from "../../../shared/components/Alert";
-import { StockStatus } from "../../types/constants";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 
 const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => {
@@ -18,12 +17,6 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
       currency: "COP",
       minimumFractionDigits: 0,
     }).format(price);
-  };
-
-  const getStockStatus = (stock) => {
-    if (stock < StockStatus.Critical.threshold) return StockStatus.Critical;
-    if (stock < StockStatus.Low.threshold) return StockStatus.Low;
-    return StockStatus.Normal;
   };
 
   const thStyle = {
@@ -96,7 +89,6 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
             </thead>
             <tbody>
               {products.map((product) => {
-                const stockStatus = getStockStatus(product.stock);
                 const isActive = product.active !== false;
 
                 return (
@@ -108,57 +100,61 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                   >
                     {/* Imagen */}
                     <td style={tdStyle}>
-                      <HoverCard
-                        title="Imagen del producto"
-                        position="right"
-                        fields={[
-                          {
-                            label: "Imagen",
-                            value: product.image ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                style={{ width: "128px", height: "128px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }}
-                              />
-                            ) : (
-                              <div style={{
-                                width: "128px",
-                                height: "128px",
-                                backgroundColor: "#f5f5f5",
-                                borderRadius: "8px",
-                                border: "1px solid #eee",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#999",
-                                fontSize: "14px"
-                              }}>
-                                Sin imagen
-                              </div>
-                            ),
-                            highlight: true
-                          },
-                        ]}
-                      >
-                        <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", border: "1px solid #eee", cursor: "pointer", flexShrink: 0 }}>
-                          {product.image ? (
-                            <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          ) : (
-                            <div style={{
-                              width: "100%",
-                              height: "100%",
-                              backgroundColor: "#f0f0f0",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#aaa",
-                              fontSize: "10px"
-                            }}>
-                              🖼️
-                            </div>
-                          )}
-                        </div>
-                      </HoverCard>
+                      <div className="relative group w-fit">
+
+                        {/* Imagen pequeña */}
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs cursor-pointer">
+                            🖼️
+                          </div>
+                        )}
+
+                        {/* Hover cuando SÍ hay imagen */}
+                        {product.image && (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="
+                              absolute left-12 top-0
+                              max-w-60 max-h-60
+                              w-auto h-auto
+                              object-contain
+                              bg-white p-2
+                              rounded-lg border border-gray-200 shadow-lg
+                              opacity-0 scale-95
+                              group-hover:opacity-100 group-hover:scale-100
+                              transition-all duration-200
+                              pointer-events-none z-50
+                            "
+                          />
+                        )}
+
+                        {/* Hover cuando NO hay imagen */}
+                        {!product.image && (
+                          <div
+                            className="
+                              absolute left-12 top-0
+                              w-40 h-20
+                              flex items-center justify-center
+                              bg-white border border-gray-200 rounded-lg shadow-lg
+                              text-gray-500 text-sm
+                              opacity-0 scale-95
+                              group-hover:opacity-100 group-hover:scale-100
+                              transition-all duration-200
+                              pointer-events-none z-50
+                            "
+                          >
+                            Sin imagen
+                          </div>
+                        )}
+
+                      </div>
                     </td>
 
                     {/* Referencia */}
@@ -181,7 +177,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                       )}
                     </td>
 
-                    {/* Nombre - SOLO EL NOMBRE COMPLETO */}
+                    {/* Nombre */}
                     <td style={tdStyle}>
                       {needsHover(product.name) ? (
                         <HoverCard
@@ -325,7 +321,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
         }
         onCancel={() => setShowToggleAlert(false)}
         onConfirm={(password) => {
-          onToggle?.(selectedId, newStatus);
+          onToggle?.(selectedId, newStatus, password);
           setShowToggleAlert(false);
         }}
       />
