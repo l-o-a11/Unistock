@@ -156,15 +156,37 @@ export const RolesAPI = {
   },
 
   // DELETE /api/roles/:id
-  delete: async (id) => {
-    return httpClient.delete(`/roles/${id}`);
+  delete: async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para eliminar el rol.");
+    }
+    try {
+      return await httpClient.delete(`/roles/${id}`, {
+        body: { password: managerPassword },
+      });
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error("Contraseña del gerente incorrecta.");
+      throw err;
+    }
   },
 
   // PATCH /api/roles/:id/toggle
-  toggle: async (id) => {
-    const result = await httpClient.patch(`/roles/${id}/toggle`);
-    const rol = result?.data ?? result;
-    return normalizeRol(rol);
+  toggle: async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para cambiar el estado del rol.");
+    }
+    try {
+      const result = await httpClient.patch(`/roles/${id}/toggle`, {
+        password: managerPassword,
+      });
+      const rol = result?.data ?? result;
+      return normalizeRol(rol);
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error("Contraseña del gerente incorrecta.");
+      throw err;
+    }
   },
 
   // Catálogos locales (sin petición extra al servidor)

@@ -9,9 +9,9 @@ import {
 
 // ── Hook principal ────────────────────────────────────────────────────────────
 export const useRoles = () => {
-  const [roles, setRoles]     = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
   // Carga inicial desde el backend
   useEffect(() => {
@@ -74,11 +74,14 @@ export const useRoles = () => {
     }
   };
 
-  const deleteRol = async (id) => {
+  const deleteRol = async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para eliminar el rol.");
+    }
     try {
       setLoading(true);
       setError(null);
-      await RolesAPI.delete(id);
+      await RolesAPI.delete(id, managerPassword);
       setRoles((prev) => prev.filter((r) => String(r.id) !== String(id)));
     } catch (err) {
       const msg = err.message ?? "Error al eliminar el rol";
@@ -90,10 +93,13 @@ export const useRoles = () => {
   };
 
   // toggleRol ahora llama al backend (PATCH /roles/:id/toggle)
-  const toggleRol = async (id) => {
+  const toggleRol = async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para cambiar el estado del rol.");
+    }
     try {
       setError(null);
-      const updated = await RolesAPI.toggle(id);
+      const updated = await RolesAPI.toggle(id, managerPassword);
       setRoles((prev) =>
         prev.map((r) => (String(r.id) === String(id) ? updated : r))
       );
@@ -108,7 +114,7 @@ export const useRoles = () => {
   // ── Helpers de catálogos ──────────────────────────────────────────────────
   // Usan los catálogos locales definidos en RolesAPI.js — sin petición extra.
 
-  const getModulos     = () => MODULOS_PREDETERMINADOS;
+  const getModulos = () => MODULOS_PREDETERMINADOS;
   const getPrivilegios = () => PRIVILEGIOS_PREDETERMINADOS;
 
   const getModuloNombre = (moduloId) =>
@@ -172,10 +178,10 @@ export const useRolSearch = (roles, searchTerm) => {
 
 export const useRolDetail = () => {
   const [selectedRol, setSelectedRol] = useState(null);
-  const [isOpen, setIsOpen]           = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const openDetail  = (rol) => { setSelectedRol(rol); setIsOpen(true); };
-  const closeDetail = ()    => { setIsOpen(false); setSelectedRol(null); };
+  const openDetail = (rol) => { setSelectedRol(rol); setIsOpen(true); };
+  const closeDetail = () => { setIsOpen(false); setSelectedRol(null); };
 
   return { selectedRol, isOpen, openDetail, closeDetail };
 };
