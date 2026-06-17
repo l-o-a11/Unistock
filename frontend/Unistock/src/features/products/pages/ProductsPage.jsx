@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { useProducts } from '../hooks/useProducts';
 import { useProductSearch } from '../hooks/useProductSearch';
 import Alert from '../../shared/components/Alert';
+import { AuthAPI } from '../../auth/services/AuthAPI';
 import ProductTable from '../components/ProductTable';
 import ProductSearch from '../components/ProductSearch';
 import AddProductButton from '../components/AddProductButton';
@@ -13,7 +13,6 @@ import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
 const ProductsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const navigate = useNavigate();
   const { products, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,28 +26,28 @@ const ProductsPage = () => {
   // Alertas separadas por tipo
   const [successAlert, setSuccessAlert] = useState({
     open: false,
-    key: Date.now(),
+    key: 0,
     title: "",
     message: "",
   });
 
   const [errorAlert, setErrorAlert] = useState({
     open: false,
-    key: Date.now(),
+    key: 0,
     title: "",
     message: "",
   });
 
   const [warningAlert, setWarningAlert] = useState({
     open: false,
-    key: Date.now(),
+    key: 0,
     title: "",
     message: "",
   });
 
   const [confirmAlert, setConfirmAlert] = useState({
     open: false,
-    key: Date.now(),
+    key: 0,
     title: "",
     message: "",
     confirmText: "Confirmar",
@@ -61,7 +60,7 @@ const ProductsPage = () => {
     open: false,
     step: "password",
     productId: null,
-    key: Date.now()
+    key: 0
   });
 
   // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
@@ -197,12 +196,28 @@ const ProductsPage = () => {
         message: "Producto creado correctamente"
       });
     } catch (error) {
-      handleCloseForm();
-      handleShowAlert({
-        type: "error",
-        title: "¡Error!",
-        message: error.message || "Error al crear producto"
-      });
+      // Detectar error de duplicado de MongoDB
+      const isDuplicate = 
+        error.message?.includes("duplicate key") ||
+        error.message?.includes("E11000") ||
+        error.message?.includes("dup key") ||
+        error.message?.includes("ya existe");
+
+      // No cerrar el formulario si es duplicado — el usuario puede corregir
+      if (isDuplicate) {
+        handleShowAlert({
+          type: "error",
+          title: "Producto duplicado",
+          message: "Ya existe un producto con ese nombre o referencia. Por favor usa un nombre diferente."
+        });
+      } else {
+        handleCloseForm();
+        handleShowAlert({
+          type: "error",
+          title: "¡Error!",
+          message: error.message || "Error al crear producto"
+        });
+      }
     }
   };
 
@@ -235,8 +250,9 @@ const ProductsPage = () => {
     setSelectedProductForSheet(null);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (password) => {
     try {
+      await AuthAPI.verifyPassword(password);
       await deleteProduct(deleteAlert.productId);
       setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() });
       handleShowAlert({
@@ -245,12 +261,19 @@ const ProductsPage = () => {
         message: "Producto eliminado correctamente"
       });
     } catch (error) {
+      const isInvalidPassword = error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
       handleShowAlert({
         type: "error",
-        title: "¡Error!",
-        message: error.message || "Error al eliminar producto"
+        title: isInvalidPassword ? "Contraseña incorrecta" : "¡Error!",
+        message: isInvalidPassword
+          ? "La contraseña no coincide con tu usuario actual."
+          : (error.message || "Error al eliminar producto")
       });
-      setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() });
+      setDeleteAlert((prev) => ({
+        ...prev,
+        open: isInvalidPassword,
+        step: "password",
+      }));
     }
   };
 
@@ -261,7 +284,7 @@ const ProductsPage = () => {
       handleShowAlert({
         type: "warning",
         title: "No se puede eliminar",
-        message: `El producto "${product.name}" tiene una ficha técnica asociada. Elimina primero la ficha técnica.`
+        message: `El producto "${product.name}" tiene una ficha técnica asociada.`
       });
       return;
     }
@@ -416,7 +439,7 @@ const ProductsPage = () => {
       }}>
         <button
           onClick={handleDownload}
-          title="Descargar productos"
+          title="Exportar"
           style={{
             background: 'none',
             border: 'none',
@@ -444,7 +467,7 @@ const ProductsPage = () => {
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span style={{ fontSize: '14px', fontWeight: '500' }}>Descargar productos</span>
+          <span style={{ fontSize: '14px', fontWeight: '500' }}>Exportar</span>
         </button>
 
         <AddProductButton onClick={handleAddProduct} />
@@ -460,20 +483,14 @@ const ProductsPage = () => {
 
       {showCreateForm && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={() => handleShowConfirm({
-            type: "confirm",
-            title: "¿Seguro que deseas cancelar?",
-            message: "Los cambios no guardados se perderán.",
-            confirmText: "Confirmar",
-            cancelText: "Cancelar",
-            onConfirm: handleCloseForm
-          })} />
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div style={modalContentStyle}>
             <ProductForm
               onSubmit={handleCreateSubmit}
               onCancel={handleCloseForm}
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
+              existingProducts={products}
             />
           </div>
         </div>
@@ -481,15 +498,8 @@ const ProductsPage = () => {
 
       {showEditForm && editingProduct && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={() => handleShowConfirm({
-            type: "confirm",
-            title: "¿Seguro que deseas cancelar?",
-            message: "Los cambios no guardados se perderán.",
-            confirmText: "Confirmar",
-            cancelText: "Cancelar",
-            onConfirm: handleCloseForm
-          })} />
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div style={modalContentStyle}>
             <ProductForm
               product={editingProduct}
               onSubmit={handleEditSubmit}

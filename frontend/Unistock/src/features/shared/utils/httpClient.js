@@ -3,8 +3,16 @@
  * Maneja autenticación, errores y configuración base
  */
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const BACKEND_API_URL =
+  import.meta.env.VITE_BACKEND_API_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3001/api";
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000/api";
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000;
+
+const getApiUrl = (endpoint) => (
+  endpoint.startsWith("/auth") ? AUTH_API_URL : BACKEND_API_URL
+);
 
 /**
  * Limpia la sesión y redirige al login cuando el token es inválido/expirado
@@ -50,7 +58,7 @@ export const httpRequest = async (endpoint, options = {}) => {
     ...otherOptions
   } = options;
 
-  const url = `${API_URL}${endpoint}`;
+  const url = `${getApiUrl(endpoint)}${endpoint}`;
   
   // Headers por defecto
   const defaultHeaders = {

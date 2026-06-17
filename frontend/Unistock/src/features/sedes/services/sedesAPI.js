@@ -11,13 +11,13 @@ import httpClient from "../../shared/utils/httpClient";
 
 // Normaliza una sede recibida del backend
 const normalizeSede = (raw) => ({
-  id:        String(raw.id ?? raw._id ?? ""),
-  nombre:    raw.nombre    ?? "",
-  ciudad:    raw.ciudad    ?? "",
-  barrio:    raw.barrio    ?? "",
+  id: String(raw.id ?? raw._id ?? ""),
+  nombre: raw.nombre ?? "",
+  ciudad: raw.ciudad ?? "",
+  barrio: raw.barrio ?? "",
   direccion: raw.direccion ?? "",
-  telefono:  String(raw.telefono ?? ""),
-  estado:    raw.estado    ?? true,
+  telefono: String(raw.telefono ?? ""),
+  estado: raw.estado ?? true,
 });
 
 export const sedesAPI = {
@@ -44,10 +44,10 @@ export const sedesAPI = {
     }
 
     return {
-      data:       (payload?.data ?? []).map(normalizeSede),
-      total:      payload?.total      ?? 0,
-      page:       payload?.page       ?? 1,
-      limit:      payload?.limit      ?? 10,
+      data: (payload?.data ?? []).map(normalizeSede),
+      total: payload?.total ?? 0,
+      page: payload?.page ?? 1,
+      limit: payload?.limit ?? 10,
       totalPages: payload?.totalPages ?? 1,
     };
   },
@@ -66,12 +66,12 @@ export const sedesAPI = {
    */
   create: async (sedeData) => {
     const result = await httpClient.post("/sites", {
-      nombre:    sedeData.nombre,
-      ciudad:    sedeData.ciudad,
-      barrio:    sedeData.barrio,
+      nombre: sedeData.nombre,
+      ciudad: sedeData.ciudad,
+      barrio: sedeData.barrio,
       direccion: sedeData.direccion,
-      telefono:  String(sedeData.telefono),
-      estado:    sedeData.estado ?? true,
+      telefono: String(sedeData.telefono),
+      estado: sedeData.estado ?? true,
     });
     const raw = result?.data ?? result;
     return normalizeSede(raw);
@@ -82,12 +82,12 @@ export const sedesAPI = {
    */
   update: async (id, sedeData) => {
     const body = {};
-    if (sedeData.nombre    !== undefined) body.nombre    = sedeData.nombre;
-    if (sedeData.ciudad    !== undefined) body.ciudad    = sedeData.ciudad;
-    if (sedeData.barrio    !== undefined) body.barrio    = sedeData.barrio;
+    if (sedeData.nombre !== undefined) body.nombre = sedeData.nombre;
+    if (sedeData.ciudad !== undefined) body.ciudad = sedeData.ciudad;
+    if (sedeData.barrio !== undefined) body.barrio = sedeData.barrio;
     if (sedeData.direccion !== undefined) body.direccion = sedeData.direccion;
-    if (sedeData.telefono  !== undefined) body.telefono  = String(sedeData.telefono);
-    if (sedeData.estado    !== undefined) body.estado    = sedeData.estado;
+    if (sedeData.telefono !== undefined) body.telefono = String(sedeData.telefono);
+    if (sedeData.estado !== undefined) body.estado = sedeData.estado;
 
     const result = await httpClient.put(`/sites/${id}`, body);
     const raw = result?.data ?? result;
@@ -97,16 +97,38 @@ export const sedesAPI = {
   /**
    * DELETE /api/sites/:id
    */
-  delete: async (id) => {
-    return httpClient.delete(`/sites/${id}`);
+  delete: async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para eliminar la sede.");
+    }
+    try {
+      return await httpClient.delete(`/sites/${id}`, {
+        body: { password: managerPassword },
+      });
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error("Contraseña del gerente incorrecta.");
+      throw err;
+    }
   },
 
   /**
    * PATCH /api/sites/:id/toggle
    */
-  toggle: async (id) => {
-    const result = await httpClient.patch(`/sites/${id}/toggle`);
-    const raw = result?.data ?? result;
-    return normalizeSede(raw);
+  toggle: async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para cambiar el estado de la sede.");
+    }
+    try {
+      const result = await httpClient.patch(`/sites/${id}/toggle`, {
+        password: managerPassword,
+      });
+      const raw = result?.data ?? result;
+      return normalizeSede(raw);
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error("Contraseña del gerente incorrecta.");
+      throw err;
+    }
   },
 };

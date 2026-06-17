@@ -26,13 +26,26 @@ const SupplyForm = ({
         propiedadId: String(p.propiedadId ?? p.clave ?? ""),
         valor: p.valor || "",
       })) || [],
-    image: supply?.image || null,
+    /**
+     * imageFile: File object del input[type=file].
+     * Se envía a supplyAPI como multipart/form-data (campo "imagen").
+     * NO se guarda base64 aquí — el preview usa URL.createObjectURL().
+     */
+    imageFile: null,
+    /**
+     * eliminarImagen: señal para que el backend borre la imagen actual
+     * sin reemplazarla (solo aplica en edición).
+     */
+    eliminarImagen: false,
   });
 
   const [errors, setErrors] = useState({});
   const [propiedadId, setPropiedadId] = useState("");
   const [valorPropiedad, setValorPropiedad] = useState("");
-  const [imagePreview, setImagePreview] = useState(supply?.image || null);
+
+  // Preview local de la imagen.
+  // Al editar un insumo existente se inicializa con la URL de Cloudinary.
+  const [imagePreview, setImagePreview] = useState(supply?.imagen ?? null);
 
   const [alertConfig, setAlertConfig] = useState({
     open: false,
@@ -145,16 +158,44 @@ const SupplyForm = ({
   };
 
   // ── Imagen ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Guarda el File object (para enviarlo como multipart/form-data) y genera
+   * un preview local con URL.createObjectURL — sin convertir a base64.
+   */
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Revocar el object URL anterior para liberar memoria
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
     }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setFormData((prev) => ({
+      ...prev,
+      imageFile: file,
+      eliminarImagen: false,  // si había marcado eliminar, se cancela
+    }));
+  };
+
+  /**
+   * Elimina la imagen del preview y marca la señal para que el backend
+   * borre la imagen actual en Cloudinary (solo relevante en edición).
+   */
+  const handleRemoveImage = () => {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview(null);
+    setFormData((prev) => ({
+      ...prev,
+      imageFile: null,
+      // Solo marcar eliminarImagen si el insumo ya tenía imagen en Cloudinary
+      eliminarImagen: !!supply?.imagen,
+    }));
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -211,15 +252,19 @@ const SupplyForm = ({
     /**
      * categoriaId y medidaId vienen como strings del <select value="...">
      * NO aplicar parseInt — son ObjectIds de MongoDB (strings hexadecimales).
+     *
+     * imageFile: File object que supplyAPI enviará como multipart/form-data.
+     * eliminarImagen: señal para borrar la imagen en Cloudinary sin reemplazar.
      */
     const dataToSubmit = {
       nombre: formData.nombre.trim(),
-      categoriaId: formData.categoriaId, // string ObjectId — sin parseInt
-      medidaId: formData.medidaId, // string clave de medida ("cja", "kg", ...)
+      categoriaId: formData.categoriaId,       // string ObjectId — sin parseInt
+      medidaId: formData.medidaId,             // string clave de medida ("cja", "kg", ...)
       stock: parseFloat(formData.stock) || 0,
       valorMedida: parseFloat(formData.valorMedida) || 0,
       propiedades: propiedadesParaAPI,
-      //image:        formData.image || null,
+      imageFile: formData.imageFile || null,   // File object para multipart/form-data
+      eliminarImagen: formData.eliminarImagen, // solo relevante en update
     };
 
     try {
@@ -639,10 +684,7 @@ const SupplyForm = ({
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setImagePreview(null);
-                      setFormData((prev) => ({ ...prev, image: null }));
-                    }}
+                    onClick={handleRemoveImage}
                     style={{
                       marginTop: "10px",
                       padding: "4px 12px",
@@ -700,17 +742,17 @@ const SupplyForm = ({
                       color: "#999",
                     }}
                   >
-                    PNG, JPG, GIF hasta 10MB
+                    PNG, JPG, GIF hasta 5MB
                   </p>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={handleImageUpload}
                     style={{ display: "none" }}
-                    id="product-image-upload"
+                    id="supply-image-upload"
                   />
                   <label
-                    htmlFor="product-image-upload"
+                    htmlFor="supply-image-upload"
                     style={{
                       marginTop: "10px",
                       padding: "6px 16px",

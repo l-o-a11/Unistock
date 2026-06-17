@@ -15,16 +15,16 @@ import { useState, useEffect, useCallback } from "react";
 import { supplyAPI } from "../services/supplyAPI";
 
 export const useSupplies = (initialFilters = {}) => {
-  const [supplies,    setSupplies]    = useState([]);
-  const [pagination,  setPagination]  = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [filters,     setFilters]     = useState({ limit: 10, ...initialFilters });
+  const [supplies, setSupplies] = useState([]);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({ limit: 10, ...initialFilters });
 
   // ── Catálogos ──────────────────────────────────────────────────────────────
-  const [categorias,   setCategorias]   = useState([]);
-  const [medidas,      setMedidas]      = useState([]);
-  const [propiedades,  setPropiedades]  = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [medidas, setMedidas] = useState([]);
+  const [propiedades, setPropiedades] = useState([]);
 
   // ── Carga de catálogos (una sola vez al montar) ────────────────────────────
   const loadCatalogos = useCallback(async () => {
@@ -51,9 +51,9 @@ export const useSupplies = (initialFilters = {}) => {
       const result = await supplyAPI.getAll(merged);
       setSupplies(result.data);
       setPagination({
-        total:      result.total,
-        page:       result.page,
-        limit:      result.limit,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
         totalPages: result.totalPages,
       });
     } catch (err) {
@@ -64,7 +64,7 @@ export const useSupplies = (initialFilters = {}) => {
     }
   }, [filters]);
 
-  useEffect(() => { loadData();      }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { loadCatalogos(); }, [loadCatalogos]);
 
   // ── Cambiar página / filtros ───────────────────────────────────────────────
@@ -105,13 +105,13 @@ export const useSupplies = (initialFilters = {}) => {
     }
   };
 
-  const deleteSupply = async (id) => {
+  const deleteSupply = async (id, managerPassword) => {
     try {
       setLoading(true);
-      await supplyAPI.delete(id);
+      await supplyAPI.delete(id, managerPassword);
       // Si la página actual queda vacía, retroceder una página
-      const newTotal  = pagination.total - 1;
-      const maxPage   = Math.max(1, Math.ceil(newTotal / pagination.limit));
+      const newTotal = pagination.total - 1;
+      const maxPage = Math.max(1, Math.ceil(newTotal / pagination.limit));
       const targetPage = Math.min(pagination.page, maxPage);
       await loadData({ page: targetPage });
     } catch (err) {
@@ -124,10 +124,14 @@ export const useSupplies = (initialFilters = {}) => {
   };
 
   // toggle: actualización optimista local + llamada al backend
-  const toggleSupply = async (id) => {
+  const toggleSupply = async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para cambiar el estado del insumo.");
+    }
+
     try {
       setLoading(true);
-      const updated = await supplyAPI.toggle(id);
+      const updated = await supplyAPI.toggle(id, managerPassword);
       setSupplies((prev) => prev.map((s) => (s.id === id ? updated : s)));
       return updated;
     } catch (err) {

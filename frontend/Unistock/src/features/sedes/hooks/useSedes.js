@@ -12,11 +12,11 @@ import { useState, useEffect, useCallback } from "react";
 import { sedesAPI } from "../services/sedesAPI";
 
 export const useSedes = (initialFilters = {}) => {
-  const [sedes,      setSedes]      = useState([]);
+  const [sedes, setSedes] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [filters,    setFilters]    = useState({ limit: 10, ...initialFilters });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({ limit: 10, ...initialFilters });
 
   // ── Carga (server-side) ────────────────────────────────────────────────────
   const loadData = useCallback(async (overrideFilters = {}) => {
@@ -27,9 +27,9 @@ export const useSedes = (initialFilters = {}) => {
       const result = await sedesAPI.getAll(merged);
       setSedes(result.data);
       setPagination({
-        total:      result.total,
-        page:       result.page,
-        limit:      result.limit,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
         totalPages: result.totalPages,
       });
     } catch (err) {
@@ -86,13 +86,16 @@ export const useSedes = (initialFilters = {}) => {
   };
 
   // ── Eliminar ───────────────────────────────────────────────────────────────
-  const deleteSede = async (id) => {
+  const deleteSede = async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para eliminar la sede.");
+    }
     try {
       setLoading(true);
-      await sedesAPI.delete(id);
+      await sedesAPI.delete(id, managerPassword);
       // Si la página actual queda vacía tras eliminar, retroceder una página
       const newTotal = pagination.total - 1;
-      const maxPage  = Math.max(1, Math.ceil(newTotal / pagination.limit));
+      const maxPage = Math.max(1, Math.ceil(newTotal / pagination.limit));
       const targetPage = Math.min(pagination.page, maxPage);
       await loadData({ page: targetPage });
     } catch (err) {
@@ -105,10 +108,13 @@ export const useSedes = (initialFilters = {}) => {
   };
 
   // ── Toggle activo/inactivo ─────────────────────────────────────────────────
-  const toggleSede = async (id) => {
+  const toggleSede = async (id, managerPassword) => {
+    if (!managerPassword?.trim()) {
+      throw new Error("Se requiere la contraseña del gerente para cambiar el estado de la sede.");
+    }
     try {
       setLoading(true);
-      const updated = await sedesAPI.toggle(id);
+      const updated = await sedesAPI.toggle(id, managerPassword);
       // Actualización optimista local (evita un round-trip innecesario)
       setSedes((prev) => prev.map((s) => (s.id === id ? updated : s)));
       return updated;

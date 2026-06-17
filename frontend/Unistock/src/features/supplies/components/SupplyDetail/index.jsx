@@ -134,9 +134,9 @@ const SupplyDetail = ({
                   alignItems: "center",
                 }}
               >
-                {supply.image ? (
+                {supply.imagen ? (
                   <img
-                    src={supply.image}
+                    src={supply.imagen}
                     alt={supply.nombre}
                     style={{
                       width: "100%",
