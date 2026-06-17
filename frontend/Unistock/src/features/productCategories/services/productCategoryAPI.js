@@ -52,6 +52,7 @@ const buildCategoryPayloads = (data) => {
   const name        = data.name        ?? data.nombre     ?? "";
   const description = data.description ?? data.descripcion ?? "";
 
+  // ✅ Payload correcto primero — el backend espera "nombre" y "descripcion"
   return [
     { nombre: name, descripcion: description },
     { nombre: name, description:  description },

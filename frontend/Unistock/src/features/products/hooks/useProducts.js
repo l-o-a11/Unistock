@@ -6,19 +6,11 @@ export const useProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const sortProductsAsc = (list) => {
-    return [...(list || [])].sort((a, b) => {
-      const idA = String(a.id ?? a._id ?? '');
-      const idB = String(b.id ?? b._id ?? '');
-      return idA.localeCompare(idB);
-    });
-  };
-
   const loadProducts = async () => {
     try {
       setLoading(true);
       const data = await productAPI.getAll();
-      setProducts(sortProductsAsc(data));
+      setProducts(data);
     } catch {
       setError('Error al cargar productos');
     } finally {
@@ -29,7 +21,7 @@ export const useProducts = () => {
   useEffect(() => {
     let cancelled = false;
     productAPI.getAll()
-      .then((data) => { if (!cancelled) { setProducts(sortProductsAsc(data)); setLoading(false); } })
+      .then((data) => { if (!cancelled) { setProducts(data); setLoading(false); } })
       .catch(() => { if (!cancelled) { setError('Error al cargar productos'); setLoading(false); } });
     return () => { cancelled = true; };
   }, []);
@@ -37,12 +29,14 @@ export const useProducts = () => {
   const createProduct = async (productData) => {
     try {
       const newProduct = await productAPI.create(productData);
+      // ✅ Recargar el producto completo desde el backend para tener
+      // la ficha técnica y todos los datos actualizados
       try {
         const fullProduct = await productAPI.getById(newProduct.id);
-        setProducts(prev => sortProductsAsc([...prev, fullProduct ?? newProduct]));
+        setProducts(prev => [...prev, fullProduct ?? newProduct]);
         return fullProduct ?? newProduct;
       } catch {
-        setProducts(prev => sortProductsAsc([...prev, newProduct]));
+        setProducts(prev => [...prev, newProduct]);
         return newProduct;
       }
     } catch (err) {
@@ -54,6 +48,7 @@ export const useProducts = () => {
   const updateProduct = async (id, productData) => {
     try {
       const updatedProduct = await productAPI.update(id, productData);
+      // ✅ Recargar el producto completo para tener la ficha actualizada
       try {
         const fullProduct = await productAPI.getById(id);
         setProducts(prev =>

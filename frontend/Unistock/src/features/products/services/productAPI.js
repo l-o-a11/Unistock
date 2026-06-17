@@ -1,8 +1,9 @@
 import httpClient, { httpRequest } from "../../shared/utils/httpClient";
 import { Categories } from "../types/constants";
+import { productCategoryAPI } from "../../productCategories/services/productCategoryAPI";
 
 const PRODUCT_ENDPOINTS = ["/products"];
-const PRODUCT_CATEGORY_ENDPOINTS = ["/products-categories", "/product-categories"];
+const PRODUCT_CATEGORY_ENDPOINTS = ["/product-categories", "/products-categories"];
 const TECHNICAL_SHEET_ENDPOINTS = {
   api: {
     list: (productId) => `/products/${productId}/tecnicas`,
@@ -115,20 +116,16 @@ const categoryNameFromId = (categoryId, categories = []) => {
   );
 };
 
-const toUiCategory = (raw) => {
-  if (!raw) return raw;
-  return {
-    id:          raw.id ?? raw._id ?? raw.id_categoria_producto ?? raw.id_categorias ?? raw.id_categoria,
-    _id:         raw._id,
-    name:        raw.name        ?? raw.nombre        ?? raw.categoryName    ?? raw.nombre_categoria ?? "",
-    description: raw.description ?? raw.descripcion   ?? raw.descripciones  ?? "",
-    icon:        raw.icon        ?? raw.icono         ?? "",
-  };
-};
-
 const toUiProduct = (raw, categories = []) => {
   if (!raw) return raw;
-  const categoryId = raw.id_categorias ?? raw.id_categoria ?? raw.idCategoria ?? raw.categoryId;
+  const categoryId =
+  raw.id_categorias ??
+  raw.id_categoria ??
+  raw.idCategoria ??
+  raw.categoryId ??
+  raw.category_id ??
+  raw.categoria_id ??
+  raw.idCategory;
   const image = raw.image ?? raw.imagenes_Url?.[0] ?? raw.imagenesUrl?.[0] ?? null;
 
   return {
@@ -140,7 +137,12 @@ const toUiProduct = (raw, categories = []) => {
     image,
     reference: raw.reference ?? raw.referencia ?? "",
     name: raw.name ?? raw.nombre ?? "",
-    category: raw.category ?? raw.nombreCategoria ?? categoryNameFromId(categoryId, categories),
+    category:
+  raw.category?.name ??
+  raw.category?.nombre ??
+  raw.category ??
+  raw.nombreCategoria ??
+  categoryNameFromId(categoryId, categories),
     price: raw.price ?? raw.precio ?? 0,
     stock: raw.stock ?? 0,
     active: raw.active ?? raw.estado ?? raw.activo ?? true,
@@ -214,27 +216,44 @@ const toUiSheet = (raw) => {
 
 const getCategories = async () => {
   try {
-    const response = await requestEndpointFallback(PRODUCT_CATEGORY_ENDPOINTS, { method: "GET" });
-    const data = unwrapResponse(response);
-    return Array.isArray(data) ? data.map(toUiCategory) : Categories;
+    // Usar productCategoryAPI que ya sabe a qué puerto apuntar
+    const categories = await productCategoryAPI.getAll();
+    return Array.isArray(categories) && categories.length > 0 ? categories : Categories;
   } catch {
     return Categories;
   }
 };
 
 const resolveCategoryId = async (productData) => {
-  const explicitId = productData.categoryId ?? productData.id_categorias ?? productData.id_categoria ?? productData.idCategoria;
-  if (explicitId && !Number.isInteger(Number(explicitId))) return explicitId;
+  const explicitId =
+    productData.categoryId ??
+    productData.id_categorias ??
+    productData.id_categoria ??
+    productData.idCategoria;
+
+  if (explicitId) {
+    return explicitId;
+  }
 
   const categories = await getCategories();
+
   const byName = categories.find((cat) => {
     const name = cat.name ?? cat.nombre;
-    return name?.toLowerCase() === productData.category?.toLowerCase();
+
+    return (
+      name &&
+      productData.category &&
+      name.toLowerCase().trim() ===
+        productData.category.toLowerCase().trim()
+    );
   });
 
-  const resolvedId = byName?.id ?? byName?._id ?? explicitId;
-  if (!resolvedId || Number.isInteger(Number(resolvedId))) {
-    throw new Error("Selecciona una categoria registrada antes de guardar el producto");
+  const resolvedId = byName?.id ?? byName?._id;
+
+  if (!resolvedId) {
+    throw new Error(
+      "Selecciona una categoria registrada antes de guardar el producto"
+    );
   }
 
   return resolvedId;

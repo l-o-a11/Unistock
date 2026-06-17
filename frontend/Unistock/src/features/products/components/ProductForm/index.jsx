@@ -23,8 +23,8 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
     );
   });
   
-  const handleSelect = (catName) => {
-    onChange(catName);
+  const handleSelect = (category) => {
+    onChange(category);
     setOpen(false);
   };
 
@@ -69,7 +69,7 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
               filteredCategories.map((cat) => (
                 <div 
                   key={cat.id ?? cat._id} 
-                  onClick={() => handleSelect(cat.name ?? cat.nombre)} 
+                  onClick={() => handleSelect(cat)}
                   style={{ 
                     padding: "10px 14px", 
                     fontSize: "14px", 
@@ -117,11 +117,12 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
   );
 };
 
-const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
+const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, existingProducts = [] }) => {
   const initialData = {
     reference: product?.reference || "",
     name: product?.name || "",
     category: product?.category || "",
+    categoryId: product?.categoryId || null,
     price: product?.price || "",
     stock: product?.stock || "",
     image: product?.image || null,
@@ -169,7 +170,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   const loadCategories = async () => {
     try {
@@ -236,6 +236,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
   const validateReference = (value) => {
     if (!value.trim()) return "La referencia es obligatoria";
     if (value.trim().length < 3) return "La referencia debe tener al menos 3 caracteres";
+    const isDuplicate = existingProducts.some(
+      (p) => p.reference?.toLowerCase().trim() === value.toLowerCase().trim()
+        && p.id !== product?.id
+    );
+    if (isDuplicate) return "Ya existe un producto con esa referencia";
     return "";
   };
 
@@ -455,32 +460,16 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
     }
   };
 
-  // ✅ CORREGIDO: fusiona cambios sobre la base anterior
+  // ✅ CORREGIDO: fusiona cambios sobre la base anterior, sin permitir que
+  // claves undefined provenientes del hijo borren datos ya existentes
   const handleTechnicalSheetChange = (sheetData) => {
-    setTechnicalSheet(prev => ({ ...prev, ...sheetData }));
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
+    setTechnicalSheet(prev => {
+      const base = prev || {};
+      const safeUpdates = Object.fromEntries(
+        Object.entries(sheetData || {}).filter(([, v]) => v !== undefined)
+      );
+      return { ...base, ...safeUpdates };
+    });
   };
 
   const handleCancelClick = useCallback(() => {
@@ -578,7 +567,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
 
   return (
     <div style={{ padding: "36px 40px" }}>
-      <h2 style={{ margin: "0 0 20px 0", fontSize: "20px", fontWeight: "600", color: "#1a1a1a", textAlign: "center" }}>
+      <h2 style={{ margin: "0 0 28px 0", fontSize: "20px", fontWeight: "600", color: "#1a1a1a", textAlign: "center" }}>
         {product ? "Editar Producto" : "Crear Nuevo Producto"}
       </h2>
 
@@ -660,10 +649,34 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
                         <CategoryDropdown 
                           value={formData.category} 
-                          onChange={(val) => {
-                            setFormData((prev) => ({ ...prev, category: val }));
-                            setTouched((prev) => ({ ...prev, category: true }));
-                            setErrors((prev) => ({ ...prev, category: validateCategory(val) }));
+                          onChange={(category) => {
+                            const categoryName =
+                              category.name ??
+                              category.nombre ??
+                              "";
+
+                            const categoryId =
+                              category.id ??
+                              category._id ??
+                              category.id_categoria_producto ??
+                              category.id_categorias ??
+                              category.id_categoria;
+
+                            setFormData((prev) => ({
+                              ...prev,
+                              category: categoryName,
+                              categoryId: categoryId,
+                            }));
+
+                            setTouched((prev) => ({
+                              ...prev,
+                              category: true,
+                            }));
+
+                            setErrors((prev) => ({
+                              ...prev,
+                              category: validateCategory(categoryName),
+                            }));
                           }}
                           touched={touched.category}
                           error={errors.category}
@@ -723,22 +736,17 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
             </div>
 
             <div style={{ flex: 1 }}>
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                style={{ 
-                  border: isDragging ? "2px dashed #ff4fd6" : "1px solid #e5e7eb", 
-                  borderRadius: "8px", 
-                  padding: "16px", 
-                  backgroundColor: isDragging ? "#fdf0f7" : "#fafafa", 
-                  minHeight: "250px", 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  transition: "all 0.2s"
-                }}>
+              <div style={{ 
+                border: "1px solid #e5e7eb", 
+                borderRadius: "8px", 
+                padding: "16px", 
+                backgroundColor: "#fafafa", 
+                minHeight: "250px", 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center", 
+                justifyContent: "center" 
+              }}>
                 {imagePreview ? (
                   <div style={{ textAlign: "center", width: "100%" }}>
                     <img 
@@ -760,7 +768,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                   </div>
                 ) : (
                   <>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={isDragging ? "#ff4fd6" : "#aaa"} strokeWidth="1.5">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
                       <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
                       <line x1="8" y1="2" x2="8" y2="22" />
                       <line x1="16" y1="2" x2="16" y2="22" />
@@ -806,21 +814,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm }
                   cursor: hasInvalidFields() ? "not-allowed" : "pointer"
                 }}
                 onClick={() => {
-                  if (!hasInvalidFields()) {
+                  if (validateForm()) {
                     setCurrentStep(2);
-                  } else {
-                    setTouched({
-                      reference: true,
-                      name: true,
-                      category: true,
-                      price: true,
-                      stock: true
-                    });
-                    onShowAlert({
-                      type: "warning",
-                      title: "Campos incompletos",
-                      message: "Completa todos los campos requeridos antes de continuar"
-                    });
                   }
                 }}
               >

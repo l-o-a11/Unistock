@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AddProductButton = ({ onClick, label = "Agregar nuevo producto" }) => {
+const AddProductButton = ({ onClick, label = "Agregar" }) => {
   return (
     <button
       onClick={onClick}

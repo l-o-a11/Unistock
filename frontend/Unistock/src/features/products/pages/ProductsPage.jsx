@@ -439,7 +439,7 @@ const ProductsPage = () => {
       }}>
         <button
           onClick={handleDownload}
-          title="Descargar productos"
+          title="Exportar"
           style={{
             background: 'none',
             border: 'none',
@@ -467,7 +467,7 @@ const ProductsPage = () => {
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span style={{ fontSize: '14px', fontWeight: '500' }}>Descargar productos</span>
+          <span style={{ fontSize: '14px', fontWeight: '500' }}>Exportar</span>
         </button>
 
         <AddProductButton onClick={handleAddProduct} />
@@ -483,20 +483,14 @@ const ProductsPage = () => {
 
       {showCreateForm && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={() => handleShowConfirm({
-            type: "confirm",
-            title: "¿Seguro que deseas cancelar?",
-            message: "Los cambios no guardados se perderán.",
-            confirmText: "Confirmar",
-            cancelText: "Cancelar",
-            onConfirm: handleCloseForm
-          })} />
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div style={modalContentStyle}>
             <ProductForm
               onSubmit={handleCreateSubmit}
               onCancel={handleCloseForm}
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
+              existingProducts={products}
             />
           </div>
         </div>
@@ -504,15 +498,8 @@ const ProductsPage = () => {
 
       {showEditForm && editingProduct && (
         <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={() => handleShowConfirm({
-            type: "confirm",
-            title: "¿Seguro que deseas cancelar?",
-            message: "Los cambios no guardados se perderán.",
-            confirmText: "Confirmar",
-            cancelText: "Cancelar",
-            onConfirm: handleCloseForm
-          })} />
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div style={modalContentStyle}>
             <ProductForm
               product={editingProduct}
               onSubmit={handleEditSubmit}

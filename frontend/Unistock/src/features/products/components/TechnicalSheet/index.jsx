@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
 
 const cellStyle = {
@@ -106,13 +106,12 @@ const mergeAccessories = (existing = []) => {
   return [...base, ...extras];
 };
 
-const buildInitialData = (sheet, productName, categoryDescription, productRef) => {
+const hasValue = (v) => v && String(v).trim() !== "";
+
+const buildInitialData = (sheet, productName, categoryDescription, productRef, productImage) => {
   const initialData = sheet || { ...EMPTY_SHEET };
   const currentUser = AuthAPI.getSession();
   const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-  // Usar trim() para que strings vacíos "" se traten como vacíos
-  const hasValue = (v) => v && String(v).trim() !== "";
 
   return {
     ...initialData,
@@ -121,16 +120,28 @@ const buildInitialData = (sheet, productName, categoryDescription, productRef) =
     type:        hasValue(initialData.type)        ? initialData.type        : (productName || ""),
     description: hasValue(initialData.description) ? initialData.description : (categoryDescription || ""),
     ref:         hasValue(initialData.ref)         ? initialData.ref         : (productRef || ""),
+    // Imagen: usar la del producto si la ficha no tiene una propia
+    image:       hasValue(initialData.image)       ? initialData.image        : (productImage || null),
     // Siempre 14 slots fijos para que las celdas de la tabla nunca colapsen
     accessories: mergeAccessories(initialData.accessories || []),
   };
 };
 
-const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", categoryDescription = "", productRef = "" }) => {
+const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", categoryDescription = "", productRef = "", productImage = null }) => {
   const [formData, setFormData] = useState(() =>
-    buildInitialData(sheet, productName, categoryDescription, productRef)
+    buildInitialData(sheet, productName, categoryDescription, productRef, productImage)
   );
-  const [imagePreview, setImagePreview] = useState(sheet?.image || null);
+  const [imagePreview, setImagePreview] = useState(hasValue(sheet?.image) ? sheet.image : (productImage || null));
+
+  // ✅ CORREGIDO: propaga al padre los valores autogenerados (fecha, usuario,
+  // tipo, descripción, ref, imagen heredada del producto) apenas se monta.
+  // Antes, estos valores vivían solo en el estado local y nunca llegaban al
+  // padre si el usuario no editaba manualmente esos campos, por lo que se
+  // guardaban vacíos al enviar el formulario.
+  useEffect(() => {
+    onChange?.(formData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (field, value) => {
     const newData = { ...formData, [field]: value };
