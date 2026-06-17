@@ -350,15 +350,34 @@ const ShoppingsPage = () => {
           <button
             onClick={() => setDownloadModal(true)}
             title="Exportar compras"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", padding: "4px" }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#555",
+              display: "flex",
+              alignItems: "center",
+              padding: "4px",
+              gap: "6px",          // ← esto es lo único que cambia
+            }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
+            Exportar
           </button>
         </div>
 
