@@ -25,6 +25,10 @@ const ShoppingsPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
 
+  // ── Modal de descarga (elegir Excel o PDF) ────────────────────────────────
+  // Igual patrón que ProductionPage: un booleano controla si el modal se ve.
+  const [downloadModal, setDownloadModal] = useState(false);
+
   // ── Modal anulación con motivo ────────────────────────────────────────────
   const [cancelModal, setCancelModal] = useState({ open: false, id: null, motivo: "" });
   const [motivoError, setMotivoError] = useState("");
@@ -123,7 +127,8 @@ const ShoppingsPage = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadExcel = () => {
+    setDownloadModal(false); // cierra el modal de selección al elegir
     try {
       const data = filteredShoppings.map((p) => ({
         "ID": p.id,
@@ -151,6 +156,148 @@ const ShoppingsPage = () => {
       console.error("Error al exportar:", error);
       showAlert("error", "¡Error!", "No se pudo exportar el archivo.");
     }
+  };
+
+  // ── Exportar a PDF ─────────────────────────────────────────────────────────
+  // Mismo patrón que ProductionPage.handleDownloadPDF:
+  // 1) Construye un documento HTML completo como string (con su propio <style>)
+  // 2) Lo abre en una pestaña nueva con window.open
+  // 3) Llama a print() — el usuario elige "Guardar como PDF" en el diálogo del navegador
+  const handleDownloadPDF = () => {
+    setDownloadModal(false);
+
+    const now = new Date();
+    const fecha = now.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+    const hora = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+
+    // esc(): escapa caracteres especiales de HTML para evitar romper el documento
+    // si una observación contiene < > & etc.
+    const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    // Colores de badge según el estado de la compra — mismo concepto que
+    // statusColor() en producción, pero solo dos estados posibles aquí.
+    const estadoColor = (anulada) =>
+      anulada
+        ? { bg: "#fee2e2", color: "#991b1b", dot: "#ef4444" } // Anulada → rojo
+        : { bg: "#dcfce7", color: "#166534", dot: "#22c55e" }; // Activa  → verde
+
+    // Total general — suma de costoTotal de todas las compras filtradas
+    const totalGeneral = filteredShoppings.reduce((sum, p) => sum + (Number(p.costoTotal) || 0), 0);
+    const totalAnuladas = filteredShoppings.filter((p) => p.anulada).length;
+    const totalActivas = filteredShoppings.length - totalAnuladas;
+
+    // Construir una fila <tr> por cada compra
+    const tableRows = filteredShoppings.map((p, i) => {
+      const ec = estadoColor(p.anulada);
+      return `
+        <tr class="${i % 2 === 0 ? 'row-even' : 'row-odd'}">
+          <td class="td-id"><span class="id-num">#${esc(p.consecutivo ?? p.id)}</span></td>
+          <td class="td-factura">${esc(p.numeroFactura || '—')}</td>
+          <td class="td-proveedor">${esc(getProveedorNombre(p.proveedorId) || p.proveedor || '—')}</td>
+          <td class="td-fecha">${esc(p.fecha || '—')}</td>
+          <td class="td-obs">${esc(p.observaciones || '—')}</td>
+          <td class="td-total">$${Number(p.costoTotal || 0).toLocaleString('es-CO')}</td>
+          <td class="td-estado">
+            <span class="status-badge" style="background:${ec.bg};color:${ec.color};">
+              <span class="status-dot" style="background:${ec.dot};"></span>
+              ${p.anulada ? 'Anulada' : 'Activa'}
+            </span>
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Documento HTML completo — incluye su propio <style> porque se abre
+    // en una ventana/pestaña aparte, sin acceso a los estilos de la app.
+    const html = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>Compras — ${fecha}</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+          body { padding: 32px; color: #1f2937; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 3px solid #FF4FD6; padding-bottom: 16px; }
+          .header h1 { font-size: 24px; font-weight: 800; color: #1f2937; }
+          .header p { font-size: 12px; color: #6b7280; margin-top: 4px; }
+          .summary { display: flex; gap: 16px; margin-bottom: 20px; }
+          .summary-card { flex: 1; background: #f9fafb; border-radius: 10px; padding: 12px 16px; border: 1px solid #f0f0f0; }
+          .summary-card .label { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; }
+          .summary-card .value { font-size: 20px; font-weight: 800; color: #1f2937; margin-top: 4px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th { background: #fdf2f8; color: #831843; font-weight: 700; text-align: left; padding: 10px 12px; border-bottom: 2px solid #fbcfe8; }
+          td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+          .row-even { background: #fff; }
+          .row-odd  { background: #fafafa; }
+          .id-num { font-weight: 700; color: #FF4FD6; }
+          .td-total { font-weight: 700; text-align: right; }
+          th:last-child, .td-total, .td-estado { text-align: right; }
+          .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+          .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+          .footer { margin-top: 16px; font-size: 11px; color: #9ca3af; text-align: center; }
+          @media print { body { padding: 12px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>Reporte de Compras</h1>
+            <p>Generado el ${fecha} a las ${hora}</p>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="summary-card">
+            <div class="label">Total compras</div>
+            <div class="value">${filteredShoppings.length}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Activas</div>
+            <div class="value">${totalActivas}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Anuladas</div>
+            <div class="value">${totalAnuladas}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Monto total</div>
+            <div class="value">$${totalGeneral.toLocaleString('es-CO')}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>N° Factura</th>
+              <th>Proveedor</th>
+              <th>Fecha</th>
+              <th>Observaciones</th>
+              <th>Costo total</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+
+        <p class="footer">Unistock · Reporte generado automáticamente</p>
+      </body>
+      </html>
+    `;
+
+    // Abrir en una pestaña nueva y disparar el diálogo de impresión.
+    // El usuario elige "Guardar como PDF" como destino — es la misma técnica
+    // usada en ProductionPage.handleDownloadPDF.
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showAlert("error", "Bloqueado", "El navegador bloqueó la ventana emergente. Permite pop-ups para exportar a PDF.");
+      return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    // Pequeño delay para asegurar que el HTML termine de renderizar antes de imprimir
+    setTimeout(() => printWindow.print(), 300);
   };
 
   // ── Paginación visual ─────────────────────────────────────────────────────
@@ -198,8 +345,10 @@ const ShoppingsPage = () => {
       }}>
         {/* IZQUIERDA */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Antes llamaba directo a handleDownload (solo Excel).
+              Ahora abre el modal de selección de formato — igual que en Producción. */}
           <button
-            onClick={handleDownload}
+            onClick={() => setDownloadModal(true)}
             title="Exportar compras"
             style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", padding: "4px" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
@@ -211,19 +360,6 @@ const ShoppingsPage = () => {
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </button>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <label style={{ fontSize: "13px", color: "#555" }}>Estado:</label>
-            <select
-              value={estadoFiltro}
-              onChange={(e) => { setEstadoFiltro(e.target.value); setCurrentPage(1); }}
-              style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "13px", cursor: "pointer", outline: "none" }}
-            >
-              <option value="todos">Todos</option>
-              <option value="activos">Activos</option>
-              <option value="inactivos">Inactivos</option>
-            </select>
-          </div>
         </div>
 
         {/* DERECHA */}
@@ -360,6 +496,92 @@ const ShoppingsPage = () => {
           </div>
         );
       })()}
+
+      {/* MODAL SELECCIÓN FORMATO DE DESCARGA (Excel / PDF) */}
+      {/* Mismo diseño que el download-modal de ProductionPage, pero con
+          estilos inline en vez de clases CSS — para no tocar el <style global>
+          que ShoppingsPage no tiene definido (producción sí lo tiene). */}
+      {downloadModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+          display: "flex", justifyContent: "center", alignItems: "center",
+          zIndex: 1200, padding: "0 16px",
+        }}>
+          <div style={{
+            borderRadius: "16px", padding: "24px", background: "#fff",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+            width: "calc(100vw - 32px)", maxWidth: "360px",
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#111" }}>Descargar compras</h3>
+                <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#888" }}>Elige el formato de exportación</p>
+              </div>
+              <button onClick={() => setDownloadModal(false)}
+                style={{ border: "none", background: "none", cursor: "pointer", color: "#9ca3af", fontSize: "20px", lineHeight: 1, padding: "4px" }}>
+                ×
+              </button>
+            </div>
+
+            {/* Opciones */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+
+              {/* Opción Excel */}
+              <button
+                onClick={handleDownloadExcel}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: "14px",
+                  padding: "14px 16px", borderRadius: "10px", cursor: "pointer",
+                  border: "1.5px solid #e5e7eb", background: "#fafafa", textAlign: "left",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ff4fd6"; e.currentTarget.style.background = "#fff0fb"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#fafafa"; }}
+              >
+                <div style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#e6f4ea" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22863a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#111" }}>Excel / XLSX</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#6b7280" }}>Tabla editable, compatible con Excel y Sheets</p>
+                </div>
+              </button>
+
+              {/* Opción PDF */}
+              <button
+                onClick={handleDownloadPDF}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: "14px",
+                  padding: "14px 16px", borderRadius: "10px", cursor: "pointer",
+                  border: "1.5px solid #e5e7eb", background: "#fafafa", textAlign: "left",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ff4fd6"; e.currentTarget.style.background = "#fff0fb"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#fafafa"; }}
+              >
+                <div style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#fef2f2" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" />
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#111" }}>PDF</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#6b7280" }}>Documento listo para imprimir o compartir</p>
+                </div>
+              </button>
+            </div>
+
+            {/* Contador */}
+            <p style={{ margin: "14px 0 0", fontSize: "11px", color: "#d1d5db", textAlign: "center" }}>
+              {filteredShoppings.length} compra{filteredShoppings.length !== 1 ? "s" : ""} se exportará{filteredShoppings.length !== 1 ? "n" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ALERT GLOBAL */}
       <Alert

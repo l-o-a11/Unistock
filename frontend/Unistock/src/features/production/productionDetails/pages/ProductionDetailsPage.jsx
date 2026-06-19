@@ -1,8 +1,3 @@
-/**
- * @file ProductionDetailsPage.jsx
- * @description Página de detalle de una orden de producción — Diseño renovado (Orden #3005 style)
- * CAMBIOS: Fix responsive para móvil — tabla historial, stepper, sidebar, botones nav
- */
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
@@ -13,6 +8,7 @@ import Alert from "../../../shared/components/Alert";
 import TechnicalSheet from "../../components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
+import { useAuthContext } from "../../../shared/AuthContext";
 
 const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
 const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
@@ -92,6 +88,8 @@ const ProductionDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  // ✅ Obtener el usuario actual para validar contraseña en medidas de seguridad
+  const { user: currentUser } = useAuthContext();
 
   const [production, setProduction] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -155,15 +153,35 @@ const ProductionDetailsPage = () => {
           try {
             const key = `app_prod_sedes_${data._id || data.id}`;
             const raw = localStorage.getItem(key);
-            if (raw) { const parsed = JSON.parse(raw); if (parsed.length > 0) return parsed; }
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed;
+              }
+            }
           } catch {}
-          return (
+          const source = (
             data.sedeAsignaciones ||
             data.sede_asignaciones ||
             data.rawData?.sedeAsignaciones ||
             []
-          ).filter(a => a.option && Number(a.cantidad) > 0);
+          );
+          return (Array.isArray(source) ? source : [])
+            .filter(a => a.option && Number(a.cantidad) > 0);
         })();
+
+        const mergeDedupSedes = (list = []) => {
+          const map = new Map();
+          (Array.isArray(list) ? list : []).forEach((a) => {
+            const key = String(a.option || '').trim();
+            const qty = Number(a.cantidad) || 0;
+            if (!key || qty <= 0) return;
+            map.set(key, (map.get(key) || 0) + qty);
+          });
+          return [...map.entries()].map(([option, cantidad]) => ({ option, cantidad }));
+        };
+
+        const sedeAsignacionesDedup = mergeDedupSedes(sedeAsignaciones);
 
         const statusDate = data.updatedAt
           ? new Date(data.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -190,6 +208,14 @@ const ProductionDetailsPage = () => {
           referencia: (data.detalles && data.detalles.length > 0)
             ? (data.detalles[0].id_producto || '')
             : '',
+          // ✅ Extraer precio del producto para pre-poblar costPerUnit en la ficha técnica
+          // getOrderById ya enriquece cada detalle con su objeto `producto` (incluye `precio`)
+          productoPrecio: (() => {
+            const primerDetalle = data.detalles?.[0];
+            if (!primerDetalle) return 0;
+            const prod = primerDetalle.producto;
+            return Number(prod?.precio ?? prod?.price ?? 0) || 0;
+          })(),
           status: data.estado,
           estado: data.estado,
           deliveryDate: data.fecha_entrega
@@ -229,7 +255,18 @@ const ProductionDetailsPage = () => {
 
   useEffect(() => {
     if (location.state?.openTechSheet) {
-      const t = setTimeout(() => setShowTechSheetForm(true), 600);
+      const t = setTimeout(() => {
+        // ✅ Pre-poblar costPerUnit con el precio del producto si está disponible
+        if (!techSheetDraft && production?.productoPrecio > 0) {
+          const qty = (production?.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
+          setTechSheetDraft({
+            costPerUnit: production.productoPrecio,
+            totalCost: production.productoPrecio * qty,
+            _totalQty: qty,
+          });
+        }
+        setShowTechSheetForm(true);
+      }, 600);
       return () => clearTimeout(t);
     }
   }, [location.state?.openTechSheet]);
@@ -362,14 +399,24 @@ const ProductionDetailsPage = () => {
     }
   };
 
-  const ADMIN_PASSWORD = "1234";
+  const ADMIN_PASSWORD = null; // Ya no se usa — la validación es contra la contraseña del usuario actual
 
   const handleProductionAlertConfirm = async (motivo = "") => {
     const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
 
     if (type === "password") {
-      if (motivo !== ADMIN_PASSWORD) {
+      // ✅ Validar contra la contraseña del usuario actual usando la API de auth
+      try {
+        const { AuthAPI } = await import('../../../auth/services/AuthAPI');
+        const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
+        if (!userIdentifier) {
+          setGlobalAlert({ open: true, type: "error", title: "Error de autenticación", message: "No se pudo identificar al usuario. Por favor recarga la página." });
+          return;
+        }
+        await AuthAPI.login({ username: userIdentifier, password: motivo });
+        // Si login no lanza error, la contraseña es correcta
+      } catch {
         setGlobalAlert({ open: true, type: "error", title: "Contraseña incorrecta", message: "La contraseña ingresada no es correcta. No se pudo retroceder el estado." });
         return;
       }
@@ -1065,7 +1112,7 @@ const ProductionDetailsPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {prevStep && (
                 <button title="Retroceder (requiere contraseña admin)"
-                  onClick={() => openProductionAlert({ type: 'password', targetStep: prevStep, customTitle: 'Revertir estado', customMessage: `Se requiere contraseña de administrador para retroceder al estado "${prevStep}".` })}
+                  onClick={() => openProductionAlert({ type: 'password', targetStep: prevStep, customTitle: 'Revertir estado', customMessage: `Se requiere tu contraseña para retroceder al estado "${prevStep}".` })}
                   style={{ width: 28, height: 28, borderRadius: 6, background: '#f3f4f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                 </button>
@@ -1078,7 +1125,7 @@ const ProductionDetailsPage = () => {
                   onClick={() => openProductionAlert({
                     type: "password", targetStep: prevStep,
                     customTitle: "Autorización requerida",
-                    customMessage: `Para retroceder al estado "${prevStep}" ingresa la contraseña de administrador.`,
+                    customMessage: `Para retroceder al estado "${prevStep}" ingresa tu contraseña.`,
                   })}>
                   ← Anterior
                 </button>
@@ -1391,7 +1438,17 @@ const ProductionDetailsPage = () => {
                   {isOnFichaStep ? "Requerida para continuar." : "Disponible en el paso correspondiente."}
                 </p>
                 {!isAnulada && (
-                  <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => setShowTechSheetForm(true)}>
+                  <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => {
+                    // ✅ Pre-poblar costPerUnit con el precio guardado del producto
+                    if (!techSheetDraft && production.productoPrecio > 0) {
+                      setTechSheetDraft({
+                        costPerUnit: production.productoPrecio,
+                        totalCost: production.productoPrecio * totalUnidades,
+                        _totalQty: totalUnidades,
+                      });
+                    }
+                    setShowTechSheetForm(true);
+                  }}>
                     + Crear ficha técnica
                   </button>
                 )}

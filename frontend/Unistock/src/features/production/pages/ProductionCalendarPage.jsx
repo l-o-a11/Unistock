@@ -17,6 +17,7 @@ import timeGridPlugin    from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useNavigate }   from 'react-router-dom';
 import { useProductions } from '../hooks/useProduction';
+import { useAuthContext } from '../../shared/AuthContext';
 
 const GOOGLE_CLIENT_ID   = import.meta.env?.VITE_GOOGLE_CLIENT_ID || '';
 const GCAL_SCOPES        = 'https://www.googleapis.com/auth/calendar.events';
@@ -88,16 +89,18 @@ const loadGIS = () => new Promise((resolve, reject) => {
   document.head.appendChild(script);
 });
 
-const getGoogleTokenGIS = async () => {
+const getGoogleTokenGIS = async (loginHint = '') => {
   if (!GOOGLE_CLIENT_ID) throw new Error('Falta VITE_GOOGLE_CLIENT_ID en .env.');
   await loadGIS();
   return new Promise((resolve, reject) => {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID, scope: GCAL_SCOPES,
+      // ✅ login_hint pre-selecciona la cuenta del usuario registrado en el aplicativo
+      login_hint: loginHint || undefined,
       callback: (r) => { if (r.error) reject(new Error(r.error_description || r.error)); else resolve(r.access_token); },
       error_callback: (err) => reject(new Error(err?.message || 'Error al conectar con Google')),
     });
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    tokenClient.requestAccessToken({ prompt: loginHint ? '' : 'consent' });
   });
 };
 
@@ -170,6 +173,8 @@ const CalIcon = ({ color = '#6b7280', size = 14 }) => (
 const ProductionCalendarPage = () => {
   const navigate    = useNavigate();
   const calendarRef = useRef(null);
+  // ✅ Obtener el usuario actual para sincronizar con su cuenta de Google
+  const { user: currentUser } = useAuthContext();
   const { Productions: productions = [] } = useProductions();
 
   const [events,     setEvents]     = useState(() => loadManualEvents());
@@ -198,7 +203,12 @@ const ProductionCalendarPage = () => {
   useEffect(() => {
     if (!productions.length) return;
     const generated = [];
-    productions.forEach((prod) => {
+    // Excluir producciones canceladas/anuladas del calendario
+    const safeProductions = productions.filter((p) => {
+      const st = (p?.status || p?.estado || '').toString();
+      return st !== 'Anulada' && st.toLowerCase() !== 'anulada';
+    });
+    safeProductions.forEach((prod) => {
       const orderId = prod.id, orderNum = prod.orderNumber, history = prod.history || [];
       const firstEntry = history[0];
       if (firstEntry) {
@@ -237,7 +247,7 @@ const ProductionCalendarPage = () => {
 
   const connectGoogle = async () => {
     setGcalLoading(true);
-    try { const token = await getGoogleTokenGIS(); setGcalToken(token); setGcalConnected(true); showToast('Google Calendar conectado correctamente ✓', 'success'); }
+    try { const token = await getGoogleTokenGIS(currentUser?.correo || ''); setGcalToken(token); setGcalConnected(true); showToast('Google Calendar conectado correctamente ✓', 'success'); }
     catch (err) { showToast(err.message, 'error'); }
     finally { setGcalLoading(false); }
   };

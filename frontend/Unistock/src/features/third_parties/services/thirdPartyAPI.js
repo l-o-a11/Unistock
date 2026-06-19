@@ -75,10 +75,13 @@ const toFrontend = (doc) => {
 
     estado: doc.estado ?? true,
     producciones: (doc.producciones ?? []).map(p => ({
+      // ✅ Fix: ProductionAPI usa `orderNumber` e `id` (no `_id` ni `orden`)
       orden:        p.orden        || p.orderNumber || p.numero_orden || '',
       fecha:        formatDate(p.fecha),
-      produccionId: p.produccionId || p._id || '',
+      produccionId: p.produccionId || p.id || p._id || '',
       cantidad:     Number(p.cantidad) || 0,
+      // ✅ Incluir estado de la orden para filtrado en detalle del tercero
+      estado:       p.estado || p.orderStatus || null,
     })),
   };
 };
