@@ -23,6 +23,46 @@ const CloseBtn = ({ onClick }) => (
     </button>
 );
 
+// Carácter especial permitido por el backend (ChangePassword.js):
+// /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[*\-_#~$])[A-Za-z\d*\-_#~$]{8,}$/
+// Solo estos 5 símbolos son válidos — cualquier otro especial (!@%&...) NO pasa.
+const SPECIAL_CHARS = '* - _ # ~ $';
+const SPECIAL_REGEX = /[*\-_#~$]/;
+
+// Checklist de reglas — cada una se evalúa en tiempo real sobre el valor actual.
+// Mismo criterio exacto que el regex del backend, regla por regla en vez de
+// un solo regex gigante, para poder mostrar cada ítem como cumplido o no.
+const getRules = (value) => [
+    { key: 'length', label: `Mínimo ${MIN_PASSWORD_LENGTH} caracteres`, valid: value.length >= MIN_PASSWORD_LENGTH },
+    { key: 'lower', label: 'Una letra minúscula', valid: /[a-z]/.test(value) },
+    { key: 'upper', label: 'Una letra mayúscula', valid: /[A-Z]/.test(value) },
+    { key: 'number', label: 'Un número', valid: /\d/.test(value) },
+    { key: 'special', label: `Un carácter especial (${SPECIAL_CHARS})`, valid: SPECIAL_REGEX.test(value) },
+];
+
+const RuleItem = ({ valid, label, touched }) => {
+    // Antes de que el usuario escriba algo, se muestra neutral (gris) en vez
+    // de "fallido" en rojo — evita una pantalla llena de errores desde el inicio.
+    const state = !touched ? 'idle' : valid ? 'ok' : 'pending';
+    const colors = {
+        idle: 'text-gray-400',
+        ok: 'text-emerald-600',
+        pending: 'text-gray-400',
+    };
+    return (
+        <li className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${colors[state]}`}>
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {state === 'ok' ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                ) : (
+                    <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                )}
+            </svg>
+            {label}
+        </li>
+    );
+};
+
 const ChangePasswordModal = ({ onClose, onChangePassword, loading, error }) => {
     const [np, setNp] = useState('');
     const [cp, setCp] = useState('');
@@ -30,9 +70,11 @@ const ChangePasswordModal = ({ onClose, onChangePassword, loading, error }) => {
     const [showCp, setShowCp] = useState(false);
     const [touched, setTouched] = useState({ n: false, c: false });
 
-    const npErr = touched.n && np.length < MIN_PASSWORD_LENGTH ? `Mínimo ${MIN_PASSWORD_LENGTH} caracteres` : '';
+    const rules = getRules(np);
+    const allRulesValid = rules.every((r) => r.valid);
+
     const cpErr = touched.c && np !== cp ? 'Las contraseñas no coinciden' : '';
-    const valid = np.length >= MIN_PASSWORD_LENGTH && np === cp;
+    const valid = allRulesValid && np === cp && cp.length > 0;
 
     const wrap = (err, val) =>
         `flex items-center border rounded-xl px-3 py-2.5 gap-2 transition-all ${err ? 'border-red-400 bg-red-50' : val ? 'border-pink-400 ring-2 ring-pink-100' : 'border-gray-200 bg-gray-50'
@@ -44,12 +86,12 @@ const ChangePasswordModal = ({ onClose, onChangePassword, loading, error }) => {
                 <CloseBtn onClick={onClose} />
                 <h2 className="text-center font-extrabold text-gray-800 mb-2">Cambiar contraseña</h2>
                 <p className="text-center text-gray-500 text-xs font-medium mb-5">
-                    Ingresa tu nueva contraseña. Debe tener al menos {MIN_PASSWORD_LENGTH} caracteres.
+                    Tu nueva contraseña debe cumplir todos los requisitos de seguridad.
                 </p>
                 <form onSubmit={(e) => { e.preventDefault(); setTouched({ n: true, c: true }); if (valid) onChangePassword(np); }} noValidate>
-                    <div className="mb-3">
+                    <div className="mb-2">
                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Nueva contraseña</label>
-                        <div className={wrap(npErr, np)}>
+                        <div className={wrap(touched.n && !allRulesValid, np)}>
                             <input type={showNp ? 'text' : 'password'} value={np}
                                 onChange={(e) => { setNp(e.target.value); setTouched(t => ({ ...t, n: true })); }}
                                 placeholder="Ingresa tu nueva contraseña"
@@ -59,9 +101,18 @@ const ChangePasswordModal = ({ onClose, onChangePassword, loading, error }) => {
                                 <EyeIcon open={showNp} />
                             </button>
                         </div>
-                        {npErr && <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {npErr}</p>}
+
+                        {/* Checklist de requisitos — oculto hasta que el usuario empiece a
+                            escribir. Aparece con la primera tecla y se actualiza en tiempo real. */}
+                        {touched.n && (
+                            <ul className="grid grid-cols-1 gap-1 mt-2.5 mb-1">
+                                {rules.map((r) => (
+                                    <RuleItem key={r.key} valid={r.valid} label={r.label} touched={touched.n} />
+                                ))}
+                            </ul>
+                        )}
                     </div>
-                    <div className="mb-5">
+                    <div className="mb-5 mt-4">
                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Confirmar contraseña</label>
                         <div className={wrap(cpErr, cp)}>
                             <input type={showCp ? 'text' : 'password'} value={cp}

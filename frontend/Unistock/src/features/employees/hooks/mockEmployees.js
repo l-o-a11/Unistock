@@ -12,7 +12,7 @@ const loadFromStorage = () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {
-    console.error("Error al leer localStorage:", e);
+    // Error silencioso al leer localStorage
   }
   return [];
 };
@@ -21,7 +21,7 @@ const saveToStorage = (allUsers) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allUsers));
   } catch (e) {
-    console.error("No se pudo guardar en localStorage:", e);
+    // Error silencioso al guardar en localStorage
   }
 };
 
