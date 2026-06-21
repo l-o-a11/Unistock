@@ -72,7 +72,7 @@ const LoginForm = ({ onLogin, onForgotPassword, loading, error }) => {
                 {/* Usuario / correo */}
                 <div className="mb-4">
                     <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                        Nombre del usuario o correo electrónico
+                        correo electrónico
                     </label>
                     <div className={inputCls(fieldUErr, user)}>
                         <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +83,7 @@ const LoginForm = ({ onLogin, onForgotPassword, loading, error }) => {
                             type="text"
                             value={user}
                             onChange={(e) => { setUser(e.target.value); setTouched(t => ({ ...t, u: true })); }}
-                            placeholder="Salome@gmail.com o salome hurtado Berrio"
+                            placeholder="Example@gmail.com"
                             className="flex-1 bg-transparent text-sm font-medium outline-none text-gray-700 placeholder-gray-400"
                         />
                     </div>

@@ -132,7 +132,6 @@ export const AuthProvider = ({ children }) => {
     } else {
       setPermisos([]);
     }
-    console.log("=== cargarPermisos FIN, rol:", rol?.nombre, "permisos:", ids);
     setLoading(false);
   };
 
@@ -157,7 +156,6 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = (session) => {
-    console.log("=== login() llamado:", session);
     setLoading(true);
     setUser(session);
     cargarPermisos(session);

@@ -4,13 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { useUsers } from '../hooks/useUsers';
 import { useUserSearch } from '../hooks/useUserSearch';
 import { useCatalogs } from '../hooks/useCatalogs';
+import { userAPI } from '../services/usersAPI';
 import UserTable from '../components/UserTable/index.jsx';
 import UserForm from '../components/UserForm/index.jsx';
 import AddUserButton from '../components/AddUserButton.jsx';
 import SearchInput from '../../shared/components/SearchInput';
 import Alert from '../../shared/components/Alert';
-
-const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
 const UsersPage = () => {
   const { users, loading, createUser, updateUser, deleteUser, toggleUser } = useUsers();
@@ -70,7 +69,12 @@ const UsersPage = () => {
       title: 'Eliminar usuario',
       message: `Para eliminar a "${target?.nombreCompleto}" ingresa tu contraseña de administrador. Esta acción no se puede deshacer.`,
       onConfirm: async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
+        // FIX: antes comparaba contra "1234" hardcodeado en el cliente.
+        // Ahora valida la contraseña real del admin contra el backend
+        // (POST /auth/verify-password) — verifyPassword lanza si es incorrecta.
+        try {
+          await userAPI.verifyPassword(pwd);
+        } catch {
           showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
           return;
         }
@@ -95,7 +99,10 @@ const UsersPage = () => {
         ? `Para inactivar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`
         : `Para activar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`,
       onConfirm: async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
+        // FIX: misma validación real contra el backend, no "1234" local.
+        try {
+          await userAPI.verifyPassword(pwd);
+        } catch {
           showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
           return;
         }
