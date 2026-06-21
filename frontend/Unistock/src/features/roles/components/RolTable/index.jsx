@@ -40,7 +40,6 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: "60px" }}>#</th>
               <th style={thStyle}>Nombre del rol</th>
               <th style={thStyle}>Descripción</th>
               <th style={thStyle}>Acciones</th>
@@ -58,17 +57,13 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  {/* ID consecutivo */}
-                  <td style={{ ...tdStyle, color: "#aaa", fontSize: "13px" }}>
-                    {displayId}
-                  </td>
 
                   <td style={tdStyle}>
                     {rol.nombre && rol.nombre.length > 12 ? rol.nombre.slice(0, 12) + "..." : rol.nombre}
                   </td>
 
                   <td style={tdStyle}>
-                    {rol.descripcion && rol.descripcion.length > 30
+                    {rol.descripcion && rol.descripcion.length > 110
                       ? rol.descripcion.slice(0, 30) + "..."
                       : rol.descripcion}
                   </td>

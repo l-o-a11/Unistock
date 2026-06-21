@@ -16,7 +16,7 @@ const ALL_MENU_ITEMS = [
   {
     id: "compras", name: "Compras", icon: ComprasIcon, hasSubmenu: true,
     submenu: [
-      { name: "Categorías", path: "categorias-insumos", modulo: "categorias de insumos" },
+      //{ name: "Categorías", path: "categorias-insumos", modulo: "categorias de insumos" },
       { name: "Insumos",    path: "insumos",            modulo: "insumos"            },
       { name: "Proveedores",path: "proveedores",        modulo: "proveedores"        },
       { name: "Compras",    path: "compras",            modulo: "compras"            },

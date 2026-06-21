@@ -323,7 +323,7 @@ const RolesPage = () => {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
           backgroundColor: "#ffffff",
           borderRadius: "10px",
@@ -332,30 +332,7 @@ const RolesPage = () => {
           marginBottom: "20px",
         }}
       >
-        {/**IZQUIERDA SELECT */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <label style={{ fontSize: "13px", color: "#555" }}>Estado:</label>
-
-          <select
-            value={estadoFiltro}
-            onChange={(e) => {
-              setEstadoFiltro(e.target.value);
-              setCurrentPage(1); // reset paginación
-            }}
-            style={{
-              padding: "6px 10px",
-              borderRadius: "6px",
-              border: "1px solid #ddd",
-              fontSize: "13px",
-              cursor: "pointer",
-              outline: "none",
-            }}
-          >
-            <option value="todos">Todos</option>
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-          </select>
-        </div>
+      
 
         {/* DERECHA - BOTÓN */}
         <AddRolButton onClick={handleAddRol} />
