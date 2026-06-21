@@ -28,12 +28,18 @@ const VersionHistory = ({ versions = [], currentVersion = 1, onViewVersion, onDe
     >
       {versions.map((version, index) => {
         const isActive = version.version === currentVersion || index === 0;
+        // ✅ Fix defensivo: si por datos antiguos (creados antes de corregir
+        // la numeración) existen dos versiones con el mismo número, se
+        // distinguen mostrando también la fecha — evita que se vean como
+        // "Versión 1" y "Versión 1" indistinguibles entre sí.
+        const isDuplicateNumber = versions.filter(v => v.version === version.version).length > 1;
+        const dateLabel = version.date ? new Date(version.date).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' }) : '';
 
         return (
           <button
             key={version.id}
             onClick={() => onViewVersion(version)}
-            title={`Ver Versión ${version.version}`}
+            title={`Ver Versión ${version.version}${dateLabel ? ` (${dateLabel})` : ''}`}
             style={{
               display: "block",
               width: "100%",
@@ -61,7 +67,7 @@ const VersionHistory = ({ versions = [], currentVersion = 1, onViewVersion, onDe
               }
             }}
           >
-            Versión {version.version}
+            Versión {version.version}{isDuplicateNumber && dateLabel ? ` · ${dateLabel}` : ''}
           </button>
         );
       })}

@@ -132,8 +132,8 @@ const Third_partiePage = () => {
           .tp-header { flex-direction: row; justify-content: space-between; align-items: flex-start; }
         }
 
-        .tp-title { font-size: 20px; font-weight: 700; color: #1f2937; margin: 0; }
-        @media (min-width: 640px) { .tp-title { font-size: 24px; } }
+        .tp-title { font-size: 26px; font-weight: 700; color: #1a1a1a; margin: 0; }
+        @media (min-width: 640px) { .tp-title { font-size: 26px; font-weight: 700; color: #1a1a1a; margin: 0; } }
 
         /* ── Search: full width en móvil ── */
         .tp-search-wrap { width: 100%; }
@@ -300,7 +300,7 @@ const Third_partiePage = () => {
               <Third_partieSearch
                 value={searchTerm}
                 onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
-                placeholder="Buscar terceros..."
+                placeholder="Buscar"
               />
             </div>
             <span style={{ fontSize: 11, color: '#9ca3af' }}>

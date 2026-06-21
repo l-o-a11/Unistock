@@ -12,12 +12,19 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
   const thStyle = {
     padding: "14px 20px", textAlign: "left", fontSize: "13px",
     fontWeight: "500", color: "#888", borderBottom: "1px solid #f0f0f0",
-    whiteSpace: "nowrap", backgroundColor: "#f5f5f5",
+    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
+    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", backgroundColor: "#f5f5f5",
   };
   const tdStyle = {
     padding: "14px 20px", fontSize: "14px", color: "#333",
-    borderBottom: "1px solid #f5f5f5", whiteSpace: "nowrap",
+    borderBottom: "1px solid #f5f5f5",
+    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
+    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
   };
+  // ✅ Fix: la columna de Acciones contiene íconos y el interruptor de
+  // estado, no texto — nunca debe recortarse con overflow:hidden, o el
+  // switch se ve cortado visualmente.
+  const tdActionsStyle = { ...tdStyle, overflow: "visible", textOverflow: "clip" };
 
   if (suppliers.length === 0) {
     return (
@@ -32,14 +39,16 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
     <>
       <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th style={thStyle}>NIT</th>
-                <th style={thStyle}>Nombre de empresa</th>
-                <th style={thStyle}>Nombre de contacto</th>
-                <th style={thStyle}>Dirección</th>
-                <th style={thStyle}>Acciones</th>
+                <th style={{ ...thStyle, width: "16%" }}>NIT</th>
+                <th style={{ ...thStyle, width: "24%" }}>Nombre de empresa</th>
+                <th style={{ ...thStyle, width: "20%" }}>Nombre de contacto</th>
+                <th style={{ ...thStyle, width: "22%" }}>Dirección</th>
+                {/* ✅ Fix: ancho mínimo fijo (no porcentual) para que el
+                    switch y los íconos siempre tengan espacio suficiente */}
+                <th style={{ ...thStyle, width: "130px", overflow: "visible" }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -72,7 +81,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         {truncate(supplier.direccion)}
                       </HoverCard>
                     </td>
-                    <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
+                    <td style={tdActionsStyle} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
                         {/* VER */}
@@ -111,6 +120,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         {/* SWITCH — delega al padre para evitar doble alerta */}
                         <button
                           onClick={(e) => { e.stopPropagation(); onToggle?.(supplier.id, !isActive); }}
+                          title={isActive ? "Inactivar proveedor" : "Activar proveedor"}
                           style={{ position: "relative", width: "44px", height: "24px", borderRadius: "20px", border: "none", backgroundColor: isActive ? "#22c55e" : "#d1d5db", cursor: "pointer" }}>
                           <span style={{ position: "absolute", top: "2px", left: isActive ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s" }} />
                         </button>

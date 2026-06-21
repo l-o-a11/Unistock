@@ -1,7 +1,7 @@
 function SearchInput({
   value,
   onChange,
-  placeholder = "Buscar...",
+  placeholder = "Buscar",
   width = "320px",
   className = "",
   showIcon = true,

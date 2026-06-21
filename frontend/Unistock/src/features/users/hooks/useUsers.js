@@ -5,9 +5,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { userAPI } from '../services/usersAPI';
 
 export const useUsers = () => {
-  const [users, setUsers]     = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -24,8 +24,12 @@ export const useUsers = () => {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const createUser = async (userData) => {
+    // FIX: el backend responde { success, data: usuario } — usersAPI ya
+    // desempaqueta `data`, así que `result` ES el usuario directamente.
+    // Antes se hacía result.user (undefined) y el usuario nuevo desaparecía
+    // de la tabla hasta refrescar la página.
     const result = await userAPI.create(userData);
-    setUsers((prev) => [...prev, result.user]);
+    setUsers((prev) => [...prev, result]);
     return result;
   };
 

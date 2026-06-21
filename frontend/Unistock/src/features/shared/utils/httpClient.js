@@ -59,7 +59,7 @@ export const httpRequest = async (endpoint, options = {}) => {
   } = options;
 
   const url = `${getApiUrl(endpoint)}${endpoint}`;
-  
+
   // Headers por defecto
   const defaultHeaders = {
     "Content-Type": "application/json",
@@ -118,7 +118,15 @@ export const httpRequest = async (endpoint, options = {}) => {
     }
     return await response.text();
   } catch (error) {
-    console.error(`Error in HTTP request to ${url}:`, error);
+    // FIX: antes se logueaba CUALQUIER error con console.error, incluyendo
+    // casos esperados de negocio (ej. credenciales inválidas, validaciones).
+    // Ahora solo se loguea si es un error inesperado: sin status (falla de
+    // red/timeout) o un 5xx (error real del servidor). Los 400/401/403/404
+    // son flujos normales que la UI ya maneja y muestra al usuario.
+    const isUnexpected = !error.status || error.status >= 500;
+    if (isUnexpected) {
+      console.error(`Error in HTTP request to ${url}:`, error);
+    }
     throw error;
   }
 };

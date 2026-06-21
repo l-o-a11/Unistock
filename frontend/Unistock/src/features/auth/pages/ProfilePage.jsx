@@ -152,7 +152,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-10 pt-10 pb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Mi perfil</h1>
+        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Mi perfil</h1>
         {session && (
           <span className="text-sm text-gray-400 font-medium">{session.nombre}</span>
         )}

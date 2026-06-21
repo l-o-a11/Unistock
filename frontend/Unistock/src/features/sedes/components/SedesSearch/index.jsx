@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SedesSearch = ({ value, onChange, placeholder = "Buscar sedes..." }) => {
+const SedesSearch = ({ value, onChange, placeholder = "Buscar" }) => {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
       {/* Search icon */}

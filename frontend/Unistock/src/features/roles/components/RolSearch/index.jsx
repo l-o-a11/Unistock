@@ -1,6 +1,6 @@
 import React from 'react';
 
-const RolSearch = ({ value, onChange, placeholder = "Buscar..." }) => {
+const RolSearch = ({ value, onChange, placeholder = "Buscar" }) => {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
       {/* Magnifying glass icon */}

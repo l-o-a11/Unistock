@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
+import ImageModal from "./ImageModal";
 
 const normalizeText = (text) =>
   String(text || "")
@@ -126,6 +127,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     price: product?.price || "",
     stock: product?.stock || "",
     image: product?.image || null,
+    allImages: product?.allImages || [],
   };
 
   const [formData, setFormData] = useState(initialData);
@@ -140,8 +142,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   });
 
   const [touched, setTouched] = useState({});
-
-  // ✅ CORREGIDO: estado inicial expande todos los campos con fallback
   const [technicalSheet, setTechnicalSheet] = useState(() => {
     if (!product?.technicalSheet) return null;
     return {
@@ -154,6 +154,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       createdBy:     product.technicalSheet.createdBy     ?? "",
       responsable:   product.technicalSheet.responsable   ?? "",
       image:         product.technicalSheet.image         ?? null,
+      allImages:     product.technicalSheet.allImages     ?? [],
       date:          product.technicalSheet.date          ?? "",
       fabrics:       product.technicalSheet.fabrics       ?? [],
       cups:          product.technicalSheet.cups          ?? [],
@@ -170,6 +171,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
+  
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   const loadCategories = async () => {
     try {
@@ -224,7 +229,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       formData.category !== product.category ||
       formData.price !== product.price ||
       formData.stock !== product.stock ||
-      imagePreview !== product.image
+      imagePreview !== product.image ||
+      JSON.stringify(formData.allImages) !== JSON.stringify(product.allImages || [])
     );
   };
 
@@ -342,12 +348,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const hasTechnicalSheetMaterials = (sheet) => {
     if (!sheet) return false;
-    // Para fabrics, cups, closures: verificar que tengan items con valores reales
     const hasRealFabrics = Array.isArray(sheet.fabrics) && sheet.fabrics.some(hasAnyValue);
     const hasRealCups = Array.isArray(sheet.cups) && sheet.cups.some(hasAnyValue);
     const hasRealClosures = Array.isArray(sheet.closures) && sheet.closures.some(hasAnyValue);
     const hasRealMeasurements = Array.isArray(sheet.measurements) && sheet.measurements.some(hasAnyValue);
-    // Para accessories: ignorar los 14 slots vacíos fijos, verificar que algún value tenga dato real
     const hasRealAccessories = Array.isArray(sheet.accessories) && sheet.accessories.some(
       (acc) => acc && Array.isArray(acc.values) && acc.values.some((v) => v && String(v).trim() !== "")
     );
@@ -448,20 +452,97 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     });
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+  // ✅ CLOUDINARY: Subir imágenes
+  const handleImageUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      
+      for (let i = 0; i < files.length; i++) {
+        formDataUpload.append('files', files[i]);
+      }
+
+      // POST a tu backend (que forwarda a Cloudinary)
+      const response = await fetch('http://localhost:3001/api/upload-multiple', {
+        method: 'POST',
+        body: formDataUpload
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al subir imágenes a Cloudinary');
+      }
+
+      const data = await response.json();
+      
+      const allImages = [...(formData.allImages || []), ...data.images];
+      
+      setFormData((prev) => ({
+        ...prev,
+        allImages: allImages,
+        image: allImages[0]?.src || prev.image
+      }));
+      
+      setImagePreview(allImages[0]?.src);
+      
+      onShowAlert({
+        type: "success",
+        title: "Imágenes subidas",
+        message: `${data.images.length} imagen(es) subida(s) correctamente a Cloudinary`
+      });
+    } catch (error) {
+      onShowAlert({
+        type: "error",
+        title: "Error al subir",
+        message: error.message
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
-  // ✅ CORREGIDO: fusiona cambios sobre la base anterior, sin permitir que
-  // claves undefined provenientes del hijo borren datos ya existentes
+  const handleDeleteImage = (index) => {
+    const imageToDelete = formData.allImages[index];
+    
+    // Eliminar de Cloudinary si tiene public_id
+    if (imageToDelete?.public_id) {
+      fetch(`http://localhost:3001/api/upload/${encodeURIComponent(imageToDelete.public_id)}`, {
+        method: 'DELETE'
+      }).catch(err => console.error('Error eliminando de Cloudinary:', err));
+    }
+
+    const newImages = formData.allImages.filter((_, i) => i !== index);
+    setFormData((prev) => ({
+      ...prev,
+      allImages: newImages,
+      image: newImages[0]?.src || null
+    }));
+    setImagePreview(newImages[0]?.src || null);
+    
+    if (newImages.length === 0) {
+      setShowImageModal(false);
+    } else if (index >= newImages.length) {
+      setSelectedImageIdx(newImages.length - 1);
+    }
+  };
+
+  const handleDeleteAllImages = async () => {
+    // Eliminar todas de Cloudinary
+    for (const img of (formData.allImages || [])) {
+      if (img?.public_id) {
+        fetch(`http://localhost:3001/api/upload/${encodeURIComponent(img.public_id)}`, {
+          method: 'DELETE'
+        }).catch(err => console.error('Error eliminando:', err));
+      }
+    }
+
+    setImagePreview(null);
+    setFormData((prev) => ({ ...prev, image: null, allImages: [] }));
+    setShowImageModal(false);
+  };
+
   const handleTechnicalSheetChange = (sheetData) => {
     setTechnicalSheet(prev => {
       const base = prev || {};
@@ -538,7 +619,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   };
 
   const requiredStar = <span style={{ color: "#ff4fd6", marginLeft: "2px", display: "inline" }}>*</span>;
-
   const isLastVersion = product ? (!selectedVersion || selectedVersion === (product?.technicalSheetVersions || 1)) : true;
 
   const btnPrimary = {
@@ -550,6 +630,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     fontWeight: "600",
     cursor: "pointer",
     transition: "0.2s",
+    opacity: uploading ? 0.6 : 1,
   };
 
   const btnSecondary = {
@@ -675,7 +756,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
                             setErrors((prev) => ({
                               ...prev,
-                              category: validateCategory(categoryName),
+                              category: "",
                             }));
                           }}
                           touched={touched.category}
@@ -735,6 +816,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
               </table>
             </div>
 
+            {/* GALERÍA CON CLOUDINARY */}
             <div style={{ flex: 1 }}>
               <div style={{ 
                 border: "1px solid #e5e7eb", 
@@ -747,53 +829,166 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                 alignItems: "center", 
                 justifyContent: "center" 
               }}>
-                {imagePreview ? (
-                  <div style={{ textAlign: "center", width: "100%" }}>
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      style={{ maxWidth: "100%", maxHeight: "150px", objectFit: "contain", borderRadius: "4px" }} 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        setImagePreview(null); 
-                        setFormData((prev) => ({ ...prev, image: null })); 
-                      }} 
-                      style={{ marginTop: "10px", padding: "4px 12px", backgroundColor: "#ff4fd6", border: "1px solid #ff4fd6", borderRadius: "4px", fontSize: "12px", color: "#fff", cursor: "pointer" }}
-                    >
-                      Eliminar imagen
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
-                      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-                      <line x1="8" y1="2" x2="8" y2="22" />
-                      <line x1="16" y1="2" x2="16" y2="22" />
-                      <line x1="2" y1="8" x2="22" y2="8" />
-                      <line x1="2" y1="16" x2="22" y2="16" />
-                    </svg>
-                    <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
-                      <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span><br />o arrastra y suelta
-                    </p>
-                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleImageUpload} 
-                      style={{ display: "none" }} 
-                      id="product-image-upload" 
-                    />
-                    <label 
-                      htmlFor="product-image-upload" 
-                      style={{ marginTop: "10px", padding: "6px 16px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "12px", color: "#555", cursor: "pointer" }}
-                    >
-                      Seleccionar archivo
-                    </label>
-                  </>
-                )}
+                {(() => {
+                  const allImages = formData.allImages || [];
+                  return (
+                    <div style={{ textAlign: "center", width: "100%" }}>
+                      {allImages.length > 0 ? (
+                        <>
+                          <div
+                            onClick={() => {
+                              if (allImages.length > 0) {
+                                setSelectedImageIdx(0);
+                                setShowImageModal(true);
+                              }
+                            }}
+                            style={{
+                              width: 150,
+                              height: 190,
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              background: "linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              boxShadow: "0 4px 14px rgba(255,79,214,0.15)",
+                              cursor: "pointer",
+                              position: "relative",
+                              margin: "0 auto"
+                            }}
+                          >
+                            <img 
+                              src={allImages[0].src} 
+                              alt={formData.name} 
+                              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} 
+                            />
+                            {allImages.length > 1 && (
+                              <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
+                                +{allImages.length - 1}
+                              </div>
+                            )}
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(0,0,0,0)",
+                                borderRadius: 12,
+                                transition: "background 0.2s"
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.18)"}
+                              onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0)"}
+                            />
+                          </div>
+
+                          {allImages.length > 1 && (
+                            <div style={{ display: "flex", gap: 6, marginTop: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                              {allImages.slice(1, 4).map((img, i) => (
+                                <div
+                                  key={i}
+                                  onClick={() => {
+                                    setSelectedImageIdx(i + 1);
+                                    setShowImageModal(true);
+                                  }}
+                                  style={{ 
+                                    width: 34, 
+                                    height: 34, 
+                                    borderRadius: 6, 
+                                    overflow: "hidden", 
+                                    cursor: "pointer", 
+                                    border: "1.5px solid #f9a8d4",
+                                    transition: "all 0.2s"
+                                  }}
+                                  onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = "#ff4fd6";
+                                    e.currentTarget.style.boxShadow = "0 0 8px rgba(255,79,214,0.2)";
+                                  }}
+                                  onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = "#f9a8d4";
+                                    e.currentTarget.style.boxShadow = "none";
+                                  }}
+                                >
+                                  <img src={img.src} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={{ marginTop: "12px", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedImageIdx(0);
+                                setShowImageModal(true);
+                              }}
+                              style={{ padding: "5px 12px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "11px", color: "#555", cursor: "pointer", transition: "all 0.2s" }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.backgroundColor = "#e5e7eb";
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.backgroundColor = "#f3f4f6";
+                              }}
+                            >
+                              Ver todas
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleDeleteAllImages}
+                              style={{ padding: "5px 12px", backgroundColor: "transparent", border: "1px solid #ff4fd6", borderRadius: "6px", fontSize: "11px", color: "#ff4fd6", cursor: "pointer", transition: "all 0.2s" }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.backgroundColor = "#fff0f7";
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.backgroundColor = "transparent";
+                              }}
+                            >
+                              Eliminar todas
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
+                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                            <line x1="8" y1="2" x2="8" y2="22" />
+                            <line x1="16" y1="2" x2="16" y2="22" />
+                            <line x1="2" y1="8" x2="22" y2="8" />
+                            <line x1="2" y1="16" x2="22" y2="16" />
+                          </svg>
+                          <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
+                            <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span><br />o arrastra y suelta
+                          </p>
+                          <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            multiple
+                            onChange={handleImageUpload}
+                            disabled={uploading}
+                            style={{ display: "none" }} 
+                            id="product-image-upload" 
+                          />
+                          <label 
+                            htmlFor="product-image-upload" 
+                            style={{ 
+                              marginTop: "10px", 
+                              padding: "6px 16px", 
+                              backgroundColor: uploading ? "#e5e7eb" : "#f3f4f6", 
+                              border: "1px solid #d1d5db", 
+                              borderRadius: "4px", 
+                              fontSize: "12px", 
+                              color: uploading ? "#999" : "#555", 
+                              cursor: uploading ? "not-allowed" : "pointer",
+                              pointerEvents: uploading ? "none" : "auto"
+                            }}
+                          >
+                            {uploading ? "Subiendo a Cloudinary..." : "Seleccionar archivo(s)"}
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -898,6 +1093,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             categoryDescription={getSelectedCategoryDescription()}
             productRef={formData.reference}
             productImage={imagePreview}
+            productImages={formData.allImages}
           />
 
           <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
@@ -966,6 +1162,16 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
           </div>
         </div>
       )}
+
+      <ImageModal
+        isOpen={showImageModal}
+        images={formData.allImages}
+        selectedIndex={selectedImageIdx}
+        onClose={() => setShowImageModal(false)}
+        onDeleteImage={handleDeleteImage}
+        onDeleteAllImages={handleDeleteAllImages}
+        productName={formData.name}
+      />
     </div>
   );
 };

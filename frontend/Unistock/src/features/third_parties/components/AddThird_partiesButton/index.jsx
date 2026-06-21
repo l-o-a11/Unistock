@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AddThird_partiesButton = ({ onClick, label = "Agregar nuevo tercero" }) => {
+const AddThird_partiesButton = ({ onClick, label = "Agregar" }) => {
   return (
     <button
       onClick={onClick}

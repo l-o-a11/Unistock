@@ -313,19 +313,20 @@ export default function ProductionDashboard() {
           point.terceros += qty || 1; // si no hay detalles, contar la orden
         }
 
-        // Sedes: distribuimos los productos entre las sedes según sedeAsignaciones
-        // Si sedeAsignaciones existe en la orden (viene del backend enriquecido), usarla
-        // Si no, distribuir los productos entre todas las sedes activas equitativamente
-        // (fallback hasta que el backend guarde la sede en la orden)
+        // Sedes: distribuimos los productos entre las sedes según sedeAsignaciones,
+        // SOLO contando órdenes que ya terminaron su producción (Empaque o Enviado).
+        // Antes se contaba en cualquier estado, lo cual no refleja "al terminar la orden".
+        const ORDEN_TERMINADA = ['Empaque', 'Enviado'];
         const asigsSede = o.sedeAsignaciones || o.sede_asignaciones || [];
-        if (asigsSede.length > 0) {
+        if (ORDEN_TERMINADA.includes(o.estado) && asigsSede.length > 0) {
           asigsSede.forEach(a => {
             if (sedesNames.includes(a.option)) {
               point[a.option] = (point[a.option] || 0) + (Number(a.cantidad) || 0);
             }
           });
-        } else if (sedesNames.length > 0 && o.estado !== 'Anulada') {
-          // Fallback: repartir por igual entre sedes
+        } else if (ORDEN_TERMINADA.includes(o.estado) && sedesNames.length > 0) {
+          // Fallback: la orden terminó pero no tiene sedeAsignaciones registrada
+          // (órdenes antiguas) — repartir por igual entre sedes
           const perSede = Math.round(qty / sedesNames.length) || 1;
           sedesNames.forEach(name => { point[name] = (point[name] || 0) + perSede; });
         }
@@ -371,11 +372,13 @@ export default function ProductionDashboard() {
   );
 
   return (
-    <div className="min-h-screen p-5" style={{ background: '#fdf6fc' }}>
+    <div className="min-h-screen p-5" >
+      {/* ✅ Fix: fondo neutro unificado con el resto de la app — antes tenía
+          un tinte rosado (#fdf6fc) que no coincidía con ningún otro módulo */}
 
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900" style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: '0' }}>Dashboard</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500 font-medium">Período:</span>
           <GlobalTimeFilter/>
@@ -414,7 +417,7 @@ export default function ProductionDashboard() {
       {/* Fila 2: gráfica + panel */}
       <div className="flex gap-4 mb-4">
         <Card className="flex-1">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Comportamiento de la producción en las sedes</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Producción en las sedes</h2>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-gray-600">Último mes</span>

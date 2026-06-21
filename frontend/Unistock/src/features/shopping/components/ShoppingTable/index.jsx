@@ -1,5 +1,11 @@
 import React from "react";
 
+const IconBan = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+  </svg>
+);
+
 const EstadoBadge = ({ anulada }) => (
   <span style={{
     display: "inline-block", padding: "3px 10px", borderRadius: "20px",
@@ -111,29 +117,28 @@ const ShoppingTable = ({
                         disabled={shopping.anulada}
                         title={shopping.anulada ? "Compra ya anulada" : "Anular compra"}
                         style={{
-                          padding: "5px 12px", borderRadius: "6px",
-                          border: shopping.anulada ? "1px solid #e5e7eb" : "1px solid #fca5a5",
-                          background: shopping.anulada ? "#f9fafb" : "#fff5f5",
-                          color: shopping.anulada ? "#d1d5db" : "#ef4444",
-                          fontSize: "12px", fontWeight: 600,
+                          display: "flex", alignItems: "center",
+                          padding: "5px 8px", borderRadius: 7,
+                          border: "1px solid #e5e7eb",
+                          background: shopping.anulada ? "#f9fafb" : "#fff",
+                          color: shopping.anulada ? "#d1d5db" : "#262747",
                           cursor: shopping.anulada ? "not-allowed" : "pointer",
-                          transition: "all 0.15s", whiteSpace: "nowrap",
+                          transition: "all 0.15s",
                         }}
                         onMouseEnter={(e) => {
                           if (!shopping.anulada) {
-                            e.currentTarget.style.background = "#ef4444";
-                            e.currentTarget.style.color = "#fff";
+                            e.currentTarget.style.background = "#fee2e2";
                             e.currentTarget.style.borderColor = "#ef4444";
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!shopping.anulada) {
-                            e.currentTarget.style.background = "#fff5f5";
-                            e.currentTarget.style.color = "#ef4444";
-                            e.currentTarget.style.borderColor = "#fca5a5";
+                            e.currentTarget.style.background = "#fff";
+                            e.currentTarget.style.borderColor = "#e5e7eb";
                           }
-                        }}>
-                        Anular
+                        }}
+                      >
+                        <IconBan />
                       </button>
 
                     </div>

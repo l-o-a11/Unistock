@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from '../../../shared/components/Button';
 
-const AddSupplierButton = ({ onClick, label = "Agregar proveedor" }) => (
+const AddSupplierButton = ({ onClick, label = "Agregar" }) => (
   <Button
     variant="primary"
     onClick={onClick}

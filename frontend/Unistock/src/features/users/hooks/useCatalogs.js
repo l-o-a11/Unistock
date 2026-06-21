@@ -16,7 +16,7 @@ export const useCatalogs = () => {
         setRoles(r ?? []);
         setSedes(s ?? []);
       } catch (err) {
-        console.error('Error cargando catálogos:', err.message);
+        // Error silencioso para no contaminar la consola
       } finally {
         setLoading(false);
       }

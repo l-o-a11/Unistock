@@ -322,7 +322,7 @@ const ShoppingsPage = () => {
 
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: 600, margin: 0 }}>Compras</h1>
+        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Compras</h1>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
           <div style={{ width: "260px" }}>
             <SearchInput
