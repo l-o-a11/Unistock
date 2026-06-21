@@ -349,7 +349,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                {['#', 'Ref_corte', 'Referencia', 'Estado', 'Fecha estado', 'Cantidad', 'Color'].map(h => (
+                                {['#', 'Ref_corte', 'Referencia', 'Estado',  'Cantidad', 'Color'].map(h => (
                                   <th key={h} style={{
                                     padding: '7px 10px', textAlign: 'left',
                                     fontSize: 10, fontWeight: 700, color: '#a78bfa',
@@ -374,12 +374,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                                   <td style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, color: '#374151' }}>{d.ref}</td>
                                   <td style={{ padding: '7px 10px' }}>
                                     <StatusBadge status={d.status} small />
-                                  </td>
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#9ca3af', fontSize: 11 }}>
-                                      <IconCalendar />
-                                      {d.statusDate}
-                                    </div>
+                                  
                                   </td>
                                   <td style={{ padding: '7px 10px' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>

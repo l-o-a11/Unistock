@@ -64,6 +64,9 @@ const toBackendFormat = (frontendData) => {
   if (hasAny('fromDamaged')) backendData.fromDamaged = frontendData.fromDamaged;
   if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = frontendData.originalOrderNumber;
   if (hasAny('originalOrderStatus')) backendData.originalOrderStatus = frontendData.originalOrderStatus;
+  // ✅ Persistir asignaciones de sede/tercero en la BD (antes solo localStorage)
+  if (hasAny('sedeAsignaciones')) backendData.sedeAsignaciones = Array.isArray(frontendData.sedeAsignaciones) ? frontendData.sedeAsignaciones : [];
+  if (hasAny('terceroAsignaciones')) backendData.terceroAsignaciones = Array.isArray(frontendData.terceroAsignaciones) ? frontendData.terceroAsignaciones : [];
 
   if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
 
@@ -87,7 +90,13 @@ const toFrontendFormat = (backendData) => {
     fromDamaged: backendData.fromDamaged || false,
     originalOrderNumber: backendData.originalOrderNumber || null,
     originalOrderStatus: backendData.originalOrderStatus || null,
-    deliveryDate: backendData.fecha_entrega,
+    // ✅ Fix: deliveryDate siempre formateado a dd/mm/yyyy — antes se asignaba
+    // el ISO crudo del backend (ej. "2026-08-11T00:00:00.000Z"), lo cual se
+    // veía roto en cualquier vista que confiara en este mapeo genérico en
+    // vez de calcular el formato por su cuenta.
+    deliveryDate: backendData.fecha_entrega
+      ? new Date(backendData.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '',
     fecha_entrega: backendData.fecha_entrega,
     createdAt: backendData.createdAt,
     updatedAt: backendData.updatedAt,
@@ -98,8 +107,24 @@ const toFrontendFormat = (backendData) => {
     detalles: backendData.detalles || [],
     asignaciones: backendData.asignaciones || [],
     terceros: backendData.asignaciones || [],
+    // ✅ Persistidas en BD — antes solo se guardaban en localStorage
+    sedeAsignaciones: Array.isArray(backendData.sedeAsignaciones) ? backendData.sedeAsignaciones : [],
+    terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
     historial: backendData.historial || [],
     history: backendData.historial || [],
+    // ✅ Fix defensivo: también se exponen en el formato enriquecido que usa
+    // la vista de detalle ("details"/"history" con sus campos ya mapeados),
+    // por si algún código llega a usar este resultado directamente para
+    // pintar la pantalla sin pasar por el mapeo manual del useEffect inicial.
+    details: (backendData.detalles || []).map((d) => ({
+      id: d.id || d._id,
+      refCorte: d.id_producto || '',
+      ref: d.id_producto || '',
+      quantity: d.cantidad || 0,
+      color: d.color || '—',
+      status: backendData.estado,
+      estado: d.estado !== false,
+    })),
   };
 };
 

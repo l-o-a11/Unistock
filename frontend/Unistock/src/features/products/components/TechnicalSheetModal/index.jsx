@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import TechnicalSheet from '../TechnicalSheet';
+import VersionHistory from '../VersionHistory';
 import { useTechnicalSheet } from '../../hooks/useTechnicalSheet';
 import Alert from '../../../shared/components/Alert';
 import { AuthAPI } from '../../../auth/services/AuthAPI';
+import { useAuthContext } from '../../../shared/AuthContext';
 
 const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
-  const { versions, currentVersion, loadVersions, deleteLastVersion } = useTechnicalSheet(product?.id);
+  const { versions, currentVersion, loadVersions, createVersion, deleteLastVersion, editVersion } = useTechnicalSheet(product?.id);
+  // ✅ Se necesita el usuario actual para validar la contraseña al eliminar
+  const { user: currentUser } = useAuthContext();
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorAlert, setErrorAlert] = useState({ open: false, message: "" });
-  
-  // 🔥 IGUAL A TERCEROS: estado para alerta de eliminación
+
+  // ✅ Edición real de una versión existente — no crea una versión nueva
+  const [isEditingMode, setIsEditingMode] = useState(false);
+  const [editDraft, setEditDraft] = useState(null);
+
   const [deleteAlert, setDeleteAlert] = useState({
     open: false,
     step: "confirm",
@@ -30,13 +37,54 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   const handleViewVersion = (version) => {
     setSelectedVersion(version);
     setShowVersions(false);
+    setIsEditingMode(false);
+    setEditDraft(null);
   };
 
-  // 🔥 IGUAL A TERCEROS: función final de eliminar versión
+  const handleStartEdit = () => {
+    setEditDraft({ ...currentVersionObj });
+    setIsEditingMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingMode(false);
+    setEditDraft(null);
+  };
+
+  // ✅ Fix: al "editar", NUNCA se modifica la ficha existente — se guarda
+  // una ficha técnica NUEVA con los datos actualizados, conservando la
+  // anterior intacta. Así se puede ver el historial completo de versiones.
+  const handleSaveEdit = async () => {
+    if (!editDraft) return;
+    try {
+      setLoading(true);
+      await createVersion(editDraft);
+      setIsEditingMode(false);
+      setEditDraft(null);
+      setSelectedVersion(null); // mostrar la versión recién creada (la más nueva)
+      await loadVersions();
+      onTechnicalSheetChanged?.();
+    } catch (error) {
+      console.error("Error al guardar la nueva versión:", error);
+      setErrorAlert({
+        open: true,
+        message: error?.message || "No se pudo guardar la ficha técnica.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (password) => {
     try {
       setLoading(true);
-      await AuthAPI.verifyPassword(password);
+      // ✅ Fix: AuthAPI.verifyPassword no existe — se valida la contraseña
+      // intentando un login real contra el usuario actualmente autenticado.
+      const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
+      if (!userIdentifier) {
+        throw new Error("No se pudo identificar al usuario actual.");
+      }
+      await AuthAPI.login({ username: userIdentifier, password });
       await deleteLastVersion(currentVersionObj.id);
       console.log("Versión eliminada:", currentVersionObj.id);
       setDeleteAlert({ open: false });
@@ -44,11 +92,10 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
         setSelectedVersion(null);
       }
       await loadVersions();
-      // Mantener la UI de Products sincronizada (bloqueo/desbloqueo por ficha técnica)
       onTechnicalSheetChanged?.();
     } catch (error) {
       console.error("Error al eliminar:", error);
-      const isInvalidPassword = error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
+      const isInvalidPassword = error?.status === 401 || /contraseñ|password|credenciales/i.test(String(error?.message || ""));
       if (isInvalidPassword) {
         setErrorAlert({
           open: true,
@@ -90,8 +137,8 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           pointerEvents: 'auto',
           zIndex: 1001
-        }} onClick={onClose} />
-        
+        }} onClick={isEditingMode ? undefined : onClose} />
+
         {/* Contenedor del modal */}
         <div style={{
           position: 'absolute',
@@ -116,10 +163,12 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
             padding: '24px 32px',
             borderBottom: '1px solid #eee'
           }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Ficha Técnica</h2>
-            
-            {/* Selector de versiones */}
-            {versions.length > 1 && (
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+              {isEditingMode ? '✏️ Nueva versión de la ficha técnica' : 'Ficha Técnica'}
+            </h2>
+
+            {/* Selector de versiones — oculto mientras se edita */}
+            {!isEditingMode && versions.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '14px', color: '#666' }}>
                   Fecha versión {new Date(currentVersionObj?.date || new Date()).toLocaleDateString('es-CO')}
@@ -157,14 +206,14 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
                     </svg>
                   </div>
 
+                  {/* ✅ Fix: se restaura el componente VersionHistory original
+                      (botón para ver TODO el historial de versiones, con su
+                      eliminación de última versión integrada) — había sido
+                      reemplazado por un dropdown personalizado más limitado. */}
                   {showVersions && (
                     <>
                       <div
-                        style={{
-                          position: 'fixed',
-                          inset: 0,
-                          zIndex: 5
-                        }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 5 }}
                         onClick={() => setShowVersions(false)}
                       />
                       <div
@@ -178,25 +227,19 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
                           borderRadius: '8px',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                           zIndex: 10,
-                          minWidth: '180px'
+                          minWidth: '180px',
+                          overflow: 'hidden',
                         }}
                       >
-                        {versions.map((version) => (
-                          <div
-                            key={version.id}
-                            onClick={() => handleViewVersion(version)}
-                            style={{
-                              padding: '10px 16px',
-                              cursor: 'pointer',
-                              backgroundColor: version.id === currentVersionObj?.id ? '#fdf0f7' : 'transparent',
-                              color: version.id === currentVersionObj?.id ? '#ff4fd6' : '#333',
-                              borderBottom: '1px solid #f0f0f0',
-                              fontSize: '14px'
-                            }}
-                          >
-                            Versión {version.version}
-                          </div>
-                        ))}
+                        <VersionHistory
+                          versions={versions}
+                          currentVersion={currentVersionObj?.version}
+                          onViewVersion={handleViewVersion}
+                          onDeleteLast={(versionId) => {
+                            setShowVersions(false);
+                            setDeleteAlert({ open: true, step: "password" });
+                          }}
+                        />
                       </div>
                     </>
                   )}
@@ -208,12 +251,13 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
           {/* Contenido de la ficha técnica */}
           <div style={{ padding: '24px 32px' }}>
             <TechnicalSheet
-              sheet={currentVersionObj}
-              isEditing={false}
+              sheet={isEditingMode ? (editDraft || {}) : currentVersionObj}
+              isEditing={isEditingMode}
+              onChange={isEditingMode ? setEditDraft : undefined}
             />
           </div>
 
-          {/* Botones - IGUAL A TERCEROS */}
+          {/* Botones */}
           <div style={{
             padding: '20px 32px',
             borderTop: '1px solid #eee',
@@ -221,35 +265,49 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
             justifyContent: 'flex-end',
             gap: '12px'
           }}>
-            {/* Botón Eliminar: solo cuando hay más de una versión y estás en la última */}
-            {isLastVersion && versions.length > 1 && (
-              <button
-                style={styles.deleteBtn}
-                onClick={() =>
-                  setDeleteAlert({
-                    open: true,
-                    step: "password",
-                  })
-                }
-                disabled={loading}
-              >
-                {loading ? 'Eliminando...' : 'Eliminar versión'}
-              </button>
+            {isEditingMode ? (
+              <>
+                <button style={styles.closeBtn} onClick={handleCancelEdit} disabled={loading}>
+                  Cancelar
+                </button>
+                <button style={styles.saveBtn} onClick={handleSaveEdit} disabled={loading}>
+                  {loading ? 'Guardando...' : '💾 Guardar como nueva versión'}
+                </button>
+              </>
+            ) : (
+              <>
+                {/* ✅ "Editar" no modifica la ficha existente: guarda una ficha
+                    NUEVA con los datos actualizados, preservando el historial */}
+                <button style={styles.editBtn} onClick={handleStartEdit} disabled={loading}>
+                  ✏️ Editar ficha
+                </button>
+
+                {/* Eliminar: solo cuando hay más de una versión y estás en la última */}
+                {isLastVersion && versions.length > 1 && (
+                  <button
+                    style={styles.deleteBtn}
+                    onClick={() =>
+                      setDeleteAlert({
+                        open: true,
+                        step: "password",
+                      })
+                    }
+                    disabled={loading}
+                  >
+                    {loading ? 'Eliminando...' : 'Eliminar versión'}
+                  </button>
+                )}
+
+                <button style={styles.closeBtn} onClick={onClose}>
+                  Cerrar
+                </button>
+              </>
             )}
-            
-            <button
-              style={styles.closeBtn}
-              onClick={onClose}
-            >
-              Cerrar
-            </button>
           </div>
         </div>
       </div>
 
-      {/* 🔥 ALERTAS - IGUAL A TERCEROS */}
-
-      {/* ALERTA PASSWORD */}
+      {/* ALERTAS */}
       <Alert
         isOpen={deleteAlert.open && deleteAlert.step === "password"}
         type="password"
@@ -270,8 +328,28 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   );
 };
 
-// 🔥 ESTILOS - IGUAL A TERCEROS
+// 🔥 ESTILOS
 const styles = {
+  editBtn: {
+    padding: '10px 24px',
+    backgroundColor: '#fff',
+    border: '1px solid #ff4fd6',
+    borderRadius: '8px',
+    fontSize: '14px',
+    color: '#ff4fd6',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  saveBtn: {
+    padding: '10px 32px',
+    backgroundColor: '#ff4fd6',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    color: '#fff',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
   deleteBtn: {
     padding: '10px 32px',
     backgroundColor: '#ff4fd6',

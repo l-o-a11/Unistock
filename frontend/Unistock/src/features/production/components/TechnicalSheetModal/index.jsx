@@ -1,3 +1,9 @@
+// ⚠️ ARCHIVO NO USADO POR NINGÚN COMPONENTE — confirmado: ningún archivo del
+// proyecto importa este modal. El único TechnicalSheetModal real en uso es
+// features/products/components/TechnicalSheetModal, importado desde
+// features/products/pages/ProductsPage.jsx. Este componente quedó huérfano
+// y usa el hook roto production/hooks/useTechnicalSheet.js (import inválido
+// a productAPI). Se recomienda eliminar esta carpeta completa.
 import React, { useEffect, useState } from 'react';
 import TechnicalSheet from '../TechnicalSheet';
 import { useTechnicalSheet } from '../../hooks/useTechnicalSheet';

@@ -1095,7 +1095,7 @@ const ProductionsPage = () => {
       <div className="prod-root">
         {/* Header */}
         <div className="prod-header">
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
           <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
         </div>
 
@@ -1119,7 +1119,7 @@ const ProductionsPage = () => {
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
               {uniqueStatuses.map((s, i) => (
-                <option key={i} value={s}>{s === 'Todos' ? 'Estado: Activas' : s}</option>
+                <option key={i} value={s}>{s === 'Todos' ? 'Estado: Todos' : s}</option>
               ))}
             </select>
 

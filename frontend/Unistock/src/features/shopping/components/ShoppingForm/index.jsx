@@ -267,7 +267,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                   }}
                   onFocus={() => setShowProveedorDD(true)}
                   onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)}
-                  placeholder="Buscar proveedor..."
+                  placeholder="Buscar"
                   style={inp(errors.proveedorId)}
                 />
                 {showProveedorDD && (
@@ -360,7 +360,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                     onChange={(e) => { setInsumoSearch(e.target.value); setShowInsumoDD(true); }}
                     onFocus={() => setShowInsumoDD(true)}
                     onBlur={() => setTimeout(() => setShowInsumoDD(false), 150)}
-                    placeholder="Buscar insumo..."
+                    placeholder="Buscar"
                     style={inp(false)}
                   />
                   {showInsumoDD && (

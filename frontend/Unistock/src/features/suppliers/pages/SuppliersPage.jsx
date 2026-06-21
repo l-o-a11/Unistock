@@ -179,7 +179,9 @@ const SuppliersPage = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f6f6f8", fontFamily: "sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "24px 32px" }} >
+      {/* ✅ Fix: mismo fondo neutro que el resto de la app (antes #f6f6f8) y
+          sin fontFamily propio — la tipografía ahora se hereda globalmente */}
 
       <style>{`
         .sup-root { padding: 14px; }
@@ -211,12 +213,17 @@ const SuppliersPage = () => {
       />
 
 <div className="sup-header">
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 20 }}>Proveedores</h1>
-          <SearchInput
-            value={searchTerm}
-            onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
-            placeholder="Buscar proveedor..."
-          />
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+            <SearchInput
+              value={searchTerm}
+              onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
+              placeholder="Buscar"
+            />
+            <span style={{ fontSize: 11, color: "#9ca3af" }}>
+              Escribe <strong>a</strong> para activos · <strong>i</strong> para inactivos
+            </span>
+          </div>
         </div>
 
         {/* ── Barra blanca con botón ── */}

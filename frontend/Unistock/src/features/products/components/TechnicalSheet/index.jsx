@@ -133,6 +133,20 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
   );
   const [imagePreview, setImagePreview] = useState(hasValue(sheet?.image) ? sheet.image : (productImage || null));
 
+  // ✅ Fix: re-sincronizar formData cada vez que cambia la ficha mostrada
+  // (ej. al seleccionar otra versión en el dropdown). Antes, useState solo
+  // ejecutaba su inicializador en el primer montaje del componente — como
+  // el modal no se desmonta al cambiar de versión, todas las versiones
+  // mostraban siempre los mismos datos (los de la primera que se vio).
+  // Usamos sheet?.id como dependencia: cada versión tiene un id distinto,
+  // así que esto se dispara exactamente cuando el usuario cambia de versión,
+  // sin interferir con la edición en curso de la versión actual.
+  React.useEffect(() => {
+    setFormData(buildInitialData(sheet, productName, categoryDescription, productRef, productImage));
+    setImagePreview(hasValue(sheet?.image) ? sheet.image : (productImage || null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet?.id]);
+
   // ✅ CORREGIDO: propaga al padre los valores autogenerados (fecha, usuario,
   // tipo, descripción, ref, imagen heredada del producto) apenas se monta.
   // Antes, estos valores vivían solo en el estado local y nunca llegaban al
@@ -170,6 +184,21 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
   };
   const addFabric = () =>
     handleChange("fabrics", [...(formData.fabrics || []), { name: "", consumption: "", pieces: "", talla: "" }]);
+
+  // ── Materiales / Insumos ──────────────────────────────────────────────────
+  // ✅ Antes este bloque no existía: nunca había forma de capturar materiales
+  // en la UI, así que siempre se guardaba vacío en la ficha técnica.
+  const blankMaterial = () => ({ nombre: "", unidad: "", cantidades: "", observaciones: "" });
+  const handleMaterialChange = (i, field, value) => {
+    const updated = [...(formData.materiales || [])];
+    if (!updated[i]) updated[i] = blankMaterial();
+    updated[i] = { ...updated[i], [field]: value };
+    handleChange("materiales", updated);
+  };
+  const addMaterial = () =>
+    handleChange("materiales", [...(formData.materiales || []), blankMaterial()]);
+  const removeMaterial = (i) =>
+    handleChange("materiales", (formData.materiales || []).filter((_, idx) => idx !== i));
 
   // ── Cups ──────────────────────────────────────────────────────────────────
   const blankCup        = () => ({ type: "", values: ["", "", ""] });
@@ -580,6 +609,52 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
                 <tr>
                   <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
                     <AddRowBtn onClick={addMeasurement} />
+                  </td>
+                </tr>
+              )}
+
+              {/* ── Materiales / Insumos ── */}
+              <tr>
+                <td style={headerCellStyle} colSpan={7}>MATERIALES / INSUMOS</td>
+              </tr>
+              <tr>
+                <td style={headerCellStyle} colSpan={2}>Nombre</td>
+                <td style={headerCellStyle} colSpan={1}>Unidad</td>
+                <td style={headerCellStyle} colSpan={1}>Cantidad</td>
+                <td style={headerCellStyle} colSpan={3}>Observaciones</td>
+              </tr>
+              {(formData.materiales || []).map((material, mi) => (
+                <tr key={`material-${mi}`}>
+                  <td style={cellStyle} colSpan={2}>
+                    <Field isEditing={isEditing} value={material?.nombre} placeholder="Ej: Botón"
+                      onChangeFn={(v) => handleMaterialChange(mi, "nombre", v)} />
+                  </td>
+                  <td style={cellStyle} colSpan={1}>
+                    <Field isEditing={isEditing} value={material?.unidad} placeholder="Ej: Unidad"
+                      onChangeFn={(v) => handleMaterialChange(mi, "unidad", v)} />
+                  </td>
+                  <td style={cellStyle} colSpan={1}>
+                    <Field isEditing={isEditing} value={material?.cantidades} placeholder="Ej: 4"
+                      style={{ textAlign: "center" }}
+                      onChangeFn={(v) => handleMaterialChange(mi, "cantidades", v)} />
+                  </td>
+                  <td style={cellStyle} colSpan={isEditing ? 2 : 3}>
+                    <Field isEditing={isEditing} value={material?.observaciones} placeholder="Opcional"
+                      onChangeFn={(v) => handleMaterialChange(mi, "observaciones", v)} />
+                  </td>
+                  {isEditing && (
+                    <td style={{ ...cellStyle, width: 36, textAlign: "center" }} colSpan={1}>
+                      <button type="button" onClick={() => removeMaterial(mi)}
+                        style={{ border: "none", background: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
+                        title="Eliminar material">×</button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {isEditing && (
+                <tr>
+                  <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
+                    <AddRowBtn onClick={addMaterial} />
                   </td>
                 </tr>
               )}

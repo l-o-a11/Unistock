@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CategorySearch = ({ value, onChange, placeholder = "Buscar categorías..." }) => {
+const CategorySearch = ({ value, onChange, placeholder = "Buscar" }) => {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
       {/* Search icon */}

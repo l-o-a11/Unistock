@@ -1,3 +1,8 @@
+/**
+ * @file ProductionDetailsPage.jsx
+ * @description Página de detalle de una orden de producción — Diseño renovado (Orden #3005 style)
+ * CAMBIOS: Fix responsive para móvil — tabla historial, stepper, sidebar, botones nav
+ */
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
@@ -5,10 +10,11 @@ import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
-import TechnicalSheet from "../../components/TechnicalSheet";
+import TechnicalSheet from "../../../products/components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
+import { blockInput } from "../../../shared/utils/blockInput";
 
 const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
 const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
@@ -88,7 +94,7 @@ const ProductionDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  // ✅ Obtener el usuario actual para validar contraseña en medidas de seguridad
+  // ✅ Obtener el usuario actual para validar contraseña y sincronizar calendario
   const { user: currentUser } = useAuthContext();
 
   const [production, setProduction] = useState(null);
@@ -96,6 +102,28 @@ const ProductionDetailsPage = () => {
 
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [newRef, setNewRef] = useState({ cantidad: "", color: "" });
+  // ✅ Selector de color tipo acordeón — mismo patrón usado en ProductionForm
+  // y en AlertEditProduction, para que el comportamiento sea idéntico en
+  // todos los lugares donde se elige un color de producción.
+  const [addRefSavedColors, setAddRefSavedColors] = useState(() => {
+    try {
+      const stored = localStorage.getItem('productionColors');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [addRefColorOpen, setAddRefColorOpen] = useState(false);
+  const saveProductionColor = (c) => {
+    if (!c) return;
+    try {
+      const stored = localStorage.getItem('productionColors');
+      const current = stored ? JSON.parse(stored) : [];
+      if (!current.includes(c)) {
+        const updated = [c, ...current].slice(0, 10);
+        localStorage.setItem('productionColors', JSON.stringify(updated));
+        setAddRefSavedColors(updated);
+      }
+    } catch { /* ignorar */ }
+  };
   const [addRefError, setAddRefError] = useState("");
 
   const [editAlert, setEditAlert] = useState({ isOpen: false, detail: null });
@@ -209,7 +237,6 @@ const ProductionDetailsPage = () => {
             ? (data.detalles[0].id_producto || '')
             : '',
           // ✅ Extraer precio del producto para pre-poblar costPerUnit en la ficha técnica
-          // getOrderById ya enriquece cada detalle con su objeto `producto` (incluye `precio`)
           productoPrecio: (() => {
             const primerDetalle = data.detalles?.[0];
             if (!primerDetalle) return 0;
@@ -255,18 +282,7 @@ const ProductionDetailsPage = () => {
 
   useEffect(() => {
     if (location.state?.openTechSheet) {
-      const t = setTimeout(() => {
-        // ✅ Pre-poblar costPerUnit con el precio del producto si está disponible
-        if (!techSheetDraft && production?.productoPrecio > 0) {
-          const qty = (production?.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
-          setTechSheetDraft({
-            costPerUnit: production.productoPrecio,
-            totalCost: production.productoPrecio * qty,
-            _totalQty: qty,
-          });
-        }
-        setShowTechSheetForm(true);
-      }, 600);
+      const t = setTimeout(() => setShowTechSheetForm(true), 600);
       return () => clearTimeout(t);
     }
   }, [location.state?.openTechSheet]);
@@ -289,7 +305,9 @@ const ProductionDetailsPage = () => {
   const nextStep = stepsReal[safeStepIndex + 1];
   const prevStep = stepsReal[safeStepIndex - 1];
   const isAnulada = production.status === "Anulada";
-  const isLocked = safeStepIndex > stepsReal.indexOf("Corte");
+  // ✅ Se permite agregar/quitar productos del detalle hasta que la orden llegue
+  // al proceso de Compras (antes se bloqueaba después de Corte)
+  const isLocked = safeStepIndex > stepsReal.indexOf("Compras");
   const isOnFichaStep = production.status === "Ficha Técnica";
   const hasTechSheet = !!production.techSpecification;
   const fichaBloquea = isOnFichaStep && !hasTechSheet;
@@ -399,14 +417,13 @@ const ProductionDetailsPage = () => {
     }
   };
 
-  const ADMIN_PASSWORD = null; // Ya no se usa — la validación es contra la contraseña del usuario actual
+  const ADMIN_PASSWORD = null; // Ya no se usa — validación real contra el usuario actual
 
   const handleProductionAlertConfirm = async (motivo = "") => {
     const { targetStep, type, onConfirmOverride } = productionAlert;
     closeProductionAlert();
 
     if (type === "password") {
-      // ✅ Validar contra la contraseña del usuario actual usando la API de auth
       try {
         const { AuthAPI } = await import('../../../auth/services/AuthAPI');
         const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
@@ -415,7 +432,6 @@ const ProductionDetailsPage = () => {
           return;
         }
         await AuthAPI.login({ username: userIdentifier, password: motivo });
-        // Si login no lanza error, la contraseña es correcta
       } catch {
         setGlobalAlert({ open: true, type: "error", title: "Contraseña incorrecta", message: "La contraseña ingresada no es correcta. No se pudo retroceder el estado." });
         return;
@@ -452,6 +468,15 @@ const ProductionDetailsPage = () => {
             cantidad: Number(a.cantidad),
           }));
 
+        // ✅ Fix sobre-suma: eliminar asignaciones previas de esta orden ANTES
+        // de crear las nuevas. Sin esto, al retroceder y volver a avanzar el
+        // estado, las cantidades se acumulaban en vez de reemplazarse.
+        try {
+          await ProductionAPIClient.deleteAssignmentsByOrder(production.id);
+        } catch (e) {
+          console.warn('[Tercero] No se pudieron limpiar asignaciones previas:', e?.message || e);
+        }
+
         await Promise.all(
           terceroAsignaciones
             .filter(a => a.id_tercero)
@@ -465,6 +490,14 @@ const ProductionDetailsPage = () => {
         try {
           localStorage.setItem(`app_prod_terceros_${production.id}`, JSON.stringify(terceroAsignaciones));
         } catch(e) {}
+
+        // ✅ Fix gráfica dashboard: persistir también en la BD (antes solo
+        // quedaba en localStorage, así que el dashboard nunca podía verlo)
+        try {
+          await ProductionAPIClient.updateOrder(production.id, { terceroAsignaciones });
+        } catch (e) {
+          console.warn('[Tercero] No se pudo persistir terceroAsignaciones en la BD:', e?.message || e);
+        }
 
         setProduction(prev => ({ ...prev, terceroAsignaciones }));
         await applyStepChange(targetStep);
@@ -483,11 +516,26 @@ const ProductionDetailsPage = () => {
           .filter(a => a.option && Number(a.cantidad) > 0)
           .map(a => ({ option: a.option, cantidad: Number(a.cantidad) }));
 
+        // ✅ Fix sobre-suma: sobrescribir completamente la clave de localStorage
+        // de sedes para esta orden, en vez de acumular sobre el valor anterior.
         try {
           const key = `app_prod_sedes_${production.id}`;
           localStorage.setItem(key, JSON.stringify(sedeAsignaciones));
         } catch(e) {}
 
+        // ✅ Fix gráfica dashboard "Comportamiento de la producción en las sedes":
+        // antes esta asignación solo vivía en localStorage, por lo que el
+        // dashboard nunca podía leerla y siempre caía en el reparto equitativo
+        // de respaldo. Ahora se persiste en la orden en la base de datos.
+        try {
+          await ProductionAPIClient.updateOrder(production.id, { sedeAsignaciones });
+        } catch (e) {
+          console.warn('[Sede] No se pudo persistir sedeAsignaciones en la BD:', e?.message || e);
+        }
+
+        // ✅ Fix sobre-suma: eliminar las producciones previas de esta orden en
+        // TODOS los terceros antes de re-vincular, para no duplicar entradas
+        // cuando se retrocede y se vuelve a avanzar el estado.
         try {
           const terceroRaw = localStorage.getItem('app_third_parties');
           const tercerosList = terceroRaw ? JSON.parse(terceroRaw) : [];
@@ -559,12 +607,18 @@ const ProductionDetailsPage = () => {
   const recalcCosts = (details, techSpec) => {
     if (!techSpec) return techSpec;
     const totalQty = (details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
-    return { ...techSpec, totalCost: techSpec.costPerUnit * totalQty };
+    // ✅ Fix: el costo unitario sigue viniendo siempre del precio del producto
+    // (si está disponible), no del último valor guardado en costPerUnit —
+    // así se evita que quede desincronizado si el precio del producto cambió.
+    const costPerUnit = (production.productoPrecio > 0) ? production.productoPrecio : (techSpec.costPerUnit || 0);
+    return { ...techSpec, costPerUnit, totalCost: costPerUnit * totalQty };
   };
 
   const handleSaveRef = async () => {
     if (!newRef.cantidad || !newRef.color) { setAddRefError("Completa cantidad y color."); return; }
     try {
+      // ✅ Guardar el color usado, igual que hace ProductionForm al crear la orden
+      saveProductionColor(newRef.color.trim());
       await ProductionAPIClient.createOrderDetail({
         id_orden: production.id,
         id_producto: production.referencia,
@@ -573,9 +627,8 @@ const ProductionDetailsPage = () => {
       });
       const freshData = await ProductionAPIClient.getOrderById(production.id);
       const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      setProduction((prev) => ({
-        ...prev,
-        details: (freshData.detalles || []).map((d) => ({
+      setProduction((prev) => {
+        const newDetails = (freshData.detalles || []).map((d) => ({
           id: d.id || d._id,
           refCorte: d.id_producto || '',
           ref: d.id_producto || '',
@@ -584,15 +637,22 @@ const ProductionDetailsPage = () => {
           status: freshData.estado || prev.status,
           statusDate: today,
           estado: d.estado !== false,
-        })),
-        history: (freshData.historial || []).map((h) => ({
-          status: h.estado,
-          date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-          user: h.user || h.id_usuario || 'Sistema',
-          motivo: h.motivo,
-        })),
-        rawData: freshData,
-      }));
+        }));
+        // ✅ Recalcular el costo total al agregar un nuevo producto/cantidad
+        const updatedTechSpec = recalcCosts(newDetails, prev.techSpecification);
+        return {
+          ...prev,
+          details: newDetails,
+          techSpecification: updatedTechSpec,
+          history: (freshData.historial || []).map((h) => ({
+            status: h.estado,
+            date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+            user: h.user || h.id_usuario || 'Sistema',
+            motivo: h.motivo,
+          })),
+          rawData: freshData,
+        };
+      });
       setAddRefOpen(false);
       setNewRef({ cantidad: "", color: "" });
       setAddRefError("");
@@ -645,9 +705,8 @@ const ProductionDetailsPage = () => {
               });
             }, 800);
           } else {
-            setProduction((prev) => ({
-              ...prev,
-              details: (remainingDetails || []).map((d) => ({
+            setProduction((prev) => {
+              const newDetails = (remainingDetails || []).map((d) => ({
                 id: d.id || d._id,
                 refCorte: d.id_producto || '',
                 ref: d.id_producto || '',
@@ -656,10 +715,18 @@ const ProductionDetailsPage = () => {
                 status: freshData.estado,
                 statusDate,
                 estado: d.estado !== false,
-              })),
-              rawData: freshData,
-            }));
-            setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado correctamente.` });
+              }));
+              // ✅ Restar del costo total de la producción al eliminar un producto:
+              // recalcular techSpecification.totalCost en base a la cantidad restante
+              const updatedTechSpec = recalcCosts(newDetails, prev.techSpecification);
+              return {
+                ...prev,
+                details: newDetails,
+                techSpecification: updatedTechSpec,
+                rawData: freshData,
+              };
+            });
+            setGlobalAlert({ open: true, type: "success", title: "Artículo eliminado", message: `El artículo ${d.ref} (${d.color}) fue eliminado correctamente. El costo total se actualizó.` });
           }
         } catch (err) {
           console.error('Error al eliminar detalle:', err);
@@ -834,13 +901,44 @@ const ProductionDetailsPage = () => {
               <input type="number" min="1" value={newRef.cantidad} onChange={(e) => setNewRef({ ...newRef, cantidad: e.target.value })}
                 placeholder="Ej: 45" className="pd-input" />
             </div>
-            <div style={{ marginBottom: 18 }}>
+            <div style={{ marginBottom: 18, position: "relative" }}>
               <div className="pd-label">Color</div>
-              <select value={newRef.color} onChange={(e) => setNewRef({ ...newRef, color: e.target.value })} className="pd-input">
-                <option value="">Seleccionar color...</option>
-                <option>Rojo</option><option>Negro</option><option>Azul</option>
-                <option>Blanco</option><option>Verde</option><option>Lavender Silk</option>
-              </select>
+              <input
+                type="text"
+                value={newRef.color}
+                onChange={(e) => { if (!blockInput.onlyLetters(e)) return; setNewRef({ ...newRef, color: e.target.value }); setAddRefColorOpen(false); }}
+                onFocus={() => addRefSavedColors.length > 0 && setAddRefColorOpen(true)}
+                placeholder="Ej: Rojo"
+                autoComplete="off"
+                className="pd-input"
+              />
+              {addRefSavedColors.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAddRefColorOpen((v) => !v)}
+                  style={{ position: "absolute", right: 8, top: 34, background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2 }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                    style={{ transform: addRefColorOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
+              {addRefColorOpen && addRefSavedColors.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", marginTop: 2 }}>
+                  {addRefSavedColors.map((c, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => { setNewRef({ ...newRef, color: c }); setAddRefColorOpen(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "7px 12px", border: "none", background: newRef.color === c ? "#fdf4ff" : "#fff", cursor: "pointer", fontSize: 12, color: "#374151", textAlign: "left" }}
+                    >
+                      <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#e5e7eb", border: "1px solid rgba(0,0,0,0.08)" }} />
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {addRefError && <p style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>{addRefError}</p>}
             <div style={{ display: "flex", gap: 8 }}>
@@ -860,8 +958,13 @@ const ProductionDetailsPage = () => {
       {showImageModal && (() => {
         const designImages   = production.designImages || [];
         const finishedImages = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+        // ✅ Fix: mismo orden que en la miniatura, para que el índice seleccionado coincida
+        const techSheetImage = production.techSpecification?.image
+          ? [{ src: production.techSpecification.image, label: "Ficha técnica" }]
+          : [];
         const allImages      = [
           ...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })),
+          ...techSheetImage,
           ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` })),
         ];
         const current = allImages[selectedImageIdx] || allImages[0];
@@ -980,31 +1083,62 @@ const ProductionDetailsPage = () => {
           onClick={() => setShowTechSheet(false)}>
           <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column", margin: 20 }}
             onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1f2937" }}>📋 Ficha Técnica — Orden #{production.orderNumber}</h4>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Solo lectura · La ficha no puede modificarse una vez creada</p>
+                {/* ✅ Se permite editar mientras la orden esté en Diseño o Ficha Técnica */}
+                {(production.status === "Diseño" || production.status === "Ficha Técnica") ? (
+                  <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Puedes editar la ficha mientras la orden esté en Diseño o Ficha Técnica</p>
+                ) : (
+                  <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Solo lectura · La ficha ya no puede modificarse en este estado</p>
+                )}
               </div>
-              <button onClick={() => setShowTechSheet(false)}
-                style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#555", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(production.status === "Diseño" || production.status === "Ficha Técnica") && (
+                  <button
+                    onClick={() => {
+                      // ✅ Pre-cargar el draft con la ficha existente para editarla
+                      setTechSheetDraft({ ...production.techSpecification, _totalQty: totalUnidades });
+                      setShowTechSheet(false);
+                      setShowTechSheetForm(true);
+                    }}
+                    style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #FF4FD6", background: "#fff", color: "#FF4FD6", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+                    ✏️ Editar ficha
+                  </button>
+                )}
+                <button onClick={() => setShowTechSheet(false)}
+                  style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#555", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+              </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={production.techSpecification} isEditing={false} />
+              <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} />
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Tech Sheet Modal (Create) ── */}
-      {showTechSheetForm && (production.tipo === 'diseno' || !production.techSpecification) && (
+      {/* ── Tech Sheet Modal (Create / Edit) ── */}
+      {showTechSheetForm && (
+        production.tipo === 'diseno' ||
+        !production.techSpecification ||
+        // ✅ Permitir editar la ficha heredada/existente mientras la orden esté en Diseño o Ficha Técnica
+        production.status === "Diseño" ||
+        production.status === "Ficha Técnica"
+      ) && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}>
           <div className="pd-card" style={{ width: "100%", maxWidth: 900, maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: "16px 20px", borderBottom: "3px solid #FF4FD6", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>✏️ Crear ficha técnica</h4>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>Completa los datos y guarda para desbloquear el avance</p>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
+                  {production.techSpecification ? "✏️ Editar ficha técnica" : "✏️ Crear ficha técnica"}
+                </h4>
+                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#9ca3af" }}>
+                  {production.techSpecification
+                    ? "Modifica los datos y guarda los cambios"
+                    : "Completa los datos y guarda para desbloquear el avance"}
+                </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => { setShowTechSheetForm(false); setTechSheetDraft(null); }}
@@ -1013,13 +1147,28 @@ const ProductionDetailsPage = () => {
                   onClick={async () => {
                     if (!techSheetDraft) { setGlobalAlert({ open: true, type: "warning", title: "Ficha vacía", message: "Completa al menos los datos básicos de la ficha antes de guardar." }); return; }
                     try {
-                      const costPerUnit = Number(techSheetDraft.costPerUnit) || 0;
-                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
-                      const saved = await ProductionAPIClient.updateOrder(production.id, {
+                      // ✅ Fix: el costo unitario SIEMPRE viene del precio guardado en
+                      // el producto (catálogo), no del valor manual que el usuario haya
+                      // podido escribir en el draft. Solo se usa el valor manual como
+                      // respaldo si la orden no tiene un producto vinculado con precio.
+                      const costPerUnit = (production.productoPrecio > 0)
+                        ? production.productoPrecio
+                        : (Number(techSheetDraft.costPerUnit) || 0);
+                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: techSheetDraft.version || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
+                      await ProductionAPIClient.updateOrder(production.id, {
                         ...production, techSpecification: newSpec
                       });
-                      setProduction(saved); setShowTechSheetForm(false); setTechSheetDraft(null);
-                      setGlobalAlert({ open: true, type: "success", title: "Ficha guardada", message: "La ficha técnica fue creada correctamente." });
+                      // ✅ Fix: NO usar directamente la respuesta de updateOrder para
+                      // reemplazar todo el estado — esa respuesta no trae deliveryDate
+                      // formateado (llega como ISO crudo: "2026-08-11T00:00:00.000Z"),
+                      // ni details/history en el formato enriquecido que usa la vista
+                      // (llegan como detalles/historial planos del backend). Esto hacía
+                      // que, al guardar la ficha técnica, el detalle y el historial
+                      // desaparecieran momentáneamente y la fecha se viera rota.
+                      // En su lugar, solo se actualiza el campo que realmente cambió.
+                      setProduction((prev) => ({ ...prev, techSpecification: newSpec }));
+                      setShowTechSheetForm(false); setTechSheetDraft(null);
+                      setGlobalAlert({ open: true, type: "success", title: "Ficha guardada", message: "La ficha técnica se guardó correctamente." });
                     } catch {
                       setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar la ficha técnica. Intenta de nuevo." });
                     }
@@ -1029,7 +1178,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} />
+              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} />
             </div>
           </div>
         </div>
@@ -1112,7 +1261,7 @@ const ProductionDetailsPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {prevStep && (
                 <button title="Retroceder (requiere contraseña admin)"
-                  onClick={() => openProductionAlert({ type: 'password', targetStep: prevStep, customTitle: 'Revertir estado', customMessage: `Se requiere tu contraseña para retroceder al estado "${prevStep}".` })}
+                  onClick={() => openProductionAlert({ type: 'password', targetStep: prevStep, customTitle: 'Revertir estado', customMessage: `Se requiere contraseña de administrador para retroceder al estado "${prevStep}".` })}
                   style={{ width: 28, height: 28, borderRadius: 6, background: '#f3f4f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                 </button>
@@ -1125,7 +1274,7 @@ const ProductionDetailsPage = () => {
                   onClick={() => openProductionAlert({
                     type: "password", targetStep: prevStep,
                     customTitle: "Autorización requerida",
-                    customMessage: `Para retroceder al estado "${prevStep}" ingresa tu contraseña.`,
+                    customMessage: `Para retroceder al estado "${prevStep}" ingresa la contraseña de administrador.`,
                   })}>
                   ← Anterior
                 </button>
@@ -1209,8 +1358,15 @@ const ProductionDetailsPage = () => {
             {(() => {
               const designImages   = production.designImages || [];
               const finishedImages = production.finishedImages || (production.finishedImageUrl ? [production.finishedImageUrl] : []);
+              // ✅ Fix: la imagen de la ficha técnica también debe aparecer en
+              // el apartado de imagen del detalle de la orden — antes solo se
+              // veía dentro del modal de la ficha técnica y nunca aquí.
+              const techSheetImage = production.techSpecification?.image
+                ? [{ src: production.techSpecification.image, label: "Ficha técnica" }]
+                : [];
               const allImages      = [
                 ...finishedImages.map((s, i) => ({ src: s, label: finishedImages.length > 1 ? `Producto terminado ${i + 1}` : "Producto terminado" })),
+                ...techSheetImage,
                 ...designImages.map((s, i) => ({ src: s, label: `Diseño ${i + 1}` })),
               ];
               return (
@@ -1289,7 +1445,7 @@ const ProductionDetailsPage = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="pd-label">Fecha Límite</div>
+                  <div className="pd-label">Fecha límite</div>
                   <div className="pd-value">{production.deliveryDate || "—"}</div>
                 </div>
               </div>
@@ -1438,17 +1594,7 @@ const ProductionDetailsPage = () => {
                   {isOnFichaStep ? "Requerida para continuar." : "Disponible en el paso correspondiente."}
                 </p>
                 {!isAnulada && (
-                  <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => {
-                    // ✅ Pre-poblar costPerUnit con el precio guardado del producto
-                    if (!techSheetDraft && production.productoPrecio > 0) {
-                      setTechSheetDraft({
-                        costPerUnit: production.productoPrecio,
-                        totalCost: production.productoPrecio * totalUnidades,
-                        _totalQty: totalUnidades,
-                      });
-                    }
-                    setShowTechSheetForm(true);
-                  }}>
+                  <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => setShowTechSheetForm(true)}>
                     + Crear ficha técnica
                   </button>
                 )}

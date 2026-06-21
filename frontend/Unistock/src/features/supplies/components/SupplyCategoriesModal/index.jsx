@@ -172,7 +172,7 @@ const SupplyCategoriesModal = ({
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Buscar categoría..."
+                placeholder="Buscar"
                 style={{
                   border: "none",
                   outline: "none",

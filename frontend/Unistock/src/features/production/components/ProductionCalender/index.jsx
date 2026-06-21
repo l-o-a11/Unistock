@@ -907,7 +907,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   // Al presionar Enter en modo "fecha", navega al mes buscado
                   onKeyDown={handleSearchKeyDown}
-                  placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar..."}
+                  placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar"}
                   style={{ paddingLeft: 28, paddingRight: search ? 26 : 10, paddingTop: 7, paddingBottom: 7, border: "none", fontSize: 12, outline: "none", width: 155, background: "transparent" }}
                   onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#FF4FD6")}
                   onBlur={e => (e.target.parentElement.parentElement.style.borderColor = "#e5e7eb")}

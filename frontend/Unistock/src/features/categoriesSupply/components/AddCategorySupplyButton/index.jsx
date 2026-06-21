@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AddCategorySupplyButton = ({ onClick, label = "Agregar nueva categoría" }) => {
+const AddCategorySupplyButton = ({ onClick, label = "Agregar" }) => {
   return (
     <button
       onClick={onClick}

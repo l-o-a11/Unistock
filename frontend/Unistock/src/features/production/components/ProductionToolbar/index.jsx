@@ -286,7 +286,7 @@ const ProductionToolbar = ({
           <IconSearch />
           <input
             type="text"
-            placeholder="Buscar..."
+            placeholder="Buscar"
             value={searchQuery}
             onChange={e => onSearchChange?.(e.target.value)}
             style={{
