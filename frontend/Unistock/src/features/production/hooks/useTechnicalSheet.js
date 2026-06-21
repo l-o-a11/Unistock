@@ -1,3 +1,12 @@
+// ⚠️ ARCHIVO NO USADO POR NINGÚN COMPONENTE — confirmado: ningún archivo del
+// proyecto importa este hook (production/hooks/useTechnicalSheet.js). El
+// módulo "Ficha Técnica" real usa features/products/hooks/useTechnicalSheet.js,
+// que sí está conectado a ProductsPage.jsx. Además, este archivo intenta
+// importar productAPI desde '../services/productAPI', una ruta que no existe
+// dentro de features/production/services/ (solo existen ProductionAPI.js y
+// ProductionAPIClient.js ahí), por lo que romper este import es seguro.
+// Se recomienda eliminar este archivo y su carpeta hermana
+// production/components/TechnicalSheetModal para evitar futura confusión.
 import { useState } from 'react';
 import { productAPI } from '../services/productAPI';
 

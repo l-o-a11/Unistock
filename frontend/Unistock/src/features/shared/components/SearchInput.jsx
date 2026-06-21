@@ -5,11 +5,11 @@
  *
  * USO:
  *   import SearchInput from "../../shared/components/SearchInput";
- *   <SearchInput value={term} onChange={setTerm} placeholder="Buscar proveedor..." />
+ *   <SearchInput value={term} onChange={setTerm} placeholder="Buscar" />
  */
 import React from "react";
 
-const SearchInput = ({ value, onChange, placeholder = "Buscar..." }) => (
+const SearchInput = ({ value, onChange, placeholder = "Buscar" }) => (
   <div style={{ position: "relative", width: "100%", maxWidth: "280px" }}>
     {/* Ícono lupa */}
     <span style={{

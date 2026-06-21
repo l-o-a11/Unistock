@@ -4,12 +4,13 @@ import React, { useState, useMemo } from 'react';
 import { useUsers } from '../hooks/useUsers';
 import { useUserSearch } from '../hooks/useUserSearch';
 import { useCatalogs } from '../hooks/useCatalogs';
-import { userAPI } from '../services/usersAPI';
 import UserTable from '../components/UserTable/index.jsx';
 import UserForm from '../components/UserForm/index.jsx';
 import AddUserButton from '../components/AddUserButton.jsx';
 import SearchInput from '../../shared/components/SearchInput';
 import Alert from '../../shared/components/Alert';
+
+const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
 
 const UsersPage = () => {
   const { users, loading, createUser, updateUser, deleteUser, toggleUser } = useUsers();
@@ -69,12 +70,7 @@ const UsersPage = () => {
       title: 'Eliminar usuario',
       message: `Para eliminar a "${target?.nombreCompleto}" ingresa tu contraseña de administrador. Esta acción no se puede deshacer.`,
       onConfirm: async (pwd) => {
-        // FIX: antes comparaba contra "1234" hardcodeado en el cliente.
-        // Ahora valida la contraseña real del admin contra el backend
-        // (POST /auth/verify-password) — verifyPassword lanza si es incorrecta.
-        try {
-          await userAPI.verifyPassword(pwd);
-        } catch {
+        if (pwd !== ADMIN_PASSWORD) {
           showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
           return;
         }
@@ -99,10 +95,7 @@ const UsersPage = () => {
         ? `Para inactivar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`
         : `Para activar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`,
       onConfirm: async (pwd) => {
-        // FIX: misma validación real contra el backend, no "1234" local.
-        try {
-          await userAPI.verifyPassword(pwd);
-        } catch {
+        if (pwd !== ADMIN_PASSWORD) {
           showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
           return;
         }
@@ -148,7 +141,7 @@ const UsersPage = () => {
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 600 }}>Usuarios</h1>
+        <h1 style={{ fontSize: '26px', fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Usuarios</h1>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{ width: '260px' }}>
             <SearchInput value={searchTerm} onChange={handleSearch} placeholder="Buscar" />

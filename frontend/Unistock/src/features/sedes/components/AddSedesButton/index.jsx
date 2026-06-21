@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AddSedesButton = ({ onClick, label = "Agregar sede" }) => {
+const AddSedesButton = ({ onClick, label = "Agregar" }) => {
   return (
     <button
       onClick={onClick}

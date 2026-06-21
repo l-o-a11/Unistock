@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AddRolButton = ({ onClick, label = "Agregar nuevo rol" }) => {
+const AddRolButton = ({ onClick, label = "Agregar" }) => {
   return (
     <button
       onClick={onClick}

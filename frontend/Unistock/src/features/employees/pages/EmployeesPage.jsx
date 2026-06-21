@@ -209,7 +209,7 @@ const EmployeesPage = () => {
           marginBottom: "20px",
         }}
       >
-        <h1 style={{ fontSize: "26px", fontWeight: 600 }}>Empleados</h1>
+        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Empleados</h1>
 
         <div
           style={{
@@ -223,7 +223,7 @@ const EmployeesPage = () => {
             <SearchInput
               value={searchTerm}
               onChange={handleSearch}
-              placeholder="Buscar empleado"
+              placeholder="Buscar"
             />
           </div>
 

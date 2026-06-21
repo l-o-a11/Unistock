@@ -9,7 +9,6 @@ import ShoppingForm from "../components/ShoppingForm";
 import ShoppingDetail from "../components/ShoppingDetail";
 import Alert from "../../shared/components/Alert";
 import { useSuppliers } from "../../suppliers/hooks/mockSuppliers";
-import { userAPI } from "../../users/services/usersAPI";
 
 const ShoppingsPage = () => {
   const { suppliers } = useSuppliers();
@@ -30,14 +29,12 @@ const ShoppingsPage = () => {
   // Igual patrón que ProductionPage: un booleano controla si el modal se ve.
   const [downloadModal, setDownloadModal] = useState(false);
 
-  // ── Modal anulación con motivo + contraseña de administrador ──────────────
-  const [cancelModal, setCancelModal] = useState({ open: false, id: null, motivo: "", password: "" });
+  // ── Modal anulación con motivo ────────────────────────────────────────────
+  const [cancelModal, setCancelModal] = useState({ open: false, id: null, motivo: "" });
   const [motivoError, setMotivoError] = useState("");
-  const [cancelPasswordError, setCancelPasswordError] = useState("");
-  const [verifyingPassword, setVerifyingPassword] = useState(false);
 
-  const openCancelModal = (id) => { setCancelModal({ open: true, id, motivo: "", password: "" }); setMotivoError(""); setCancelPasswordError(""); };
-  const closeCancelModal = () => { setCancelModal({ open: false, id: null, motivo: "", password: "" }); setMotivoError(""); setCancelPasswordError(""); };
+  const openCancelModal = (id) => { setCancelModal({ open: true, id, motivo: "" }); setMotivoError(""); };
+  const closeCancelModal = () => { setCancelModal({ open: false, id: null, motivo: "" }); setMotivoError(""); };
 
   // ── Alert global ─────────────────────────────────────────────────────────
   const [alertConfig, setAlertConfig] = useState({
@@ -109,24 +106,6 @@ const ShoppingsPage = () => {
       setMotivoError("El motivo de anulación es obligatorio");
       return;
     }
-    if (!cancelModal.password) {
-      setCancelPasswordError("Ingresa tu contraseña para confirmar");
-      return;
-    }
-
-    // FIX: anular una compra no pedía contraseña de ningún tipo.
-    // Se valida contra el backend real (POST /auth/verify-password),
-    // igual que en usuarios.
-    setVerifyingPassword(true);
-    try {
-      await userAPI.verifyPassword(cancelModal.password);
-    } catch {
-      setCancelPasswordError("Contraseña incorrecta");
-      setVerifyingPassword(false);
-      return;
-    }
-    setVerifyingPassword(false);
-
     const shopping = shoppings.find((p) => p.id === cancelModal.id);
     try {
       await anularShopping(cancelModal.id, cancelModal.motivo.trim());
@@ -343,7 +322,7 @@ const ShoppingsPage = () => {
 
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: 600, margin: 0 }}>Compras</h1>
+        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Compras</h1>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
           <div style={{ width: "260px" }}>
             <SearchInput
@@ -371,34 +350,15 @@ const ShoppingsPage = () => {
           <button
             onClick={() => setDownloadModal(true)}
             title="Exportar compras"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#555",
-              display: "flex",
-              alignItems: "center",
-              padding: "4px",
-              gap: "6px",          // ← esto es lo único que cambia
-            }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", padding: "4px" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Exportar
           </button>
         </div>
 
@@ -506,28 +466,6 @@ const ShoppingsPage = () => {
                 <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#ef4444" }}>{motivoError}</p>
               )}
 
-              {/* Contraseña de administrador */}
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#555", display: "block", margin: "16px 0 6px" }}>
-                Tu contraseña *
-              </label>
-              <input
-                type="password"
-                value={cancelModal.password}
-                onChange={(e) => { setCancelModal((p) => ({ ...p, password: e.target.value })); setCancelPasswordError(""); }}
-                placeholder="••••••••"
-                style={{
-                  width: "100%", padding: "10px 12px", borderRadius: "8px",
-                  boxSizing: "border-box", fontSize: "13px", outline: "none",
-                  border: cancelPasswordError ? "2px solid #ef4444" : "1.5px solid #d1d5db",
-                  transition: "border-color 0.2s",
-                }}
-                onFocus={(e) => { if (!cancelPasswordError) e.target.style.borderColor = "#FF4FD6"; }}
-                onBlur={(e) => { if (!cancelPasswordError) e.target.style.borderColor = "#d1d5db"; }}
-              />
-              {cancelPasswordError && (
-                <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#ef4444" }}>{cancelPasswordError}</p>
-              )}
-
               {/* Botones */}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
                 <button
@@ -543,17 +481,15 @@ const ShoppingsPage = () => {
                 </button>
                 <button
                   onClick={confirmAnular}
-                  disabled={verifyingPassword}
                   style={{
                     padding: "8px 18px", borderRadius: "8px", border: "none",
                     background: "#ef4444", color: "#fff", fontSize: "13px",
-                    fontWeight: 600, cursor: verifyingPassword ? "not-allowed" : "pointer",
-                    opacity: verifyingPassword ? 0.7 : 1,
+                    fontWeight: 600, cursor: "pointer",
                   }}
-                  onMouseEnter={(e) => { if (!verifyingPassword) e.currentTarget.style.background = "#dc2626"; }}
-                  onMouseLeave={(e) => { if (!verifyingPassword) e.currentTarget.style.background = "#ef4444"; }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
                 >
-                  {verifyingPassword ? "Verificando..." : "Confirmar anulación"}
+                  Confirmar anulación
                 </button>
               </div>
             </div>

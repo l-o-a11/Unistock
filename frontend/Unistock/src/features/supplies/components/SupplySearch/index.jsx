@@ -3,7 +3,7 @@ import React, { useState } from "react";
 const SupplySearch = ({
   value,
   onChange,
-  placeholder = "Buscar...",
+  placeholder = "Buscar",
   helpText,
   suggestions = [],
 }) => {

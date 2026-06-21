@@ -27,6 +27,9 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     color: "#888",
     borderBottom: "1px solid #f0f0f0",
     whiteSpace: isMobile ? "normal" : "nowrap",
+    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
+    overflow: isMobile ? "visible" : "hidden",
+    textOverflow: isMobile ? "clip" : "ellipsis",
     backgroundColor: "#f5f5f5",
   };
 
@@ -36,6 +39,19 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     color: "#333",
     borderBottom: "1px solid #f5f5f5",
     whiteSpace: isMobile ? "normal" : "nowrap",
+    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
+    overflow: isMobile ? "visible" : "hidden",
+    textOverflow: isMobile ? "clip" : "ellipsis",
+  };
+
+  // ✅ Fix: la columna de Acciones contiene botones/ícono e interruptor, no
+  // texto — nunca debe recortarse con overflow:hidden ni heredar un ancho
+  // porcentual estricto, o el switch y los íconos se ven cortados.
+  const tdActionsStyle = {
+    ...tdStyle,
+    overflow: "visible",
+    textOverflow: "clip",
+    whiteSpace: "nowrap",
   };
 
   if (products.length === 0) {
@@ -74,17 +90,22 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
               width: "100%",
               borderCollapse: "collapse",
               minWidth: isMobile ? "920px" : undefined,
+              // ✅ Fix: layout fijo para que cada columna respete su ancho
+              // (como en Excel) y el texto no se desborde sobre la celda vecina
+              tableLayout: isMobile ? "auto" : "fixed",
             }}
           >
             <thead>
               <tr>
-                <th style={thStyle}>Imagen</th>
-                <th style={thStyle}>Referencia</th>
-                <th style={thStyle}>Nombre</th>
-                <th style={thStyle}>Categoría</th>
-                <th style={thStyle}>Precio</th>
-                <th style={thStyle}>Stock</th>
-                <th style={thStyle}>Acciónes</th>
+                <th style={{ ...thStyle, width: "8%" }}>Imagen</th>
+                <th style={{ ...thStyle, width: "16%" }}>Referencia</th>
+                <th style={{ ...thStyle, width: "20%" }}>Nombre</th>
+                <th style={{ ...thStyle, width: "16%" }}>Categoría</th>
+                <th style={{ ...thStyle, width: "14%" }}>Precio</th>
+                <th style={{ ...thStyle, width: "10%" }}>Stock</th>
+                {/* ✅ Fix: ancho mínimo fijo (no porcentual) para que el switch
+                    y los 3 íconos siempre tengan espacio suficiente */}
+                <th style={{ ...thStyle, width: "150px", overflow: "visible" }}>Acciónes</th>
               </tr>
             </thead>
             <tbody>
@@ -226,7 +247,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     </td>
 
                     {/* ACCIONES */}
-                    <td style={tdStyle}>
+                    <td style={tdActionsStyle}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
                         {/* ⓘ info - VER FICHA TÉCNICA */}
