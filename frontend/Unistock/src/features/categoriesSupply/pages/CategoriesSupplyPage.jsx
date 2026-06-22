@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useCategories } from "../hooks/useCategories";
 import CategoryTable from "../components/CategoryTable";
-import CategorySearch from "../components/CategorySearch";
+import SearchInput from "../../shared/components/SearchInput";
 import AddCategoryButton from "../components/AddCategorySupplyButton";
 import CategoryForm from "../components/CategoryForm";
 import Alert from "../../shared/components/Alert";
@@ -24,6 +24,11 @@ const CategoriesSupplyPage = () => {
     message: "",
     onConfirm: null,
   });
+
+  // Reinicia la paginación cuando cambia el término de búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // FIX: usar ref para el onConfirm — evita stale closure cuando el estado
   // cambia entre renders mientras el modal está abierto
@@ -201,7 +206,9 @@ const CategoriesSupplyPage = () => {
         >
           Categorías de insumos
         </h1>
-        <CategorySearch value={searchTerm} onChange={setSearchTerm} />
+        <div style={{ width: "260px" }}>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" />
+        </div>
       </div>
 
       <div

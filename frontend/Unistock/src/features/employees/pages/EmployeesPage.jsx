@@ -6,7 +6,7 @@ import { useSedes } from "../../sedes/hooks/useSedes";
 import EmployeeTable from "../components/EmployeeTable/index.jsx";
 import EmployeeForm from "../components/EmployeeForm/index.jsx";
 import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
-import SearchInput from "../../shared/components/Search.jsx";
+import SearchInput from "../../shared/components/SearchInput";
 import Alert from "../../shared/components/Alert";
 
 const EmployeesPage = () => {
@@ -52,24 +52,33 @@ const EmployeesPage = () => {
   const filteredEmployees = useMemo(() => {
     if (!employees) return [];
     const term = searchTerm.toLowerCase().trim();
+    if (!term) return employees;
+
     return employees.filter((employee) => {
       // Filtro por estado con tecla rápida
-      if (term === "a") return employee.estado !== false;
-      if (term === "i") return employee.estado === false;
+      if (term === "activo") return employee.estado !== false;
+      if (term === "inactivo") return employee.estado === false;
+
       // Resolver nombres de rol y sede para incluirlos en la búsqueda
+      // FIX: rolId/sedeId pueden ser ObjectId strings — comparar con String(), no parseInt
       const rolNombre =
-        roles.find((r) => r.id === parseInt(employee.rolId ?? employee.rol))
+        roles.find((r) => String(r.id) === String(employee.rolId ?? employee.rol))
           ?.nombre ?? "";
       const sedeNombre =
-        sedes.find((s) => s.id === parseInt(employee.sedeId ?? employee.sede))
+        sedes.find((s) => String(s.id) === String(employee.sedeId ?? employee.sede))
           ?.nombre ?? "";
-      // Filtro general por texto en campos del empleado + nombres resueltos
-      const enCampos = Object.values(employee).some((value) =>
-        value?.toString().toLowerCase().includes(term),
-      );
-      const enRol = rolNombre.toLowerCase().includes(term);
-      const enSede = sedeNombre.toLowerCase().includes(term);
-      return enCampos || enRol || enSede;
+
+      // Solo buscar en campos visibles/relevantes, no en todo el objeto
+      const camposBuscables = [
+        employee.nombreCompleto,
+        employee.numeroDocumento,
+        employee.tipoDocumento,
+        employee.correo,
+        rolNombre,
+        sedeNombre,
+      ];
+
+      return camposBuscables.some((v) => v?.toString().toLowerCase().includes(term));
     });
   }, [employees, searchTerm, roles, sedes]);
 
@@ -228,8 +237,8 @@ const EmployeesPage = () => {
           </div>
 
           <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-            Escribe <strong>a</strong> para ver activos · <strong>i</strong>{" "}
-            para inactivos
+            Escribe <strong>activo</strong> para ver usuarios activos ·{" "}
+            <strong>inactivo</strong> para ver usuarios inactivos
           </span>
         </div>
       </div>

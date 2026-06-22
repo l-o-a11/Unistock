@@ -189,9 +189,9 @@ const SupplySearch = ({
         <div
           style={{
             marginTop: "6px",
-            fontSize: "12px",
+            fontSize: "11px",
             color: "#9ca3af",
-            lineHeight: "1.4",
+            whiteSpace: "nowrap",
           }}
         >
           {helpText}

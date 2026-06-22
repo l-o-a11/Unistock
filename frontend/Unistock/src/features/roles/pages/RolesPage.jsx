@@ -3,7 +3,7 @@ import { useRoles } from "../hooks/useRoles";
 import { useRolSearch } from "../hooks/useRolSearch";
 import { useRolDetail } from "../hooks/useRolDetail";
 import RolTable from "../components/RolTable";
-import RolSearch from "../components/RolSearch";
+import SearchInput from "../../shared/components/SearchInput";
 import AddRolButton from "../components/AddRolButton";
 import RolDetail from "../components/RolDetail";
 import CreateRolPage from "./CreateRolPage";
@@ -52,7 +52,11 @@ const RolesPage = () => {
       rol.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );*/
   const filteredRoles = roles.filter((rol) => {
-    const text = searchTerm.toLowerCase();
+    const text = searchTerm.toLowerCase().trim();
+
+    // Atajo de texto: escribir "activo" o "inactivo" filtra por estado
+    if (text === "activo") return rol.estado !== false;
+    if (text === "inactivo") return rol.estado === false;
 
     const coincideBusqueda =
       String(rol.id || "").includes(searchTerm) ||
@@ -148,7 +152,7 @@ const RolesPage = () => {
             "error",
             "Error",
             err.message ||
-              "Ocurrió un error al eliminar el rol. Intenta nuevamente.",
+            "Ocurrió un error al eliminar el rol. Intenta nuevamente.",
           );
         }
       },
@@ -216,7 +220,7 @@ const RolesPage = () => {
             "error",
             "Error",
             err.message ||
-              `Ocurrió un error al ${accion} el rol. Intenta nuevamente.`,
+            `Ocurrió un error al ${accion} el rol. Intenta nuevamente.`,
           );
         }
       },
@@ -316,7 +320,15 @@ const RolesPage = () => {
         >
           Roles
         </h1>
-        <RolSearch value={searchTerm} onChange={handleSearch} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+          <div style={{ width: "260px" }}>
+            <SearchInput value={searchTerm} onChange={handleSearch} placeholder="Buscar" />
+          </div>
+          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
+            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+            <strong>inactivo</strong> para ver registros inactivos
+          </span>
+        </div>
       </div>
 
       {/* Botón */}
@@ -332,7 +344,6 @@ const RolesPage = () => {
           marginBottom: "20px",
         }}
       >
-      
 
         {/* DERECHA - BOTÓN */}
         <AddRolButton onClick={handleAddRol} />

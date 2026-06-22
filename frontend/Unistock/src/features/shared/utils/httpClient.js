@@ -55,6 +55,7 @@ export const httpRequest = async (endpoint, options = {}) => {
     body = null,
     headers = {},
     skipAuth = false,
+    suppressAutoLogout = false,
     ...otherOptions
   } = options;
 
@@ -98,8 +99,15 @@ export const httpRequest = async (endpoint, options = {}) => {
       error.status = response.status;
       error.data = errorData;
 
-      // 401 → sesión inválida o token ausente/expirado: forzar re-login
-      if (response.status === 401 && !options.skipAuth) {
+      // 401 → sesión inválida o token ausente/expirado: forzar re-login.
+      // FIX: antes esto reusaba `skipAuth` (que también controla si se manda
+      // el token). Eso hacía que cualquier llamada con skipAuth:true saliera
+      // SIN Authorization header, y endpoints protegidos por requireAuth
+      // (como /auth/verify-password) rechazaban siempre con 401 "Token no
+      // proporcionado" — sin importar la contraseña. Ahora son dos flags
+      // independientes: skipAuth (no mandar token) y suppressAutoLogout
+      // (no cerrar sesión si el 401 es un error de negocio esperado).
+      if (response.status === 401 && !suppressAutoLogout) {
         clearSessionAndRedirect();
       }
 

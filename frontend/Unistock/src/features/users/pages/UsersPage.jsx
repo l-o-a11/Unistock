@@ -33,14 +33,28 @@ const UsersPage = () => {
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     const term = searchTerm.toLowerCase().trim();
+    if (!term) return users.filter(Boolean);
+
     return users.filter(Boolean).filter((user) => {
-      if (term === 'a') return user.estado !== false;
-      if (term === 'i') return user.estado === false;
-      // FIX: rolId y sedeId son ObjectId strings — comparar con String(), no parseInt
+      if (term === 'activo') return user.estado !== false;
+      if (term === 'inactivo') return user.estado === false;
+
+      // rolId y sedeId son ObjectId strings — comparar con String(), no parseInt
       const rolNombre = roles.find((r) => String(r.id) === String(user.rolId))?.nombre ?? '';
       const sedeNombre = sedes.find((s) => String(s.id) === String(user.sedeId))?.nombre ?? '';
-      const enCampos = Object.values(user).some((v) => v?.toString().toLowerCase().includes(term));
-      return enCampos || rolNombre.toLowerCase().includes(term) || sedeNombre.toLowerCase().includes(term);
+
+      // Solo buscar en campos visibles/relevantes para el usuario,
+      // en vez de barrer Object.values(user) (incluye ids, booleanos, etc.)
+      const camposBuscables = [
+        user.nombreCompleto,
+        user.correo,
+        user.numeroDocumento,
+        user.tipoDocumento,
+        rolNombre,
+        sedeNombre,
+      ];
+
+      return camposBuscables.some((v) => v?.toString().toLowerCase().includes(term));
     });
   }, [users, searchTerm, roles, sedes]);
 
@@ -147,7 +161,7 @@ const UsersPage = () => {
             <SearchInput value={searchTerm} onChange={handleSearch} placeholder="Buscar" />
           </div>
           <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-            Escribe <strong>a</strong> para ver activos · <strong>i</strong> para inactivos
+            Escribe <strong>activo</strong> para ver usuarios activos · <strong>inactivo</strong> para ver usuarios inactivos
           </span>
         </div>
       </div>

@@ -13,15 +13,15 @@ const Third_partiePage = () => {
   const navigate = useNavigate();
   const { Third_parties, deleteThird_partie, toggleThird_partie, createThird_partie, updateThird_partie } = useThird_parties();
 
-  const [searchTerm,          setSearchTerm]          = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedThird_partie, setSelectedThird_partie] = useState(null);
-  const [currentPage,         setCurrentPage]         = useState(1);
-  const [showForm,            setShowForm]            = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showForm, setShowForm] = useState(false);
   const [editingThird_partie, setEditingThird_partie] = useState(null);
-  const [deleteAlert,         setDeleteAlert]         = useState({ open: false, id: null });
-  const [errorAlert,          setErrorAlert]          = useState({ open: false, message: '' });
+  const [deleteAlert, setDeleteAlert] = useState({ open: false, id: null });
+  const [errorAlert, setErrorAlert] = useState({ open: false, message: '' });
   // Controla si el panel de detalle está visible en móvil (overlay)
-  const [showDetailPanel,     setShowDetailPanel]     = useState(false);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
 
   // Auto-seleccionar primer tercero
   useEffect(() => {
@@ -40,25 +40,40 @@ const Third_partiePage = () => {
   const filtered = useMemo(() => {
     if (!Third_parties) return [];
     const term = searchTerm.toLowerCase().trim();
+    if (!term) return Third_parties;
+
     return Third_parties.filter((t) => {
-      if (term === 'a') return t.estado !== false;
-      if (term === 'i') return t.estado === false;
+      if (term === 'activo') return t.estado !== false;
+      if (term === 'inactivo') return t.estado === false;
+
       const estadoLabel = t.estado === true ? 'activo' : t.estado === false ? 'inactivo' : '';
-      const enCampos = Object.values(t).some((value) => String(value).toLowerCase().includes(term));
+
+      // Solo buscar en campos visibles/relevantes, no en todo el objeto
+      const camposBuscables = [
+        t.codigo,
+        t.nit,
+        t.nombreEmpresa,
+        t.nombreContacto ?? t.contacto,
+        t.telefono,
+        t.correo ?? t.correoEmpresa ?? t.email,
+      ];
+
+      const enCampos = camposBuscables.some((v) => v?.toString().toLowerCase().includes(term));
+
       return enCampos || estadoLabel.includes(term);
     });
   }, [Third_parties, searchTerm]);
 
-  const ITEMS      = 7;
+  const ITEMS = 7;
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS));
-  const paginated  = filtered.slice((currentPage - 1) * ITEMS, currentPage * ITEMS);
+  const paginated = filtered.slice((currentPage - 1) * ITEMS, currentPage * ITEMS);
 
   const handleView = (t) => {
     setSelectedThird_partie(t);
     setShowDetailPanel(true); // en móvil muestra el panel como overlay
   };
   const handleEdit = (t) => { setEditingThird_partie(t); setShowForm(true); };
-  const handleAdd  = () => { setEditingThird_partie(null); setShowForm(true); };
+  const handleAdd = () => { setEditingThird_partie(null); setShowForm(true); };
 
   const handleToggle = (id) => {
     const t = Third_parties.find(tp => tp.id === id);
@@ -116,7 +131,7 @@ const Third_partiePage = () => {
   };
 
   return (
-    <div style={{  minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
@@ -293,10 +308,17 @@ const Third_partiePage = () => {
         />
 
         {/* ── Header ── */}
-        <div className="tp-header">
-          <h1 className="tp-title">Gestión de terceros</h1>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-            <div className="tp-search-wrap">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+          }}
+        >
+          <h1 style={{ fontSize: '26px', fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Gestión de terceros</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <div style={{ width: '260px' }}>
               <Third_partieSearch
                 value={searchTerm}
                 onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
@@ -304,7 +326,8 @@ const Third_partiePage = () => {
               />
             </div>
             <span style={{ fontSize: 11, color: '#9ca3af' }}>
-              Escribe <strong>a</strong> para activos · <strong>i</strong> para inactivos
+              Escribe <strong>activo</strong> para ver registros activos ·{" "}
+              <strong>inactivo</strong> para ver registros inactivos
             </span>
           </div>
         </div>
@@ -348,14 +371,14 @@ const Third_partiePage = () => {
                   p === '...'
                     ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
                     : <button key={p} className="tp-pg-btn"
-                        onClick={() => setCurrentPage(p)}
-                        style={{
-                          background: p === currentPage ? '#FF4FD6' : '#fff',
-                          color:      p === currentPage ? '#fff'    : '#374151',
-                          border:     `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
-                        }}>
-                        {p}
-                      </button>
+                      onClick={() => setCurrentPage(p)}
+                      style={{
+                        background: p === currentPage ? '#FF4FD6' : '#fff',
+                        color: p === currentPage ? '#fff' : '#374151',
+                        border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
+                      }}>
+                      {p}
+                    </button>
                 )}
                 <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
               </div>
@@ -395,7 +418,7 @@ const Third_partiePage = () => {
           {/* Botón volver */}
           <button className="tp-back-btn" onClick={() => setShowDetailPanel(false)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M15 18l-6-6 6-6"/>
+              <path d="M15 18l-6-6 6-6" />
             </svg>
             Volver a la lista
           </button>
@@ -414,8 +437,8 @@ const Third_partiePage = () => {
       {selectedThird_partie && !showDetailPanel && (
         <button className="tp-fab" onClick={() => setShowDetailPanel(true)}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
           Ver detalle
         </button>
