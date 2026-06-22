@@ -3,7 +3,7 @@ import { useProductCategories } from '../hooks/useProductCategories';
 import Alert from '../../shared/components/Alert';
 import { AuthAPI } from '../../auth/services/AuthAPI';
 import ProductCategoryTable from '../components/ProductCategoryTable';
-import ProductCategorySearch from '../components/ProductCategorySearch';
+import SearchInput from '../../shared/components/SearchInput';
 import ProductCategoryForm from '../components/ProductCategoryForm';
 import AddProductCategoryButton from '../components/AddProductCategoryButton';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
@@ -16,11 +16,11 @@ const sameProductCategoryId = (left, right) => String(left) === String(right);
 const ProductCategoriesPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const { 
-    productCategories, 
-    createProductCategory, 
-    updateProductCategory, 
-    deleteProductCategory 
+  const {
+    productCategories,
+    createProductCategory,
+    updateProductCategory,
+    deleteProductCategory
   } = useProductCategories();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -296,7 +296,7 @@ const ProductCategoriesPage = () => {
           Categorías de productos
         </h1>
 
-        <ProductCategorySearch
+        <SearchInput
           value={searchTerm}
           onChange={setSearchTerm}
         />

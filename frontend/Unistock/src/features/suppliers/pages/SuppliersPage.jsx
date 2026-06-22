@@ -40,11 +40,12 @@ const SuppliersPage = () => {
     if (!suppliers) return [];
 
     const term = searchTerm.toLowerCase().trim();
+    if (!term) return suppliers;
 
     return suppliers.filter((supplier) => {
       // 🔹 Filtro rápido por estado con tecla
-      if (term === "a") return supplier.estado !== false;
-      if (term === "i") return supplier.estado === false;
+      if (term === "activo") return supplier.estado !== false;
+      if (term === "inactivo") return supplier.estado === false;
 
       // 🔹 Estado como texto (activo/inactivo)
       const estadoTexto =
@@ -54,12 +55,19 @@ const SuppliersPage = () => {
             ? "inactivo"
             : "";
 
-      // 🔹 Buscar en todos los campos
-      const enCampos = Object.values(supplier).some((value) =>
-        String(value).toLowerCase().includes(term)
-      );
+      // 🔹 Solo buscar en campos visibles/relevantes del proveedor
+      const camposBuscables = [
+        supplier.nit,
+        supplier.nombreEmpresa,
+        supplier.nombreContacto,
+        supplier.direccion,
+        supplier.correoEmpresa ?? supplier.email,
+        supplier.correoContacto,
+        supplier.telefono,
+        supplier.sitioWeb ?? supplier.sitioweb,
+      ];
 
-      // 🔹 Buscar también en estado como palabra
+      const enCampos = camposBuscables.some((v) => v?.toString().toLowerCase().includes(term));
       const enEstado = estadoTexto.includes(term);
 
       return enCampos || enEstado;
@@ -212,33 +220,41 @@ const SuppliersPage = () => {
         onCancel={closeAlert}
       />
 
-<div className="sup-header">
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-            <SearchInput
-              value={searchTerm}
-              onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
-              placeholder="Buscar"
-            />
-            <span style={{ fontSize: 11, color: "#9ca3af" }}>
-              Escribe <strong>a</strong> para activos · <strong>i</strong> para inactivos
-            </span>
-          </div>
-        </div>
-
-        {/* ── Barra blanca con botón ── */}
-        <div style={{
-          background: "#fff",
-          borderRadius: 10,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-          padding: "12px 20px",
-          marginBottom: 16,
+      <div
+        style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           alignItems: "center",
-        }}>
-          <AddSupplierButton onClick={handleAddSupplier} />
+          marginBottom: "20px",
+        }}
+      >
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          <SearchInput
+            value={searchTerm}
+            onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
+            placeholder="Buscar"
+          />
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+            <strong>inactivo</strong> para ver registros inactivos
+          </span>
         </div>
+      </div>
+
+      {/* ── Barra blanca con botón ── */}
+      <div style={{
+        background: "#fff",
+        borderRadius: 10,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+        padding: "12px 20px",
+        marginBottom: 16,
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+      }}>
+        <AddSupplierButton onClick={handleAddSupplier} />
+      </div>
       {/* TABLA */}
       <SupplierTable
         suppliers={paginatedSupplier}
