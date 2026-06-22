@@ -12,7 +12,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useSedes } from "../hooks/useSedes";
 import Alert from "../../shared/components/Alert";
 import AddSedesButton from "../components/AddSedesButton";
-import SedesSearch from "../components/SedesSearch";
+import SearchInput from "../../shared/components/SearchInput";
 import SedeTable from "../components/SedesTable";
 import SedeForm from "../components/SedesForm";
 
@@ -57,7 +57,20 @@ const SedesPage = () => {
   const handleSearch = useCallback(
     (e) => {
       const value = e?.target?.value ?? e;
-      applyFilters({ search: value, page: 1 });
+      const text = String(value || "").toLowerCase().trim();
+
+      // Atajo de texto: escribir "activo"/"inactivo" filtra por el
+      // parámetro ?estado= en vez de mandarlo como término de búsqueda
+      if (text === "activo") {
+        applyFilters({ search: "", estado: "true", page: 1 });
+        return;
+      }
+      if (text === "inactivo") {
+        applyFilters({ search: "", estado: "false", page: 1 });
+        return;
+      }
+
+      applyFilters({ search: value, estado: "", page: 1 });
     },
     [applyFilters],
   );
@@ -215,7 +228,15 @@ const SedesPage = () => {
           Sedes
         </h1>
         {/* FIX #9: onChange llama a applyFilters → búsqueda server-side */}
-        <SedesSearch onChange={handleSearch} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+          <div style={{ width: "260px" }}>
+            <SearchInput onChange={handleSearch} placeholder="Buscar" />
+          </div>
+          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
+            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+            <strong>inactivo</strong> para ver registros inactivos
+          </span>
+        </div>
       </div>
 
       {/* Botón crear */}

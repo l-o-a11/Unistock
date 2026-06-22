@@ -46,7 +46,11 @@ const ShoppingsPage = () => {
 
   // ── Filtrado y paginación ─────────────────────────────────────────────────
   const filteredShoppings = shoppings.filter((p) => {
-    const text = searchTerm.toLowerCase();
+    const text = searchTerm.toLowerCase().trim();
+
+    // Atajos de texto: escribir "activo" o "anulado" filtra por estado
+    if (text === "activo") return !p.anulada;
+    if (text === "anulado") return p.anulada;
 
     const coincideBusqueda =
       p.id?.toString().includes(searchTerm) ||
@@ -321,19 +325,18 @@ const ShoppingsPage = () => {
     <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
 
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Compras</h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", }} >
+        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a", }} >Compras</h1>
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", }}>
           <div style={{ width: "260px" }}>
-            <SearchInput
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Buscar"
-            />
-            <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-              Escribe <strong>a</strong> para ver activos · <strong>i</strong> para anuladas
-            </span>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" />
           </div>
+
+          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap", }}>
+            Escribe <strong>activo</strong> para ver compras activas ·{" "}
+            <strong>anulado</strong> para ver compras anuladas
+          </span>
         </div>
       </div>
 

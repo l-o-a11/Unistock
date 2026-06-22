@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSupplies } from "../hooks/useSupplies";
 import { useSupplySearch } from "../hooks/useSupplySearch";
 import SupplyTable from "../components/SupplyTable";
-import SupplySearch from "../components/SupplySearch";
+import SearchInput from "../../shared/components/SearchInput";
 import AddSupplyButton from "../components/AddSupplyButton";
 import SupplyForm from "../components/SupplyForm";
 import SupplyDetail from "../components/SupplyDetail";
@@ -31,12 +31,6 @@ const SuppliesPage = () => {
   } = useSupplies();
 
   const { searchTerm, handleSearch } = useSupplySearch();
-  const statusSuggestions = ["activo", "inactivo"];
-  const searchSuggestions = searchTerm.trim()
-    ? statusSuggestions.filter((option) =>
-        option.startsWith(searchTerm.trim().toLowerCase()),
-      )
-    : [];
   const { createCategory, updateCategory, deleteCategory } = useCategories();
 
   const [selectedSupply, setSelectedSupply] = useState(null);
@@ -284,7 +278,7 @@ const SuppliesPage = () => {
             "error",
             "Error",
             error.message ||
-              "No se pudo eliminar el insumo. Intenta nuevamente.",
+            "No se pudo eliminar el insumo. Intenta nuevamente.",
           );
         }
       },
@@ -311,7 +305,7 @@ const SuppliesPage = () => {
             "error",
             "Error",
             error.message ||
-              "No se pudo cambiar el estado del insumo. Intenta nuevamente.",
+            "No se pudo cambiar el estado del insumo. Intenta nuevamente.",
           );
         }
       },
@@ -497,12 +491,19 @@ const SuppliesPage = () => {
         >
           Insumos
         </h1>
-        <SupplySearch
-          value={searchTerm}
-          onChange={handleSearchWithState}
-          helpText="Escribe activo o inactivo para filtrar por estado."
-          suggestions={searchSuggestions}
-        />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+          <div style={{ width: "260px" }}>
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearchWithState}
+              placeholder="Buscar"
+            />
+          </div>
+          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
+            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+            <strong>inactivo</strong> para ver registros inactivos
+          </span>
+        </div>
       </div>
 
       {/* BARRA DE HERRAMIENTAS */}

@@ -94,11 +94,17 @@ export const userAPI = {
   // Valida la contraseña del usuario autenticado antes de operaciones sensibles.
   // Lanza si la contraseña es incorrecta — el llamador detiene la acción.
   // POST /api/auth/verify-password
-  // skipAuth: true → evita que httpClient haga logout automático si la
-  // contraseña es incorrecta (401). El llamador maneja el error manualmente.
+  // FIX: este endpoint está protegido por requireAuth y necesita el token
+  // para saber QUÉ usuario está confirmando su contraseña. Antes se usaba
+  // skipAuth:true pensando en evitar solo el logout automático, pero esa
+  // misma bandera también omitía el token → la petición SIEMPRE fallaba
+  // con 401 "Token no proporcionado", sin importar la contraseña.
+  // Ahora se manda el token (skipAuth queda en false) y solo se suprime
+  // el logout automático con suppressAutoLogout, para no cerrar la sesión
+  // real solo porque el usuario se equivocó al escribir su contraseña.
   verifyPassword: async (password) => {
     try {
-      const res = await post("/auth/verify-password", { password }, { skipAuth: true });
+      const res = await post("/auth/verify-password", { password }, { suppressAutoLogout: true });
       return res?.data ?? res;
     } catch (err) {
       throw err?.data || err;

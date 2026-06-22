@@ -16,13 +16,13 @@ const ProductsPage = () => {
   const { products, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showTechnicalSheet, setShowTechnicalSheet] = useState(false);
   const [selectedProductForSheet, setSelectedProductForSheet] = useState(null);
-  
+
   // Alertas separadas por tipo
   const [successAlert, setSuccessAlert] = useState({
     open: false,
@@ -66,17 +66,17 @@ const ProductsPage = () => {
   // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
   const filteredProducts = products.filter(product => {
     const searchLower = searchTerm.toLowerCase().trim();
-    
+
     // Si no hay término de búsqueda, mostrar todos
     if (!searchLower) return true;
-    
+
     // 🔥 BUSCAR POR ESTADO - BÚSQUEDA EXACTA
     const estaActivo = product.active !== false;
-    
+
     // Verificar si el término de búsqueda coincide con "activo" o sus variantes
     const esBusquedaActivo = searchLower === "activo" || searchLower === "act" || searchLower === "acti" || searchLower === "activ";
     const esBusquedaInactivo = searchLower === "inactivo" || searchLower === "inac" || searchLower === "inact" || searchLower === "inacti";
-    
+
     // Si está buscando activo y el producto está activo
     if (esBusquedaActivo && estaActivo) {
       return true;
@@ -85,7 +85,7 @@ const ProductsPage = () => {
     if (esBusquedaInactivo && !estaActivo) {
       return true;
     }
-    
+
     // Si NO está buscando por estado, buscar en los demás campos
     if (!esBusquedaActivo && !esBusquedaInactivo) {
       // Buscar por nombre
@@ -98,10 +98,10 @@ const ProductsPage = () => {
       const matchesPrice = product.price?.toString().includes(searchTerm);
       // Buscar por stock (convertir número a string)
       const matchesStock = product.stock?.toString().includes(searchTerm);
-      
+
       return matchesName || matchesReference || matchesCategory || matchesPrice || matchesStock;
     }
-    
+
     // Si es búsqueda de estado pero no coincide con el estado del producto
     return false;
   });
@@ -197,7 +197,7 @@ const ProductsPage = () => {
       });
     } catch (error) {
       // Detectar error de duplicado de MongoDB
-      const isDuplicate = 
+      const isDuplicate =
         error.message?.includes("duplicate key") ||
         error.message?.includes("E11000") ||
         error.message?.includes("dup key") ||
@@ -279,7 +279,7 @@ const ProductsPage = () => {
 
   const handleDeleteClick = (id) => {
     const product = products.find(p => p.id === id);
-    
+
     if (product?.technicalSheet) {
       handleShowAlert({
         type: "warning",
@@ -288,7 +288,7 @@ const ProductsPage = () => {
       });
       return;
     }
-    
+
     setDeleteAlert({
       open: true,
       step: "password",
@@ -296,7 +296,7 @@ const ProductsPage = () => {
       key: Date.now()
     });
   };
-  
+
   const handleDownload = () => {
     try {
       const data = filteredProducts.map(p => ({
@@ -309,7 +309,7 @@ const ProductsPage = () => {
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
-      
+
       const columnWidths = [
         { wch: 15 },
         { wch: 30 },
@@ -325,7 +325,7 @@ const ProductsPage = () => {
 
       const fecha = new Date().toISOString().split('T')[0];
       XLSX.writeFile(workbook, `productos_${fecha}.xlsx`);
-      
+
       handleShowAlert({
         type: "success",
         title: "¡Éxito!",
@@ -401,14 +401,14 @@ const ProductsPage = () => {
   };
 
   return (
-    <div style={{ 
+    <div style={{
       position: 'relative',
       minHeight: '100vh',
       backgroundColor: '#f5f5f5',
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '0', 
-      padding: isMobile ? '16px 12px' : '24px 32px' 
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0',
+      padding: isMobile ? '16px 12px' : '24px 32px'
     }}>
 
       <div style={{
@@ -422,7 +422,13 @@ const ProductsPage = () => {
         <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
           Productos
         </h1>
-        <ProductSearch value={searchTerm} onChange={handleSearch} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: '4px' }}>
+          <ProductSearch value={searchTerm} onChange={handleSearch} />
+          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+            <strong>inactivo</strong> para ver registros inactivos
+          </span>
+        </div>
       </div>
 
       <div style={{
