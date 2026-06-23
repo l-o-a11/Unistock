@@ -256,7 +256,7 @@ const SupplyCategoriesModal = ({
                   borderBottom: "1px solid #eee",
                 }}
               >
-                {["#", "Nombre", "Cantidad de insumos", "Acciones"].map((h) => (
+                {["Nombre", "Cantidad de insumos", "Acciones"].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -299,15 +299,7 @@ const SupplyCategoriesModal = ({
                       (e.currentTarget.style.background = "transparent")
                     }
                   >
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        color: "#aaa",
-                        fontSize: "12px",
-                      }}
-                    >
-                      {start + idx + 1}
-                    </td>
+                  
                     {/*nombre*/}
                     <td
                       style={{
