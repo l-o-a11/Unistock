@@ -5,6 +5,7 @@ import SearchInput from "../../shared/components/SearchInput";
 import AddCategoryButton from "../components/AddCategorySupplyButton";
 import CategoryForm from "../components/CategoryForm";
 import Alert from "../../shared/components/Alert";
+import { supplyAPI } from "../../supplies/services/supplyAPI";
 
 const CategoriesSupplyPage = () => {
   const { categories, createCategory, updateCategory, deleteCategory } =
@@ -15,7 +16,7 @@ const CategoriesSupplyPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-
+  const [supplyCounts, setSupplyCounts] = useState({});
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: "success",
@@ -123,6 +124,24 @@ const CategoriesSupplyPage = () => {
       );
     }
   };
+  
+  useEffect(() => {
+  const loadCounts = async () => {
+    try {
+      const result = await supplyAPI.getAll({ limit: 1000 });
+      const counts = (result.data || []).reduce((acc, supply) => {
+        const catId = String(supply.categoriaId ?? "");
+        if (!catId) return acc;
+        acc[catId] = (acc[catId] || 0) + 1;
+        return acc;
+      }, {});
+      setSupplyCounts(counts);
+    } catch (error) {
+      console.error("Error cargando conteo:", error);
+    }
+  };
+  loadCounts();
+}, []);
 
   const handleDelete = (id) => {
     const category = categories.find((c) => c.id === id);
@@ -158,7 +177,6 @@ const CategoriesSupplyPage = () => {
     cursor: "pointer",
     fontSize: "14px",
   };
-
   return (
     <div
       style={{
@@ -210,6 +228,7 @@ const CategoriesSupplyPage = () => {
         categories={paginatedCategories}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        supplyCounts={supplyCounts}
       />
 
       {showCreateForm && (

@@ -41,7 +41,7 @@ const SedeTable = ({
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["ID", "Nombre", "Ciudad", "Barrio", "Dirección", "Teléfono", "Acciones"].map((h) => (
+              {[ "Nombre", "Ciudad", "Barrio", "Dirección", "Teléfono", "Acciones"].map((h) => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
@@ -56,7 +56,6 @@ const SedeTable = ({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  <td style={tdStyle}>{sede.id}</td>
                   <td style={tdStyle}>{sede.nombre}</td>
                   <td style={tdStyle}>{sede.ciudad}</td>
                   <td style={tdStyle}>{sede.barrio}</td>

@@ -3,7 +3,7 @@ import HoverCard from '../../../shared/components/HoverCart';
 import { CATEGORY_COLORS } from '../../types/constants';
 import BaseTable from '../../../shared/components/Table';
 
-const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
+const CategoryTable = ({ categories = [], onEdit, onDelete, supplyCounts = {}, }) => {
   const thStyle = {
     padding: '14px 20px',
     textAlign: 'left',
@@ -31,7 +31,9 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
+   
 
+   
   if (categories.length === 0) {
     return (
       <div style={{
@@ -60,8 +62,8 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={thStyle}>ID</th>
-              <th style={thStyle}>Descripción</th>
+              <th style={thStyle}>Nombre</th>
+              <th style={thStyle}>Cantidad de insumos</th>
               <th style={thStyle}>Acciones</th>
             </tr>
           </thead>
@@ -79,12 +81,7 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
 
                   
                 >
-                  {/* ID - SIN HOVER (números cortos) */}
-                  <td style={tdStyle}>
-                    <span style={{ color: '#666', fontSize: '14px' }}>
-                      {category.id}
-                    </span>
-                  </td>
+              
                   {/* NOMBRE - CON HOVER si tiene más de 12 caracteres */}
                   <td style={tdStyle}>
                     {needsHover(category.nombre) ? (
@@ -116,6 +113,17 @@ const CategoryTable = ({ categories = [], onEdit, onDelete }) => {
                       </span>
                     )}
                   </td>
+                   {/* cantidad de insumos */}
+                    <td
+                      style={{
+                        padding: "10px 16px",
+                        color: "#555",
+                        fontSize: "13px",
+                        textAlign: "left",
+                      }}
+                    >
+                     {supplyCounts[String(category.id)] ?? 0}
+                    </td>
 
                   
                   {/* ACCIONES */}
