@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
+import ImageModal from "./ImageModal";
 
 const normalizeText = (text) =>
   String(text || "")
@@ -9,6 +10,9 @@ const normalizeText = (text) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+
+// ✅ USA VARIABLE DE ENTORNO VITE_BACK_URL
+const BACKEND_URL = import.meta.env.VITE_BACK_URL || 'http://localhost:3020';
 
 const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory }) => {
   const [open, setOpen] = useState(false);
@@ -413,7 +417,17 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       }
     }
     
-    onSubmit({ ...formData, technicalSheet });
+    // ✅ SINCRONIZACIÓN: Las imágenes del producto van a la ficha técnica
+    const finalTechnicalSheet = {
+      ...technicalSheet,
+      allImages: formData.allImages,
+      image: imagePreview
+    };
+    
+    onSubmit({ 
+      ...formData, 
+      technicalSheet: finalTechnicalSheet 
+    });
   };
 
   const handleDeleteVersion = () => {
@@ -451,7 +465,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     });
   };
 
-  // ✅ CLOUDINARY: Subir imágenes
+  // ✅ CLOUDINARY: Subir imágenes usando VITE_BACK_URL
   const handleImageUpload = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -464,20 +478,25 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         formDataUpload.append('files', files[i]);
       }
 
-      // POST a tu backend (que forwarda a Cloudinary)
-      const response = await fetch('http://localhost:3001/api/upload-multiple', {
+      // ✅ URL CORREGIDA: /api/upload/upload-multiple (endpoint real del backend)
+      const uploadUrl = `${BACKEND_URL}/api/upload/upload-multiple`;
+      console.log('🔼 Subiendo a:', uploadUrl);
+      
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formDataUpload
       });
 
       if (!response.ok) {
-        throw new Error('Error al subir imágenes a Cloudinary');
+        throw new Error(`Error al subir imágenes. Status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('✅ Respuesta del backend:', data);
       
       const allImages = [...(formData.allImages || []), ...data.images];
       
+      // ✅ Actualizar formData con las nuevas imágenes
       setFormData((prev) => ({
         ...prev,
         allImages: allImages,
@@ -486,12 +505,23 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       
       setImagePreview(allImages[0]?.src);
       
+      // ✅ SINCRONIZACIÓN: Actualizar automáticamente la ficha técnica con las imágenes
+      setTechnicalSheet((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          allImages: allImages,
+          image: allImages[0]?.src || prev.image
+        };
+      });
+      
       onShowAlert({
         type: "success",
         title: "Imágenes subidas",
         message: `${data.images.length} imagen(es) subida(s) correctamente a Cloudinary`
       });
     } catch (error) {
+      console.error('❌ Error:', error);
       onShowAlert({
         type: "error",
         title: "Error al subir",
@@ -505,9 +535,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const handleDeleteImage = (index) => {
     const imageToDelete = formData.allImages[index];
     
-    // Eliminar de Cloudinary si tiene public_id
+    // ✅ Eliminar de Cloudinary si tiene public_id
     if (imageToDelete?.public_id) {
-      fetch(`http://localhost:3001/api/upload/${encodeURIComponent(imageToDelete.public_id)}`, {
+      // ✅ URL CORREGIDA: /api/upload/upload/ (endpoint real del backend)
+      const deleteUrl = `${BACKEND_URL}/api/upload/upload/${encodeURIComponent(imageToDelete.public_id)}`;
+      fetch(deleteUrl, {
         method: 'DELETE'
       }).catch(err => console.error('Error eliminando de Cloudinary:', err));
     }
@@ -520,6 +552,16 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     }));
     setImagePreview(newImages[0]?.src || null);
     
+    // ✅ SINCRONIZACIÓN: Actualizar la ficha técnica
+    setTechnicalSheet((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        allImages: newImages,
+        image: newImages[0]?.src || null
+      };
+    });
+    
     if (newImages.length === 0) {
       setShowImageModal(false);
     } else if (index >= newImages.length) {
@@ -528,10 +570,12 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   };
 
   const handleDeleteAllImages = async () => {
-    // Eliminar todas de Cloudinary
+    // ✅ Eliminar todas de Cloudinary
     for (const img of (formData.allImages || [])) {
       if (img?.public_id) {
-        fetch(`http://localhost:3001/api/upload/${encodeURIComponent(img.public_id)}`, {
+        // ✅ URL CORREGIDA: /api/upload/upload/ (endpoint real del backend)
+        const deleteUrl = `${BACKEND_URL}/api/upload/upload/${encodeURIComponent(img.public_id)}`;
+        fetch(deleteUrl, {
           method: 'DELETE'
         }).catch(err => console.error('Error eliminando:', err));
       }
@@ -539,6 +583,17 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
     setImagePreview(null);
     setFormData((prev) => ({ ...prev, image: null, allImages: [] }));
+    
+    // ✅ SINCRONIZACIÓN: Limpiar las imágenes de la ficha técnica
+    setTechnicalSheet((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        image: null,
+        allImages: []
+      };
+    });
+    
     setShowImageModal(false);
   };
 
@@ -856,11 +911,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                               margin: "0 auto"
                             }}
                           >
-                            <img 
-                              src={allImages[0].src} 
-                              alt={formData.name} 
-                              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} 
-                            />
+                            {allImages[0]?.src && (
+                              <img 
+                                src={allImages[0].src} 
+                                alt={formData.name} 
+                                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} 
+                              />
+                            )}
                             {allImages.length > 1 && (
                               <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
                                 +{allImages.length - 1}
@@ -906,7 +963,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                                     e.currentTarget.style.boxShadow = "none";
                                   }}
                                 >
-                                  <img src={img.src} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  {img?.src && (
+                                    <img src={img.src} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -927,7 +986,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                                 e.currentTarget.style.backgroundColor = "#f3f4f6";
                               }}
                             >
-                              Ver todas
+                              Ver imagen
                             </button>
 
                             <button
@@ -941,19 +1000,36 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                                 e.currentTarget.style.backgroundColor = "transparent";
                               }}
                             >
-                              Eliminar todas
+                              Eliminar imagen
                             </button>
                           </div>
                         </>
                       ) : (
                         <>
-                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
-                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-                            <line x1="8" y1="2" x2="8" y2="22" />
-                            <line x1="16" y1="2" x2="16" y2="22" />
-                            <line x1="2" y1="8" x2="22" y2="8" />
-                            <line x1="2" y1="16" x2="22" y2="16" />
-                          </svg>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              width: "100%",
+                              marginBottom: "10px"
+                            }}
+                          >
+                            <svg
+                              width="48"
+                              height="48"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#aaa"
+                              strokeWidth="1.5"
+                            >
+                              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                              <line x1="8" y1="2" x2="8" y2="22" />
+                              <line x1="16" y1="2" x2="16" y2="22" />
+                              <line x1="2" y1="8" x2="22" y2="8" />
+                              <line x1="2" y1="16" x2="22" y2="16" />
+                            </svg>
+                          </div>
                           <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
                             <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span><br />o arrastra y suelta
                           </p>
@@ -1085,7 +1161,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
           <TechnicalSheet
             key={selectedVersion || "current"}
-            sheet={product && selectedVersion ? { ...product?.technicalSheet, version: selectedVersion } : product?.technicalSheet}
+            sheet={product && selectedVersion ? { ...product?.technicalSheet, version: selectedVersion } : technicalSheet || product?.technicalSheet}
             isEditing={product ? (isLastVersion && !viewMode) : true}
             onChange={handleTechnicalSheetChange}
             productName={formData.name}
