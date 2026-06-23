@@ -1,6 +1,6 @@
 import React from "react";
 
-const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage, onDeleteAllImages, productName }) => {
+const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage, productName }) => {
   if (!isOpen) return null;
 
   const currentImage = images[selectedIndex];
@@ -114,22 +114,6 @@ const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage
               }}
             >
               Eliminar imagen
-            </button>
-          )}
-          {onDeleteAllImages && (
-            <button
-              onClick={onDeleteAllImages}
-              style={{
-                background: "rgba(220, 38, 38, 0.9)",
-                border: "none",
-                color: "#fff",
-                padding: "6px 14px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: 700
-              }}
-            >
-              Eliminar todas
             </button>
           )}
         </div>
