@@ -27,7 +27,6 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     color: "#888",
     borderBottom: "1px solid #f0f0f0",
     whiteSpace: isMobile ? "normal" : "nowrap",
-    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
     overflow: isMobile ? "visible" : "hidden",
     textOverflow: isMobile ? "clip" : "ellipsis",
     backgroundColor: "#f5f5f5",
@@ -39,7 +38,6 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     color: "#333",
     borderBottom: "1px solid #f5f5f5",
     whiteSpace: isMobile ? "normal" : "nowrap",
-    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
     overflow: isMobile ? "visible" : "hidden",
     textOverflow: isMobile ? "clip" : "ellipsis",
   };
@@ -52,6 +50,16 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
     overflow: "visible",
     textOverflow: "clip",
     whiteSpace: "nowrap",
+  };
+
+  // ✅ Fix: la celda de imagen necesita overflow:visible para que el hover
+  // expandido no quede cortado por el contenedor padre (tdStyle tiene
+  // overflow:hidden en desktop, lo que recorta la preview al expandirse).
+  const tdImageStyle = {
+    ...tdStyle,
+    overflow: "visible",
+    textOverflow: "clip",
+    position: "relative",
   };
 
   if (products.length === 0) {
@@ -90,8 +98,6 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
               width: "100%",
               borderCollapse: "collapse",
               minWidth: isMobile ? "920px" : undefined,
-              // ✅ Fix: layout fijo para que cada columna respete su ancho
-              // (como en Excel) y el texto no se desborde sobre la celda vecina
               tableLayout: isMobile ? "auto" : "fixed",
             }}
           >
@@ -103,8 +109,6 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                 <th style={{ ...thStyle, width: "16%" }}>Categoría</th>
                 <th style={{ ...thStyle, width: "14%" }}>Precio</th>
                 <th style={{ ...thStyle, width: "10%" }}>Stock</th>
-                {/* ✅ Fix: ancho mínimo fijo (no porcentual) para que el switch
-                    y los 3 íconos siempre tengan espacio suficiente */}
                 <th style={{ ...thStyle, width: "150px", overflow: "visible" }}>Acciónes</th>
               </tr>
             </thead>
@@ -119,8 +123,9 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                   >
-                    {/* Imagen */}
-                    <td style={tdStyle}>
+                    {/* ✅ Fix: usa tdImageStyle (overflow:visible) en lugar de
+                        tdStyle para que la preview no quede recortada */}
+                    <td style={tdImageStyle}>
                       <div className="relative group w-fit">
 
                         {/* Imagen pequeña */}
