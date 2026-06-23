@@ -188,9 +188,7 @@ const CategoriesSupplyPage = () => {
         >
           Categorías de insumos
         </h1>
-        <div style={{ width: "260px" }}>
-          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" />
-        </div>
+        <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" width="400px" maxWidth="400px" />
       </div>
 
       <div

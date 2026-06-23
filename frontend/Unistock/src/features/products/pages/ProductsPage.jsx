@@ -423,8 +423,8 @@ const ProductsPage = () => {
           Productos
         </h1>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: '4px' }}>
-          <ProductSearch value={searchTerm} onChange={handleSearch} />
-          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+          <ProductSearch value={searchTerm} onChange={handleSearch} width="400px" maxWidth="400px" />
+          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: 'nowrap' }}>
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos
           </span>

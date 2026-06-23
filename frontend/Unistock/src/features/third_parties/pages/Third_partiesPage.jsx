@@ -318,14 +318,14 @@ const Third_partiePage = () => {
         >
           <h1 style={{ fontSize: '26px', fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Gestión de terceros</h1>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-            <div style={{ width: '260px' }}>
-              <Third_partieSearch
-                value={searchTerm}
-                onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
-                placeholder="Buscar"
-              />
-            </div>
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>
+            <Third_partieSearch
+              value={searchTerm}
+              onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
+              placeholder="Buscar"
+              width="400px"
+              maxWidth="400px"
+            />
+            <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>
               Escribe <strong>activo</strong> para ver registros activos ·{" "}
               <strong>inactivo</strong> para ver registros inactivos
             </span>

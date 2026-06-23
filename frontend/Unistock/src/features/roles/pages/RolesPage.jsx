@@ -321,9 +321,7 @@ const RolesPage = () => {
           Roles
         </h1>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-          <div style={{ width: "260px" }}>
-            <SearchInput value={searchTerm} onChange={handleSearch} placeholder="Buscar" />
-          </div>
+          <SearchInput value={searchTerm} onChange={handleSearch} placeholder="Buscar" width="400px" maxWidth="400px" />
           <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos

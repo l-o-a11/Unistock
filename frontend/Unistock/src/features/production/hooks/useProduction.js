@@ -17,14 +17,14 @@ const fmtDate = (raw) =>
  */
 const mapDetails = (rawDetails, ordenEstado, statusDate) =>
   (rawDetails || []).map((d) => ({
-    id:         d.id || d._id || '',
-    refCorte:   d.id_producto || '',   // código de referencia del artículo
-    ref:        d.id_producto || '',
-    quantity:   Number(d.cantidad) || 0,
-    color:      d.color || '—',
-    status:     ordenEstado || 'Diseño',
+    id: d.id || d._id || '',
+    refCorte: d.id_producto || '',   // código de referencia del artículo
+    ref: d.id_producto || '',
+    quantity: Number(d.cantidad) || 0,
+    color: d.color || '—',
+    status: ordenEstado || 'Diseño',
     statusDate: statusDate || fmtDate(d.updatedAt || d.createdAt),
-    estado:     d.estado !== false,
+    estado: d.estado !== false,
   }));
 
 /**
@@ -32,9 +32,9 @@ const mapDetails = (rawDetails, ordenEstado, statusDate) =>
  * que se muestran directamente en la fila de la tabla.
  */
 const summarizeDetails = (details) => {
-  const totalQty    = details.reduce((s, d) => s + (d.quantity || 0), 0);
+  const totalQty = details.reduce((s, d) => s + (d.quantity || 0), 0);
   const uniqueColors = [...new Set(details.map((d) => d.color).filter((c) => c && c !== '—'))];
-  const firstRef    = details[0]?.ref || '';
+  const firstRef = details[0]?.ref || '';
   return { totalQty, uniqueColors, firstRef };
 };
 
@@ -44,28 +44,28 @@ const summarizeDetails = (details) => {
  * después con mergeDetails().
  */
 const mapOrder = (order) => ({
-  id:           order._id  || order.id,
-  orderNumber:  order.numero_orden,
-  cliente:      order.cliente,
+  id: order._id || order.id,
+  orderNumber: order.numero_orden,
+  cliente: order.cliente,
   cliente_name: order.cliente,
-  client:       order.cliente,
-  status:       order.estado,
-  estado:       order.estado,
+  client: order.cliente,
+  status: order.estado,
+  estado: order.estado,
   deliveryDate: fmtDate(order.fecha_entrega),
-  statusDate:   fmtDate(order.updatedAt || order.createdAt),
+  statusDate: fmtDate(order.updatedAt || order.createdAt),
   history: (order.historial || []).map((h) => ({
     status: h.estado,
-    date:   fmtDate(h.fecha),
-    user:   h.id_usuario || 'Sistema',
+    date: fmtDate(h.fecha),
+    user: h.id_usuario || 'Sistema',
     motivo: h.motivo,
   })),
   // Campos de artículo — se rellenan tras cargar detalles
   referencia: '',
-  producto:   '',
-  quantity:   0,
-  color:      '',
-  details:    [],
-  rawData:    order,
+  producto: '',
+  quantity: 0,
+  color: '',
+  details: [],
+  rawData: order,
 });
 
 /**
@@ -77,10 +77,10 @@ const mergeDetails = (prod, rawDetails) => {
   return {
     ...prod,
     details,
-    quantity:   totalQty,
-    color:      uniqueColors[0] || '',
+    quantity: totalQty,
+    color: uniqueColors[0] || '',
     referencia: firstRef,
-    producto:   firstRef || `Orden #${prod.orderNumber}`,
+    producto: firstRef || `Orden #${prod.orderNumber}`,
   };
 };
 
@@ -90,45 +90,39 @@ const mergeDetails = (prod, rawDetails) => {
 
 export const useProductions = () => {
   const [Productions, setProductions] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => { loadProductions(); }, []);
 
   // ── Carga inicial: órdenes + sus detalles en paralelo ─────────────────────
-  const loadProductions = async () => {
+  const [pagination, setPagination] = useState({ page: 1, limit: 7, total: 0, totalPages: 1 });
+
+  const loadProductions = async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await ProductionAPIClient.getOrders({ page: 1, limit: 100 });
+      const response = await ProductionAPIClient.getOrders({
+        page: params.page || 1,
+        limit: params.limit || 7,
+        search: params.search || undefined,
+        estado: params.estado || undefined,
+        cliente: params.cliente || undefined,
+        fecha_desde: params.fecha_desde || undefined,
+        fecha_hasta: params.fecha_hasta || undefined,
+      });
 
-      // Normalizar shape de respuesta
-      const raw =
-        response?.data?.data    ??
-        response?.data?.orders  ??
-        response?.data          ??
-        response?.orders        ??
-        response                ??
-        [];
-      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+      const payload = response?.data ?? response ?? {};
+      const list = Array.isArray(payload.data) ? payload.data : [];
+      const pag = payload.pagination || { page: 1, limit: 7, total: list.length, totalPages: 1 };
 
-      // 1. Mapear órdenes base (sin detalles)
-      const baseProducciones = list.map(mapOrder);
-
-      // 2. Cargar detalles de todas las órdenes en paralelo
-      const detailsArray = await Promise.all(
-        baseProducciones.map((p) =>
-          ProductionAPIClient.getOrderDetails(p.id).catch(() => [])
-        )
-      );
-
-      // 3. Fusionar detalles en cada orden
-      const producciones = baseProducciones.map((p, i) =>
-        mergeDetails(p, detailsArray[i] || [])
-      );
+      // Cada orden ya viene con su array "detalles" gracias al $lookup —
+      // ya no se necesita ningún Promise.all adicional.
+      const producciones = list.map((order) => mergeDetails(mapOrder(order), order.detalles || []));
 
       setProductions(producciones);
+      setPagination(pag);
     } catch (err) {
       console.error('Error al cargar producciones:', err);
       setError('Error al cargar las órdenes de producción. Verifica la conexión con el servidor.');
@@ -141,35 +135,35 @@ export const useProductions = () => {
   const createProduction = async (productionData) => {
     try {
       const backendData = {
-        cliente:       (productionData.client || productionData.cliente || '').trim(),
+        cliente: (productionData.client || productionData.cliente || '').trim(),
         fecha_entrega: productionData.deliveryDate || productionData.fecha_entrega || productionData.fechaSolicitud,
-        tipo:          productionData.tipo || 'produccion',
-        referencia:    productionData.referencia || productionData.reference || '',
-        producto:      productionData.producto || productionData.product || '',
-        techSheet:     productionData.techSheet || productionData.techSpecification || null,
-        designImages:  productionData.designImages || [],
-        fromDamaged:   productionData.fromDamaged || false,
+        tipo: productionData.tipo || 'produccion',
+        referencia: productionData.referencia || productionData.reference || '',
+        producto: productionData.producto || productionData.product || '',
+        techSheet: productionData.techSheet || productionData.techSpecification || null,
+        designImages: productionData.designImages || [],
+        fromDamaged: productionData.fromDamaged || false,
         originalOrderNumber: productionData.originalOrderNumber || null,
         originalOrderStatus: productionData.originalOrderStatus || null,
       };
 
       const newOrder = await ProductionAPIClient.createOrder(backendData);
-      const idOrden  = newOrder._id || newOrder.id;
+      const idOrden = newOrder._id || newOrder.id;
 
       // Armar array de detalles desde los campos del form
       const detalles = [];
-      const referencia       = String(productionData.referencia || '').trim();
+      const referencia = String(productionData.referencia || '').trim();
       const cantidadPrincipal = Number(productionData.cantidad) || 0;
-      const colorPrincipal    = String(productionData.color || '').trim();
+      const colorPrincipal = String(productionData.color || '').trim();
 
       if (referencia && cantidadPrincipal > 0) {
         detalles.push({ id_producto: referencia, cantidad: cantidadPrincipal, color: colorPrincipal });
       }
 
       (Array.isArray(productionData.referencias) ? productionData.referencias : []).forEach((r) => {
-        const qty   = Number(r?.cantidad) || 0;
+        const qty = Number(r?.cantidad) || 0;
         const color = String(r?.color || '').trim() || colorPrincipal;
-        const ref   = String(r?.referencia || referencia).trim();
+        const ref = String(r?.referencia || referencia).trim();
         if (ref && qty > 0) detalles.push({ id_producto: ref, cantidad: qty, color });
       });
 
@@ -177,17 +171,17 @@ export const useProductions = () => {
       const rawDetails = await Promise.all(
         detalles.map((d) =>
           ProductionAPIClient.createOrderDetail({
-            id_orden:    idOrden,
+            id_orden: idOrden,
             id_producto: d.id_producto,
-            cantidad:    d.cantidad,
-            color:       d.color,
+            cantidad: d.cantidad,
+            color: d.color,
           }).catch((err) => { console.error('Error creando detalle:', err); return null; })
         )
       );
 
       // Construir objeto producción con detalles ya incluidos
-      const base          = mapOrder(newOrder);
-      const validDetails  = rawDetails.filter(Boolean);
+      const base = mapOrder(newOrder);
+      const validDetails = rawDetails.filter(Boolean);
       const newProduction = mergeDetails(base, validDetails);
 
       setProductions((prev) => [newProduction, ...prev]);
@@ -203,7 +197,7 @@ export const useProductions = () => {
   const updateProduction = async (id, productionData) => {
     try {
       const updated = await ProductionAPIClient.updateOrder(id, {
-        cliente:       productionData.client || productionData.cliente,
+        cliente: productionData.client || productionData.cliente,
         fecha_entrega: productionData.deliveryDate || productionData.fecha_entrega,
       });
       setProductions((prev) =>
@@ -260,7 +254,7 @@ export const useProductions = () => {
     const produccion = Productions.find(p => p.id === id) || {};
     const finishedImages = produccion.rawData?.finishedImages || produccion.finishedImages || [];
     const updated = await ProductionAPIClient.changeOrderStatus(id, nuevoEstado, { extra: { finishedImages } });
-    const today   = fmtDate(new Date());
+    const today = fmtDate(new Date());
 
     // Cuando la orden llega a "Enviado", sumamos la cantidad producida
     // al stock del producto correspondiente en el catálogo.
@@ -311,18 +305,18 @@ export const useProductions = () => {
       prev.map((p) =>
         p.id === id
           ? {
-              ...p,
-              status:     updated.estado || nuevoEstado,
-              estado:     updated.estado || nuevoEstado,
-              statusDate: today,
-              history: (updated.historial || []).map((h) => ({
-                status: h.estado,
-                date:   fmtDate(h.fecha),
-                user:   h.id_usuario || 'Sistema',
-                motivo: h.motivo,
-              })),
-              rawData: updated,
-            }
+            ...p,
+            status: updated.estado || nuevoEstado,
+            estado: updated.estado || nuevoEstado,
+            statusDate: today,
+            history: (updated.historial || []).map((h) => ({
+              status: h.estado,
+              date: fmtDate(h.fecha),
+              user: h.id_usuario || 'Sistema',
+              motivo: h.motivo,
+            })),
+            rawData: updated,
+          }
           : p
       )
     );
