@@ -229,12 +229,10 @@ const SedesPage = () => {
         </h1>
         {/* FIX #9: onChange llama a applyFilters → búsqueda server-side */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-          <div style={{ width: "260px" }}>
-            <SearchInput onChange={handleSearch} placeholder="Buscar" />
-          </div>
-          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
-            Escribe <strong>activo</strong> para ver registros activos ·{" "}
-            <strong>inactivo</strong> para ver registros inactivos
+          <SearchInput onChange={handleSearch} placeholder="Buscar" width="400px" maxWidth="400px" />
+          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap", }}>
+            Escribe <strong>activo</strong> para ver compras activas ·{" "}
+            <strong>anulado</strong> para ver compras anuladas
           </span>
         </div>
       </div>

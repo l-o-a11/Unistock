@@ -299,6 +299,8 @@ const ProductCategoriesPage = () => {
         <SearchInput
           value={searchTerm}
           onChange={setSearchTerm}
+          width="400px"
+          maxWidth="400px"
         />
       </div>
 

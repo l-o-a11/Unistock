@@ -234,8 +234,10 @@ const SuppliersPage = () => {
             value={searchTerm}
             onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
             placeholder="Buscar"
+            width="400px"
+            maxWidth="400px"
           />
-          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+          <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos
           </span>
