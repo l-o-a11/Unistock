@@ -251,6 +251,10 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
                 <option value="">Seleccionar Tipo</option>
                 <option value="CC">CC</option>
                 <option value="TI">TI</option>
+                <option value="CE">CE</option>
+                <option value="PEP">PEP</option>
+                <option value="PAS">PAS</option>
+                <option value="PPT">PPT</option>
               </Input>
 
               <Input

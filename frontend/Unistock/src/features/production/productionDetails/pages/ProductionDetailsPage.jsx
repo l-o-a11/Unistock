@@ -16,8 +16,8 @@ import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
 import { blockInput } from "../../../shared/utils/blockInput";
 
-const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
-const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Empaque", "Enviado"];
+const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Recepción", "Enviado"];
+const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción", "Recepción", "Enviado"];
 
 const SIZE_ORDER = ["3XS","2XS","XS","S","M","L","XL","2XL","XXL","3XL","XXXL","4XL","5XL"];
 const extractSize = (refCorte = "") => {
@@ -257,7 +257,7 @@ const ProductionDetailsPage = () => {
           })),
           details: (data.detalles || []).map((d) => ({
             id:         d.id || d._id,
-            refCorte:   d.id_producto || '',
+            refCorte:   d.refCorte || d.id_producto || '',
             ref:        d.id_producto || '',
             quantity:   d.cantidad    || 0,
             color:      d.color       || '—',
@@ -316,7 +316,7 @@ const ProductionDetailsPage = () => {
 
   const getAlertType = (from, to) => {
     if (from === "Compras" && to === "Producción") return "third";
-    if (from === "Producción" && to === "Empaque") return "assignSede";
+    if (from === "Producción" && to === "Recepción") return "assignSede";
     return "advance";
   };
 
@@ -363,7 +363,7 @@ const ProductionDetailsPage = () => {
       })),
       details: (freshData.detalles || prev.details || []).map((d) => ({
         id: d.id || d._id,
-        refCorte: d.id_producto || '',
+        refCorte: d.refCorte || d.id_producto || '',
         ref: d.id_producto || '',
         quantity: d.cantidad || 0,
         color: d.color || '—',
@@ -581,20 +581,27 @@ const ProductionDetailsPage = () => {
         ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : today;
 
-      setProduction((prev) => ({
-        ...prev,
-        details: (freshData.detalles || prev.details || []).map((d) => ({
+      setProduction((prev) => {
+        const newDetails = (freshData.detalles || prev.details || []).map((d) => ({
           id: d.id || d._id,
-          refCorte: d.id_producto || '',
+          refCorte: d.refCorte || d.id_producto || '',
           ref: d.id_producto || '',
           quantity: d.cantidad || 0,
           color: d.color || '—',
           status: freshData.estado,
           statusDate,
           estado: d.estado !== false,
-        })),
-        rawData: freshData,
-      }));
+        }));
+        // ✅ Fix: recalcular el costo total al modificar la cantidad de una
+        // referencia — antes solo se recalculaba al agregar/eliminar.
+        const updatedTechSpec = recalcCosts(newDetails, prev.techSpecification);
+        return {
+          ...prev,
+          details: newDetails,
+          techSpecification: updatedTechSpec,
+          rawData: freshData,
+        };
+      });
       
       setEditAlert({ isOpen: false, detail: null });
       setGlobalAlert({ open: true, type: "success", title: "Artículo actualizado", message: `El artículo ${detail.ref} fue actualizado correctamente.` });
@@ -630,7 +637,7 @@ const ProductionDetailsPage = () => {
       setProduction((prev) => {
         const newDetails = (freshData.detalles || []).map((d) => ({
           id: d.id || d._id,
-          refCorte: d.id_producto || '',
+          refCorte: d.refCorte || d.id_producto || '',
           ref: d.id_producto || '',
           quantity: d.cantidad || 0,
           color: d.color || '—',
@@ -708,7 +715,7 @@ const ProductionDetailsPage = () => {
             setProduction((prev) => {
               const newDetails = (remainingDetails || []).map((d) => ({
                 id: d.id || d._id,
-                refCorte: d.id_producto || '',
+                refCorte: d.refCorte || d.id_producto || '',
                 ref: d.id_producto || '',
                 quantity: d.cantidad || 0,
                 color: d.color || '—',
@@ -1259,7 +1266,11 @@ const ProductionDetailsPage = () => {
         <div className="pd-card" style={{ padding: "14px 20px", marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {prevStep && (
+              {/* ✅ Fix: este botón no tenía ninguna restricción — permitía
+                  retroceder incluso desde Recepción/Enviado. Ahora respeta
+                  la misma regla que el botón "Anterior": no se puede
+                  retroceder una vez que la orden llegó a Recepción. */}
+              {prevStep && safeStepIndex < stepsReal.indexOf("Recepción") && (
                 <button title="Retroceder (requiere contraseña admin)"
                   onClick={() => openProductionAlert({ type: 'password', targetStep: prevStep, customTitle: 'Revertir estado', customMessage: `Se requiere contraseña de administrador para retroceder al estado "${prevStep}".` })}
                   style={{ width: 28, height: 28, borderRadius: 6, background: '#f3f4f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -1269,7 +1280,7 @@ const ProductionDetailsPage = () => {
               <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>Flujo de Proceso</p>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              {prevStep && safeStepIndex < stepsReal.indexOf("Empaque") && (
+              {prevStep && safeStepIndex < stepsReal.indexOf("Recepción") && (
                 <button className="pd-btn-nav"
                   onClick={() => openProductionAlert({
                     type: "password", targetStep: prevStep,
@@ -1434,14 +1445,30 @@ const ProductionDetailsPage = () => {
                   <div className="pd-value">Ref. {production.referencia}</div>
                 </div>
                 <div>
-                  <div className="pd-label">Unidad de Producción</div>
-                  <div className="pd-value">{production.unidadProduccion || "Unit 01"}</div>
-                </div>
-                <div>
                   <div className="pd-label">Prioridad</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: (production.prioridad || production.priority) === "Alta" ? "#ef4444" : (production.prioridad || production.priority) === "Media" ? "#f59e0b" : "#10b981" }} />
-                    <span className="pd-value">{production.prioridad || production.priority || "Alta"}</span>
+                    {(() => {
+                      // ✅ Fix: la prioridad ya no es manual ni un fallback fijo —
+                      // se calcula según la cercanía real de fecha_entrega.
+                      // Más cerca → prioridad más alta; más lejos → más baja.
+                      const fechaEntrega = production.rawData?.fecha_entrega || production.fecha_entrega;
+                      let prioridadCalculada = "Media";
+                      if (fechaEntrega) {
+                        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+                        const entrega = new Date(fechaEntrega); entrega.setHours(0, 0, 0, 0);
+                        const diasRestantes = Math.ceil((entrega - hoy) / (1000 * 60 * 60 * 24));
+                        if (diasRestantes <= 7) prioridadCalculada = "Alta";
+                        else if (diasRestantes <= 20) prioridadCalculada = "Media";
+                        else prioridadCalculada = "Baja";
+                      }
+                      const colorDot = prioridadCalculada === "Alta" ? "#ef4444" : prioridadCalculada === "Media" ? "#f59e0b" : "#10b981";
+                      return (
+                        <>
+                          <div style={{ width: 7, height: 7, borderRadius: "50%", background: colorDot }} />
+                          <span className="pd-value">{prioridadCalculada}</span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div>
@@ -1478,7 +1505,7 @@ const ProductionDetailsPage = () => {
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 320 }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    {["Código", "Cantidad", "Color", "Estado", ...((!isAnulada && !isLocked) ? [""] : [])].map((h, idx) => (
+                    {["Ref-Corte", "Cantidad", "Color", "Estado", ...((!isAnulada && !isLocked) ? [""] : [])].map((h, idx) => (
                       <th key={idx} style={{ textAlign: "left", padding: "0 0 6px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#c4c9d4", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>

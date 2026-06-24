@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
-
+import ImageModal from "../ProductForm/ImageModal";
 const normalizeText = (text) =>
   String(text || "")
     .normalize("NFD")

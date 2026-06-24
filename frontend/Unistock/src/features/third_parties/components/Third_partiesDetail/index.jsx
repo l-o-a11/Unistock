@@ -50,8 +50,10 @@ const Third_partieDetail = ({ Third_partie, onEdit, onDelete, onClose }) => {
 
   const isActive    = data.estado !== false;
   // Solo mostrar órdenes que aún están en proceso de producción activa
-  // (NO mostrar las que ya pasaron a "Empaque" o estados posteriores)
-  const ESTADOS_POST_PRODUCCION = ['Empaque', 'Enviado', 'Anulada'];
+  // (NO mostrar las que ya pasaron a "Recepción" o estados posteriores)
+  // ✅ Fix: "Empaque" fue renombrado a "Recepción" — se incluyen ambos
+  // valores para que el filtro siga funcionando con órdenes antiguas.
+  const ESTADOS_POST_PRODUCCION = ['Recepción', 'Empaque', 'Enviado', 'Anulada'];
   const todasProducciones = data.producciones || [];
   const producciones = todasProducciones.filter((prod) => {
     // Si la producción tiene estado disponible, filtrar las que ya pasaron de "Producción"

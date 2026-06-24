@@ -43,6 +43,9 @@ const STATUS_MAP = {
   'Corte': { bg: '#dbeafe', color: '#1d4ed8', dot: '#60a5fa' },
   'Compras': { bg: '#fef3c7', color: '#b45309', dot: '#fbbf24' },
   'Producción': { bg: '#fce7f3', color: '#be185d', dot: '#f472b6' },
+  // ✅ Fix: "Empaque" renombrado a "Recepción" — se mantiene la entrada
+  // legada para órdenes antiguas que aún tengan ese estado guardado en BD.
+  'Recepción': { bg: '#dcfce7', color: '#15803d', dot: '#4ade80' },
   'Empaque': { bg: '#dcfce7', color: '#15803d', dot: '#4ade80' },
   'Enviado': { bg: '#f0fdf4', color: '#166534', dot: '#22c55e' },
   'Anulada': { bg: '#fee2e2', color: '#dc2626', dot: '#f87171' },
@@ -349,7 +352,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                {['#', 'Ref_corte', 'Referencia', 'Estado',  'Cantidad', 'Color'].map(h => (
+                                {['#', 'Ref_corte', 'Referencia', 'Estado', 'Fecha estado', 'Cantidad', 'Color'].map(h => (
                                   <th key={h} style={{
                                     padding: '7px 10px', textAlign: 'left',
                                     fontSize: 10, fontWeight: 700, color: '#a78bfa',
@@ -374,7 +377,12 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                                   <td style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, color: '#374151' }}>{d.ref}</td>
                                   <td style={{ padding: '7px 10px' }}>
                                     <StatusBadge status={d.status} small />
-                                  
+                                  </td>
+                                  <td style={{ padding: '7px 10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#9ca3af', fontSize: 11 }}>
+                                      <IconCalendar />
+                                      {d.statusDate}
+                                    </div>
                                   </td>
                                   <td style={{ padding: '7px 10px' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>

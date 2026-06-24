@@ -118,7 +118,7 @@ const toFrontendFormat = (backendData) => {
     // pintar la pantalla sin pasar por el mapeo manual del useEffect inicial.
     details: (backendData.detalles || []).map((d) => ({
       id: d.id || d._id,
-      refCorte: d.id_producto || '',
+      refCorte: d.refCorte || d.id_producto || '',
       ref: d.id_producto || '',
       quantity: d.cantidad || 0,
       color: d.color || '—',
