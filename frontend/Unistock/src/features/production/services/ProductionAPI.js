@@ -8,7 +8,7 @@ export const getCurrentUser = () => {
       const u = JSON.parse(raw);
       return u.nombreCompleto || u.nombre || u.username || 'Admin';
     }
-  } catch {}
+  } catch { }
   return 'Admin';
 };
 
@@ -26,26 +26,26 @@ const TECH_SPEC_772 = {
   description: 'Crop top negro para uso diario, con cortes diagonales en destellante y mallatex.',
   image: null,
   fabrics: [
-    { name: 'MALLATEX',     consumption: '0.62', pieces: '36', talla: '' },
-    { name: 'DESTELLANTE',  consumption: '0.68', pieces: '38', talla: '' },
+    { name: 'MALLATEX', consumption: '0.62', pieces: '36', talla: '' },
+    { name: 'DESTELLANTE', consumption: '0.68', pieces: '38', talla: '' },
   ],
   cups: [
     { type: 'Copa ojo de gato straple con realce', values: ['36', '38', '40'] },
-    { type: 'Copa vergara con realce',             values: ['36', '38', '40'] },
+    { type: 'Copa vergara con realce', values: ['36', '38', '40'] },
   ],
   closures: [
     { type: 'Abrochadura o gafete', values: ['2x1', '3x1', '4x1'] },
-    { type: 'Elástico cargadera',   values: ['15mm', '20mm', '25mm'] },
+    { type: 'Elástico cargadera', values: ['15mm', '20mm', '25mm'] },
   ],
   accessories: [
-    { name: 'Varilla mi',           values: ['', '', ''] },
-    { name: 'Elástico envívar',     values: ['', '', ''] },
-    { name: 'Hiladilla',            values: ['', '', ''] },
-    { name: 'Broches decorativos',  values: ['', '', ''] },
+    { name: 'Varilla mi', values: ['', '', ''] },
+    { name: 'Elástico envívar', values: ['', '', ''] },
+    { name: 'Hiladilla', values: ['', '', ''] },
+    { name: 'Broches decorativos', values: ['', '', ''] },
   ],
   measurements: [
-    { name: 'Medidas cargaderas',          values: ['', ''] },
-    { name: 'Medidas varillas plásticas',  values: ['', ''] },
+    { name: 'Medidas cargaderas', values: ['', ''] },
+    { name: 'Medidas varillas plásticas', values: ['', ''] },
   ],
   observations: 'Conservar apariencia lisa de la prenda, no recogidos.',
   createdBy: 'Paula Andrea Builes',
@@ -85,11 +85,11 @@ const mockProductions = [
       { refCorte: '772_3005', ref: '772', status: 'En producción', statusDate: '11/04/2025', quantity: 300, color: 'negro' }
     ],
     history: [
-      { status: 'Diseño',        date: '01/04/2025', user: 'Paula Builes',  motivo: null },
-      { status: 'Ficha Técnica', date: '02/04/2025', user: 'Paula Builes',  motivo: null },
-      { status: 'Corte',         date: '04/04/2025', user: 'Jorge Ramírez', motivo: null },
-      { status: 'Compras',       date: '06/04/2025', user: 'Ana Pérez',     motivo: null },
-      { status: 'Producción',    date: '08/04/2025', user: 'Luis Díaz',     motivo: null },
+      { status: 'Diseño', date: '01/04/2025', user: 'Paula Builes', motivo: null },
+      { status: 'Ficha Técnica', date: '02/04/2025', user: 'Paula Builes', motivo: null },
+      { status: 'Corte', date: '04/04/2025', user: 'Jorge Ramírez', motivo: null },
+      { status: 'Compras', date: '06/04/2025', user: 'Ana Pérez', motivo: null },
+      { status: 'Producción', date: '08/04/2025', user: 'Luis Díaz', motivo: null },
     ],
     techSpecification: { ...TECH_SPEC_772 },
   },
@@ -109,9 +109,9 @@ const mockProductions = [
       { refCorte: '482_3005', ref: '482', status: 'En corte', statusDate: '07/04/2025', quantity: 150, color: 'Rojo' }
     ],
     history: [
-      { status: 'Diseño',        date: '01/04/2025', user: 'Paula Builes',  motivo: null },
-      { status: 'Ficha Técnica', date: '02/04/2025', user: 'Paula Builes',  motivo: null },
-      { status: 'Corte',         date: '05/04/2025', user: 'Jorge Ramírez', motivo: null },
+      { status: 'Diseño', date: '01/04/2025', user: 'Paula Builes', motivo: null },
+      { status: 'Ficha Técnica', date: '02/04/2025', user: 'Paula Builes', motivo: null },
+      { status: 'Corte', date: '05/04/2025', user: 'Jorge Ramírez', motivo: null },
     ],
     techSpecification: { ...TECH_SPEC_482 },
   },
@@ -124,7 +124,7 @@ const deepCopy = (o) => JSON.parse(JSON.stringify(o));
 const LS_KEY = 'app_productions';
 
 const saveToLS = (list) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch { }
 };
 
 const loadFromLS = () => {
@@ -176,27 +176,27 @@ export const ProductionAPI = {
   }),
 
   // Trae la ficha técnica del producto (busca en productAPI en tiempo real)
- fetchTechSheetForProduct: async (referencia) => {
-  try {
-    const products = await productAPI.getAll();
+  fetchTechSheetForProduct: async (referencia) => {
+    try {
+      const products = await productAPI.getAll();
 
-    const prod = products.find(
-      (p) => p.reference === referencia || p.id === referencia
-    );
+      const prod = products.find(
+        (p) => p.reference === referencia || p.id === referencia
+      );
 
-    if (prod && prod.technicalSheet) {
-      const sheet = deepCopy(prod.technicalSheet);
-      techSheetCache[referencia] = sheet;
-      return sheet;
+      if (prod && prod.technicalSheet) {
+        const sheet = deepCopy(prod.technicalSheet);
+        techSheetCache[referencia] = sheet;
+        return sheet;
+      }
+    } catch (error) {
+      console.error("Error cargando productos:", error);
     }
-  } catch (error) {
-    console.error("Error cargando productos:", error);
-  }
 
-  return techSheetCache[referencia]
-    ? deepCopy(techSheetCache[referencia])
-    : null;
-},
+    return techSheetCache[referencia]
+      ? deepCopy(techSheetCache[referencia])
+      : null;
+  },
 
   create: async (formData) => {
     const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -229,9 +229,9 @@ export const ProductionAPI = {
 
     const initialHistory = isProduccion
       ? [
-          { status: 'Diseño',        date: today, user, motivo: null },
-          { status: 'Ficha Técnica', date: today, user, motivo: null },
-        ]
+        { status: 'Diseño', date: today, user, motivo: null },
+        { status: 'Ficha Técnica', date: today, user, motivo: null },
+      ]
       : [{ status: 'Diseño', date: today, user, motivo: null }];
 
     // ── Ficha técnica ─────────────────────────────────────────────────────────
@@ -253,7 +253,7 @@ export const ProductionAPI = {
             measurements: [], observations: '', createdBy: user,
           };
         }
-      } catch {}
+      } catch { }
       if (!sheet) sheet = techSheetCache[formData.referencia]
         ? deepCopy(techSheetCache[formData.referencia]) : null;
 
@@ -323,7 +323,7 @@ export const ProductionAPI = {
         mockProductions[i] = {
           ...mockProductions[i], status: 'Anulada', statusDate: today,
           history: [...(mockProductions[i].history || []),
-            { status: 'Anulada', date: today, user: getCurrentUser(), motivo }],
+          { status: 'Anulada', date: today, user: getCurrentUser(), motivo }],
         };
         saveToLS(mockProductions);
         res(deepCopy(mockProductions[i]));

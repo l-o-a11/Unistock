@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
   const [cantidad, setCantidad] = useState("");
-  const [color,    setColor]    = useState("");
+  const [color, setColor] = useState("");
 
   // ✅ Fix: pre-poblar con los valores actuales del detail al abrir
   useEffect(() => {
@@ -72,7 +72,7 @@ const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
                 /* Botón Guardar: color único #FF4FD6 sin gradiente */
                 ? 'text-white hover:opacity-90 shadow-sm'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              style={cantidad && color ? { backgroundColor: '#FF4FD6' } : {}}
+            style={cantidad && color ? { backgroundColor: '#FF4FD6' } : {}}
           >
             Guardar
           </button>

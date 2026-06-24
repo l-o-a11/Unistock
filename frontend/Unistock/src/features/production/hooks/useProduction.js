@@ -96,33 +96,39 @@ export const useProductions = () => {
   useEffect(() => { loadProductions(); }, []);
 
   // ── Carga inicial: órdenes + sus detalles en paralelo ─────────────────────
-  const [pagination, setPagination] = useState({ page: 1, limit: 7, total: 0, totalPages: 1 });
-
-  const loadProductions = async (params = {}) => {
+  const loadProductions = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await ProductionAPIClient.getOrders({
-        page: params.page || 1,
-        limit: params.limit || 7,
-        search: params.search || undefined,
-        estado: params.estado || undefined,
-        cliente: params.cliente || undefined,
-        fecha_desde: params.fecha_desde || undefined,
-        fecha_hasta: params.fecha_hasta || undefined,
-      });
+      const response = await ProductionAPIClient.getOrders({ page: 1, limit: 100 });
 
-      const payload = response?.data ?? response ?? {};
-      const list = Array.isArray(payload.data) ? payload.data : [];
-      const pag = payload.pagination || { page: 1, limit: 7, total: list.length, totalPages: 1 };
+      // Normalizar shape de respuesta
+      const raw =
+        response?.data?.data ??
+        response?.data?.orders ??
+        response?.data ??
+        response?.orders ??
+        response ??
+        [];
+      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
 
-      // Cada orden ya viene con su array "detalles" gracias al $lookup —
-      // ya no se necesita ningún Promise.all adicional.
-      const producciones = list.map((order) => mergeDetails(mapOrder(order), order.detalles || []));
+      // 1. Mapear órdenes base (sin detalles)
+      const baseProducciones = list.map(mapOrder);
+
+      // 2. Cargar detalles de todas las órdenes en paralelo
+      const detailsArray = await Promise.all(
+        baseProducciones.map((p) =>
+          ProductionAPIClient.getOrderDetails(p.id).catch(() => [])
+        )
+      );
+
+      // 3. Fusionar detalles en cada orden
+      const producciones = baseProducciones.map((p, i) =>
+        mergeDetails(p, detailsArray[i] || [])
+      );
 
       setProductions(producciones);
-      setPagination(pag);
     } catch (err) {
       console.error('Error al cargar producciones:', err);
       setError('Error al cargar las órdenes de producción. Verifica la conexión con el servidor.');
