@@ -312,6 +312,8 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (!nuevaRef.reference.trim()) errs.reference = 'La referencia es obligatoria';
     if (!nuevaRef.name.trim())      errs.name      = 'El nombre es obligatorio';
     if (!nuevaRef.category.trim())  errs.category  = 'La categoría es obligatoria';
+    // ✅ Fix: el precio ahora es obligatorio (antes era opcional)
+    if (!nuevaRef.price || Number(nuevaRef.price) <= 0) errs.price = 'El precio es obligatorio';
 
     setNuevaRefErrors(errs);
     return Object.keys(errs).length === 0;
@@ -332,7 +334,20 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (colorErr) { newErrors.color = colorErr; missing.push('Color'); }
     const clientErr = validators.required(formData.cliente) || validators.onlyLetters(formData.cliente);
     if (clientErr) { newErrors.cliente = clientErr; missing.push('Cliente'); }
-    if (!formData.fechaSolicitud) { newErrors.fechaSolicitud = 'Selecciona una fecha'; missing.push('Fecha de entrega'); }
+    if (!formData.fechaSolicitud) {
+      newErrors.fechaSolicitud = 'Selecciona una fecha'; missing.push('Fecha de entrega');
+    } else {
+      // ✅ Fix: repetir la validación de "mínimo 1 mes" también al enviar,
+      // no solo en el onChange del selector — evita que una fecha inválida
+      // se filtre si el campo se manipula directamente.
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      const minFecha = new Date(hoy); minFecha.setMonth(minFecha.getMonth() + 1);
+      const fechaElegida = new Date(formData.fechaSolicitud + 'T00:00:00');
+      if (fechaElegida < minFecha) {
+        newErrors.fechaSolicitud = 'La fecha debe ser al menos 1 mes desde hoy';
+        missing.push('Fecha de entrega (mínimo 1 mes)');
+      }
+    }
     extraRefs.forEach((r, i) => {
       const ce = validators.positiveInteger(r.cantidad);
       if (ce) { newExtraErr[i].cantidad = ce; missing.push(`Artículo #${i+2} — Cantidad`); }
@@ -371,6 +386,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const handleConfirm = async () => {
     saveColor(formData.color); saveClient(formData.cliente);
+    // ✅ Fix: el color de los artículos adicionales nunca se guardaba en
+    // localStorage — solo se guardaba el del artículo principal.
+    extraRefs.forEach((r) => { if (r.color) saveColor(r.color); });
     let referenciaFinal = formData.referencia;
     let productoFinal   = formData.producto;
     const shouldCreateReference = type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim();
@@ -634,8 +652,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                       {/* Precio */}
                       <div>
                         <label style={labelStyle}>
-                          Precio unitario (COP)
-                          <span style={{ color: '#9ca3af', fontSize: 10, marginLeft: 6 }}>(opcional)</span>
+                          Precio unitario (COP) <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         <input
                           type="number"
@@ -643,8 +660,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           onChange={e => setNuevaRef(p => ({ ...p, price: e.target.value }))}
                           min="0"
                           placeholder="Ej: 45000"
-                          style={getInputStyle(false)}
+                          style={getInputStyle(nuevaRefErrors.price)}
                         />
+                        {nuevaRefErrors.price && <span style={errMsg}>⚠ {nuevaRefErrors.price}</span>}
                         <p style={{ margin: '3px 0 0', fontSize: 10, color: '#a78bfa' }}>
                           El stock inicial se tomará de la cantidad total de la orden.
                         </p>
