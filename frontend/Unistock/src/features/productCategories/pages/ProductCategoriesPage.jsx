@@ -28,14 +28,13 @@ const ProductCategoriesPage = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProductCategory, setEditingProductCategory] = useState(null);
 
-  // 🔥 ALERTAS (igual que Categories)
-  const [successAlert, setSuccessAlert] = useState({ open: false, key: 0, title: "", message: "" });
-  const [errorAlert, setErrorAlert] = useState({ open: false, key: 0, title: "", message: "" });
-  const [warningAlert, setWarningAlert] = useState({ open: false, key: 0, title: "", message: "" });
+  // 🔥 ALERTAS (SIN KEYS - no son listas dinámicas)
+  const [successAlert, setSuccessAlert] = useState({ open: false, title: "", message: "" });
+  const [errorAlert, setErrorAlert] = useState({ open: false, title: "", message: "" });
+  const [warningAlert, setWarningAlert] = useState({ open: false, title: "", message: "" });
 
   const [confirmAlert, setConfirmAlert] = useState({
     open: false,
-    key: 0,
     title: "",
     message: "",
     confirmText: "Confirmar",
@@ -48,8 +47,7 @@ const ProductCategoriesPage = () => {
     step: "confirm",
     productCategoryId: null,
     productCategoryName: "",
-    productCount: 0,
-    key: 0
+    productCount: 0
   });
 
   const itemsPerPage = 7;
@@ -77,12 +75,11 @@ const ProductCategoriesPage = () => {
 
     if (!setter) return;
 
-    setter({ open: false, key: Date.now() });
+    setter({ open: false });
 
     setTimeout(() => {
       setter({
         open: true,
-        key: Date.now(),
         title,
         message
       });
@@ -90,12 +87,11 @@ const ProductCategoriesPage = () => {
   };
 
   const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
-    setConfirmAlert({ open: false, key: Date.now() });
+    setConfirmAlert({ open: false });
 
     setTimeout(() => {
       setConfirmAlert({
         open: true,
-        key: Date.now(),
         title,
         message,
         confirmText: confirmText || "Confirmar",
@@ -187,8 +183,7 @@ const ProductCategoriesPage = () => {
       step: "confirm",
       productCategoryId: id,
       productCategoryName: pc.name,
-      productCount: pc.productCount,
-      key: Date.now()
+      productCount: pc.productCount
     });
   };
 
@@ -199,8 +194,7 @@ const ProductCategoriesPage = () => {
 
       setDeleteAlert({
         open: false,
-        step: "confirm",
-        key: Date.now()
+        step: "confirm"
       });
 
       handleShowAlert({
@@ -223,8 +217,7 @@ const ProductCategoriesPage = () => {
       setDeleteAlert((prev) => ({
         ...prev,
         open: isInvalidPassword,
-        step: isInvalidPassword ? "password" : "confirm",
-        key: Date.now()
+        step: isInvalidPassword ? "password" : "confirm"
       }));
     }
   };
@@ -365,34 +358,48 @@ const ProductCategoriesPage = () => {
         </div>
       )}
 
-      {/* ── ALERTAS (igual que Categories) ── */}
+      {/* ── ALERTAS (SIN KEYS - No son listas dinámicas) ── */}
+      
+      {/* ✅ Success Alert */}
       <Alert
-        {...successAlert}
+        isOpen={successAlert.open}
+        title={successAlert.title}
+        message={successAlert.message}
         type="success"
         onConfirm={() => setSuccessAlert({ ...successAlert, open: false })}
         onCancel={() => setSuccessAlert({ ...successAlert, open: false })}
       />
 
+      {/* ✅ Error Alert */}
       <Alert
-        {...errorAlert}
+        isOpen={errorAlert.open}
+        title={errorAlert.title}
+        message={errorAlert.message}
         type="error"
         onConfirm={() => setErrorAlert({ ...errorAlert, open: false })}
         onCancel={() => setErrorAlert({ ...errorAlert, open: false })}
       />
 
+      {/* ✅ Warning Alert */}
       <Alert
-        {...warningAlert}
+        isOpen={warningAlert.open}
+        title={warningAlert.title}
+        message={warningAlert.message}
         type="warning"
         onConfirm={() => setWarningAlert({ ...warningAlert, open: false })}
         onCancel={() => setWarningAlert({ ...warningAlert, open: false })}
       />
 
+      {/* ✅ Confirm Alert */}
       <Alert
-        {...confirmAlert}
+        isOpen={confirmAlert.open}
+        title={confirmAlert.title}
+        message={confirmAlert.message}
         type="confirm"
+        confirmText={confirmAlert.confirmText}
+        cancelText={confirmAlert.cancelText}
         onConfirm={() => {
           confirmAlert.onConfirm?.();
-
           setConfirmAlert({
             ...confirmAlert,
             open: false
@@ -406,8 +413,9 @@ const ProductCategoriesPage = () => {
         }
       />
 
+      {/* ✅ Delete Confirm */}
       <Alert
-        open={deleteAlert.open && deleteAlert.step === "confirm"}
+        isOpen={deleteAlert.open && deleteAlert.step === "confirm"}
         type="confirm"
         title="Confirmar eliminación"
         message={`¿Eliminar "${deleteAlert.productCategoryName}"?`}
@@ -426,8 +434,9 @@ const ProductCategoriesPage = () => {
         }
       />
 
+      {/* ✅ Delete Password */}
       <Alert
-        open={deleteAlert.open && deleteAlert.step === "password"}
+        isOpen={deleteAlert.open && deleteAlert.step === "password"}
         type="password"
         title="Confirmar eliminación"
         message="Ingresa la contraseña"
