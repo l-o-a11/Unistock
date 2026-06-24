@@ -14,7 +14,6 @@ import { AuthAPI } from "../../auth/services/AuthAPI";
 import { useAuthContext } from "../../shared/AuthContext";
 
 const SuppliersPage = () => {
-  // ✅ Usuario actual — necesario para validar handleToggle con su propia contraseña
   const { user: currentUser } = useAuthContext();
   const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } =
     useSuppliers();
@@ -45,11 +44,9 @@ const SuppliersPage = () => {
     const term = searchTerm.toLowerCase().trim();
 
     return suppliers.filter((supplier) => {
-      // 🔹 Filtro rápido por estado con tecla
       if (term === "a") return supplier.estado !== false;
       if (term === "i") return supplier.estado === false;
 
-      // 🔹 Estado como texto (activo/inactivo)
       const estadoTexto =
         supplier.estado === true
           ? "activo"
@@ -57,12 +54,10 @@ const SuppliersPage = () => {
             ? "inactivo"
             : "";
 
-      // 🔹 Buscar en todos los campos
       const enCampos = Object.values(supplier).some((value) =>
         String(value).toLowerCase().includes(term)
       );
 
-      // 🔹 Buscar también en estado como palabra
       const enEstado = estadoTexto.includes(term);
 
       return enCampos || enEstado;
@@ -78,7 +73,6 @@ const SuppliersPage = () => {
   const handleDelete = async (id) => {
     const supplier = suppliers.find((s) => s.id === id);
 
-    // ✅ Fix: verificar compras asociadas contra la BD real, no localStorage
     try {
       const res = await get(`/suppliers/${id}/has-purchases`);
       const data = res?.data || res;
@@ -87,13 +81,9 @@ const SuppliersPage = () => {
         return;
       }
     } catch {
-      // Si la verificación falla, se sigue de todas formas — el backend
-      // de eliminación seguirá protegido por sus propias validaciones.
+      // El backend de eliminación protege por sus propias validaciones.
     }
 
-    // ✅ Fix: ya no se acepta la contraseña genérica "1234". Se exige
-    // correo + contraseña REALES de un usuario con rol Gerente, validados
-    // contra el backend de autenticación.
     showAlert(
       "managerAuth",
       "Eliminar proveedor",
@@ -132,8 +122,6 @@ const SuppliersPage = () => {
       `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} proveedor?`,
       `Para ${accion} "${supplier?.nombreEmpresa}" confirma tu contraseña.`,
       async (pwd) => {
-        // ✅ Fix: validar contra la contraseña real del usuario actual,
-        // no contra una contraseña genérica fija.
         const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
         try {
           if (!userIdentifier) throw new Error("Usuario no identificado");
@@ -194,7 +182,6 @@ const SuppliersPage = () => {
     return pages;
   };
 
-  // Pagination button styles
   const paginationBtn = {
     padding: "6px 12px",
     borderRadius: "6px",
@@ -205,10 +192,7 @@ const SuppliersPage = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "24px 32px" }} >
-      {/* ✅ Fix: mismo fondo neutro que el resto de la app (antes #f6f6f8) y
-          sin fontFamily propio — la tipografía ahora se hereda globalmente */}
-
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "24px 32px" }}>
       <style>{`
         .sup-root { padding: 14px; }
         @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }
@@ -229,6 +213,7 @@ const SuppliersPage = () => {
           cursor: pointer; font-size: 14px;
         }
       `}</style>
+
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -238,33 +223,45 @@ const SuppliersPage = () => {
         onCancel={closeAlert}
       />
 
-<div className="sup-header">
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-            <SearchInput
-              value={searchTerm}
-              onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
-              placeholder="Buscar"
-            />
-            <span style={{ fontSize: 11, color: "#9ca3af" }}>
-              Escribe <strong>a</strong> para activos · <strong>i</strong> para inactivos
-            </span>
-          </div>
-        </div>
-
-        {/* ── Barra blanca con botón ── */}
-        <div style={{
-          background: "#fff",
-          borderRadius: 10,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-          padding: "12px 20px",
-          marginBottom: 16,
+      {/* HEADER: título + search */}
+      <div
+        style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           alignItems: "center",
-        }}>
-          <AddSupplierButton onClick={handleAddSupplier} />
+          marginBottom: "20px",
+        }}
+      >
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          <SearchInput
+            value={searchTerm}
+            onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
+            placeholder="Buscar"
+            width="400px"
+            maxWidth="400px"
+          />
+          <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>
+            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+            <strong>inactivo</strong> para ver registros inactivos
+          </span>
         </div>
+      </div>
+
+      {/* BARRA BLANCA CON BOTÓN */}
+      <div style={{
+        background: "#fff",
+        borderRadius: 10,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+        padding: "12px 20px",
+        marginBottom: 16,
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+      }}>
+        <AddSupplierButton onClick={handleAddSupplier} />
+      </div>
+
       {/* TABLA */}
       <SupplierTable
         suppliers={paginatedSupplier}

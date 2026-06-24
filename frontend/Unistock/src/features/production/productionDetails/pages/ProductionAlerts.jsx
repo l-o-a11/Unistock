@@ -33,6 +33,8 @@ const IconPin = () => <svg width="18" height="18" fill="none" stroke={BRAND} str
 const IconWarn = () => <svg width="18" height="18" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>;
 const IconPlus = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 const IconTrash = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6M9 6V4h6v2" /></svg>;
+
+
 /* ─── Fila de asignación (tercero o sede + cantidad) ─────────── */
 const AssignRow = ({ options, value, cantidad, onChangeOption, onChangeCantidad, onRemove, maxLeft, isOnly }) => (
   <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
@@ -443,13 +445,13 @@ const ProductionAlerts = ({
         {type === "password" && (
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>
-            Tu contraseña <span style={{ color: "#ef4444" }}>*</span>
-          </label>
-          <input
-            type="password"
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Ingresa tu contraseña..."
+              Tu contraseña <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <input
+              type="password"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ingresa tu contraseña..."
               autoFocus
               style={{
                 width: "100%", border: "1.5px solid #e5e7eb", borderRadius: 10,
@@ -483,7 +485,7 @@ const ProductionAlerts = ({
                 outline: "none", resize: "none", boxSizing: "border-box",
               }}
               onFocus={(e) => (e.target.style.borderColor = "#ef4444")}
-              onBlur={(e)  => (e.target.style.borderColor = "#e5e7eb")}
+              onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
             />
             {!motivo.trim() && (
               <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>El motivo es obligatorio para anular.</p>

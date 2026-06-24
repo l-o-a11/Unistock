@@ -4,6 +4,7 @@ const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
   const [cantidad, setCantidad] = useState("");
   const [color, setColor]    = useState("");
 
+
   // ✅ Fix: pre-poblar con los valores actuales del detail al abrir
   useEffect(() => {
     if (isOpen && detail) {

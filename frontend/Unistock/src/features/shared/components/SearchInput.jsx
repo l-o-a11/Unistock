@@ -9,8 +9,8 @@
  */
 import React from "react";
 
-const SearchInput = ({ value, onChange, placeholder = "Buscar" }) => (
-  <div style={{ position: "relative", width: "100%", maxWidth: "280px" }}>
+const SearchInput = ({ value, onChange, placeholder = "Buscar", width = "100%", maxWidth = "280px" }) => (
+  <div style={{ position: "relative", width, maxWidth }}>
     {/* Ícono lupa */}
     <span style={{
       position: "absolute", left: "11px", top: "50%",
@@ -42,7 +42,7 @@ const SearchInput = ({ value, onChange, placeholder = "Buscar" }) => (
         transition: "border-color 0.2s",
       }}
       onFocus={(e) => (e.target.style.borderColor = "#FF4FD6")}
-      onBlur={(e)  => (e.target.style.borderColor = "#e5e7eb")}
+      onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
     />
   </div>
 );

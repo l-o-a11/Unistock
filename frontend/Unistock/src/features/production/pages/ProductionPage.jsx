@@ -1094,14 +1094,9 @@ const ProductionsPage = () => {
 
       <div className="prod-root">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Orden de producción</h1>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} width="400px" maxWidth="400px" />
-            <div style={{ width: '260px' }}>
-              <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
-            </div>
-          </div>
+        <div className="prod-header">
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
+          <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
         </div>
 
         {/* Tabs */}

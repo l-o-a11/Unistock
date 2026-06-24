@@ -13,7 +13,7 @@ const getCurrentUserName = () => {
       const u = JSON.parse(raw);
       return u.nombreCompleto || u.nombre || u.username || u.id || 'Admin';
     }
-  } catch {}
+  } catch { }
   return 'Admin';
 };
 
@@ -132,15 +132,15 @@ export const ProductionAPIClient = {
 
   getOrders: async (filters = {}) => {
     const q = new URLSearchParams();
-    if (filters.search)      q.append("search",      filters.search);
-    if (filters.estado)      q.append("estado",      filters.estado);
-    if (filters.id_usuario)  q.append("id_usuario",  filters.id_usuario);
+    if (filters.search) q.append("search", filters.search);
+    if (filters.estado) q.append("estado", filters.estado);
+    if (filters.id_usuario) q.append("id_usuario", filters.id_usuario);
     if (filters.fecha_desde) q.append("fecha_desde", filters.fecha_desde);
     if (filters.fecha_hasta) q.append("fecha_hasta", filters.fecha_hasta);
-    if (filters.page)        q.append("page",        filters.page);
-    if (filters.limit)       q.append("limit",       filters.limit);
-    if (filters.sortBy)      q.append("sortBy",      filters.sortBy);
-    if (filters.order)       q.append("order",       filters.order);
+    if (filters.page) q.append("page", filters.page);
+    if (filters.limit) q.append("limit", filters.limit);
+    if (filters.sortBy) q.append("sortBy", filters.sortBy);
+    if (filters.order) q.append("order", filters.order);
     const endpoint = `/produccion/ordenes${q.toString() ? "?" + q : ""}`;
     const res = await httpRequest(endpoint, { method: "GET" });
     const data = res?.data || res;
@@ -227,10 +227,10 @@ export const ProductionAPIClient = {
     const res = await httpRequest("/produccion/detalle-orden", {
       method: "POST",
       body: {
-        id_orden:    data.id_orden,
+        id_orden: data.id_orden,
         id_producto: String(data.id_producto || "").trim(),
-        cantidad:    Number(data.cantidad),
-        color:       data.color ? String(data.color).trim() : "",
+        cantidad: Number(data.cantidad),
+        color: data.color ? String(data.color).trim() : "",
       },
     });
     return res?.data || res;
