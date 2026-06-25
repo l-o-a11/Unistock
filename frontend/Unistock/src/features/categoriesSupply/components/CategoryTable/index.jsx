@@ -21,18 +21,6 @@ const CategoryTable = ({ categories = [], onEdit, onDelete, supplyCounts = {}, }
     color: '#333',
     borderBottom: '1px solid #f5f5f5',
   };
-
-  // Función para determinar si un texto necesita hover
-  const needsHover = (text) => {
-    return text && text.length > 12;
-  };
-
-  const truncateText = (text, maxLength = 20) => {
-    if (!text) return '';
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-  };
-   
-
    
   if (categories.length === 0) {
     return (
@@ -81,51 +69,16 @@ const CategoryTable = ({ categories = [], onEdit, onDelete, supplyCounts = {}, }
 
                   
                 >
-              
-                  {/* NOMBRE - CON HOVER si tiene más de 12 caracteres */}
-                  <td style={tdStyle}>
-                    {needsHover(category.nombre) ? (
-                      <HoverCard
-                        content={
-                          <div>
-                            <p style={{ fontWeight: '600', marginBottom: '6px', color: '#333' }}>
-                              Nombre completo
-                            </p>
-                            <p style={{ fontSize: '13px', color: '#555' }}>{category.nombre}</p>
-                            <p style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>
-                              ID: {category.id}
-                            </p>
-                          </div>
-                        }
-                      >
-                        <span style={{ 
-                          color: '#333', 
-                          fontSize: '14px', 
-                          fontWeight: '500',
-                          cursor: 'help' 
-                        }}>
-                          {category.nombre}
-                        </span>
-                      </HoverCard>
-                    ) : (
-                      <span style={{ color: '#333', fontSize: '14px', fontWeight: '500' }}>
-                        {category.nombre}
-                      </span>
-                    )}
-                  </td>
-                   {/* cantidad de insumos */}
-                    <td
-                      style={{
-                        padding: "10px 16px",
-                        color: "#555",
-                        fontSize: "13px",
-                        textAlign: "left",
-                      }}
-                    >
+                  {/* NOMBRE */}
+                    <td style={tdStyle}>
+                     {category.nombre}
+                    </td>
+
+                  {/* cantidad de insumos */}
+                    <td style={tdStyle}>
                      {supplyCounts[String(category.id)] ?? 0}
                     </td>
 
-                  
                   {/* ACCIONES */}
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', gap: '10px' }}>
