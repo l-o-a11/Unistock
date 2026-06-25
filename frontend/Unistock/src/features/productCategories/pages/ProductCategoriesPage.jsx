@@ -24,6 +24,7 @@ const ProductCategoriesPage = () => {
   } = useProductCategories();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProductCategory, setEditingProductCategory] = useState(null);
@@ -58,12 +59,20 @@ const ProductCategoriesPage = () => {
 
     return (
       pc.name?.toLowerCase().includes(searchLower) ||
-      pc.description?.toLowerCase().includes(searchLower) ||
+      pc.descripcion?.toLowerCase().includes(searchLower) ||
       pc.productCount?.toString().includes(searchTerm)
     );
   });
 
-  const paginatedProductCategories = filteredProductCategories.slice(0, itemsPerPage);
+  // 📄 PAGINACIÓN
+  const totalPages = Math.max(1, Math.ceil(filteredProductCategories.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProductCategories = filteredProductCategories.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
+
 
   // 🔔 ALERT HANDLERS
   const handleShowAlert = ({ type, title, message }) => {
@@ -120,6 +129,7 @@ const ProductCategoriesPage = () => {
       await createProductCategory(data);
 
       handleCloseForm();
+      setCurrentPage(1);
 
       handleShowAlert({
         type: "success",
@@ -255,6 +265,28 @@ const ProductCategoriesPage = () => {
     pointerEvents: 'auto'
   };
 
+  // 🔘 PAGINADOR STYLES
+  const getPageNumbers = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [1];
+    if (currentPage > 3) pages.push('...');
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+    return pages;
+  };
+
+  const paginationBtn = {
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ddd",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: "14px",
+  };
+
   return (
     <div
       style={{
@@ -319,6 +351,62 @@ const ProductCategoriesPage = () => {
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
       />
+
+      {/* ── PAGINADOR ── */}
+      {filteredProductCategories.length > 0 && (
+        <div style={{
+          marginTop: "20px",
+          display: "flex",
+          justifyContent: "center",
+          gap: "6px",
+          alignItems: "center",
+        }}>
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            style={{
+              ...paginationBtn,
+              color: currentPage === 1 ? '#ccc' : '#333',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+            }}
+          >
+            ‹
+          </button>
+
+          {getPageNumbers().map((p, i) =>
+            p === "..." ? (
+              <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>
+                ...
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                style={{
+                  ...paginationBtn,
+                  backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
+                  color: p === currentPage ? "#fff" : "#333",
+                  border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                }}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            style={{
+              ...paginationBtn,
+              color: currentPage === totalPages ? '#ccc' : '#333',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+            }}
+          >
+            ›
+          </button>
+        </div>
+      )}
 
       {/* ── MODALES ── */}
       {showCreateForm && (

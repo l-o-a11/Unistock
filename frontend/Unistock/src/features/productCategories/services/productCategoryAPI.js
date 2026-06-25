@@ -1,11 +1,9 @@
 /**
  * Cliente API Real para Categorías de Producto
- * Conecta con el backend en http://localhost:3000/api/product-categories
+ * Conecta con el backend en http://localhost:3020/api/product-categories
  *
- * Nota: El backend documenta categorías como:
- *  - GET /product-categories -> [{ id, name }]
- * Para mantener compatibilidad con la UI actual, normalizamos campos faltantes
- * (description, productCount, createdAt, updatedAt) con valores por defecto.
+ * Nota: El backend retorna:
+ *  - GET /product-categories -> { success: true, data: [{ id, nombre, descripcion, ... }] }
  */
 
 import { httpRequest } from "../../shared/utils/httpClient";
@@ -36,43 +34,48 @@ const unwrapResponse = (response) => {
 const toUiCategory = (raw) => {
   if (!raw) return raw;
   const now = new Date().toISOString().split("T")[0];
+  const description =
+    raw.descripcion ??
+    raw.descripción ??
+    raw.description ??
+    raw.descripcion_categoria ??
+    "";
+  const name =
+    raw.nombre ??
+    raw.name ??
+    raw.categoryName ??
+    raw.nombre_categoria ??
+    "";
+
   return {
-    id:           raw.id ?? raw._id ?? raw.id_categoria_producto ?? raw.id_categorias,
-    _id:          raw._id,
-    name:         raw.name        ?? raw.nombre        ?? raw.categoryName ?? raw.nombre_categoria ?? "",
-    description:  raw.description ?? raw.descripcion   ?? raw["descripción"] ?? raw.descripcion_categoria ?? "",
-    productCount: raw.productCount ?? raw.product_count ?? raw.products_count ?? raw.cantidad_productos ?? raw.total_products ?? 0,
-    createdAt:    raw.createdAt   ?? raw.created_at    ?? raw.fecha_creacion    ?? now,
-    updatedAt:    raw.updatedAt   ?? raw.updated_at    ?? raw.fecha_actualizacion ?? now,
+    id:              raw.id ?? raw._id ?? raw.id_categoria_producto ?? raw.id_categorias,
+    _id:             raw._id,
+    name,
+    nombre:          name,
+    descripcion:     description,
+    description,
+    productCount:    raw.cantidad_productos ?? raw.productCount ?? raw.product_count ?? raw.products_count ?? 0,
+    createdAt:       raw.createdAt   ?? raw.created_at    ?? raw.fecha_creacion    ?? now,
+    updatedAt:       raw.updatedAt   ?? raw.updated_at    ?? raw.fecha_actualizacion ?? now,
   };
 };
 
 const buildCategoryPayloads = (data) => {
-  if (!data) return [{}];
-  const name        = data.name        ?? data.nombre     ?? "";
-  const description = data.description ?? data.descripcion ?? "";
-
-  // ✅ Payload correcto primero — el backend espera "nombre" y "descripcion"
-  return [
-    { nombre: name, descripcion: description },
-    { nombre: name, description:  description },
-    { name,         descripcion:  description },
-    { name,         description:  description },
-  ];
+  if (!data) return { nombre: "", descripcion: "" };
+  
+  // El formulario envía { nombre, descripcion } - ENVIAR EXACTO
+  return {
+    nombre: data.nombre || "",
+    descripcion: data.descripcion || ""
+  };
 };
 
-const sendWithPayloadFallback = async (endpoint, method, data) => {
-  const payloads = buildCategoryPayloads(data);
-  let lastError;
-  for (const payload of payloads) {
-    try {
-      return await httpRequest(endpoint, { method, body: payload });
-    } catch (error) {
-      lastError = error;
-      if (![400, 422].includes(error?.status)) throw error;
-    }
-  }
-  throw lastError;
+const sendCategoryRequest = async (endpoint, method, data) => {
+  const payload = buildCategoryPayloads(data);
+  
+  console.log('📤 [API] Enviando payload:', JSON.stringify(payload));
+  
+  return await httpRequest(endpoint, { method, body: payload });
 };
 
 export const productCategoryAPI = {
@@ -89,13 +92,13 @@ export const productCategoryAPI = {
   },
 
   create: async (productCategoryData) => {
-    const response = await sendWithPayloadFallback(PRODUCT_CATEGORIES_ENDPOINT, "POST", productCategoryData);
+    const response = await sendCategoryRequest(PRODUCT_CATEGORIES_ENDPOINT, "POST", productCategoryData);
     const data = unwrapResponse(response);
     return toUiCategory(data);
   },
 
   update: async (id, updatedData) => {
-    const response = await sendWithPayloadFallback(`${PRODUCT_CATEGORIES_ENDPOINT}/${id}`, "PUT", updatedData);
+    const response = await sendCategoryRequest(`${PRODUCT_CATEGORIES_ENDPOINT}/${id}`, "PUT", updatedData);
     const data = unwrapResponse(response);
     return toUiCategory(data);
   },
