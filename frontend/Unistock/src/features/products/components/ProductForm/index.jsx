@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
-import ImageModal from "./ImageModal";
-
+import ImageModal from "../ProductForm/ImageModal";
 const normalizeText = (text) =>
   String(text || "")
     .normalize("NFD")
@@ -44,27 +43,27 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
           minHeight: "42px",
           boxSizing: "border-box",
           padding: "10px 14px", 
-          borderBottom: touched && error ? "2px solid #ff4fd6" : "1.5px solid #d1d5db",
+          borderBottom: touched && error ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb",
           cursor: "pointer", 
           fontSize: "14px", 
-          color: value ? "#333" : "#aaa", 
+          color: value ? "#1f2937" : "#9ca3af", 
           userSelect: "none", 
-          backgroundColor: touched && error ? "#fff0f7" : (open ? "#fdf0f7" : "transparent"),
-          borderRadius: open ? "6px 6px 0 0" : "6px",
+          backgroundColor: touched && error ? "#fff0fb" : (open ? "#fff0fb" : "transparent"),
+          borderRadius: open ? "10px 10px 0 0" : "10px",
           transition: "background-color 0.15s",
         }}
       >
         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value || "Seleccionar categoria"}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </div>
       {open && (
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
-          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 8px 20px rgba(0,0,0,0.12)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
             <div 
-              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "500", cursor: "pointer" }} 
+              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "600", cursor: "pointer" }} 
               onClick={() => handleSelect("")}
             >
               Seleccionar categoria
@@ -77,10 +76,10 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
                   style={{ 
                     padding: "10px 14px", 
                     fontSize: "14px", 
-                    color: "#333", 
+                    color: "#1f2937", 
                     cursor: "pointer", 
-                    backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf0f7" : "#fff", 
-                    borderTop: "1px solid #f5f5f5", 
+                    backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf4ff" : "#fff", 
+                    borderTop: "1px solid #f3f4f6", 
                     transition: "background-color 0.1s" 
                   }}
                 >
@@ -88,7 +87,7 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
                 </div>
               ))
             ) : (
-              <div style={{ padding: "10px 14px", fontSize: "13px", color: "#999", textAlign: "center" }}>
+              <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
                 Sin categorías disponibles
               </div>
             )}
@@ -102,9 +101,9 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
                 fontSize: "14px",
                 color: "#ff4fd6",
                 cursor: "pointer",
-                borderTop: "1px solid #f0f0f0",
+                borderTop: "1px solid #f3f4f6",
                 backgroundColor: "#fff",
-                fontWeight: "600"
+                fontWeight: "700"
               }}
             >
               + Crear nueva categoria
@@ -113,8 +112,8 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
         </>
       )}
       {touched && error && (
-        <span style={{ color: "#ff4fd6", fontSize: "11px", marginLeft: "8px" }}>
-          {error}
+        <span style={{ color: "#ff4fd6", fontSize: "11px", marginLeft: "8px", fontWeight: "700" }}>
+          ⚠ {error}
         </span>
       )}
     </div>
@@ -514,12 +513,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
           image: allImages[0]?.src || prev.image
         };
       });
-      
-      onShowAlert({
-        type: "success",
-        title: "Imágenes subidas",
-        message: `${data.images.length} imagen(es) subida(s) correctamente a Cloudinary`
-      });
+
     } catch (error) {
       console.error('❌ Error:', error);
       onShowAlert({
@@ -624,23 +618,27 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     return () => window.removeEventListener("keydown", handleEsc);
   }, [handleCancelClick]);
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // ESTILOS (alineados con ProductionForm)
+  // ─────────────────────────────────────────────────────────────────────────
   const getInputStyle = (field) => {
     const baseStyle = {
       width: "100%",
-      border: "none",
-      borderBottom: "1.5px solid #d1d5db",
+      border: "1.5px solid #e5e7eb",
+      borderRadius: "10px",
       outline: "none",
       fontSize: "13px",
-      color: "#333",
-      background: "transparent",
-      padding: "4px 0",
-      transition: "all 0.2s"
+      color: "#1f2937",
+      background: "#fff",
+      padding: "8px 12px",
+      boxSizing: "border-box",
+      transition: "border-color 0.15s, background-color 0.15s",
     };
 
     if ((touched[field] || formData[field]) && errors[field]) {
       return {
         ...baseStyle,
-        borderBottom: "2px solid #ff4fd6",
+        borderColor: "#ff4fd6",
       };
     }
     return baseStyle;
@@ -651,23 +649,23 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     fontSize: "11px",
     marginTop: "4px",
     display: "block",
-    fontWeight: "bold",
+    fontWeight: "700",
   };
 
   const cellStyle = { 
     border: "1px solid #e5e7eb", 
     padding: "8px 12px", 
     fontSize: "13px", 
-    color: "#333",
+    color: "#1f2937",
     verticalAlign: "top"
   };
   
   const headerCellStyle = { 
     ...cellStyle, 
-    backgroundColor: "#f9f9f9", 
-    fontWeight: "600", 
+    backgroundColor: "#fafafa", 
+    fontWeight: "700", 
     fontSize: "12px", 
-    color: "#444", 
+    color: "#1f2937", 
     whiteSpace: "nowrap",
     width: "100px"
   };
@@ -677,11 +675,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const btnPrimary = {
     padding: "11px 32px",
-    borderRadius: "8px",
+    borderRadius: "10px",
     border: "none",
     background: "#ff4fd6",
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "700",
     cursor: "pointer",
     transition: "0.2s",
     opacity: uploading ? 0.6 : 1,
@@ -689,10 +687,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const btnSecondary = {
     padding: "10px 32px",
-    borderRadius: "8px",
-    border: "1px solid #d1d5db",
+    borderRadius: "10px",
+    border: "1.5px solid #e5e7eb",
     background: "#f3f4f6",
-    color: "#555",
+    color: "#374151",
+    fontWeight: "600",
     cursor: "pointer",
   };
 
@@ -702,9 +701,60 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   return (
     <div style={{ padding: "36px 40px" }}>
-      <h2 style={{ margin: "0 0 28px 0", fontSize: "20px", fontWeight: "600", color: "#1a1a1a", textAlign: "center" }}>
-        {product ? "Editar Producto" : "Crear Nuevo Producto"}
-      </h2>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 22,
+          paddingBottom: 16,
+          borderBottom: "1px solid #f3f4f6",
+        }}
+      >
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            background: "#ff4fd6",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        </div>
+
+        <div>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 17,
+              fontWeight: 800,
+              color: "#1f2937",
+            }}
+          >
+            {product ? "Editar Producto" : "Crear Nuevo Producto"}
+          </h2>
+
+          <p
+            style={{
+              margin: 0,
+              fontSize: 11,
+              color: "#9ca3af",
+            }}
+          >
+            {product
+              ? "Actualiza los datos del producto"
+              : "Completa todos los campos obligatorios"}
+          </p>
+        </div>
+      </div>
 
       {/* Indicador de pasos */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0", marginBottom: "24px" }}>
@@ -716,18 +766,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "13px", fontWeight: "700"
           }}>1</div>
-          <span style={{ fontSize: "13px", fontWeight: currentStep === 1 ? "600" : "400", color: currentStep === 1 ? "#ff4fd6" : "#999" }}>Datos del producto</span>
+          <span style={{ fontSize: "13px", fontWeight: currentStep === 1 ? "600" : "400", color: currentStep === 1 ? "#ff4fd6" : "#9ca3af" }}>Datos del producto</span>
         </div>
         <div style={{ width: "48px", height: "2px", background: currentStep === 2 ? "#ff4fd6" : "#e5e7eb", margin: "0 8px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div style={{
             width: "28px", height: "28px", borderRadius: "50%",
             background: currentStep === 2 ? "#ff4fd6" : "#f3f4f6",
-            color: currentStep === 2 ? "#fff" : "#aaa",
+            color: currentStep === 2 ? "#fff" : "#9ca3af",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "13px", fontWeight: "700"
           }}>2</div>
-          <span style={{ fontSize: "13px", fontWeight: currentStep === 2 ? "600" : "400", color: currentStep === 2 ? "#ff4fd6" : "#aaa" }}>Ficha Técnica</span>
+          <span style={{ fontSize: "13px", fontWeight: currentStep === 2 ? "600" : "400", color: currentStep === 2 ? "#ff4fd6" : "#9ca3af" }}>Ficha Técnica</span>
         </div>
       </div>
 
@@ -753,7 +803,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                         {requiredStar}
                       </div>
                       {(touched.reference || formData.reference) && errors.reference && (
-                        <span style={errorStyle}>{errors.reference}</span>
+                        <span style={errorStyle}>⚠ {errors.reference}</span>
                       )}
                     </td>
                   </tr>
@@ -773,7 +823,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                         {requiredStar}
                       </div>
                       {(touched.name || formData.name) && errors.name && (
-                        <span style={errorStyle}>{errors.name}</span>
+                        <span style={errorStyle}>⚠ {errors.name}</span>
                       )}
                     </td>
                   </tr>
@@ -821,7 +871,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                         {requiredStar}
                       </div>
                       {(touched.category || formData.category) && errors.category && (
-                        <span style={errorStyle}>{errors.category}</span>
+                        <span style={errorStyle}>⚠ {errors.category}</span>
                       )}
                     </td>
                   </tr>
@@ -843,7 +893,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                         {requiredStar}
                       </div>
                       {(touched.price || formData.price) && errors.price && (
-                        <span style={errorStyle}>{errors.price}</span>
+                        <span style={errorStyle}>⚠ {errors.price}</span>
                       )}
                     </td>
                     <td style={headerCellStyle}>Stock:</td>
@@ -862,7 +912,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                         {requiredStar}
                       </div>
                       {(touched.stock || formData.stock) && errors.stock && (
-                        <span style={errorStyle}>{errors.stock}</span>
+                        <span style={errorStyle}>⚠ {errors.stock}</span>
                       )}
                     </td>
                   </tr>
@@ -874,7 +924,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             <div style={{ flex: 1 }}>
               <div style={{ 
                 border: "1px solid #e5e7eb", 
-                borderRadius: "8px", 
+                borderRadius: "10px", 
                 padding: "16px", 
                 backgroundColor: "#fafafa", 
                 minHeight: "250px", 
@@ -972,29 +1022,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                           )}
 
                           <div style={{ marginTop: "12px", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedImageIdx(0);
-                                setShowImageModal(true);
-                              }}
-                              style={{ padding: "5px 12px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "11px", color: "#555", cursor: "pointer", transition: "all 0.2s" }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = "#e5e7eb";
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = "#f3f4f6";
-                              }}
-                            >
-                              Ver imagen
-                            </button>
-
+                            
                             <button
                               type="button"
                               onClick={handleDeleteAllImages}
-                              style={{ padding: "5px 12px", backgroundColor: "transparent", border: "1px solid #ff4fd6", borderRadius: "6px", fontSize: "11px", color: "#ff4fd6", cursor: "pointer", transition: "all 0.2s" }}
+                              style={{ padding: "5px 12px", backgroundColor: "transparent", border: "1px solid #ff4fd6", borderRadius: "8px", fontSize: "11px", color: "#ff4fd6", cursor: "pointer", transition: "all 0.2s" }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = "#fff0f7";
+                                e.currentTarget.style.backgroundColor = "#fff0fb";
                               }}
                               onMouseLeave={e => {
                                 e.currentTarget.style.backgroundColor = "transparent";
@@ -1020,7 +1054,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                               height="48"
                               viewBox="0 0 24 24"
                               fill="none"
-                              stroke="#aaa"
+                              stroke="#9ca3af"
                               strokeWidth="1.5"
                             >
                               <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
@@ -1030,10 +1064,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                               <line x1="2" y1="16" x2="22" y2="16" />
                             </svg>
                           </div>
-                          <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
-                            <span style={{ color: "#E91E8C", fontWeight: "500" }}>Sube una imagen</span><br />o arrastra y suelta
+                          <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#9ca3af", textAlign: "center" }}>
+                            <span style={{ color: "#ff4fd6", fontWeight: "700" }}>Sube una imagen</span><br />o arrastra y suelta
                           </p>
-                          <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
+                          <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#9ca3af" }}>PNG, JPG, GIF hasta 10MB</p>
                           <input 
                             type="file" 
                             accept="image/*" 
@@ -1049,10 +1083,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                               marginTop: "10px", 
                               padding: "6px 16px", 
                               backgroundColor: uploading ? "#e5e7eb" : "#f3f4f6", 
-                              border: "1px solid #d1d5db", 
-                              borderRadius: "4px", 
+                              border: "1.5px solid #e5e7eb", 
+                              borderRadius: "8px", 
                               fontSize: "12px", 
-                              color: uploading ? "#999" : "#555", 
+                              color: uploading ? "#9ca3af" : "#374151", 
                               cursor: uploading ? "not-allowed" : "pointer",
                               pointerEvents: uploading ? "none" : "auto"
                             }}
@@ -1068,8 +1102,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             </div>
           </div>
 
-          <div style={{ marginTop: "28px", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "14px" }}>
-            <p style={{ margin: 0, fontSize: "12px", color: "#888", fontStyle: "italic", textAlign: "right" }}>
+          <div
+            style={{
+              marginTop: "28px",
+              paddingTop: "14px",
+              borderTop: "1px solid #f3f4f6",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: "14px"
+            }}
+          >
+            <p style={{ margin: 0, fontSize: "12px", color: "#9ca3af", fontStyle: "italic", textAlign: "right" }}>
               {product ? "*Para editar un producto, debes editar la ficha técnica*" : "*Para crear un producto, debes crear la ficha técnica*"}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
@@ -1098,13 +1142,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         <>
           {product && product?.technicalSheetVersions > 1 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '24px', marginBottom: '20px' }}>
-              <div style={{ fontSize: '14px', color: '#666' }}>Fecha versión {new Date().toLocaleDateString('es-CO')}</div>
+              <div style={{ fontSize: '14px', color: '#9ca3af' }}>Fecha versión {new Date().toLocaleDateString('es-CO')}</div>
               <div style={{ position: 'relative' }}>
-                <div onClick={() => setShowVersions(!showVersions)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '6px 12px', borderRadius: '20px', backgroundColor: '#fdf0f7', border: '1px solid #ff4fd6' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '500', color: '#ff4fd6' }}>
+                <div onClick={() => setShowVersions(!showVersions)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '6px 12px', borderRadius: '20px', backgroundColor: '#fff0fb', border: '1px solid #ff4fd6' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#ff4fd6' }}>
                     {viewMode ? 'Viendo versión' : 'Editando versión'} {selectedVersion || product?.technicalSheetVersions || 1}
                   </span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E91E8C" strokeWidth="2" style={{ transform: showVersions ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2" style={{ transform: showVersions ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </div>
@@ -1112,7 +1156,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                 {showVersions && (
                   <>
                     <div style={{ position: 'fixed', inset: 0, zIndex: 5 }} onClick={() => setShowVersions(false)} />
-                    <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '4px', backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '200px' }}>
+                    <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '4px', backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '200px' }}>
                       {[...Array(product?.technicalSheetVersions || 1)].map((_, i) => {
                         const versionNum = i + 1;
                         const isCurrent = versionNum === (product?.technicalSheetVersions || 1);
@@ -1124,9 +1168,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                             style={{ 
                               padding: '12px 16px', 
                               cursor: 'pointer', 
-                              backgroundColor: isSelected ? '#fdf0f7' : 'transparent', 
-                              color: isSelected ? '#ff4fd6' : '#333', 
-                              borderBottom: '1px solid #f0f0f0', 
+                              backgroundColor: isSelected ? '#fdf4ff' : 'transparent', 
+                              color: isSelected ? '#ff4fd6' : '#1f2937', 
+                              borderBottom: '1px solid #f3f4f6', 
                               fontSize: '14px', 
                               display: 'flex', 
                               justifyContent: 'space-between', 
@@ -1134,7 +1178,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                             }}
                           >
                             <span>Versión {versionNum} {isCurrent && '(Actual)'}</span>
-                            {!isCurrent && <span style={{ fontSize: '11px', color: '#999' }}>Solo vista</span>}
+                            {!isCurrent && <span style={{ fontSize: '11px', color: '#9ca3af' }}>Solo vista</span>}
                           </div>
                         );
                       })}
@@ -1146,12 +1190,12 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
           )}
 
           {product && viewMode && (
-            <div style={{ backgroundColor: '#fdf0f7', border: '1px solid #ff4fd6', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', color: '#333' }}>
+            <div style={{ backgroundColor: '#fff0fb', border: '1px solid #ff4fd6', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#1f2937' }}>
                 Estás viendo una versión anterior. No se pueden realizar cambios.
                 <button 
                   onClick={() => handleVersionSelect(product?.technicalSheetVersions || 1)} 
-                  style={{ background: 'none', border: 'none', color: '#ff4fd6', fontWeight: '600', cursor: 'pointer', marginLeft: '8px', textDecoration: 'underline' }}
+                  style={{ background: 'none', border: 'none', color: '#ff4fd6', fontWeight: '700', cursor: 'pointer', marginLeft: '8px', textDecoration: 'underline' }}
                 >
                   Volver a la versión actual
                 </button>
@@ -1171,7 +1215,16 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             productImages={formData.allImages}
           />
 
-          <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+          <div
+            style={{
+              marginTop: "24px",
+              paddingTop: "16px",
+              borderTop: "1px solid #f3f4f6",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "12px",
+            }}
+          >
             <button type="button" style={btnSecondary} onClick={() => setCurrentStep(1)}>
               ← Volver
             </button>
@@ -1224,8 +1277,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             width: "90%",
             maxWidth: "600px",
             backgroundColor: "#fff",
-            borderRadius: "12px",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+            borderRadius: "16px",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
             zIndex: 1201
           }}>
             <ProductCategoryForm

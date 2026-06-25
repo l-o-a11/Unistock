@@ -9,10 +9,12 @@ import AddSupplierButton from "../components/AddSupplierButton";
 import SupplierDetail from "../components/SupplierDetail";
 import Alert from "../../shared/components/Alert";
 import SearchInput from "../../shared/components/SearchInput";
-
-const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
+import { get } from "../../shared/utils/httpClient";
+import { AuthAPI } from "../../auth/services/AuthAPI";
+import { useAuthContext } from "../../shared/AuthContext";
 
 const SuppliersPage = () => {
+  const { user: currentUser } = useAuthContext();
   const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } =
     useSuppliers();
   const { searchTerm, handleSearch } = useSupplierSearch();
@@ -40,14 +42,11 @@ const SuppliersPage = () => {
     if (!suppliers) return [];
 
     const term = searchTerm.toLowerCase().trim();
-    if (!term) return suppliers;
 
     return suppliers.filter((supplier) => {
-      // 🔹 Filtro rápido por estado con tecla
-      if (term === "activo") return supplier.estado !== false;
-      if (term === "inactivo") return supplier.estado === false;
+      if (term === "a") return supplier.estado !== false;
+      if (term === "i") return supplier.estado === false;
 
-      // 🔹 Estado como texto (activo/inactivo)
       const estadoTexto =
         supplier.estado === true
           ? "activo"
@@ -55,19 +54,10 @@ const SuppliersPage = () => {
             ? "inactivo"
             : "";
 
-      // 🔹 Solo buscar en campos visibles/relevantes del proveedor
-      const camposBuscables = [
-        supplier.nit,
-        supplier.nombreEmpresa,
-        supplier.nombreContacto,
-        supplier.direccion,
-        supplier.correoEmpresa ?? supplier.email,
-        supplier.correoContacto,
-        supplier.telefono,
-        supplier.sitioWeb ?? supplier.sitioweb,
-      ];
+      const enCampos = Object.values(supplier).some((value) =>
+        String(value).toLowerCase().includes(term)
+      );
 
-      const enCampos = camposBuscables.some((v) => v?.toString().toLowerCase().includes(term));
       const enEstado = estadoTexto.includes(term);
 
       return enCampos || enEstado;
@@ -80,26 +70,38 @@ const SuppliersPage = () => {
 
   const handleView = (supplier) => openDetail(supplier);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const supplier = suppliers.find((s) => s.id === id);
 
-    // ── Bloquear si tiene compras asociadas ────────────────────────────────
-    const shoppingsRaw = (() => {
-      try { return JSON.parse(localStorage.getItem("app_shoppings") || "[]"); } catch { return []; }
-    })();
-    const tieneCompras = shoppingsRaw.some((c) => c.proveedorId === id || c.proveedorId === String(id));
-    if (tieneCompras) {
-      showAlert("error", "No se puede eliminar", `"${supplier?.nombreEmpresa}" tiene compras asociadas y no puede ser eliminado.`);
-      return;
+    try {
+      const res = await get(`/suppliers/${id}/has-purchases`);
+      const data = res?.data || res;
+      if (data?.hasPurchases) {
+        showAlert("error", "No se puede eliminar", `"${supplier?.nombreEmpresa}" tiene compras asociadas y no puede ser eliminado.`);
+        return;
+      }
+    } catch {
+      // El backend de eliminación protege por sus propias validaciones.
     }
 
     showAlert(
-      "password",
+      "managerAuth",
       "Eliminar proveedor",
-      `Para eliminar "${supplier?.nombreEmpresa}" ingresa la contraseña de administrador.`,
-      async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
-          showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
+      `Esta acción requiere autorización de un Gerente. Ingresa sus credenciales para eliminar "${supplier?.nombreEmpresa}".`,
+      async ({ email, password }) => {
+        if (!email || !password) {
+          showAlert("error", "Datos incompletos", "Ingresa el correo y la contraseña del Gerente.");
+          return;
+        }
+        try {
+          const auth = await AuthAPI.login({ username: email, password });
+          const rolNombre = (auth?.rolNombre || auth?.user?.rolNombre || "").toLowerCase();
+          if (rolNombre !== "gerente") {
+            showAlert("error", "Acceso denegado", "El usuario ingresado no tiene rol de Gerente.");
+            return;
+          }
+        } catch {
+          showAlert("error", "Credenciales incorrectas", "El correo o la contraseña del Gerente no son válidos.");
           return;
         }
         try {
@@ -118,9 +120,13 @@ const SuppliersPage = () => {
     showAlert(
       "password",
       `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} proveedor?`,
-      `Para ${accion} "${supplier?.nombreEmpresa}" confirma tu contraseña de administrador.`,
-      (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
+      `Para ${accion} "${supplier?.nombreEmpresa}" confirma tu contraseña.`,
+      async (pwd) => {
+        const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
+        try {
+          if (!userIdentifier) throw new Error("Usuario no identificado");
+          await AuthAPI.login({ username: userIdentifier, password: pwd });
+        } catch {
           showAlert("error", "Contraseña incorrecta", "Verifica tu contraseña e intenta nuevamente.");
           return;
         }
@@ -176,7 +182,6 @@ const SuppliersPage = () => {
     return pages;
   };
 
-  // Pagination button styles
   const paginationBtn = {
     padding: "6px 12px",
     borderRadius: "6px",
@@ -187,10 +192,7 @@ const SuppliersPage = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "24px 32px" }} >
-      {/* ✅ Fix: mismo fondo neutro que el resto de la app (antes #f6f6f8) y
-          sin fontFamily propio — la tipografía ahora se hereda globalmente */}
-
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "24px 32px" }}>
       <style>{`
         .sup-root { padding: 14px; }
         @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }
@@ -211,6 +213,7 @@ const SuppliersPage = () => {
           cursor: pointer; font-size: 14px;
         }
       `}</style>
+
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -220,6 +223,7 @@ const SuppliersPage = () => {
         onCancel={closeAlert}
       />
 
+      {/* HEADER: título + search */}
       <div
         style={{
           display: "flex",
@@ -234,15 +238,17 @@ const SuppliersPage = () => {
             value={searchTerm}
             onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
             placeholder="Buscar"
+            width="400px"
+            maxWidth="400px"
           />
-          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+          <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos
           </span>
         </div>
       </div>
 
-      {/* ── Barra blanca con botón ── */}
+      {/* BARRA BLANCA CON BOTÓN */}
       <div style={{
         background: "#fff",
         borderRadius: 10,
@@ -255,6 +261,7 @@ const SuppliersPage = () => {
       }}>
         <AddSupplierButton onClick={handleAddSupplier} />
       </div>
+
       {/* TABLA */}
       <SupplierTable
         suppliers={paginatedSupplier}

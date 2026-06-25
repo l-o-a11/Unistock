@@ -217,7 +217,7 @@ const STATUS_OPTIONS = [
   'Corte',
   'Compras',
   'Producción',
-  'Empaque',
+  'Recepción', // ✅ Fix: antes "Empaque"
   'Enviado',
   'Anulada',
 ];

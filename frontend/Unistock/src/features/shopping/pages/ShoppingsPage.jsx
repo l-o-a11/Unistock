@@ -69,7 +69,7 @@ const ShoppingsPage = () => {
     return coincideBusqueda && coincideEstado;
   });
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 7;
   const totalPages = Math.max(1, Math.ceil(filteredShoppings.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedShoppings = filteredShoppings.slice(startIndex, startIndex + itemsPerPage);
@@ -327,12 +327,8 @@ const ShoppingsPage = () => {
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", }} >
         <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a", }} >Compras</h1>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", }}>
-          <div style={{ width: "260px" }}>
-            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" />
-          </div>
-
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" width="400px" maxWidth="400px" />
           <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap", }}>
             Escribe <strong>activo</strong> para ver compras activas ·{" "}
             <strong>anulado</strong> para ver compras anuladas

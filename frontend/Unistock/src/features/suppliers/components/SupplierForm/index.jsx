@@ -23,6 +23,7 @@ import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
 import { validators } from "../../../shared/utils/validators";
 import { blockInput } from "../../../shared/utils/blockInput";
+import { get } from "../../../shared/utils/httpClient";
 
 /**
  * @param {object}      props
@@ -34,13 +35,22 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
 
   const modalRef = useRef(null);
 
-  // ── Verificar si el NIT está bloqueado (el proveedor ya tiene compras) ──
-  const nitBloqueado = Boolean(supplier) && (() => {
-    try {
-      const compras = JSON.parse(localStorage.getItem("app_shoppings") || "[]");
-      return compras.some((c) => c.proveedorId === supplier.id || c.proveedorId === String(supplier.id));
-    } catch { return false; }
-  })();
+  // ✅ Fix: verificar si el NIT está bloqueado consultando las compras
+  // REALES en la base de datos (antes dependía de localStorage, que no
+  // reflejaba necesariamente el estado real ni era confiable).
+  const [nitBloqueado, setNitBloqueado] = useState(false);
+  useEffect(() => {
+    if (!supplier?.id) { setNitBloqueado(false); return; }
+    let cancelled = false;
+    get(`/suppliers/${supplier.id}/has-purchases`)
+      .then((res) => {
+        if (cancelled) return;
+        const data = res?.data || res;
+        setNitBloqueado(Boolean(data?.hasPurchases));
+      })
+      .catch(() => { if (!cancelled) setNitBloqueado(false); });
+    return () => { cancelled = true; };
+  }, [supplier?.id]);
 
   // ── Estado del formulario ─────────────────────────────────────────────────
   const [formData, setFormData] = useState({
@@ -74,7 +84,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         correoEmpresa:  supplier.correoEmpresa  || supplier.email || "",
         sitioWeb:       supplier.sitioWeb       || supplier.sitioweb || "",
         nombreContacto: supplier.nombreContacto || "",
-        telefono:       supplier.telefono       || "",
+        telefono:       supplier.telefono != null ? String(supplier.telefono) : "",
         correoContacto: supplier.correoContacto || "",
       });
     }
@@ -162,7 +172,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         break;
       case "telefono":
         error = validators.required(value) || validators.numbers(value);
-        if (!error && value.length !== 10) error = "Debe tener exactamente 10 dígitos";
+        // ✅ Fix: el backend devuelve telefono como Number al editar.
+        // String(value).length funciona siempre; value.length falla si es Number.
+        if (!error && String(value).trim().length !== 10) error = "Debe tener exactamente 10 dígitos";
         if (!error && isDuplicate("telefono", value))
           error = "El proveedor ya se encuentra registrado";
         break;

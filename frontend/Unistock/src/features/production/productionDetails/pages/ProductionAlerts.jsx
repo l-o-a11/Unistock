@@ -27,12 +27,13 @@ const loadLocalSedes = () => {
 };
 
 /* ─── Íconos inline ──────────────────────────────────────────── */
-const IconArrow   = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>;
-const IconPerson  = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/></svg>;
-const IconPin     = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>;
-const IconWarn    = () => <svg width="18" height="18" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>;
-const IconPlus    = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IconTrash   = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>;
+const IconArrow = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>;
+const IconPerson = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" /></svg>;
+const IconPin = () => <svg width="18" height="18" fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+const IconWarn = () => <svg width="18" height="18" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>;
+const IconPlus = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IconTrash = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6M9 6V4h6v2" /></svg>;
+
 
 /* ─── Fila de asignación (tercero o sede + cantidad) ─────────── */
 const AssignRow = ({ options, value, cantidad, onChangeOption, onChangeCantidad, onRemove, maxLeft, isOnly }) => (
@@ -46,7 +47,7 @@ const AssignRow = ({ options, value, cantidad, onChangeOption, onChangeCantidad,
         cursor: "pointer",
       }}
       onFocus={(e) => (e.target.style.borderColor = BRAND)}
-      onBlur={(e)  => (e.target.style.borderColor = "#e5e7eb")}
+      onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
     >
       <option value="">Seleccionar...</option>
       {options.map((o) => {
@@ -69,7 +70,7 @@ const AssignRow = ({ options, value, cantidad, onChangeOption, onChangeCantidad,
         textAlign: "center",
       }}
       onFocus={(e) => (e.target.style.borderColor = BRAND)}
-      onBlur={(e)  => (e.target.style.borderColor = "#e5e7eb")}
+      onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
     />
 
     {!isOnly && (
@@ -179,7 +180,7 @@ const ProductionAlerts = ({
   if (!isOpen) return null;
 
   const isAssign = type === "third" || type === "assignSede";
-  const options  = type === "third" ? tercerosOptions : sedesOptions;
+  const options = type === "third" ? tercerosOptions : sedesOptions;
   const optionByValue = new Map(
     options.map((option) => {
       const value = typeof option === "string" ? option : option.value;
@@ -189,7 +190,7 @@ const ProductionAlerts = ({
 
   /* ── Total ya asignado en las filas actuales ── */
   const totalAsignado = assignments.reduce((s, a) => s + (Number(a.cantidad) || 0), 0);
-  const restante      = totalUnidades - totalAsignado;
+  const restante = totalUnidades - totalAsignado;
 
   /* ── Actualizar una fila ── */
   const updateRow = (i, field, val) => {
@@ -219,38 +220,38 @@ const ProductionAlerts = ({
       return next;
     });
   };
-  const addRow    = () => setAssignments((prev) => [...prev, { option: "", cantidad: "" }]);
+  const addRow = () => setAssignments((prev) => [...prev, { option: "", cantidad: "" }]);
   const removeRow = (i) => setAssignments((prev) => prev.filter((_, idx) => idx !== i));
 
   /* ── Configuración de título y mensaje ── */
   const config = {
     advance: {
-      title:   customTitle   || "Cambiar estado",
+      title: customTitle || "Cambiar estado",
       message: customMessage || (targetStep ? `¿Confirmas el avance al estado "${targetStep}"?` : "¿Deseas continuar?"),
       icon: <IconArrow />, iconBg: "#fdf0fa",
     },
     third: {
-      title:   customTitle   || "Asignar tercero(s)",
+      title: customTitle || "Asignar tercero(s)",
       message: customMessage || `Asigna uno o más terceros y la cantidad de unidades para el estado "${targetStep}".`,
       icon: <IconPerson />, iconBg: "#fdf0fa",
     },
     assignSede: {
-      title:   customTitle   || "Asignar sede(s)",
+      title: customTitle || "Asignar sede(s)",
       message: customMessage || `Asigna una o más sedes y la cantidad de unidades para el estado "${targetStep}".`,
       icon: <IconPin />, iconBg: "#fdf0fa",
     },
     confirm: {
-      title:   customTitle   || "Confirmar acción",
+      title: customTitle || "Confirmar acción",
       message: customMessage || "¿Deseas continuar con esta acción?",
       icon: <IconWarn />, iconBg: "#fff5f5",
     },
     anular: {
-      title:   customTitle   || "Anular orden",
+      title: customTitle || "Anular orden",
       message: customMessage || "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
       icon: <IconWarn />, iconBg: "#fff5f5",
     },
     password: {
-      title:   customTitle   || "Autorización requerida",
+      title: customTitle || "Autorización requerida",
       message: customMessage || "Ingresa tu contraseña para confirmar esta acción.",
       icon: <IconWarn />, iconBg: "#fdf0fa",
     },
@@ -267,10 +268,10 @@ const ProductionAlerts = ({
     totalUnidades > 0;
 
   const canConfirm =
-    (isAssign                       && assignmentsValid)      ||
-    (type === "anular"              && motivo.trim() !== "")  ||
-    (type === "password"            && motivo.trim() !== "")  ||
-    type === "advance"              ||
+    (isAssign && assignmentsValid) ||
+    (type === "anular" && motivo.trim() !== "") ||
+    (type === "password" && motivo.trim() !== "") ||
+    type === "advance" ||
     type === "confirm";
 
   /* ── Colores de botón ── */
@@ -314,7 +315,8 @@ const ProductionAlerts = ({
         fontFamily: "'Nunito', sans-serif",
       }}>
         <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
       /* Ocultar ojo nativo del navegador en inputs de contraseña */
       input[type="password"]::-ms-reveal,
       input[type="password"]::-ms-clear,
@@ -443,13 +445,13 @@ const ProductionAlerts = ({
         {type === "password" && (
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>
-            Tu contraseña <span style={{ color: "#ef4444" }}>*</span>
-          </label>
-          <input
-            type="password"
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Ingresa tu contraseña..."
+              Tu contraseña <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <input
+              type="password"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ingresa tu contraseña..."
               autoFocus
               style={{
                 width: "100%", border: "1.5px solid #e5e7eb", borderRadius: 10,
@@ -483,7 +485,7 @@ const ProductionAlerts = ({
                 outline: "none", resize: "none", boxSizing: "border-box",
               }}
               onFocus={(e) => (e.target.style.borderColor = "#ef4444")}
-              onBlur={(e)  => (e.target.style.borderColor = "#e5e7eb")}
+              onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
             />
             {!motivo.trim() && (
               <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>El motivo es obligatorio para anular.</p>

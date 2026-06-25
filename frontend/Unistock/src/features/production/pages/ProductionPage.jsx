@@ -1094,13 +1094,9 @@ const ProductionsPage = () => {
 
       <div className="prod-root">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Orden de producción</h1>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <div style={{ width: '260px' }}>
-              <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
-            </div>
-          </div>
+        <div className="prod-header">
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
+          <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
         </div>
 
         {/* Tabs */}
@@ -1123,16 +1119,9 @@ const ProductionsPage = () => {
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
               {uniqueStatuses.map((s, i) => (
-                <option key={i} value={s}>{s === 'Todos' ? 'Estado: Todos' : s}</option>
+                <option key={i} value={s}>{s === 'Todos' ? 'Estado: Activas' : s}</option>
               ))}
             </select>
-
-            {/* Hint órdenes ocultas */}
-            {filterStatus === 'Todos' && (
-              <span className="prod-filter-hint">
-                Anuladas y entregadas ocultas
-              </span>
-            )}
 
             {/* Select Cliente */}
             <select
@@ -1216,6 +1205,16 @@ const ProductionsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* ✅ Fix: hint debajo del acordeón de filtros completo, no al lado
+            del selector de Estado */}
+        {filterStatus === 'Todos' && (
+          <div style={{ marginTop: -6, marginBottom: 10 }}>
+            <span className="prod-filter-hint">
+              Anuladas y entregadas ocultas
+            </span>
+          </div>
+        )}
 
         {/* Tabla — scroll horizontal en móvil */}
         <div style={{ background: '#fff', borderRadius: 10, padding: '6px 0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>

@@ -276,11 +276,6 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
               </>
             ) : (
               <>
-                {/* ✅ "Editar" no modifica la ficha existente: guarda una ficha
-                    NUEVA con los datos actualizados, preservando el historial */}
-                <button style={styles.editBtn} onClick={handleStartEdit} disabled={loading}>
-                  ✏️ Editar ficha
-                </button>
 
                 {/* Eliminar: solo cuando hay más de una versión y estás en la última */}
                 {isLastVersion && versions.length > 1 && (

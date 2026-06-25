@@ -44,6 +44,7 @@ const Alert = ({
   duration = 3000,
 }) => {
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const timerRef = useRef(null);
   const isAlertOpen = typeof isOpen === "boolean" ? isOpen : Boolean(open);
@@ -75,6 +76,7 @@ const Alert = ({
   useEffect(() => {
     if (isAlertOpen) {
       setPassword("");
+      setEmail("");
       setError("");
       // Auto-cierre para toasts
       if (isToast) {
@@ -102,6 +104,7 @@ const Alert = ({
     warning: { color: "#f59e0b", icon: "⚠" },
     confirm: { color: "#FF4FD6", icon: "!" },
     password:{ color: "#FF4FD6", icon: "🔒" },
+    managerAuth: { color: "#FF4FD6", icon: "🔒" },
   };
 
   const current = config[type] || config.success;
@@ -117,6 +120,9 @@ const Alert = ({
   /** Confirma la acción — para "password" valida primero */
   const handleConfirm = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    // ✅ Fix: el tipo "managerAuth" pide correo + contraseña reales del
+    // gerente (no asume que el usuario logueado actualmente lo es).
+    if (type === "managerAuth") { onConfirm && onConfirm({ email, password }); return; }
     onConfirm && onConfirm(password);
   };
 
@@ -170,16 +176,35 @@ const Alert = ({
           </p>
         </div>
 
+        {/* ✅ Fix: campo de correo para validar al Gerente real, no al
+            usuario actualmente logueado en el equipo */}
+        {type === "managerAuth" && (
+          <div style={{ marginBottom: "10px" }}>
+            <input
+              type="email"
+              placeholder="Correo del Gerente"
+              value={email}
+              autoFocus
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+              style={{
+                ...inputStyle,
+                border: error ? "1.5px solid #ef4444" : "1.5px solid #e5e7eb",
+                backgroundColor: "#f9fafb",
+              }}
+            />
+          </div>
+        )}
+
         {/* Input contraseña */}
-        {type === "password" && (
+        {(type === "password" || type === "managerAuth") && (
           <div style={{ marginBottom: "4px" }}>
             <input
               type="password"
-              placeholder="Contraseña de administrador"
+              placeholder={type === "managerAuth" ? "Contraseña del Gerente" : "Contraseña de administrador"}
               value={password}
-              autoFocus
+              autoFocus={type !== "managerAuth"}
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && password && handleConfirm()}
+              onKeyDown={(e) => e.key === "Enter" && password && (type !== "managerAuth" || email) && handleConfirm()}
               style={{
                 ...inputStyle,
                 border: error ? "1.5px solid #ef4444" : "1.5px solid #e5e7eb",
@@ -208,11 +233,11 @@ const Alert = ({
               ...confirmBtn,
               background: `linear-gradient(135deg, ${current.color} 0%, ${current.color}cc 100%)`,
               boxShadow: `0 4px 12px ${current.color}44`,
-              opacity: type === "password" && !password ? 0.5 : 1,
-              cursor: type === "password" && !password ? "not-allowed" : "pointer",
+              opacity: ((type === "password" && !password) || (type === "managerAuth" && (!password || !email))) ? 0.5 : 1,
+              cursor: ((type === "password" && !password) || (type === "managerAuth" && (!password || !email))) ? "not-allowed" : "pointer",
             }}
             onClick={handleConfirm}
-            disabled={type === "password" && !password}
+            disabled={(type === "password" && !password) || (type === "managerAuth" && (!password || !email))}
           >
             {confirmText}
           </button>
