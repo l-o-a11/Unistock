@@ -172,10 +172,16 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '14px', color: '#666' }}>
                   Fecha versión {(() => {
-                    // ✅ Fix: defensa adicional para que nunca se muestre
-                    // "Invalid Date" en pantalla, incluso si llega un valor
-                    // ya corrupto desde datos antiguos guardados en la BD.
-                    const parsed = new Date(currentVersionObj?.date);
+                    const raw = currentVersionObj?.date;
+                    if (!raw) return '—';
+                    const str = String(raw);
+                    let parsed;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                      const [y, m, d] = str.split('-').map(Number);
+                      parsed = new Date(y, m - 1, d);
+                    } else {
+                      parsed = new Date(raw);
+                    }
                     const safe = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
                     return safe.toLocaleDateString('es-CO');
                   })()}

@@ -54,7 +54,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
     <div
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(92, 13, 13, 0.25)",
+        background: "rgba(0, 0, 0, 0.25)",
         backdropFilter: "blur(3px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         zIndex: 1000, padding: 16,
