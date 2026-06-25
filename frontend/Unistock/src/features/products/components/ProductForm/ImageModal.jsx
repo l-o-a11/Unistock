@@ -1,6 +1,6 @@
 import React from "react";
 
-const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage, productName }) => {
+const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, productName }) => {
   if (!isOpen) return null;
 
   const currentImage = images[selectedIndex];
@@ -19,7 +19,37 @@ const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage
         justifyContent: "center"
       }}
       onClick={onClose}
-    >
+    > 
+      <button
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          width: "42px",
+          height: "42px",
+          borderRadius: "50%",
+          border: "none",
+          background: "rgba(255,255,255,0.15)",
+          color: "#fff",
+          fontSize: "24px",
+          fontWeight: "bold",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 2100,
+          transition: "all 0.2s ease"
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#ff4fd6";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+        }}
+      >
+        ✕
+      </button>
       <div
         style={{
           position: "relative",
@@ -32,27 +62,6 @@ const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage
         }}
         onClick={e => e.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          style={{
-            position: "absolute",
-            top: "-36px",
-            right: 0,
-            background: "rgba(255, 255, 255, 0.15)",
-            border: "none",
-            color: "#fff",
-            width: "32px",
-            height: "32px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "18px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
-        >
-          ×
-        </button>
 
         <img
           src={currentImage?.src}
@@ -65,18 +74,6 @@ const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage
             boxShadow: "0 8px 40px rgba(0, 0, 0, 0.5)"
           }}
         />
-
-        <p style={{
-          color: "#fff",
-          fontSize: "12px",
-          fontWeight: 600,
-          margin: 0,
-          background: "rgba(0, 0, 0, 0.45)",
-          padding: "4px 12px",
-          borderRadius: "20px"
-        }}>
-          {currentImage?.label || "Imagen del producto"}
-        </p>
 
         {hasMultipleImages && (
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
@@ -98,25 +95,6 @@ const ImageModal = ({ isOpen, images = [], selectedIndex, onClose, onDeleteImage
             ))}
           </div>
         )}
-
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {onDeleteImage && (
-            <button
-              onClick={() => onDeleteImage(selectedIndex)}
-              style={{
-                background: "rgba(255, 79, 214, 0.9)",
-                border: "none",
-                color: "#fff",
-                padding: "6px 14px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: 700
-              }}
-            >
-              Eliminar imagen
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
