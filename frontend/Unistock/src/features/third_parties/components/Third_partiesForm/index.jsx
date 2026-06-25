@@ -1,18 +1,41 @@
 /**
  * @file Third_partiesForm/index.jsx
  * @description Formulario modal para crear o editar un tercero.
- * CAMBIOS: mejoras responsive — padding adaptativo, grid 1 col en móvil,
- *          modal con max-height y scroll, botones full-width en móvil.
+ *              Estilo visual alineado con ProductionForm (UniStock design system).
  */
 import React, { useState, useEffect, useRef } from 'react';
 import Alert from '../../../shared/components/Alert';
-import Input from '../../../shared/components/Input';
 import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
 import { blockInput } from '../../../shared/utils/blockInput';
+import {
+  getInputStyleBox,
+  errorStyle as errMsg,
+  labelStyle,
+  requiredStar,
+} from '../../../shared/utils/validationStyles';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTILOS LOCALES
+// ─────────────────────────────────────────────────────────────────────────────
+const getInputStyle = (err) => getInputStyleBox(err);
+
+const sectionTitle = (text) => (
+  <p style={{
+    fontSize: 11, fontWeight: 700, color: '#9ca3af',
+    textTransform: 'uppercase', letterSpacing: '0.06em',
+    margin: '18px 0 10px',
+  }}>
+    {text}
+  </p>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
-  const isEdit = Boolean(Third_partie);
+  const isEdit   = Boolean(Third_partie);
+  const modalRef = useRef(null);
 
   const [formData, setFormData] = useState({
     nombre: '', nit: '', direccion: '',
@@ -23,8 +46,8 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   const [alertConfig,  setAlertConfig]  = useState({
     open: false, type: 'success', title: '', message: '', onConfirm: null,
   });
-  const modalRef = useRef(null);
 
+  // ── Cargar datos en modo edición ──────────────────────────────────────────
   useEffect(() => {
     if (Third_partie) {
       setFormData({
@@ -43,15 +66,16 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   }, [alertConfig.open, pendingClose]);
 
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') handleCancelClick(); };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    const handler = (e) => { if (e.key === 'Escape') handleCancelClick(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
   };
 
+  // ── Validación ────────────────────────────────────────────────────────────
   const validateField = (name, value) => {
     let error = '';
     switch (name) {
@@ -71,8 +95,8 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     const { name, value } = e.target;
     if (name === 'telefono' && !blockInput.onlyNumbers(e)) return;
     if (name === 'nit'      && !blockInput.nit(e))         return;
+    if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) validateField(name, value);
   };
 
   const handleBlur = (e) => validateField(e.target.name, e.target.value);
@@ -87,15 +111,33 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     if (formData.nit)    { const e = validateField('nit',    formData.nit);    if (e) newErrors.nit    = e; }
     if (formData.correo) { const e = validateField('correo', formData.correo); if (e) newErrors.correo = e; }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    // Alert con lista de campos faltantes — patrón ProductionForm
+    const LABELS = {
+      nombre: 'Nombre empresa', direccion: 'Dirección',
+      telefono: 'Teléfono', contacto: 'Contacto principal',
+      nit: 'NIT', correo: 'Correo',
+    };
+    const missing = Object.entries(newErrors)
+      .filter(([, v]) => v)
+      .map(([k]) => LABELS[k] || k);
+
+    if (missing.length > 0) {
+      setAlertConfig({
+        open: true, type: 'warning',
+        title: `Faltan ${missing.length} campo${missing.length > 1 ? 's' : ''} por completar`,
+        message: missing.map(m => `• ${m}`).join('\n'),
+        onConfirm: null,
+      });
+      return false;
+    }
+    return true;
   };
 
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validateAll()) {
-      setAlertConfig({ open: true, type: 'warning', title: 'Campos incompletos', message: 'Corrige los campos marcados antes de continuar.', onConfirm: null });
-      return;
-    }
+    if (!validateAll()) return;
     try {
       Promise.resolve(onSubmit({
         nombreEmpresa:  formData.nombre,
@@ -116,17 +158,14 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
           onConfirm: null,
         });
       }).catch((err) => {
-        const message = err?.message || 'No se pudo guardar. Intenta de nuevo.';
-        setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message, onConfirm: null });
+        setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message: err?.message || 'No se pudo guardar. Intenta de nuevo.', onConfirm: null });
       });
     } catch (err) {
-      const message = err?.message || 'No se pudo guardar. Intenta de nuevo.';
-      setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message, onConfirm: null });
+      setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message: err?.message || 'No se pudo guardar. Intenta de nuevo.', onConfirm: null });
     }
   };
 
   const handleCancelClick = () => {
-    // ✅ Solo mostrar alerta de confirmación si el formulario tiene algún campo llenado
     const INITIAL_VALUES = { nombre: '', nit: '', direccion: '', telefono: '', contacto: '', correo: '' };
     const initialData = isEdit
       ? {
@@ -140,12 +179,7 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
       : INITIAL_VALUES;
 
     const hasChanges = Object.keys(formData).some(k => formData[k] !== initialData[k]);
-
-    if (!hasChanges) {
-      // Sin cambios — cerrar directamente sin alerta
-      onCancel();
-      return;
-    }
+    if (!hasChanges) { onCancel(); return; }
 
     setAlertConfig({
       open: true, type: 'confirm', title: 'Cancelar',
@@ -154,6 +188,34 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     });
   };
 
+  // ── Helper: campo de texto genérico ──────────────────────────────────────
+  const Field = ({ label, name, type = 'text', required = false, placeholder = '', hint = null }) => (
+    <div>
+      <label style={labelStyle}>
+        {label}
+        {required
+          ? <span style={requiredStar}> *</span>
+          : <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400, marginLeft: 4 }}>(opcional)</span>
+        }
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        autoComplete="off"
+        style={getInputStyle(errors[name])}
+      />
+      {errors[name] && <span style={errMsg}>⚠ {errors[name]}</span>}
+      {hint && <p style={{ margin: '3px 0 0', fontSize: 10, color: '#9ca3af' }}>{hint}</p>}
+    </div>
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
       <Alert
@@ -161,207 +223,166 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
-        onConfirm={() => { if (alertConfig.onConfirm) alertConfig.onConfirm(); else setAlertConfig(prev => ({ ...prev, open: false })); }}
+        onConfirm={() => {
+          if (alertConfig.onConfirm) alertConfig.onConfirm();
+          else setAlertConfig(prev => ({ ...prev, open: false }));
+        }}
         onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
       />
 
-      <style>{`
-        /* ── Overlay ── */
-        .tp-form-overlay {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,0.45);
-          display: flex; justify-content: center; align-items: center;
-          z-index: 50;
-          padding: 16px;
-          /* En móvil muy pequeño, alinear al fondo para más espacio */
-        }
-        @media (max-width: 480px) {
-          .tp-form-overlay { align-items: flex-end; padding: 0; }
-        }
+      {/* ── Overlay ── */}
+      <div
+        onClick={handleOverlayClick}
+        style={{
+          position: 'fixed', inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 50,
+        }}
+      >
+        <div
+          ref={modalRef}
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 660,
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+            position: 'relative',
+          }}
+        >
+          <div style={{ padding: '28px 30px' }}>
 
-        /* ── Modal ── */
-        .tp-form-modal {
-          background: #fff;
-          border-radius: 16px;
-          width: 100%;
-          max-width: 860px;
-          padding: 20px 18px;
-          box-shadow: 0 12px 48px rgba(0,0,0,0.18);
-          position: relative;
-          max-height: 92vh;
-          overflow-y: auto;
-        }
-        @media (max-width: 480px) {
-          .tp-form-modal {
-            border-radius: 20px 20px 0 0;
-            max-height: 92vh;
-            padding: 20px 16px 32px;
-          }
-        }
-        @media (min-width: 481px) and (max-width: 767px) {
-          .tp-form-modal { padding: 22px 20px; }
-        }
-        @media (min-width: 768px) {
-          .tp-form-modal { padding: 28px 32px; }
-        }
+            {/* ── Botón cerrar ── */}
+            <button
+              onClick={handleCancelClick}
+              style={{
+                position: 'absolute', top: 14, right: 14,
+                width: 32, height: 32, borderRadius: '50%',
+                border: 'none', background: '#f3f4f6',
+                cursor: 'pointer', fontSize: 14, zIndex: 1,
+              }}
+            >
+              ✕
+            </button>
 
-        /* Drag handle en móvil */
-        .tp-form-handle {
-          width: 40px; height: 4px;
-          background: #e5e7eb; border-radius: 99px;
-          margin: 0 auto 16px;
-          display: none;
-        }
-        @media (max-width: 480px) { .tp-form-handle { display: block; } }
-
-        /* ── Grid campos: 1 col en móvil, 2 en ≥ 600px ── */
-        .tp-form-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 16px;
-        }
-        @media (min-width: 600px) {
-          .tp-form-grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 16px 28px;
-          }
-        }
-
-        /* Columna izquierda: borde derecho solo en desktop */
-        .tp-form-col-left {
-          display: flex; flex-direction: column; gap: 16px;
-        }
-        @media (min-width: 600px) {
-          .tp-form-col-left {
-            border-right: 1px solid #f0f0f0;
-            padding-right: 24px;
-          }
-        }
-
-        /* ── Botones: full width en móvil pequeño ── */
-        .tp-form-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 24px;
-          flex-wrap: wrap;
-        }
-        @media (max-width: 400px) {
-          .tp-form-actions { flex-direction: column-reverse; }
-          .tp-form-actions > * { width: 100%; }
-        }
-      `}</style>
-
-      <div className="tp-form-overlay" onClick={handleOverlayClick}>
-        <div ref={modalRef} className="tp-form-modal">
-
-          {/* Handle visual para móvil */}
-          <div className="tp-form-handle" />
-
-          {/* Botón cerrar ✕ */}
-          <button
-            onClick={handleCancelClick}
-            style={{
-              position: 'absolute', top: 14, right: 14,
-              width: 30, height: 30, borderRadius: '50%',
-              border: 'none', background: '#f3f4f6',
-              cursor: 'pointer', fontSize: 14,
-            }}>
-            ✕
-          </button>
-
-          {/* Header */}
-          <div style={{ marginBottom: 22 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1f2937' }}>
-              {isEdit ? 'Editar tercero' : 'Nuevo tercero'}
-            </h2>
-            {isEdit && (
-              <span style={{
-                display: 'inline-block', marginTop: 6,
-                fontSize: 12, fontWeight: 700, color: '#FF4FD6',
-                background: '#fce7f3', padding: '2px 10px', borderRadius: 20,
+            {/* ── Header con ícono — patrón ProductionForm ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: '#ff4fd6',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                NIT: {Third_partie.nit || 'Sin NIT'}
-              </span>
-            )}
-            {!isEdit && (
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: '#9ca3af' }}>
-                El NIT identifica al tercero en listados y asignaciones.
-              </p>
-            )}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937' }}>
+                  {isEdit ? 'Editar tercero' : 'Nuevo tercero'}
+                </h2>
+                <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>
+                  {isEdit
+                    ? `Editando: ${Third_partie?.nombreEmpresa || Third_partie?.nombre || 'tercero'}`
+                    : 'Completa todos los campos obligatorios'}
+                </p>
+              </div>
+              {/* Badge NIT visible en modo edición */}
+              {isEdit && Third_partie?.nit && (
+                <span style={{
+                  marginLeft: 'auto', fontSize: 11, fontWeight: 700,
+                  color: '#ff4fd6', background: '#fff0fb',
+                  padding: '3px 10px', borderRadius: 20,
+                  border: '1px solid #f9a8d4', whiteSpace: 'nowrap',
+                }}>
+                  NIT: {Third_partie.nit}
+                </span>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit} noValidate>
+
+              {/* ══════════════════════════════════════════════════
+                  SECCIÓN 1 — DATOS DE LA EMPRESA
+              ══════════════════════════════════════════════════ */}
+              {sectionTitle('Datos de la empresa')}
+
+              {/* Nombre + NIT */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 14, marginBottom: 14,
+              }}>
+                <Field
+                  label="Nombre empresa" name="nombre"
+                  required placeholder="Ej: Confecciones López S.A.S."
+                />
+                <Field
+                  label="NIT" name="nit"
+                  placeholder="Ej: 900123456-7"
+                  hint="8-12 dígitos, guión opcional"
+                />
+              </div>
+
+              {/* Dirección — ancho completo */}
+              <div style={{ marginBottom: 4 }}>
+                <Field
+                  label="Dirección" name="direccion"
+                  required placeholder="Ej: Carrera 45 #10-30, Medellín"
+                />
+              </div>
+
+              {/* ══════════════════════════════════════════════════
+                  SECCIÓN 2 — PERSONA DE CONTACTO
+              ══════════════════════════════════════════════════ */}
+              {sectionTitle('Persona de contacto')}
+
+              {/* Contacto + Teléfono */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 14, marginBottom: 14,
+              }}>
+                <Field
+                  label="Contacto principal" name="contacto"
+                  required placeholder="Ej: María González"
+                />
+                <Field
+                  label="Teléfono" name="telefono"
+                  required placeholder="Ej: 3001234567"
+                  hint="Exactamente 10 dígitos"
+                />
+              </div>
+
+              {/* Correo — ancho completo, opcional */}
+              <div style={{ marginBottom: 20 }}>
+                <Field
+                  label="Correo" name="correo"
+                  type="email" placeholder="Ej: contacto@empresa.com"
+                />
+              </div>
+
+              {/* ── Botones ── */}
+              <div style={{
+                display: 'flex', justifyContent: 'flex-end', gap: 10,
+                paddingTop: 16, borderTop: '1px solid #f3f4f6',
+              }}>
+                <Button type="button" variant="secondary" onClick={handleCancelClick}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary">
+                  {isEdit ? 'Guardar cambios' : 'Crear tercero'}
+                </Button>
+              </div>
+
+            </form>
           </div>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="tp-form-grid">
-
-              {/* ── Columna izquierda ── */}
-              <div className="tp-form-col-left">
-                <Input
-                  label="Nombre empresa *"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.nombre}
-                />
-                <Input
-                  label="NIT (opcional)"
-                  name="nit"
-                  value={formData.nit}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.nit}
-                />
-                <Input
-                  label="Dirección *"
-                  name="direccion"
-                  value={formData.direccion}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.direccion}
-                />
-              </div>
-
-              {/* ── Columna derecha ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <Input
-                  label="Contacto principal *"
-                  name="contacto"
-                  value={formData.contacto}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.contacto}
-                />
-                <Input
-                  label="Teléfono * (10 dígitos)"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.telefono}
-                />
-                <Input
-                  label="Correo (opcional)"
-                  type="email"
-                  name="correo"
-                  value={formData.correo}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.correo}
-                />
-              </div>
-            </div>
-
-            {/* Botones */}
-            <div className="tp-form-actions">
-              <Button type="button" variant="secondary" onClick={handleCancelClick}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="primary">
-                {isEdit ? 'Guardar cambios' : 'Crear tercero'}
-              </Button>
-            </div>
-          </form>
         </div>
       </div>
     </>

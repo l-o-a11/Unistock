@@ -33,7 +33,19 @@ const VersionHistory = ({ versions = [], currentVersion = 1, onViewVersion, onDe
         // distinguen mostrando también la fecha — evita que se vean como
         // "Versión 1" y "Versión 1" indistinguibles entre sí.
         const isDuplicateNumber = versions.filter(v => v.version === version.version).length > 1;
-        const dateLabel = version.date ? new Date(version.date).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' }) : '';
+        const dateLabel = (() => {
+          if (!version.date) return '';
+          const str = String(version.date);
+          let parsed;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            const [y, m, d] = str.split('-').map(Number);
+            parsed = new Date(y, m - 1, d);
+          } else {
+            parsed = new Date(str);
+          }
+          if (Number.isNaN(parsed.getTime())) return '';
+          return parsed.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' });
+        })();
 
         return (
           <button

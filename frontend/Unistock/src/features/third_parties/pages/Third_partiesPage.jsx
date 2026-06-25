@@ -316,7 +316,7 @@ const Third_partiePage = () => {
             marginBottom: '20px',
           }}
         >
-          <h1 style={{ fontSize: '26px', fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Gestión de terceros</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Terceros</h1>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <Third_partieSearch
               value={searchTerm}

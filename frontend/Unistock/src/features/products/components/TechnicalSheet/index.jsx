@@ -111,7 +111,8 @@ const hasValue = (v) => v && String(v).trim() !== "";
 const buildInitialData = (sheet, productName, categoryDescription, productRef, productImage) => {
   const initialData = sheet || { ...EMPTY_SHEET };
   const currentUser = AuthAPI.getSession();
-  const today = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const todayDate = new Date();
+  const today = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
 
   return {
     ...initialData,

@@ -28,12 +28,24 @@ export const useTechnicalSheet = (productId) => {
     try {
       setLoading(true);
       setError(null);
+      // ✅ Fix numeración: usar el MÁXIMO existente + 1, no la cantidad en
+      // memoria (evita números duplicados si "versions" no estaba completo).
+      const freshVersions = await productAPI.getTechnicalSheetVersions(productId).catch(() => versions);
+      const maxVersion = freshVersions.reduce((max, v) => Math.max(max, Number(v.version) || 0), 0);
+      // ✅ Fix: la fecha de una versión NUEVA siempre debe ser la fecha real
+      // en que se crea, no la fecha heredada de la versión que se editó
+      // para partir de ella (sheetData.date traía la fecha vieja).
+      const { date: _oldDate, ...sheetDataSinFecha } = sheetData;
+      const today = new Date();
+      const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const newVersion = await productAPI.createTechnicalSheet({
-        ...sheetData,
+        ...sheetDataSinFecha,
         productId,
-        version: versions.length + 1,
+        version: maxVersion + 1,
+        date: localDate,
       });
-      setVersions(prev => [newVersion, ...prev]);
+      const updatedList = [newVersion, ...freshVersions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+      setVersions(updatedList);
       setCurrentVersion(newVersion);
       return newVersion;
     } catch (err) {

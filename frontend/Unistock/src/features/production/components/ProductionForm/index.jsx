@@ -479,7 +479,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
           <div style={{ padding: '28px 30px' }}>
             <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: damageNotice ? '#f59e0b' : '#ff4fd6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {damageNotice ? (
                   <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
