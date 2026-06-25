@@ -84,136 +84,142 @@ export const useSuppliers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Carga inicial desde el API real
-  useEffect(() => {
-    loadSuppliers();
-  }, []);
+// Carga inicial desde el API real
+   useEffect(() => {
+     loadSuppliers();
+   }, []);
 
-  const loadSuppliers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+   const loadSuppliers = async () => {
+     try {
+       setLoading(true);
+       setError(null);
 
-      const response = await SuppliersAPIClient.getSuppliers({
-        page: 1,
-        limit: 100,
-        sortBy: 'nombre_de_empresa',
-      });
+       const response = await SuppliersAPIClient.getSuppliers({
+         page: 1,
+         limit: 100,
+         sortBy: 'nombre_de_empresa',
+       });
 
-      // Backend responde: { success: true, data: { data: [...], total, page, ... } }
-      const backendSuppliers =
-        response?.data?.data ??
-        response?.data?.suppliers ??
-        response?.data ??
-        response?.suppliers ??
-        response ??
-        [];
+       // Backend responde: { success: true, data: { data: [...], total, page, ... } }
+       const backendSuppliers =
+         response?.data?.data ??
+         response?.data?.suppliers ??
+         response?.data ??
+         response?.suppliers ??
+         response ??
+         [];
 
-      const list = Array.isArray(backendSuppliers)
-        ? backendSuppliers
-        : Array.isArray(backendSuppliers?.data)
-          ? backendSuppliers.data
-          : [];
+       const list = Array.isArray(backendSuppliers)
+         ? backendSuppliers
+         : Array.isArray(backendSuppliers?.data)
+           ? backendSuppliers.data
+           : [];
 
-      const normalizeBool = (v) => {
-        if (v === true || v === false) return v;
-        if (typeof v === 'number') return v === 1;
-        if (typeof v === 'string') {
-          const t = v.trim().toLowerCase();
-          if (t === 'true' || t === '1' || t === 'activo') return true;
-          if (t === 'false' || t === '0' || t === 'inactivo') return false;
-        }
-        return undefined;
-      };
+       const normalizeBool = (v) => {
+         if (v === true || v === false) return v;
+         if (typeof v === 'number') return v === 1;
+         if (typeof v === 'string') {
+           const t = v.trim().toLowerCase();
+           if (t === 'true' || t === '1' || t === 'activo') return true;
+           if (t === 'false' || t === '0' || t === 'inactivo') return false;
+         }
+         return undefined;
+       };
 
-      const mappedSuppliers = (list || []).map((supplier) => {
-        const estado =
-          supplier?.activo ??
-          supplier?.estado ??
-          supplier?.activa ??
-          supplier?.active;
+const mappedSuppliers = (list || []).map((supplier) => {
+          const estado =
+            supplier?.activo ??
+            supplier?.estado ??
+            supplier?.activa ??
+            supplier?.active;
 
-        const estadoBool = normalizeBool(estado);
+          const estadoBool = normalizeBool(estado);
 
-        const nombreEmpresa =
-          supplier?.nombre_de_empresa ??
-          supplier?.nombreEmpresa ??
-          supplier?.nombre_empresa;
+          const nombreEmpresa =
+            supplier?.nombre_de_empresa ??
+            supplier?.nombreEmpresa ??
+            supplier?.nombre_empresa;
 
-        const nombreContacto =
-          supplier?.nombre_del_contacto ??
-          supplier?.nombreContacto ??
-          supplier?.nombre_contacto;
+          const nombreContacto =
+            supplier?.nombre_del_contacto ??
+            supplier?.nombreContacto ??
+            supplier?.nombre_contacto;
 
-        const correo = supplier?.correo ?? supplier?.correoEmpresa ?? supplier?.email;
+          const correo = supplier?.correo ?? supplier?.correoEmpresa ?? supplier?.email;
+          const correoContacto = supplier?.correo_del_contacto ?? supplier?.correoContacto ?? '';
 
-        const sitio =
-          supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb;
+          const sitio =
+            supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb;
 
-        return {
-          id: supplier._id || supplier.id,
-          nit: supplier.nit,
-          nombreEmpresa,
-          nombre_de_empresa: nombreEmpresa,
-          nombreContacto,
-          nombre_del_contacto: nombreContacto,
-          direccion: supplier.direccion,
-          telefono: supplier.telefono,
-          email: correo,
-          correo,
-          correoEmpresa: correo,
-          sitioweb: sitio,
-          sitio_web: sitio,
-          estado: estadoBool,
-          activo: estadoBool,
-          rawData: supplier,
-        };
-      });
+          return {
+            id: supplier._id || supplier.id,
+            nit: supplier.nit,
+            nombreEmpresa,
+            nombre_de_empresa: nombreEmpresa,
+            nombreContacto,
+            nombre_del_contacto: nombreContacto,
+            correoContacto: correoContacto || '',
+            direccion: supplier.direccion,
+            telefono: supplier.telefono,
+            email: correo,
+            correo,
+            correoEmpresa: correo,
+            sitioweb: sitio,
+            sitio_web: sitio,
+            estado: estadoBool,
+            activo: estadoBool,
+            rawData: supplier,
+          };
+        });
 
-      setSuppliers(mappedSuppliers);
-      saveToStorage(mappedSuppliers);
-    } catch (err) {
-      console.error('Error al cargar proveedores:', err);
-      setError('Error al cargar los proveedores. Verifica la conexión con el servidor.');
+       setSuppliers(mappedSuppliers);
+       saveToStorage(mappedSuppliers);
+     } catch (err) {
+       console.error('Error al cargar proveedores:', err);
+       setError('Error al cargar los proveedores. Verifica la conexión con el servidor.');
 
-      // Fallback a localStorage si la API falla
-      try {
-        const cached = loadFromStorage();
-        if (cached) {
-          setSuppliers(cached);
-          setError(null);
-        }
-      } catch (e) {
-        console.error('Error al cargar desde localStorage:', e);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+       // Fallback a localStorage si la API falla
+       try {
+         const cached = loadFromStorage();
+         if (cached) {
+           setSuppliers(cached);
+           setError(null);
+         }
+       } catch (e) {
+         console.error('Error al cargar desde localStorage:', e);
+       }
+     } finally {
+       setLoading(false);
+     }
+   };
 
-  // ── Mapea los nombres del formulario a los que espera el backend ─────────
-  // El backend controller acepta camelCase (nombreEmpresa, correoEmpresa, etc.)
-  // y los normaliza internamente a snake_case.
-  const mapFrontendToBackend = (supplierData) => ({
-    nit: supplierData.nit,
-    nombreEmpresa:
-      supplierData.nombreEmpresa ||
-      supplierData.nombre_de_empresa ||
-      supplierData.nombre_empresa ||
-      '',
-    nombreContacto:
-      supplierData.nombreContacto ||
-      supplierData.nombre_del_contacto ||
-      supplierData.nombre_contacto ||
-      supplierData.contacto ||
-      '',
-    direccion: supplierData.direccion,
-    telefono: supplierData.telefono,
-    correoEmpresa:
-      supplierData.correoEmpresa || supplierData.email || supplierData.correo || '',
-    sitioWeb:
-      supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web || '',
-  });
+// ── Mapea los nombres del formulario a los que espera el backend ─────────
+// El backend controller acepta camelCase (nombreEmpresa, correoEmpresa, etc.)
+// y los normaliza internamente a snake_case.
+const mapFrontendToBackend = (supplierData) => ({
+  nit: supplierData.nit,
+  nombreEmpresa:
+    supplierData.nombreEmpresa ||
+    supplierData.nombre_de_empresa ||
+    supplierData.nombre_empresa ||
+    '',
+  nombreContacto:
+    supplierData.nombreContacto ||
+    supplierData.nombre_del_contacto ||
+    supplierData.nombre_contacto ||
+    supplierData.contacto ||
+    '',
+  correoContacto:
+    supplierData.correoContacto ||
+    supplierData.correo_del_contacto ||
+    '',
+  direccion: supplierData.direccion,
+  telefono: supplierData.telefono,
+  correoEmpresa:
+    supplierData.correoEmpresa || supplierData.email || supplierData.correo || '',
+  sitioWeb:
+    supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web || '',
+});
 
   // ➕ Crear proveedor
   const createSupplier = async (supplierData) => {
@@ -345,6 +351,7 @@ function _mapBackendToFrontend(supplier) {
   const nombreContacto =
     supplier?.nombre_del_contacto ?? supplier?.nombreContacto ?? '';
   const correo = supplier?.correo ?? supplier?.correoEmpresa ?? supplier?.email ?? '';
+  const correoContacto = supplier?.correo_del_contacto ?? supplier?.correoContacto ?? '';
   const sitio  = supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb ?? '';
   const estado = supplier?.activo ?? supplier?.estado;
 
@@ -360,6 +367,8 @@ function _mapBackendToFrontend(supplier) {
     email: correo,
     correo,
     correoEmpresa: correo,
+    correoContacto,
+    sitioWeb: sitio,
     sitioweb: sitio,
     sitio_web: sitio,
     estado,
