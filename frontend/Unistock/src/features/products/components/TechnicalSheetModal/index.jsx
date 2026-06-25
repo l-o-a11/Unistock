@@ -171,7 +171,14 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
             {!isEditingMode && versions.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '14px', color: '#666' }}>
-                  Fecha versión {new Date(currentVersionObj?.date || new Date()).toLocaleDateString('es-CO')}
+                  Fecha versión {(() => {
+                    // ✅ Fix: defensa adicional para que nunca se muestre
+                    // "Invalid Date" en pantalla, incluso si llega un valor
+                    // ya corrupto desde datos antiguos guardados en la BD.
+                    const parsed = new Date(currentVersionObj?.date);
+                    const safe = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+                    return safe.toLocaleDateString('es-CO');
+                  })()}
                 </div>
                 <div style={{ position: 'relative' }}>
                   <div
@@ -276,6 +283,11 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
               </>
             ) : (
               <>
+                {/* ✅ "Editar" no modifica la ficha existente: guarda una ficha
+                    NUEVA con los datos actualizados, preservando el historial */}
+                <button style={styles.editBtn} onClick={handleStartEdit} disabled={loading}>
+                  ✏️ Editar ficha
+                </button>
 
                 {/* Eliminar: solo cuando hay más de una versión y estás en la última */}
                 {isLastVersion && versions.length > 1 && (

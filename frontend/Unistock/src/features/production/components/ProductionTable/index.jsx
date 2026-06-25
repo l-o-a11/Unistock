@@ -81,7 +81,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
       <div style={{ textAlign: 'center', padding: '48px 0', color: '#9ca3af' }}>
         <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
         <p style={{ margin: 0, fontWeight: 500 }}>No hay producciones para mostrar</p>
-        <p style={{ margin: '4px 0 0', fontSize: 12 }}>Crea una nueva orden usando el botón "Agregar"</p>
+        <p style={{ margin: '0 0 0', fontSize: 12 }}>Crea una nueva orden usando el botón "Agregar"</p>
       </div>
     );
   }

@@ -85,23 +85,28 @@ const SuppliersPage = () => {
     }
 
     showAlert(
-      "managerAuth",
+      "password",
       "Eliminar proveedor",
-      `Esta acción requiere autorización de un Gerente. Ingresa sus credenciales para eliminar "${supplier?.nombreEmpresa}".`,
-      async ({ email, password }) => {
-        if (!email || !password) {
-          showAlert("error", "Datos incompletos", "Ingresa el correo y la contraseña del Gerente.");
+      `Esta acción requiere autorización. Confirma tu contraseña para eliminar "${supplier?.nombreEmpresa}".`,
+      async (pwd) => {
+        if (!pwd) {
+          showAlert("error", "Datos incompletos", "Ingresa tu contraseña para continuar.");
+          return;
+        }
+        const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
+        if (!userIdentifier) {
+          showAlert("error", "Error de sesión", "No se pudo identificar al usuario. Recarga la página.");
           return;
         }
         try {
-          const auth = await AuthAPI.login({ username: email, password });
+          const auth = await AuthAPI.login({ username: userIdentifier, password: pwd });
           const rolNombre = (auth?.rolNombre || auth?.user?.rolNombre || "").toLowerCase();
           if (rolNombre !== "gerente") {
-            showAlert("error", "Acceso denegado", "El usuario ingresado no tiene rol de Gerente.");
+            showAlert("error", "Acceso denegado", "Solo un usuario con rol de Gerente puede eliminar proveedores.");
             return;
           }
         } catch {
-          showAlert("error", "Credenciales incorrectas", "El correo o la contraseña del Gerente no son válidos.");
+          showAlert("error", "Contraseña incorrecta", "La contraseña ingresada no es correcta.");
           return;
         }
         try {
