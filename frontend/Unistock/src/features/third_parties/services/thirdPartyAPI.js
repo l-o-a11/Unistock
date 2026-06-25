@@ -105,7 +105,7 @@ const toBackend = (data) => ({
   telefono: data.telefono || null,
 
   correo_empresa: data.correoEmpresa || data.correo || data.correo_empresa || null,
-  correo_contacto: data.correoContacto || data.correoContacto || data.correo_contacto || null,
+  correo_contacto: data.correoContacto || data.correo_contacto || null,
   sitio_web: data.sitioWeb || data.sitio_web || null,
 
   estado: data.estado,

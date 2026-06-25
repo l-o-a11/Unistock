@@ -44,8 +44,8 @@ const SuppliersPage = () => {
     const term = searchTerm.toLowerCase().trim();
 
     return suppliers.filter((supplier) => {
-      if (term === "a") return supplier.estado !== false;
-      if (term === "i") return supplier.estado === false;
+      if (term === "activo") return supplier.estado === true;
+      if (term === "inactivo") return supplier.estado === false;
 
       const estadoTexto =
         supplier.estado === true
