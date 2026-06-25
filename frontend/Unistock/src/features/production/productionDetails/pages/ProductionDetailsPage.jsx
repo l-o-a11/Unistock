@@ -89,6 +89,53 @@ const dotColor = (status = "") => {
   return "#FF4FD6";
 };
 
+const toMoneyNumber = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value !== "string") return 0;
+  const cleaned = value.replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sumDetailQty = (details = []) =>
+  (details || []).reduce((sum, detail) => sum + (Number(detail.quantity ?? detail.cantidad) || 0), 0);
+
+const recalcTechSpecCost = (techSpec, details, productPrice) => {
+  if (!techSpec) return techSpec;
+  const costPerUnit = toMoneyNumber(productPrice) || toMoneyNumber(techSpec.costPerUnit);
+  const totalCost = costPerUnit * sumDetailQty(details);
+  return { ...techSpec, costPerUnit, totalCost };
+};
+
+const getPriceFromOrderDetails = (details = []) => {
+  for (const detail of details || []) {
+    const product = detail?.producto;
+    const price = toMoneyNumber(product?.precio ?? product?.price);
+    if (price > 0) return price;
+  }
+  return 0;
+};
+
+const resolveProductPriceByReference = async (reference, details = []) => {
+  const detailPrice = getPriceFromOrderDetails(details);
+  if (detailPrice > 0) return detailPrice;
+
+  const ref = String(reference || details?.[0]?.id_producto || "").trim();
+  if (!ref) return 0;
+
+  try {
+    const { productAPI } = await import("../../../products/services/productAPI");
+    const products = await productAPI.getAll();
+    const product = (Array.isArray(products) ? products : []).find((item) =>
+      String(item.reference || item.referencia || item.id || item._id || "").trim() === ref
+    );
+    return toMoneyNumber(product?.price ?? product?.precio);
+  } catch (err) {
+    console.warn("[Producción] No se pudo resolver precio del producto:", err?.message || err);
+    return 0;
+  }
+};
+
 /* ══════════════════════════════════════════════════════════════ */
 const ProductionDetailsPage = () => {
   const { id } = useParams();
@@ -102,6 +149,7 @@ const ProductionDetailsPage = () => {
 
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [newRef, setNewRef] = useState({ cantidad: "", color: "" });
+  const [isSavingRef, setIsSavingRef] = useState(false);
   // ✅ Selector de color tipo acordeón — mismo patrón usado en ProductionForm
   // y en AlertEditProduction, para que el comportamiento sea idéntico en
   // todos los lugares donde se elige un color de producción.
@@ -215,13 +263,29 @@ const ProductionDetailsPage = () => {
           ? new Date(data.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
           : (data.createdAt ? new Date(data.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '');
 
+        const productoPrecio = await resolveProductPriceByReference(data.referencia, data.detalles || []);
+        const mappedDetails = (data.detalles || []).map((d) => ({
+          id:         d.id || d._id,
+          refCorte:   d.refCorte || d.id_producto || '',
+          ref:        d.id_producto || '',
+          quantity:   d.cantidad    || 0,
+          color:      d.color       || '—',
+          status:     data.estado,
+          statusDate,
+          estado:     d.estado !== false,
+        }));
+        const techSpecification = recalcTechSpecCost(data.techSpecification || data.techSheet || null, mappedDetails, productoPrecio);
+        const productImage = (data.detalles && data.detalles.length > 0 && data.detalles[0].producto?.imagenes_Url?.length > 0)
+          ? data.detalles[0].producto.imagenes_Url[0]
+          : null;
+
         const mappedProduction = {
           id: data._id || data.id,
           orderNumber: data.numero_orden,
           cliente: data.cliente,
           client: data.cliente,
           tipo: data.tipo || data.type || 'produccion',
-          techSpecification: data.techSpecification || data.techSheet || null,
+          techSpecification,
           designImages: Array.isArray(data.designImages) ? data.designImages : [],
           // ✅ Mapear imágenes del producto terminado
           finishedImages: Array.isArray(data.finishedImages) ? data.finishedImages
@@ -236,13 +300,8 @@ const ProductionDetailsPage = () => {
           referencia: (data.detalles && data.detalles.length > 0)
             ? (data.detalles[0].id_producto || '')
             : '',
-          // ✅ Extraer precio del producto para pre-poblar costPerUnit en la ficha técnica
-          productoPrecio: (() => {
-            const primerDetalle = data.detalles?.[0];
-            if (!primerDetalle) return 0;
-            const prod = primerDetalle.producto;
-            return Number(prod?.precio ?? prod?.price ?? 0) || 0;
-          })(),
+          productoPrecio,
+          productImage,
           status: data.estado,
           estado: data.estado,
           deliveryDate: data.fecha_entrega
@@ -255,16 +314,7 @@ const ProductionDetailsPage = () => {
             user: h.user || h.id_usuario || 'Sistema',
             motivo: h.motivo
           })),
-          details: (data.detalles || []).map((d) => ({
-            id:         d.id || d._id,
-            refCorte:   d.refCorte || d.id_producto || '',
-            ref:        d.id_producto || '',
-            quantity:   d.cantidad    || 0,
-            color:      d.color       || '—',
-            status:     data.estado,
-            statusDate,
-            estado:     d.estado !== false,
-          })),
+          details: mappedDetails,
           terceroAsignaciones,
           sedeAsignaciones,
           rawData: data,
@@ -575,26 +625,26 @@ const ProductionDetailsPage = () => {
         cantidad: Number(updatedData.cantidad) || 0,
         color: updatedData.color,
       });
+      saveProductionColor(String(updatedData.color || "").trim());
       
       const freshData = await ProductionAPIClient.getOrderById(production.id);
       const statusDate = freshData.updatedAt
         ? new Date(freshData.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : today;
 
+      const newDetails = (freshData.detalles || production.details || []).map((d) => ({
+        id: d.id || d._id,
+        refCorte: d.refCorte || d.id_producto || '',
+        ref: d.id_producto || '',
+        quantity: d.cantidad || 0,
+        color: d.color || '—',
+        status: freshData.estado,
+        statusDate,
+        estado: d.estado !== false,
+      }));
+      const updatedTechSpec = await persistRecalculatedCosts(newDetails, production.techSpecification);
+
       setProduction((prev) => {
-        const newDetails = (freshData.detalles || prev.details || []).map((d) => ({
-          id: d.id || d._id,
-          refCorte: d.refCorte || d.id_producto || '',
-          ref: d.id_producto || '',
-          quantity: d.cantidad || 0,
-          color: d.color || '—',
-          status: freshData.estado,
-          statusDate,
-          estado: d.estado !== false,
-        }));
-        // ✅ Fix: recalcular el costo total al modificar la cantidad de una
-        // referencia — antes solo se recalculaba al agregar/eliminar.
-        const updatedTechSpec = recalcCosts(newDetails, prev.techSpecification);
         return {
           ...prev,
           details: newDetails,
@@ -612,61 +662,73 @@ const ProductionDetailsPage = () => {
   };
 
   const recalcCosts = (details, techSpec) => {
-    if (!techSpec) return techSpec;
-    const totalQty = (details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
-    // ✅ Fix: el costo unitario sigue viniendo siempre del precio del producto
-    // (si está disponible), no del último valor guardado en costPerUnit —
-    // así se evita que quede desincronizado si el precio del producto cambió.
-    const costPerUnit = (production.productoPrecio > 0) ? production.productoPrecio : (techSpec.costPerUnit || 0);
-    return { ...techSpec, costPerUnit, totalCost: costPerUnit * totalQty };
+    return recalcTechSpecCost(techSpec, details, production.productoPrecio);
+  };
+
+  const persistRecalculatedCosts = async (details, techSpec) => {
+    const updatedTechSpec = recalcCosts(details, techSpec);
+    if (!updatedTechSpec) return updatedTechSpec;
+    await ProductionAPIClient.updateOrder(production.id, { techSpecification: updatedTechSpec });
+    return updatedTechSpec;
   };
 
   const handleSaveRef = async () => {
     if (!newRef.cantidad || !newRef.color) { setAddRefError("Completa cantidad y color."); return; }
-    try {
-      // ✅ Guardar el color usado, igual que hace ProductionForm al crear la orden
-      saveProductionColor(newRef.color.trim());
-      await ProductionAPIClient.createOrderDetail({
-        id_orden: production.id,
-        id_producto: production.referencia,
-        cantidad: Number(newRef.cantidad),
-        color: newRef.color,
-      });
-      const freshData = await ProductionAPIClient.getOrderById(production.id);
-      const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      setProduction((prev) => {
-        const newDetails = (freshData.detalles || []).map((d) => ({
-          id: d.id || d._id,
-          refCorte: d.refCorte || d.id_producto || '',
-          ref: d.id_producto || '',
-          quantity: d.cantidad || 0,
-          color: d.color || '—',
-          status: freshData.estado || prev.status,
-          statusDate: today,
-          estado: d.estado !== false,
-        }));
-        // ✅ Recalcular el costo total al agregar un nuevo producto/cantidad
-        const updatedTechSpec = recalcCosts(newDetails, prev.techSpecification);
-        return {
-          ...prev,
-          details: newDetails,
-          techSpecification: updatedTechSpec,
-          history: (freshData.historial || []).map((h) => ({
-            status: h.estado,
-            date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-            user: h.user || h.id_usuario || 'Sistema',
-            motivo: h.motivo,
-          })),
-          rawData: freshData,
-        };
-      });
-      setAddRefOpen(false);
-      setNewRef({ cantidad: "", color: "" });
-      setAddRefError("");
-    } catch (err) {
-      console.error("Error al agregar referencia:", err);
-      setAddRefError("No se pudo agregar el artículo. Intenta de nuevo.");
-    }
+    if (isSavingRef) return;
+
+    // Pedir confirmación antes de guardar
+    openProductionAlert({
+      type: "confirm",
+      customTitle: "Agregar artículo",
+      customMessage: `¿Confirmas agregar ${newRef.cantidad} uds de color "${newRef.color}" a la orden?`,
+      onConfirmOverride: async () => {
+        setIsSavingRef(true);
+        try {
+          // ✅ Guardar el color usado, igual que hace ProductionForm al crear la orden
+          saveProductionColor(newRef.color.trim());
+          await ProductionAPIClient.createOrderDetail({
+            id_orden: production.id,
+            id_producto: production.referencia,
+            cantidad: Number(newRef.cantidad),
+            color: newRef.color,
+          });
+          const freshData = await ProductionAPIClient.getOrderById(production.id);
+          const today = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          const newDetails = (freshData.detalles || []).map((d) => ({
+            id: d.id || d._id,
+            refCorte: d.refCorte || d.id_producto || '',
+            ref: d.id_producto || '',
+            quantity: d.cantidad || 0,
+            color: d.color || '—',
+            status: freshData.estado || production.status,
+            statusDate: today,
+            estado: d.estado !== false,
+          }));
+          const updatedTechSpec = await persistRecalculatedCosts(newDetails, production.techSpecification);
+          setProduction((prev) => ({
+            ...prev,
+            details: newDetails,
+            techSpecification: updatedTechSpec,
+            history: (freshData.historial || []).map((h) => ({
+              status: h.estado,
+              date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+              user: h.user || h.id_usuario || 'Sistema',
+              motivo: h.motivo,
+            })),
+            rawData: freshData,
+          }));
+          setAddRefOpen(false);
+          setNewRef({ cantidad: "", color: "" });
+          setAddRefError("");
+          setGlobalAlert({ open: true, type: "success", title: "Artículo agregado", message: `Se agregaron ${newRef.cantidad} uds de color "${newRef.color}" correctamente.` });
+        } catch (err) {
+          console.error("Error al agregar referencia:", err);
+          setAddRefError("No se pudo agregar el artículo. Intenta de nuevo.");
+        } finally {
+          setIsSavingRef(false);
+        }
+      },
+    });
   };
 
   const anuladaEntry = (production.history || []).findLast?.(h => h.status === "Anulada") || [...(production.history || [])].reverse().find(h => h.status === "Anulada");
@@ -712,24 +774,29 @@ const ProductionDetailsPage = () => {
               });
             }, 800);
           } else {
+            const newDetails = (remainingDetails || []).map((d) => ({
+              id: d.id || d._id,
+              refCorte: d.refCorte || d.id_producto || '',
+              ref: d.id_producto || '',
+              quantity: d.cantidad || 0,
+              color: d.color || '—',
+              status: freshData.estado,
+              statusDate,
+              estado: d.estado !== false,
+            }));
+            const updatedTechSpec = await persistRecalculatedCosts(newDetails, production.techSpecification);
+
             setProduction((prev) => {
-              const newDetails = (remainingDetails || []).map((d) => ({
-                id: d.id || d._id,
-                refCorte: d.refCorte || d.id_producto || '',
-                ref: d.id_producto || '',
-                quantity: d.cantidad || 0,
-                color: d.color || '—',
-                status: freshData.estado,
-                statusDate,
-                estado: d.estado !== false,
-              }));
-              // ✅ Restar del costo total de la producción al eliminar un producto:
-              // recalcular techSpecification.totalCost en base a la cantidad restante
-              const updatedTechSpec = recalcCosts(newDetails, prev.techSpecification);
               return {
                 ...prev,
                 details: newDetails,
                 techSpecification: updatedTechSpec,
+                history: (freshData.historial || []).map((h) => ({
+                  status: h.estado,
+                  date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+                  user: h.user || h.id_usuario || 'Sistema',
+                  motivo: h.motivo,
+                })),
                 rawData: freshData,
               };
             });
@@ -953,8 +1020,8 @@ const ProductionDetailsPage = () => {
                 style={{ flex: 1, padding: "9px 0", borderRadius: 9, border: "1.5px solid #e5e7eb", background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
-              <button onClick={handleSaveRef} className="pd-btn-primary" style={{ flex: 1, justifyContent: "center", padding: "9px 0" }}>
-                Guardar
+              <button onClick={handleSaveRef} disabled={isSavingRef} className="pd-btn-primary" style={{ flex: 1, justifyContent: "center", padding: "9px 0", opacity: isSavingRef ? 0.6 : 1, cursor: isSavingRef ? "not-allowed" : "pointer" }}>
+                {isSavingRef ? "Guardando..." : "Guardar"}
               </button>
             </div>
           </div>
@@ -1118,7 +1185,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} />
+               <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} productImage={production.productImage} />
             </div>
           </div>
         </div>
@@ -1161,7 +1228,7 @@ const ProductionDetailsPage = () => {
                       const costPerUnit = (production.productoPrecio > 0)
                         ? production.productoPrecio
                         : (Number(techSheetDraft.costPerUnit) || 0);
-                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: techSheetDraft.version || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
+                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: (techSheetDraft.versiones ?? techSheetDraft.version) || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
                       await ProductionAPIClient.updateOrder(production.id, {
                         ...production, techSpecification: newSpec
                       });
@@ -1185,7 +1252,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} />
+              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} />
             </div>
           </div>
         </div>
@@ -1514,7 +1581,18 @@ const ProductionDetailsPage = () => {
                   {sortBySize(production.details).map((d, i) => (
                     <tr key={i} style={{ borderBottom: "1px solid #f9fafb" }}>
                       <td style={{ padding: "7px 8px 7px 0" }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#111827", whiteSpace: "nowrap" }}>{d.refCorte}</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#111827", whiteSpace: "nowrap" }}>
+                          {(() => {
+                            const rc = d.refCorte || "";
+                            const lastDash = rc.lastIndexOf("-");
+                            if (lastDash > 0) {
+                              const ref = rc.substring(0, lastDash);
+                              const num = rc.substring(lastDash + 1);
+                              return `${ref} - ${num}`;
+                            }
+                            return rc;
+                          })()}
+                        </span>
                       </td>
                       <td style={{ padding: "7px 8px 7px 0" }}>
                         <span style={{ fontSize: 11.5, color: "#374151", whiteSpace: "nowrap" }}>{d.quantity} <span style={{ color: "#9ca3af", fontSize: 10 }}>uds</span></span>

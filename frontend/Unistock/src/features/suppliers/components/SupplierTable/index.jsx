@@ -1,29 +1,24 @@
-import React, { useState } from "react";
+import React from "react";
 import HoverCard from "../../../shared/components/HoverCart";
 
+const truncate = (text, max = 18) => {
+  if (!text) return { text: "", truncated: false };
+  const truncated = text.length > max;
+  return { text: truncated ? text.slice(0, max) + "..." : text, truncated };
+};
+
 const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) => {
-
-
-  const truncate = (text, max = 18) => {
-    if (!text) return "";
-    return text.length > max ? text.slice(0, max) + "..." : text;
-  };
 
   const thStyle = {
     padding: "14px 20px", textAlign: "left", fontSize: "13px",
     fontWeight: "500", color: "#888", borderBottom: "1px solid #f0f0f0",
-    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", backgroundColor: "#f5f5f5",
   };
   const tdStyle = {
     padding: "14px 20px", fontSize: "14px", color: "#333",
     borderBottom: "1px solid #f5f5f5",
-    // ✅ Fix: recortar con "…" en vez de desbordarse sobre la columna vecina
     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
   };
-  // ✅ Fix: la columna de Acciones contiene íconos y el interruptor de
-  // estado, no texto — nunca debe recortarse con overflow:hidden, o el
-  // switch se ve cortado visualmente.
   const tdActionsStyle = { ...tdStyle, overflow: "visible", textOverflow: "clip" };
 
   if (suppliers.length === 0) {
@@ -46,8 +41,6 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                 <th style={{ ...thStyle, width: "24%" }}>Nombre de empresa</th>
                 <th style={{ ...thStyle, width: "20%" }}>Nombre de contacto</th>
                 <th style={{ ...thStyle, width: "22%" }}>Dirección</th>
-                {/* ✅ Fix: ancho mínimo fijo (no porcentual) para que el
-                    switch y los íconos siempre tengan espacio suficiente */}
                 <th style={{ ...thStyle, width: "130px", overflow: "visible" }}>Acciones</th>
               </tr>
             </thead>
@@ -62,29 +55,44 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                     onClick={() => onView?.(supplier)}
                   >
                     <td style={tdStyle}>
-                      <HoverCard title="Información proveedor" fields={[{ label: "NIT", value: supplier.nit, highlight: true }]}>
-                        {truncate(supplier.nit)}
-                      </HoverCard>
+                      {(() => { const { text, truncated } = truncate(supplier.nit); return truncated ? (
+                        <HoverCard title="Información proveedor" fields={[{ label: "NIT", value: supplier.nit, highlight: true }]}>
+                          <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                        </HoverCard>
+                      ) : (
+                        <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                      ); })()}
+                    </td>
+                    <td style={tdStyle}> 
+                      {(() => { const { text, truncated } = truncate(supplier.nombreEmpresa); return truncated ? (
+                        <HoverCard title="Información proveedor" fields={[{ label: "Empresa", value: supplier.nombreEmpresa, highlight: true }]}>
+                          <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                        </HoverCard>
+                      ) : (
+                        <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                      ); })()}
                     </td>
                     <td style={tdStyle}>
-                      <HoverCard title="Información proveedor" fields={[{ label: "Empresa", value: supplier.nombreEmpresa, highlight: true }]}>
-                        {truncate(supplier.nombreEmpresa)}
-                      </HoverCard>
+                      {(() => { const { text, truncated } = truncate(supplier.nombreContacto); return truncated ? (
+                        <HoverCard title="Información proveedor" fields={[{ label: "Contacto", value: supplier.nombreContacto }]}>
+                          <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                        </HoverCard>
+                      ) : (
+                        <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                      ); })()}
                     </td>
                     <td style={tdStyle}>
-                      <HoverCard title="Información proveedor" fields={[{ label: "Contacto", value: supplier.nombreContacto }]}>
-                        {truncate(supplier.nombreContacto)}
-                      </HoverCard>
-                    </td>
-                    <td style={tdStyle}>
-                      <HoverCard title="Información proveedor" fields={[{ label: "Dirección", value: supplier.direccion }]}>
-                        {truncate(supplier.direccion)}
-                      </HoverCard>
+                      {(() => { const { text, truncated } = truncate(supplier.direccion); return truncated ? (
+                        <HoverCard title="Información proveedor" fields={[{ label: "Dirección", value: supplier.direccion }]}>
+                          <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                        </HoverCard>
+                      ) : (
+                        <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
+                      ); })()}
                     </td>
                     <td style={tdActionsStyle} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
-                        {/* VER */}
                         <button onClick={(e) => { e.stopPropagation(); onView?.(supplier); }} title="Ver detalle"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
@@ -94,7 +102,6 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                           </svg>
                         </button>
 
-                        {/* EDITAR */}
                         <button onClick={(e) => { e.stopPropagation(); onEdit?.(supplier); }} title="Editar proveedor"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
@@ -105,7 +112,6 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                           </svg>
                         </button>
 
-                        {/* ELIMINAR */}
                         <button onClick={(e) => { e.stopPropagation(); onDelete?.(supplier.id); }} title="Eliminar proveedor"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
@@ -117,7 +123,6 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                           </svg>
                         </button>
 
-                        {/* SWITCH — delega al padre para evitar doble alerta */}
                         <button
                           onClick={(e) => { e.stopPropagation(); onToggle?.(supplier.id, !isActive); }}
                           title={isActive ? "Inactivar proveedor" : "Activar proveedor"}
@@ -134,7 +139,6 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
           </table>
         </div>
       </div>
-
 
     </>
   );

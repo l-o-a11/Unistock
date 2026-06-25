@@ -7,7 +7,7 @@ import { AuthAPI } from '../../../auth/services/AuthAPI';
 import { useAuthContext } from '../../../shared/AuthContext';
 
 const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
-  const { versions, currentVersion, loadVersions, createVersion, deleteLastVersion, editVersion } = useTechnicalSheet(product?.id);
+  const { versions, currentVersion, loadVersions, createVersion, deleteLastVersion } = useTechnicalSheet(product?.id);
   // ✅ Se necesita el usuario actual para validar la contraseña al eliminar
   const { user: currentUser } = useAuthContext();
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -39,11 +39,6 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
     setShowVersions(false);
     setIsEditingMode(false);
     setEditDraft(null);
-  };
-
-  const handleStartEdit = () => {
-    setEditDraft({ ...currentVersionObj });
-    setIsEditingMode(true);
   };
 
   const handleCancelEdit = () => {
@@ -171,7 +166,20 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
             {!isEditingMode && versions.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '14px', color: '#666' }}>
-                  Fecha versión {new Date(currentVersionObj?.date || new Date()).toLocaleDateString('es-CO')}
+                  Fecha versión {(() => {
+                    const raw = currentVersionObj?.date;
+                    if (!raw) return '—';
+                    const str = String(raw);
+                    let parsed;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                      const [y, m, d] = str.split('-').map(Number);
+                      parsed = new Date(y, m - 1, d);
+                    } else {
+                      parsed = new Date(raw);
+                    }
+                    const safe = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+                    return safe.toLocaleDateString('es-CO');
+                  })()}
                 </div>
                 <div style={{ position: 'relative' }}>
                   <div

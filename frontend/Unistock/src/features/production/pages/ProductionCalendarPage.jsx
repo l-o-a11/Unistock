@@ -65,7 +65,7 @@ const toFCEvent = (ev) => {
     backgroundColor: t.color,
     borderColor: t.color,
     textColor: '#fff',
-    extendedProps: { type: ev.type, orderId: ev.orderId, notes: ev.notes, rawId: ev.id },
+    extendedProps: { type: ev.type, orderId: ev.orderId, orderNum: ev.orderNum, notes: ev.notes, rawId: ev.id },
   };
 };
 
@@ -107,7 +107,7 @@ const getGoogleTokenGIS = async (loginHint = '') => {
 const createGCalEvent = async (token, ev) => {
   const body = {
     summary: ev.title,
-    description: `Proceso: ${getEventType(ev.type).label || ev.type}${ev.orderId ? ` | Orden #${ev.orderId}` : ''}${ev.notes ? `\n${ev.notes}` : ''}`,
+    description: `Proceso: ${getEventType(ev.type).label || ev.type}${ev.orderId ? ` | Orden #${ev.orderNum || ev.orderId}` : ''}${ev.notes ? `\n${ev.notes}` : ''}`,
     start: { date: ev.date }, end: { date: ev.date },
     colorId: getEventType(ev.type).gcalColor || '1',
   };
@@ -213,26 +213,26 @@ const ProductionCalendarPage = () => {
       const firstEntry = history[0];
       if (firstEntry) {
         const iso = ddmmyyyyToISO(firstEntry.date);
-        if (iso) generated.push({ id: `auto-${orderId}-creacion`, date: iso, type: 'creacion', title: `Orden #${orderNum} creada`, orderId, notes: `Cliente: ${prod.client || '—'} · Producto: ${prod.producto || prod.referencia || '—'}` });
+        if (iso) generated.push({ id: `auto-${orderId}-creacion`, date: iso, type: 'creacion', title: `Orden #${orderNum} creada`, orderId, orderNum, notes: `Cliente: ${prod.client || '—'} · Producto: ${prod.producto || prod.referencia || '—'}` });
       }
       const entregaISO = ddmmyyyyToISO(prod.deliveryDate);
-      if (entregaISO) generated.push({ id: `auto-${orderId}-entrega`, date: entregaISO, type: 'entrega', title: `Entrega orden #${orderNum}`, orderId, notes: `Cliente: ${prod.client || '—'}` });
+      if (entregaISO) generated.push({ id: `auto-${orderId}-entrega`, date: entregaISO, type: 'entrega', title: `Entrega orden #${orderNum}`, orderId, orderNum, notes: `Cliente: ${prod.client || '—'}` });
       history.forEach((h, idx) => {
         if (idx === 0) return;
         const dateISO = ddmmyyyyToISO(h.date);
         if (!dateISO) return;
-        generated.push({ id: `auto-${orderId}-hist-${idx}`, date: dateISO, type: statusToEventType(h.status), title: `${h.status} — #${orderNum}`, orderId, notes: h.motivo || (h.user ? `Por: ${h.user}` : '') });
+        generated.push({ id: `auto-${orderId}-hist-${idx}`, date: dateISO, type: statusToEventType(h.status), title: `${h.status} — #${orderNum}`, orderId, orderNum, notes: h.motivo || (h.user ? `Por: ${h.user}` : '') });
       });
       if (prod.status && prod.statusDate) {
         const statusDateISO = ddmmyyyyToISO(prod.statusDate);
         const covered = history.some(h => ddmmyyyyToISO(h.date) === statusDateISO && h.status === prod.status);
-        if (statusDateISO && !covered) generated.push({ id: `auto-${orderId}-status`, date: statusDateISO, type: statusToEventType(prod.status), title: `${prod.status} — #${orderNum}`, orderId, notes: `Estado actual · Cliente: ${prod.client || '—'}` });
+        if (statusDateISO && !covered) generated.push({ id: `auto-${orderId}-status`, date: statusDateISO, type: statusToEventType(prod.status), title: `${prod.status} — #${orderNum}`, orderId, orderNum, notes: `Estado actual · Cliente: ${prod.client || '—'}` });
       }
       (prod.details || []).forEach((det, idx) => {
         const detISO = ddmmyyyyToISO(det.statusDate);
         if (!detISO || !det.status) return;
         const covered = generated.some(g => g.orderId === orderId && g.date === detISO && g.title.startsWith(det.status));
-        if (!covered) generated.push({ id: `auto-${orderId}-det-${idx}`, date: detISO, type: statusToEventType(det.status), title: `${det.status} ref.${det.ref || idx + 1} — #${orderNum}`, orderId, notes: [det.color && `Color: ${det.color}`, det.quantity && `${det.quantity} uds`].filter(Boolean).join(' · ') });
+        if (!covered) generated.push({ id: `auto-${orderId}-det-${idx}`, date: detISO, type: statusToEventType(det.status), title: `${det.status} ref.${det.ref || idx + 1} — #${orderNum}`, orderId, orderNum, notes: [det.color && `Color: ${det.color}`, det.quantity && `${det.quantity} uds`].filter(Boolean).join(' · ') });
       });
     });
     setEvents(prev => { const manual = prev.filter(e => !String(e.id).startsWith('auto-')); return [...manual, ...generated]; });
@@ -350,7 +350,7 @@ const ProductionCalendarPage = () => {
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1f2937' }}>{event.title}</h2>
-                  <p style={{ margin: '3px 0 0', fontSize: 12, color: '#9ca3af' }}>{formatDateES(event.date)}{event.orderId ? ` · Orden #${event.orderId}` : ''}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: '#9ca3af' }}>{formatDateES(event.date)}{event.orderId ? ` · Orden #${event.orderNum || event.orderId}` : ''}</p>
                 </div>
               </div>
               <TypeBadge type={event.type} size="lg" />
@@ -360,7 +360,7 @@ const ProductionCalendarPage = () => {
             <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#374151' }}>Información del evento</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-                {[['Fecha', formatDateES(event.date)], ['Proceso', getEventType(event.type).label || '—'], ['Orden', event.orderId ? `#${event.orderId}` : '—'], ['ID evento', `EVT-${event.id}`]].map(([label, value]) => (
+                {[['Fecha', formatDateES(event.date)], ['Proceso', getEventType(event.type).label || '—'], ['Orden', event.orderNum ? `#${event.orderNum}` : event.orderId ? `#${event.orderId}` : '—']].map(([label, value]) => (      //aqui
                   <div key={label}>
                     <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{label}</span>
                     <span style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>{value || '—'}</span>
@@ -389,7 +389,7 @@ const ProductionCalendarPage = () => {
               {event.orderId && (
                 <button onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`, { state: { from: 'calendar' } }); }}
                   style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', background: '#FF4FD6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 12px rgba(255,79,214,0.3)' }}>
-                  Ver orden #{event.orderId} →
+                   Ver orden #{event.orderNum || event.orderId} →
                 </button>
               )}
             </div>
@@ -410,7 +410,7 @@ const ProductionCalendarPage = () => {
   // Modal de eventos de una fecha
   const DateEventsModal = ({ dateStr, onClose }) => {
     const evs = dateEvents;
-    const openAdd = () => { onClose(); setAddModal({ open: true, dateStr }); setNewEvent({ type: 'creacion', title: '', orderId: '', notes: '' }); };
+    const openAdd = () => { onClose(); setAddModal({ open: true, dateStr }); setNewEvent({ type: 'creacion', title: '', notes: '' }); };
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
         <div style={{ background: '#f6f6f8', borderRadius: 20, width: 'calc(100vw - 24px)', maxWidth: 580, maxHeight: '85vh', boxShadow: '0 24px 60px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
@@ -467,7 +467,7 @@ const ProductionCalendarPage = () => {
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
                           <TypeBadge type={ev.type} />
-                          {ev.orderId && <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '2px 8px', borderRadius: 8 }}>Orden #{ev.orderId}</span>}
+                          {ev.orderId && <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '2px 8px', borderRadius: 8 }}>Orden #{ev.orderNum || ev.orderId}</span>}
                         </div>
                         {ev.notes && <p style={{ margin: '5px 0 0', fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.notes}</p>}
                       </div>
@@ -545,9 +545,7 @@ const ProductionCalendarPage = () => {
             <div style={{ padding: '16px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 {[
-                  { label: 'Proceso / Tipo', field: 'type', type: 'select' },
                   { label: 'Título *', field: 'title', placeholder: 'Ej: Inicio producción orden 23' },
-                  { label: 'Orden (ID)', field: 'orderId', placeholder: 'Ej: 21', numeric: true },
                   { label: 'Notas', field: 'notes', placeholder: 'Observaciones...' },
                 ].map(({ label, field, type, placeholder, numeric }) => (
                   <div key={field} style={{ marginBottom: 12 }}>

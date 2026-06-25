@@ -1,208 +1,217 @@
 import React from "react";
 
-// ✅ Fix #3: JSX corregido y contenido completo del detalle del proveedor
+// ─────────────────────────────────────────────────────────────────────────────
+// BADGE DE ESTADO — patrón ShoppingDetail
+// ─────────────────────────────────────────────────────────────────────────────
+const EstadoBadge = ({ activo }) => (
+  <span style={{
+    display: "inline-block", padding: "3px 10px", borderRadius: 20,
+    fontSize: 11, fontWeight: 600, letterSpacing: "0.03em",
+    background: activo ? "#e8f5e9" : "#f3f4f6",
+    color:      activo ? "#27ae60" : "#6b7280",
+  }}>
+    {activo ? "Activo" : "Inactivo"}
+  </span>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTILOS BASE — alineados con ShoppingDetail
+// ─────────────────────────────────────────────────────────────────────────────
+const labelStyle = {
+  fontSize: 11, color: "#bbb", marginBottom: 4,
+  display: "block", letterSpacing: "0.04em",
+  textTransform: "uppercase",
+};
+
+const valueStyle = {
+  fontSize: 14, color: "#111", fontWeight: 500,
+  margin: 0, wordBreak: "break-word", overflowWrap: "anywhere",
+};
+
+const fieldBox = { display: "flex", flexDirection: "column", gap: 2 };
+
+const divider = { borderBottom: "1px solid #f0f0f0", margin: "16px 0" };
+
+// Título de subsección con ícono — patrón consistente con ShoppingDetail
+const SectionLabel = ({ icon, children }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+    {icon}
+    <span style={{ fontSize: 11, fontWeight: 700, color: "#aaa", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+      {children}
+    </span>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 const SupplierDetail = ({ supplier, onClose, onEdit }) => {
   if (!supplier) return null;
 
   const isActive = supplier.estado !== false;
 
-  const labelStyle = {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "#190202",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    marginBottom: "2px",
-  };
-
-  const valueStyle = {
-    fontSize: "14px",
-    color: "#222",
-    margin: 0,
-    wordBreak: "break-word",
-    overflowWrap: "anywhere",
-  };
-
-  const fieldBox = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-  };
-
-  const divider = {
-    borderBottom: "1px solid #f0f0f0",
-    margin: "16px 0",
-  };
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
+    <div
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0, 0, 0, 0.25)",
+        backdropFilter: "blur(3px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 1000, padding: 16,
+      }}
+      onClick={onClose}
+    >
       <div
-        className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div
-          className="relative bg-white rounded-xl shadow-2xl"
-          style={{ width: "100%", maxWidth: "580px", overflow: "hidden" }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              background: "linear-gradient(135deg, #FF4FD6, #FF4FD6)",
-              borderRadius: "12px 12px 0 0",
-              padding: "20px 24px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#fff", borderRadius: 14,
+          width: "100%", maxWidth: 580,
+          maxHeight: "90vh", overflowY: "auto",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          scrollbarGutter: "stable",
+        }}
+      >
+        {/* ── Header — patrón ShoppingDetail ── */}
+        <div style={{
+          display: "flex", justifyContent: "", alignItems: "center",
+          padding: "20px 16px", borderBottom: "1px solid #f0f0f0",
+        }}><div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: "#ff4fd6",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                  <line x1="12" y1="12" x2="12" y2="16"/>
+                  <line x1="8"  y1="12" x2="8"  y2="12.01"/>
+                  <line x1="16" y1="12" x2="16" y2="12.01"/>
                 </svg>
-              </span>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#fff" }}>
-                Detalle del Proveedor
-              </h3>
+              </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <h2 style={{ margin: "10px", fontSize: 17, fontWeight: 700, color: "#111" }}>
+              Detalle del proveedor
+            </h2>
+            <EstadoBadge activo={isActive} />
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 20, lineHeight: 1, padding: "2px 6px", borderRadius: 6, marginLeft: "auto" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#555")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* ── Body ── */}
+        <div style={{ padding: "20px 24px" }}>
+
+          {/* Nombre empresa grande + badge */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+            <div>
+              <span style={labelStyle}>Empresa</span>
+              <p style={{ ...valueStyle, fontSize: 18, fontWeight: 700 }}>
+                {supplier.nombreEmpresa}
+              </p>
             </div>
-            <button
-              onClick={onClose}
-              style={{
-                background: "rgba(255,255,255,0.2)",
-                border: "none",
-                borderRadius: "50%",
-                width: "30px",
-                height: "30px",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: "14px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              ✕
-            </button>
+            {/* NIT pill — pink, igual que badge de NIT en edición del form */}
+            {supplier.nit && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: "#ff4fd6",
+                background: "#fff0fb", padding: "3px 10px",
+                borderRadius: 20, border: "1px solid #f9a8d4",
+                whiteSpace: "nowrap", marginTop: 2,
+              }}>
+                NIT: {supplier.nit}
+              </span>
+            )}
           </div>
 
-          {/* Body */}
-          <div style={{ padding: "24px" }}>
+          <div style={divider} />
 
-            {/* Nombre empresa + estado */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
-              <div>
-                <p style={{ ...labelStyle }}>Empresa</p>
-                <p style={{ ...valueStyle, fontSize: "18px", fontWeight: "700", wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                  {supplier.nombreEmpresa}
-                </p>
-              </div>
-              <span
-                style={{
-                  padding: "4px 12px",
-                  borderRadius: "20px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  backgroundColor: isActive ? "#dcfce7" : "#f3f4f6",
-                  color: isActive ? "#16a34a" : "#6b7280",
-                }}
-              >
-                {isActive ? "Activo" : "Inactivo"}
-              </span>
+          {/* ── Información de la empresa ── */}
+          <SectionLabel icon={
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+            </svg>
+          }>
+            Información de la empresa
+          </SectionLabel>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 4 }}>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Dirección</span>
+              <p style={valueStyle}>{supplier.direccion || "—"}</p>
             </div>
-
-            <div style={divider} />
-
-            {/* Datos empresa */}
-            <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:12 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
-              </svg>
-              <p style={{ ...labelStyle, margin:0 }}>Información de la empresa</p>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Correo empresa</span>
+              <p style={valueStyle}>{supplier.correoEmpresa || supplier.email || "—"}</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "4px" }}>
-              <div style={fieldBox}>
-                <span style={labelStyle}>NIT</span>
-                <p style={valueStyle}>{supplier.nit}</p>
-              </div>
-              <div style={fieldBox}>
-                <span style={labelStyle}>Dirección</span>
-                <p style={valueStyle}>{supplier.direccion || "—"}</p>
-              </div>
-              <div style={fieldBox}>
-                <span style={labelStyle}>Correo empresa</span>
-                <p style={valueStyle}>{supplier.correoEmpresa || supplier.email || "—"}</p>
-              </div>
-              <div style={fieldBox}>
-                <span style={labelStyle}>Sitio web</span>
-                <p style={{ ...valueStyle, wordBreak:"break-all", overflowWrap:"anywhere" }}>
-                  {supplier.sitioWeb || supplier.sitioweb
-                    ? <a href={supplier.sitioWeb || supplier.sitioweb} target="_blank" rel="noreferrer"
-                        style={{ color:"#FF4FD6", fontSize:12, display:"block", wordBreak:"break-all", overflowWrap:"anywhere" }}
-                        title={supplier.sitioWeb || supplier.sitioweb}>
-                        {supplier.sitioWeb || supplier.sitioweb}
-                      </a>
-                    : "—"
-                  }
-                </p>
-              </div>
-            </div>
-
-            <div style={divider} />
-
-            {/* Datos contacto */}
-            <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:12 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-              <p style={{ ...labelStyle, margin:0 }}>Contacto</p>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={fieldBox}>
-                <span style={labelStyle}>Nombre</span>
-                <p style={valueStyle}>{supplier.nombreContacto || "—"}</p>
-              </div>
-              <div style={fieldBox}>
-                <span style={labelStyle}>Teléfono</span>
-                <p style={valueStyle}>{supplier.telefono || "—"}</p>
-              </div>
-              <div style={fieldBox}>
-                <span style={labelStyle}>Correo contacto</span>
-                <p style={valueStyle}>{supplier.correoContacto || "—"}</p>
-              </div>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Sitio web</span>
+              {supplier.sitioWeb || supplier.sitioweb ? (
+                <a
+                  href={supplier.sitioWeb || supplier.sitioweb}
+                  target="_blank" rel="noreferrer"
+                  style={{ ...valueStyle, color: "#FF4FD6", fontSize: 13, wordBreak: "break-all" }}
+                >
+                  {supplier.sitioWeb || supplier.sitioweb}
+                </a>
+              ) : (
+                <p style={valueStyle}>—</p>
+              )}
             </div>
           </div>
 
-          {/* Footer — solo Cerrar */}
-          <div
+          <div style={divider} />
+
+          {/* ── Persona de contacto ── */}
+          <SectionLabel icon={
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          }>
+            Persona de contacto
+          </SectionLabel>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Nombre</span>
+              <p style={valueStyle}>{supplier.nombreContacto || "—"}</p>
+            </div>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Teléfono</span>
+              <p style={valueStyle}>{supplier.telefono || "—"}</p>
+            </div>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Correo contacto</span>
+              <p style={valueStyle}>{supplier.correoContacto || "—"}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Footer — solo Cerrar, patrón ShoppingDetail ── */}
+        <div style={{
+          padding: "12px 24px",
+          borderTop: "1px solid #f0f0f0",
+          display: "flex", justifyContent: "flex-end", gap: 10,
+        }}>
+          
+          <button
+            onClick={onClose}
             style={{
-              padding: "16px 24px",
-              borderTop: "1px solid #f0f0f0",
-              display: "flex",
-              justifyContent: "flex-end",
-              borderRadius: "0 0 12px 12px",
+              padding: "8px 24px", borderRadius: 8, fontSize: 13,
+              fontWeight: 700, cursor: "pointer",
+              border: "none", background: "#ff4fd6", color: "#fff",
+              boxShadow: "0 4px 12px rgba(255,79,214,0.25)",
             }}
           >
-            <button
-              onClick={onClose}
-              style={{
-                padding: "9px 28px",
-                border: "none",
-                borderRadius: "9px",
-                background: "#FF4FD6",
-                color: "#fff",
-                fontSize: "14px",
-                cursor: "pointer",
-                fontWeight: "700",
-                boxShadow: "0 4px 12px rgba(255,79,214,0.3)",
-              }}
-            >
-              Cerrar
-            </button>
-          </div>
+            Cerrar
+          </button>
         </div>
       </div>
     </div>

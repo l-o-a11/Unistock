@@ -7,7 +7,7 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
 
   const thStyle = {
     padding: isMobile ? '10px 12px' : '14px 20px',
-    textAlign: 'left',
+    textAlign: 'Left',
     fontSize: isMobile ? '12px' : '13px',
     fontWeight: '500',
     color: '#888',
@@ -61,7 +61,7 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
         <table style={{
           width: '100%',
           borderCollapse: 'collapse',
-          minWidth: isMobile ? '740px' : undefined,
+          minWidth: isMobile ? '800px' : undefined,
         }}>
           
           <thead>
@@ -111,29 +111,32 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
 
                 {/* DESCRIPCIÓN */}
                 <td style={tdStyle}>
-                  {needsHover(productCategory.description) ? (
+                  {needsHover(productCategory.descripcion) ? (
                     <HoverCard
-                      title="Información categoría"
+                      title="Descripción"
                       position="right"
                       fields={[
-                        { label: "Descripción", value: productCategory.description, highlight: true }
+                        { label: "Descripción", value: productCategory.descripcion, highlight: true }
                       ]}
                     >
-                      <span style={{ cursor: 'help' }}>
-                        {truncateText(productCategory.description, 25)}
+                      <span style={{ cursor: 'help', color: '#666' }}>
+                        {truncateText(productCategory.descripcion, 30)}
                       </span>
                     </HoverCard>
                   ) : (
-                    <span title={productCategory.description}>
-                      {truncateText(productCategory.description, 25)}
+                    <span title={productCategory.descripcion} style={{ color: '#666' }}>
+                      {productCategory.descripcion ? truncateText(productCategory.descripcion, 30) : '—'}
                     </span>
                   )}
                 </td>
 
-                {/* CANTIDAD */}
+                {/* CANTIDAD DE PRODUCTOS (suma de todos los stocks) */}
                 <td style={tdStyle}>
-                  <span style={{ color: '#666', fontSize: '14px' }}>
-                    {productCategory.productCount}
+                  <span style={{ 
+                    color: '#666',
+                    fontSize: '14px'
+                  }}>
+                    {productCategory.productCount || 0}
                   </span>
                 </td>
 

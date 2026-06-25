@@ -103,7 +103,11 @@ const sendWithPayloadFallback = async (endpoint, method, payloads) => {
 const toDateString = (value) => {
   if (!value) return null;
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toISOString().split("T")[0];
+  // ✅ Fix: si la fecha no es parseable, devolver null (no el valor crudo
+  // sin validar) para que SIEMPRE caiga en el fallback de hoy en toUiSheet.
+  // Antes, un valor inválido pasaba intacto hasta el modal, que al volver
+  // a hacer new Date(...) sobre él mostraba "Invalid Date" en pantalla.
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
 };
 
 const categoryNameFromId = (categoryId, categories = []) => {
@@ -196,7 +200,12 @@ const toUiSheet = (raw) => {
     id:            raw.id          ?? raw._id,
     productId:     raw.productId   ?? raw.id_producto ?? raw.id_productos,
     version:       raw.version     ?? raw.versiones   ?? 1,
-    date:          toDateString(raw.date ?? raw.fecha_inicio ?? raw.createdAt) ?? new Date().toISOString().split("T")[0],
+    // ✅ Fix: priorizar createdAt (timestamp real e inmutable de Mongo por
+    // documento) sobre fecha_inicio. fecha_inicio podía heredar la fecha de
+    // una versión anterior por un bug ya corregido en la creación, pero eso
+    // dejó datos viejos ya guardados con la fecha equivocada — createdAt
+    // siempre fue correcto por documento, sin importar ese bug.
+    date:          toDateString(raw.createdAt ?? raw.date ?? raw.fecha_inicio) ?? new Date().toISOString().split("T")[0],
     responsable,
     client:        raw.client      ?? responsable,
     ref:           raw.ref         ?? raw.reference   ?? "",
@@ -332,7 +341,9 @@ const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
   // Ignorar el campo raw para no mezclar datos viejos con nuevos
   const { raw: _raw, ...cleanSheetData } = sheetData;
   sheetData = cleanSheetData;
-  const date = toDateString(sheetData.date) || new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const date = toDateString(sheetData.date) || todayStr;
   const version = Number(sheetData.version ?? 1);
   // Usar || en vez de ?? para que string vacío "" también active el fallback
   const description = sheetData.description || sheetData.descripciones || sheetData.descripcion || sheetData.observations || "";

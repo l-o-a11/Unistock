@@ -167,7 +167,7 @@ const createGCalEvent = async (token, event) => {
   const dateStr = event.date; // YYYY-MM-DD
   const body = {
     summary:     event.title,
-    description: `Tipo: ${getEventType(event.type).label || event.type}${event.orderId ? ` | Orden #${event.orderId}` : ""}${event.notes ? `\n${event.notes}` : ""}`,
+    description: `Tipo: ${getEventType(event.type).label || event.type}${event.orderId ? ` | Orden #${event.orderNum || event.orderId}` : ""}${event.notes ? `\n${event.notes}` : ""}`,
     start: { date: dateStr },
     end:   { date: dateStr },
     colorId: event.type === "entrega" ? "10" : event.type === "calidad" ? "5" : "1",
@@ -252,6 +252,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
             type: "creacion",
             title: `Orden #${orderNum} creada`,
             orderId,
+            orderNum,
             notes: `Cliente: ${prod.client || "—"} · Producto: ${prod.producto || prod.referencia || "—"}`,
           });
         }
@@ -266,6 +267,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
           type: "entrega",
           title: `Entrega orden #${orderNum}`,
           orderId,
+          orderNum,
           notes: `Cliente: ${prod.client || "—"}`,
         });
       }
@@ -281,6 +283,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
           type: statusToEventType(h.status),
           title: `${h.status} — #${orderNum}`,
           orderId,
+          orderNum,
           notes: h.motivo || (h.user ? `Por: ${h.user}` : ""),
         });
       });
@@ -298,6 +301,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
             type: statusToEventType(prod.status),
             title: `${prod.status} — #${orderNum}`,
             orderId,
+            orderNum,
             notes: `Estado actual · Cliente: ${prod.client || "—"}`,
           });
         }
@@ -317,6 +321,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
             type: statusToEventType(det.status),
             title: `${det.status} ref.${det.ref || idx + 1} — #${orderNum}`,
             orderId,
+            orderNum,
             notes: [det.color && `Color: ${det.color}`, det.quantity && `${det.quantity} uds`].filter(Boolean).join(" · "),
           });
         }
@@ -404,22 +409,16 @@ export default function ProduccionCalendario({ productions: productionsProp = []
   const matchesSearch = (ev) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase().trim();
-    // Modo orden: busca por ID numérico o "#número" en el título
-    if (searchMode === "orden")   return String(ev.orderId || "").includes(q) || ev.title.toLowerCase().includes(`#${q}`);
-    // Modo proceso: busca en la etiqueta del tipo o en el key del tipo
-    if (searchMode === "proceso") return (getEventType(ev.type).label?.toLowerCase() || "").includes(q) || ev.type.toLowerCase().includes(q);
-    // Modo fecha: acepta YYYY-MM-DD o DD/MM/YYYY para facilitar la búsqueda manual
-    if (searchMode === "fecha") {
-      const fechaFormateada = formatDateES(ev.date); // "DD/MM/YYYY"
-      return ev.date.includes(q) || fechaFormateada.includes(q);
-    }
-    // Modo todo: busca en título, orden, tipo, fecha ISO y fecha formateada
+    const num = String(ev.orderNum || ev.orderId || "");
+    const fechaFormateada = formatDateES(ev.date);
     return (
+      num.includes(q) ||
       ev.title.toLowerCase().includes(q) ||
-      String(ev.orderId || "").includes(q) ||
-      (getEventType(ev.type).label?.toLowerCase() || "").includes(q) ||
       ev.date.includes(q) ||
-      formatDateES(ev.date).includes(q)
+      fechaFormateada.includes(q) ||
+      (getEventType(ev.type).label?.toLowerCase() || "").includes(q) ||
+      ev.type.toLowerCase().includes(q) ||
+      (ev.notes || "").toLowerCase().includes(q)
     );
   };
 
@@ -451,12 +450,15 @@ export default function ProduccionCalendario({ productions: productionsProp = []
     setAddModal({ open: false, day: null });
     // Si está conectado a Google Calendar, agregar el evento automáticamente
     if (gcalConnected) addToGoogleCalendar(ev);
+    showToast(`Evento "${ev.title}" agregado correctamente.`, "success");
   };
 
   const deleteEvent = (id) => {
+    const ev = events.find(e => e.id === id);
     setEvents(prev => prev.filter(e => e.id !== id));
     setSelectedEvent(null);
     setConfirmDelete(null);
+    if (ev) showToast(`Evento "${ev.title}" eliminado.`, "success");
   };
 
   // ── Cuadrícula ────────────────────────────────────────────────────────────
@@ -520,7 +522,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                   </h2>
                   {event.orderId && (
                     <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9ca3af" }}>
-                      Vinculado a Orden #{event.orderId}
+                      Vinculado a Orden #{event.orderNum || event.orderId}
                     </p>
                   )}
                 </div>
@@ -548,8 +550,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                 {[
                   ["Fecha",   formatDateES(event.date)],
                   ["Proceso", getEventType(event.type).label || event.type],
-                  ["Orden #", event.orderId ? `#${event.orderId}` : "—"],
-                  ["ID",      `EVT-${event.id}`],
+                  ...(event.orderId ? [["Orden #", `#${event.orderNum || event.orderId}`]] : []),
                 ].map(([label, val]) => (
                   <div key={label}>
                     <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
@@ -645,7 +646,19 @@ export default function ProduccionCalendario({ productions: productionsProp = []
 
               {event.orderId && (
                 <button
-                  onClick={() => { onClose(); navigate(`/layout/produccion/detalle/${event.orderId}`); }}
+                  onClick={() => {
+                    onClose();
+                    // Los eventos auto-generados tienen orderId = _id (string de Mongo).
+                    // Los manuales tienen orderId = numero_orden (número).
+                    // Si es numérico, buscamos el production cuyo orderNumber coincida.
+                    const isNumericId = typeof event.orderId === "number" || /^\d+$/.test(String(event.orderId));
+                    let targetId = event.orderId;
+                    if (isNumericId) {
+                      const match = productions.find(p => Number(p.orderNumber) === Number(event.orderId));
+                      if (match) targetId = match.id;
+                    }
+                    navigate(`/layout/produccion/detalle/${targetId}`);
+                  }}
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 12, border: "none",
                     // Color único sin gradiente
@@ -655,7 +668,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   }}
                 >
-                  Ver orden #{event.orderId} →
+                  Ver orden #{event.orderNum || event.orderId} →
                 </button>
               )}
             </div>
@@ -767,7 +780,7 @@ export default function ProduccionCalendario({ productions: productionsProp = []
                     options: Object.entries(EVENT_TYPES).map(([k, v]) => ({ value: k, label: v.label }))
                   },
                   { label: "Título del evento *", field: "title", placeholder: "Ej: Inicio producción orden 23" },
-                  { label: "Vincular a orden (ID)", field: "orderId", placeholder: "Ej: 21, 22...", numeric: true },
+                  { label: "N° de orden (ej: 21, 22...)", field: "orderId", placeholder: "Número de orden", numeric: true },
                   { label: "Notas", field: "notes", placeholder: "Observaciones adicionales..." },
                 ].map(({ label, field, type, options, placeholder, numeric }) => (
                   <div key={field} style={{ marginBottom: 12 }}>
@@ -892,30 +905,35 @@ export default function ProduccionCalendario({ productions: productionsProp = []
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
 
             {/* Búsqueda */}
-            <div style={{ display: "flex", border: "1.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
-              <select value={searchMode} onChange={e => setSearchMode(e.target.value)}
-                style={{ padding: "7px 8px", border: "none", borderRight: "1px solid #e5e7eb", fontSize: 11, outline: "none", background: "#f9fafb", color: "#374151", fontWeight: 700, cursor: "pointer" }}>
-                <option value="todo">Todo</option>
-                <option value="orden">Orden #</option>
-                <option value="proceso">Proceso</option>
-                <option value="fecha">Fecha</option>
-              </select>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                <svg style={{ position: "absolute", left: 9, pointerEvents: "none" }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input value={search} onChange={e => setSearch(e.target.value)}
-                  // Al presionar Enter en modo "fecha", navega al mes buscado
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder={searchMode === "orden" ? "Ej: 21..." : searchMode === "proceso" ? "Ej: corte..." : searchMode === "fecha" ? "2026-03 + Enter" : "Buscar"}
-                  style={{ paddingLeft: 28, paddingRight: search ? 26 : 10, paddingTop: 7, paddingBottom: 7, border: "none", fontSize: 12, outline: "none", width: 155, background: "transparent" }}
-                  onFocus={e => (e.target.parentElement.parentElement.style.borderColor = "#FF4FD6")}
-                  onBlur={e => (e.target.parentElement.parentElement.style.borderColor = "#e5e7eb")}
-                />
-                {search && (
-                  <button onClick={() => setSearch("")} style={{ position: "absolute", right: 6, border: "none", background: "none", cursor: "pointer", color: "#9ca3af", fontSize: 17, lineHeight: 1, padding: 0 }}>×</button>
-                )}
-              </div>
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                border: "1.5px solid #e5e7eb", borderRadius: 12,
+                padding: "8px 14px", background: "#fff",
+                width: 260, boxSizing: "border-box",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                transition: "border-color 0.15s",
+              }}
+              onFocusCapture={e => e.currentTarget.style.borderColor = "#FF4FD6"}
+              onBlurCapture={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Buscar evento..."
+                style={{
+                  border: "none", outline: "none",
+                  fontSize: 13, color: "#374151",
+                  background: "transparent", width: "100%",
+                }}
+              />
+              {search && (
+                <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "#9ca3af", fontSize: 17, lineHeight: 1 }}>×</button>
+              )}
             </div>
 
             {/* Toggle vista */}
