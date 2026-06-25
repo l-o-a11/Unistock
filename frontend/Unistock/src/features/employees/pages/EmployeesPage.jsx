@@ -8,6 +8,7 @@ import EmployeeForm from "../components/EmployeeForm/index.jsx";
 import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
 import SearchInput from "../../shared/components/SearchInput";
 import Alert from "../../shared/components/Alert";
+import { userAPI } from "../../users/services/usersAPI";
 
 const EmployeesPage = () => {
   const {
@@ -21,11 +22,11 @@ const EmployeesPage = () => {
   const { roles } = useRoles();
   const { sedes } = useSedes();
 
-  // Filtrar roles: excluir Gerente y Admin para mostrar en el selector
+  // Filtrar roles: excluir Gerente, Admin y Administrador (cualquier capitalización)
+  const ROLES_EXCLUIDOS_FORM = ["gerente", "admin", "administrador"];
   const rolesDisponibles = roles.filter(
     (r) =>
-      r.nombre !== "Gerente" &&
-      r.nombre !== "Administrador" &&
+      !ROLES_EXCLUIDOS_FORM.includes(r.nombre?.toLowerCase().trim()) &&
       r.estado !== false,
   );
 
@@ -109,32 +110,39 @@ const EmployeesPage = () => {
     });
   };
 
-  // 🗑️ ELIMINAR CON CONTRASEÑA (igual que UsersPage)
+  // 🗑️ ELIMINAR CON CONTRASEÑA REAL (validada en backend)
   const handleDelete = (id) => {
     setAlertConfig({
       open: true,
       type: "password",
       title: "Eliminar empleado",
       message:
-        "Esta acción no se puede deshacer. Ingresa la contraseña de administrador para confirmar.",
-      onConfirm: async () => {
+        "Esta acción no se puede deshacer. Ingresa tu contraseña para confirmar.",
+      onConfirm: async (pwd) => {
+        try {
+          await userAPI.verifyPassword(pwd);
+        } catch (verifyErr) {
+          const msg = verifyErr?.message || "";
+          if (msg.toLowerCase().includes("sesión") || msg.toLowerCase().includes("token")) {
+            setAlertConfig({ open: true, type: "error", title: "Sesión inválida", message: "Tu sesión expiró. Por favor inicia sesión de nuevo.", onConfirm: null });
+            setTimeout(() => { localStorage.removeItem("session_user"); window.location.href = "/login"; }, 2000);
+          } else {
+            setAlertConfig({ open: true, type: "error", title: "Contraseña incorrecta", message: "La contraseña ingresada no es válida.", onConfirm: null });
+          }
+          return;
+        }
         try {
           await deleteEmployee(id);
           closeAlert();
+          setAlertConfig({ open: true, type: "success", title: "Empleado eliminado", message: "El empleado fue eliminado correctamente.", onConfirm: null });
         } catch (e) {
-          setAlertConfig({
-            open: true,
-            type: "error",
-            title: "No se puede eliminar",
-            message: e.message,
-            onConfirm: null,
-          });
+          setAlertConfig({ open: true, type: "error", title: "No se puede eliminar", message: e.message, onConfirm: null });
         }
       },
     });
   };
 
-  // 🔁 ACTIVAR / DESACTIVAR CON CONTRASEÑA
+  // 🔁 ACTIVAR / DESACTIVAR CON CONTRASEÑA REAL
   const handleToggle = (id) => {
     const employee = employees.find((e) => String(e.id) === String(id));
     const isActive = employee?.estado !== false;
@@ -143,32 +151,44 @@ const EmployeesPage = () => {
       type: "password",
       title: isActive ? "Inactivar empleado" : "Activar empleado",
       message: isActive
-        ? "Para inactivar este empleado ingresa la contraseña de administrador."
-        : "Para activar este empleado ingresa la contraseña de administrador.",
-      onConfirm: () => {
+        ? "Para inactivar este empleado ingresa tu contraseña."
+        : "Para activar este empleado ingresa tu contraseña.",
+      onConfirm: async (pwd) => {
+        try {
+          await userAPI.verifyPassword(pwd);
+        } catch (verifyErr) {
+          const msg = verifyErr?.message || "";
+          if (msg.toLowerCase().includes("sesión") || msg.toLowerCase().includes("token")) {
+            setAlertConfig({ open: true, type: "error", title: "Sesión inválida", message: "Tu sesión expiró. Por favor inicia sesión de nuevo.", onConfirm: null });
+            setTimeout(() => { localStorage.removeItem("session_user"); window.location.href = "/login"; }, 2000);
+          } else {
+            setAlertConfig({ open: true, type: "error", title: "Contraseña incorrecta", message: "La contraseña ingresada no es válida.", onConfirm: null });
+          }
+          return;
+        }
         try {
           toggleEmployee(id);
           closeAlert();
-        } catch (e) {
           setAlertConfig({
-            open: true,
-            type: "error",
-            title: "No se puede cambiar el estado",
-            message: e.message,
+            open: true, type: "success",
+            title: isActive ? "Empleado inactivado" : "Empleado activado",
+            message: isActive ? "El empleado fue inactivado correctamente." : "El empleado fue activado correctamente.",
             onConfirm: null,
           });
+        } catch (e) {
+          setAlertConfig({ open: true, type: "error", title: "No se puede cambiar el estado", message: e.message, onConfirm: null });
         }
       },
     });
   };
 
-  // ➕ CREAR
+  // ➕ CREAR — deja que el error suba al EmployeeForm para mostrarlo allí
   const handleCreateSubmit = async (formData) => {
     await createEmployee(formData);
     setShowCreate(false);
   };
 
-  // ✏️ EDITAR
+  // ✏️ EDITAR — ídem
   const handleEditSubmit = async (formData) => {
     await updateEmployee(editEmployee.id, formData);
     setEditEmployee(null);

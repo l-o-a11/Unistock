@@ -9,8 +9,7 @@ import UserForm from '../components/UserForm/index.jsx';
 import AddUserButton from '../components/AddUserButton.jsx';
 import SearchInput from '../../shared/components/SearchInput';
 import Alert from '../../shared/components/Alert';
-
-const ADMIN_PASSWORD = "1234"; // TODO: validar en backend
+import { userAPI } from '../services/usersAPI';
 
 const UsersPage = () => {
   const { users, loading, createUser, updateUser, deleteUser, toggleUser } = useUsers();
@@ -82,10 +81,20 @@ const UsersPage = () => {
     setAlertConfig({
       open: true, type: 'password',
       title: 'Eliminar usuario',
-      message: `Para eliminar a "${target?.nombreCompleto}" ingresa tu contraseña de administrador. Esta acción no se puede deshacer.`,
+      message: `Para eliminar a "${target?.nombreCompleto}" ingresa tu contraseña. Esta acción no se puede deshacer.`,
       onConfirm: async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
-          showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
+        try {
+          await userAPI.verifyPassword(pwd);
+        } catch (verifyErr) {
+          // Si el 401 es de sesión inválida (token expirado o usuario no existe en BD),
+          // redirigir al login. Si es contraseña incorrecta, mostrar error inline.
+          const msg = verifyErr?.message || "";
+          if (msg.toLowerCase().includes("sesión") || msg.toLowerCase().includes("token")) {
+            showResult('error', 'Sesión inválida', 'Tu sesión expiró. Por favor inicia sesión de nuevo.');
+            setTimeout(() => { localStorage.removeItem("session_user"); window.location.href = "/login"; }, 2000);
+          } else {
+            showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
+          }
           return;
         }
         closeAlert();
@@ -106,11 +115,19 @@ const UsersPage = () => {
       open: true, type: 'password',
       title: isActive ? 'Inactivar usuario' : 'Activar usuario',
       message: isActive
-        ? `Para inactivar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`
-        : `Para activar a "${user?.nombreCompleto}" ingresa tu contraseña de administrador.`,
+        ? `Para inactivar a "${user?.nombreCompleto}" ingresa tu contraseña.`
+        : `Para activar a "${user?.nombreCompleto}" ingresa tu contraseña.`,
       onConfirm: async (pwd) => {
-        if (pwd !== ADMIN_PASSWORD) {
-          showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
+        try {
+          await userAPI.verifyPassword(pwd);
+        } catch (verifyErr) {
+          const msg = verifyErr?.message || "";
+          if (msg.toLowerCase().includes("sesión") || msg.toLowerCase().includes("token")) {
+            showResult('error', 'Sesión inválida', 'Tu sesión expiró. Por favor inicia sesión de nuevo.');
+            setTimeout(() => { localStorage.removeItem("session_user"); window.location.href = "/login"; }, 2000);
+          } else {
+            showResult('error', 'Contraseña incorrecta', 'La contraseña ingresada no es válida.');
+          }
           return;
         }
         closeAlert();

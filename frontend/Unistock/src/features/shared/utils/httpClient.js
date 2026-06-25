@@ -15,15 +15,49 @@ const getApiUrl = (endpoint) => (
 );
 
 /**
- * Limpia la sesión y redirige al login cuando el token es inválido/expirado
+ * Limpia la sesión, muestra una alerta visual y redirige al login
+ * cuando el token es inválido/expirado.
  */
-const clearSessionAndRedirect = () => {
+const clearSessionAndRedirect = (message = "Tu sesión ha expirado. Por favor inicia sesión de nuevo.") => {
   localStorage.removeItem("session_user");
   sessionStorage.removeItem("session_user");
+
   // Solo redirigir si no estamos ya en /login para evitar bucles
-  if (!window.location.pathname.includes("/login")) {
-    window.location.href = "/login";
+  if (window.location.pathname.includes("/login")) return;
+
+  // Inyectar un toast de sesión expirada antes del redirect.
+  // Se hace con DOM puro porque en este punto React puede ya no estar montado.
+  const existing = document.getElementById("__session_expired_toast__");
+  if (!existing) {
+    const toast = document.createElement("div");
+    toast.id = "__session_expired_toast__";
+    toast.innerHTML = `
+      <div style="
+        position:fixed; top:20px; right:20px; z-index:99999;
+        background:#fff; border-left:6px solid #ef4444;
+        border-radius:14px; padding:16px 20px 20px;
+        box-shadow:0 10px 25px rgba(0,0,0,0.13);
+        width:320px; font-family:Arial,sans-serif;
+        animation: __slideIn__ .3s ease forwards;
+      ">
+        <strong style="color:#111; font-size:14px;">⚠ Sesión finalizada</strong>
+        <p style="margin:6px 0 0; font-size:13px; color:#555; line-height:1.5;">${message}</p>
+        <div style="
+          position:absolute; bottom:0; left:0; height:4px; width:100%;
+          background:#ef4444; border-radius:0 0 14px 14px;
+          animation: __shrink__ 3s linear forwards;
+        "></div>
+      </div>
+      <style>
+        @keyframes __slideIn__ { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+        @keyframes __shrink__  { from{width:100%} to{width:0%} }
+      </style>
+    `;
+    document.body.appendChild(toast);
   }
+
+  // Redirigir después de que el usuario pueda leer la alerta (3 s)
+  setTimeout(() => { window.location.href = "/login"; }, 3000);
 };
 
 /**

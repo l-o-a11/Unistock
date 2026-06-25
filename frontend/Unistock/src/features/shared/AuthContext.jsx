@@ -87,7 +87,10 @@ const rolesMatchSession = (roles, session) => {
 };
 
 const fetchRolesCatalog = async (session) => {
-  const storedRoles = getRolesFromStorage();
+  let storedRoles = [];
+  try {
+    storedRoles = getRolesFromStorage();
+  } catch { storedRoles = []; }
 
   if (storedRoles.length > 0 && rolesMatchSession(storedRoles, session)) {
     return storedRoles.map(normalizeRole);
@@ -115,24 +118,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const cargarPermisos = async (session) => {
-    const roles = await fetchRolesCatalog(session);
-    const sessionRolId = session?.rolId;
-    const sessionRolNombre = session?.rolNombre?.toString().toLowerCase();
+    try {
+      const roles = await fetchRolesCatalog(session);
+      const sessionRolId = session?.rolId;
+      const sessionRolNombre = session?.rolNombre?.toString().toLowerCase();
 
-    const rol = roles.find((r) => {
-      if (String(r.id) === String(sessionRolId)) return true;
-      if (sessionRolNombre && String(r.nombre).toLowerCase() === sessionRolNombre) return true;
-      return false;
-    });
+      const rol = roles.find((r) => {
+        if (String(r.id) === String(sessionRolId)) return true;
+        if (sessionRolNombre && String(r.nombre).toLowerCase() === sessionRolNombre) return true;
+        return false;
+      });
 
-    let ids = [];
-    if (rol) {
-      ids = rol.modulos?.map((m) => m.moduloId) ?? [];
-      setPermisos(ids);
-    } else {
+      if (rol) {
+        const ids = rol.modulos?.map((m) => m.moduloId) ?? [];
+        setPermisos(ids);
+      } else {
+        setPermisos([]);
+      }
+    } catch (err) {
+      // Si falla la carga de roles (error de red, token inválido, etc.)
+      // no dejar loading=true para siempre — simplemente continuar sin permisos.
+      console.error("Error cargando permisos:", err);
       setPermisos([]);
+    } finally {
+      // SIEMPRE apagar el loading, sin importar si hubo error
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Carga sesión inicial desde localStorage
