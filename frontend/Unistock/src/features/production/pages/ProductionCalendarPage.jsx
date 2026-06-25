@@ -410,7 +410,7 @@ const ProductionCalendarPage = () => {
   // Modal de eventos de una fecha
   const DateEventsModal = ({ dateStr, onClose }) => {
     const evs = dateEvents;
-    const openAdd = () => { onClose(); setAddModal({ open: true, dateStr }); setNewEvent({ type: 'creacion', title: '', orderId: '', notes: '' }); };
+    const openAdd = () => { onClose(); setAddModal({ open: true, dateStr }); setNewEvent({ type: 'creacion', title: '', notes: '' }); };
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
         <div style={{ background: '#f6f6f8', borderRadius: 20, width: 'calc(100vw - 24px)', maxWidth: 580, maxHeight: '85vh', boxShadow: '0 24px 60px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
@@ -545,9 +545,7 @@ const ProductionCalendarPage = () => {
             <div style={{ padding: '16px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 {[
-                  { label: 'Proceso / Tipo', field: 'type', type: 'select' },
                   { label: 'Título *', field: 'title', placeholder: 'Ej: Inicio producción orden 23' },
-                  { label: 'Orden (ID)', field: 'orderId', placeholder: 'Ej: 21', numeric: true },
                   { label: 'Notas', field: 'notes', placeholder: 'Observaciones...' },
                 ].map(({ label, field, type, placeholder, numeric }) => (
                   <div key={field} style={{ marginBottom: 12 }}>
