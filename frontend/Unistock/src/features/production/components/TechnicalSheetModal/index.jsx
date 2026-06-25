@@ -114,7 +114,20 @@ const TechnicalSheetModal = ({ product, onClose }) => {
             {versions.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '14px', color: '#666' }}>
-                  Fecha versión {new Date(currentVersionObj?.date || new Date()).toLocaleDateString('es-CO')}
+                   Fecha versión {(() => {
+                     const raw = currentVersionObj?.date;
+                     if (!raw) return '—';
+                     const str = String(raw);
+                     let parsed;
+                     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                       const [y, m, d] = str.split('-').map(Number);
+                       parsed = new Date(y, m - 1, d);
+                     } else {
+                       parsed = new Date(raw);
+                     }
+                     const safe = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+                     return safe.toLocaleDateString('es-CO');
+                   })()}
                 </div>
                 <div style={{ position: 'relative' }}>
                   <div

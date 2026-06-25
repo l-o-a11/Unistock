@@ -275,6 +275,9 @@ const ProductionDetailsPage = () => {
           estado:     d.estado !== false,
         }));
         const techSpecification = recalcTechSpecCost(data.techSpecification || data.techSheet || null, mappedDetails, productoPrecio);
+        const productImage = (data.detalles && data.detalles.length > 0 && data.detalles[0].producto?.imagenes_Url?.length > 0)
+          ? data.detalles[0].producto.imagenes_Url[0]
+          : null;
 
         const mappedProduction = {
           id: data._id || data.id,
@@ -298,6 +301,7 @@ const ProductionDetailsPage = () => {
             ? (data.detalles[0].id_producto || '')
             : '',
           productoPrecio,
+          productImage,
           status: data.estado,
           estado: data.estado,
           deliveryDate: data.fecha_entrega
@@ -1181,7 +1185,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} />
+               <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} productImage={production.productImage} />
             </div>
           </div>
         </div>
@@ -1224,7 +1228,7 @@ const ProductionDetailsPage = () => {
                       const costPerUnit = (production.productoPrecio > 0)
                         ? production.productoPrecio
                         : (Number(techSheetDraft.costPerUnit) || 0);
-                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: techSheetDraft.version || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
+                      const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: (techSheetDraft.versiones ?? techSheetDraft.version) || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
                       await ProductionAPIClient.updateOrder(production.id, {
                         ...production, techSpecification: newSpec
                       });
@@ -1248,7 +1252,7 @@ const ProductionDetailsPage = () => {
               </div>
             </div>
             <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} />
+              <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} />
             </div>
           </div>
         </div>
