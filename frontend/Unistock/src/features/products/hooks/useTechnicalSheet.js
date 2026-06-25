@@ -36,11 +36,13 @@ export const useTechnicalSheet = (productId) => {
       // en que se crea, no la fecha heredada de la versión que se editó
       // para partir de ella (sheetData.date traía la fecha vieja).
       const { date: _oldDate, ...sheetDataSinFecha } = sheetData;
+      const today = new Date();
+      const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const newVersion = await productAPI.createTechnicalSheet({
         ...sheetDataSinFecha,
         productId,
         version: maxVersion + 1,
-        date: new Date().toISOString().split("T")[0],
+        date: localDate,
       });
       const updatedList = [newVersion, ...freshVersions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
       setVersions(updatedList);

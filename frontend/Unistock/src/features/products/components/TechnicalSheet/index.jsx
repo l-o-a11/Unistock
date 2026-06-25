@@ -111,11 +111,8 @@ const hasValue = (v) => v && String(v).trim() !== "";
 const buildInitialData = (sheet, productName, categoryDescription, productRef, productImage) => {
   const initialData = sheet || { ...EMPTY_SHEET };
   const currentUser = AuthAPI.getSession();
-  // ✅ Fix: usar formato ISO (yyyy-mm-dd), no un string localizado
-  // ("20/6/2026"), que es ambiguo para `new Date(...)` y causaba que la
-  // fecha quedara guardada como "Invalid Date" de forma permanente en
-  // esa versión una vez persistida.
-  const today = new Date().toISOString().split("T")[0];
+  const todayDate = new Date();
+  const today = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
 
   return {
     ...initialData,

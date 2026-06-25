@@ -341,7 +341,9 @@ const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
   // Ignorar el campo raw para no mezclar datos viejos con nuevos
   const { raw: _raw, ...cleanSheetData } = sheetData;
   sheetData = cleanSheetData;
-  const date = toDateString(sheetData.date) || new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const date = toDateString(sheetData.date) || todayStr;
   const version = Number(sheetData.version ?? 1);
   // Usar || en vez de ?? para que string vacío "" también active el fallback
   const description = sheetData.description || sheetData.descripciones || sheetData.descripcion || sheetData.observations || "";
