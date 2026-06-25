@@ -1,6 +1,36 @@
+/**
+ * @file SupplyForm/index.jsx
+ * @description Formulario modal para crear o editar un insumo.
+ *              Estilo visual alineado con ProductionForm (UniStock design system).
+ */
 import React, { useState } from "react";
 import Alert from "../../../shared/components/Alert";
+import Button from "../../../shared/components/Button";
+import {
+  getInputStyleBox,
+  errorStyle as errMsg,
+  labelStyle,
+  requiredStar,
+} from "../../../shared/utils/validationStyles";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTILOS LOCALES
+// ─────────────────────────────────────────────────────────────────────────────
+const getInputStyle = (err) => getInputStyleBox(err);
+
+const sectionTitle = (text) => (
+  <p style={{
+    fontSize: 11, fontWeight: 700, color: "#9ca3af",
+    textTransform: "uppercase", letterSpacing: "0.06em",
+    margin: "18px 0 10px",
+  }}>
+    {text}
+  </p>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 const SupplyForm = ({
   supply,
   medidas = [],
@@ -10,78 +40,49 @@ const SupplyForm = ({
   onCancel,
   onCreateCategory = () => {},
 }) => {
+  const isEdit = Boolean(supply);
+
   const [formData, setFormData] = useState({
-    nombre: supply?.nombre || "",
-    categoriaId: supply?.categoriaId || "",
-    stock: supply?.stock || "",
-    valorMedida: supply?.valorMedida || "",
-    medidaId: supply?.medidaId || "",
-    /**
-     * Propiedades en formato del formulario:
-     * { propiedadId: string, valor: string }
-     * propiedadId es el .id del catálogo (string, no int).
-     */
+    nombre:         supply?.nombre      || "",
+    categoriaId:    supply?.categoriaId || "",
+    stock:          supply?.stock       || "",
+    valorMedida:    supply?.valorMedida || "",
+    medidaId:       supply?.medidaId    || "",
     propiedades:
       supply?.propiedades?.map((p) => ({
         propiedadId: String(p.propiedadId ?? p.clave ?? ""),
         valor: p.valor || "",
       })) || [],
-    /**
-     * imageFile: File object del input[type=file].
-     * Se envía a supplyAPI como multipart/form-data (campo "imagen").
-     * NO se guarda base64 aquí — el preview usa URL.createObjectURL().
-     */
-    imageFile: null,
-    /**
-     * eliminarImagen: señal para que el backend borre la imagen actual
-     * sin reemplazarla (solo aplica en edición).
-     */
+    imageFile:      null,
     eliminarImagen: false,
   });
 
-  const [errors, setErrors] = useState({});
-  const [propiedadId, setPropiedadId] = useState("");
-  const [valorPropiedad, setValorPropiedad] = useState("");
-
-  // Preview local de la imagen.
-  // Al editar un insumo existente se inicializa con la URL de Cloudinary.
-  const [imagePreview, setImagePreview] = useState(supply?.imagen ?? null);
-
-  const [alertConfig, setAlertConfig] = useState({
-    open: false,
-    type: "success",
-    title: "",
-    message: "",
-    onConfirm: null,
+  const [errors,          setErrors]          = useState({});
+  const [propiedadId,     setPropiedadId]     = useState("");
+  const [valorPropiedad,  setValorPropiedad]  = useState("");
+  const [imagePreview,    setImagePreview]    = useState(supply?.imagen ?? null);
+  const [alertConfig,     setAlertConfig]     = useState({
+    open: false, type: "success", title: "", message: "", onConfirm: null,
   });
 
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
-  const showAlert = (type, title, message, onConfirm = null) =>
+  const showAlert  = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
 
-  // ── Validaciones ───────────────────────────────────────────────────────────
+  // ── Validaciones ──────────────────────────────────────────────────────────
   const validators = {
-    required: (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
-    positiveNumber: (v) =>
-      isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
-    nombreValido: (v) =>
-      v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v)
-        ? "El nombre contiene caracteres no permitidos"
-        : "",
-    minLength: (v) => (v && v.trim().length < 3 ? "Mínimo 3 caracteres" : ""),
-    maxLength: (v) =>
-      v && v.trim().length > 100 ? "Máximo 100 caracteres" : "",
+    required:       (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
+    positiveNumber: (v) => isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
+    nombreValido:   (v) => v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v) ? "El nombre contiene caracteres no permitidos" : "",
+    minLength:      (v) => v && v.trim().length < 3 ? "Mínimo 3 caracteres" : "",
+    maxLength:      (v) => v && v.trim().length > 100 ? "Máximo 100 caracteres" : "",
   };
 
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
       case "nombre":
-        error =
-          validators.required(value) ||
-          validators.nombreValido(value) ||
-          validators.minLength(value) ||
-          validators.maxLength(value);
+        error = validators.required(value) || validators.nombreValido(value) || validators.minLength(value) || validators.maxLength(value);
         break;
       case "categoriaId":
       case "medidaId":
@@ -91,8 +92,7 @@ const SupplyForm = ({
       case "valorMedida":
         error = validators.required(value) || validators.positiveNumber(value);
         break;
-      default:
-        break;
+      default: break;
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
@@ -104,116 +104,57 @@ const SupplyForm = ({
     validateField(name, value);
   };
 
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    validateField(name, value);
-  };
+  const handleBlur = (e) => validateField(e.target.name, e.target.value);
 
-  // ── Propiedades ────────────────────────────────────────────────────────────
+  // ── Propiedades ───────────────────────────────────────────────────────────
   const agregarPropiedad = () => {
     if (!propiedadId) {
-      showAlert(
-        "warning",
-        "Campo requerido",
-        "Selecciona una propiedad antes de agregar.",
-      );
+      showAlert("warning", "Campo requerido", "Selecciona una propiedad antes de agregar.");
       return;
     }
     if (!valorPropiedad.trim()) {
-      showAlert(
-        "warning",
-        "Campo requerido",
-        "Ingresa un valor para la propiedad.",
-      );
+      showAlert("warning", "Campo requerido", "Ingresa un valor para la propiedad.");
       return;
     }
-    // Comparar como strings (propiedadId es string, p.id también)
-    const existe = formData.propiedades.find(
-      (p) => p.propiedadId === propiedadId,
-    );
-    if (existe) {
-      showAlert(
-        "warning",
-        "Propiedad duplicada",
-        "Esta propiedad ya fue agregada. Edita su valor directamente en la tabla.",
-      );
+    if (formData.propiedades.find((p) => p.propiedadId === propiedadId)) {
+      showAlert("warning", "Propiedad duplicada", "Esta propiedad ya fue agregada. Edita su valor directamente en la tabla.");
       return;
     }
     setFormData((prev) => ({
       ...prev,
-      propiedades: [
-        ...prev.propiedades,
-        { propiedadId, valor: valorPropiedad.trim() },
-      ],
+      propiedades: [...prev.propiedades, { propiedadId, valor: valorPropiedad.trim() }],
     }));
     setPropiedadId("");
     setValorPropiedad("");
   };
 
-  const eliminarPropiedad = (pid) => {
+  const eliminarPropiedad = (pid) =>
     setFormData((prev) => ({
       ...prev,
       propiedades: prev.propiedades.filter((p) => p.propiedadId !== pid),
     }));
-  };
 
-  // ── Imagen ─────────────────────────────────────────────────────────────────
-
-  /**
-   * Guarda el File object (para enviarlo como multipart/form-data) y genera
-   * un preview local con URL.createObjectURL — sin convertir a base64.
-   */
+  // ── Imagen ────────────────────────────────────────────────────────────────
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Revocar el object URL anterior para liberar memoria
-    if (imagePreview && imagePreview.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreview);
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-    setFormData((prev) => ({
-      ...prev,
-      imageFile: file,
-      eliminarImagen: false,  // si había marcado eliminar, se cancela
-    }));
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(file));
+    setFormData((prev) => ({ ...prev, imageFile: file, eliminarImagen: false }));
   };
 
-  /**
-   * Elimina la imagen del preview y marca la señal para que el backend
-   * borre la imagen actual en Cloudinary (solo relevante en edición).
-   */
   const handleRemoveImage = () => {
-    if (imagePreview && imagePreview.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreview);
-    }
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
-    setFormData((prev) => ({
-      ...prev,
-      imageFile: null,
-      // Solo marcar eliminarImagen si el insumo ya tenía imagen en Cloudinary
-      eliminarImagen: !!supply?.imagen,
-    }));
+    setFormData((prev) => ({ ...prev, imageFile: null, eliminarImagen: !!supply?.imagen }));
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e?.preventDefault();
-
-    const fields = [
-      "nombre",
-      "categoriaId",
-      "stock",
-      "valorMedida",
-      "medidaId",
-    ];
+    const fields    = ["nombre", "categoriaId", "stock", "valorMedida", "medidaId"];
     const newErrors = {};
-    fields.forEach((field) => {
-      const error = validateField(field, formData[field]);
-      if (error) newErrors[field] = error;
-    });
+    fields.forEach((f) => { const err = validateField(f, formData[f]); if (err) newErrors[f] = err; });
 
     if (formData.propiedades.length === 0) {
       newErrors.propiedades = "Debes agregar al menos una propiedad";
@@ -221,27 +162,24 @@ const SupplyForm = ({
     }
 
     setErrors(newErrors);
-    if (Object.values(newErrors).some((e) => e)) {
-      showAlert(
-        "warning",
-        "Campos inválidos",
-        "Corrige los campos marcados antes de guardar.",
+
+    // Alert con lista de campos faltantes — patrón ProductionForm
+    const LABELS = {
+      nombre: "Nombre", categoriaId: "Categoría", stock: "Stock",
+      valorMedida: "Valor de medida", medidaId: "Medida",
+      propiedades: "Propiedades (mínimo 1)",
+    };
+    const missing = Object.entries(newErrors).filter(([, v]) => v).map(([k]) => LABELS[k] || k);
+    if (missing.length > 0) {
+      showAlert("warning",
+        `Faltan ${missing.length} campo${missing.length > 1 ? "s" : ""} por completar`,
+        missing.map((m) => `• ${m}`).join("\n"),
       );
       return;
     }
 
-    /**
-     * Convertir propiedades del formato interno del formulario
-     * { propiedadId: "color", valor: "negro" }
-     * al formato que espera supplyAPI:
-     * { clave: "color", label: "Color", valor: "negro" }
-     *
-     * Se busca en el catálogo de propiedades usando propiedadId === p.id
-     */
     const propiedadesParaAPI = formData.propiedades.map((fp) => {
-      const def = propiedades.find(
-        (p) => String(p.id) === String(fp.propiedadId),
-      );
+      const def = propiedades.find((p) => String(p.id) === String(fp.propiedadId));
       return {
         clave: def?.clave ?? def?.id ?? String(fp.propiedadId),
         label: def?.label ?? def?.nombre ?? String(fp.propiedadId),
@@ -249,583 +187,424 @@ const SupplyForm = ({
       };
     });
 
-    /**
-     * categoriaId y medidaId vienen como strings del <select value="...">
-     * NO aplicar parseInt — son ObjectIds de MongoDB (strings hexadecimales).
-     *
-     * imageFile: File object que supplyAPI enviará como multipart/form-data.
-     * eliminarImagen: señal para borrar la imagen en Cloudinary sin reemplazar.
-     */
-    const dataToSubmit = {
-      nombre: formData.nombre.trim(),
-      categoriaId: formData.categoriaId,       // string ObjectId — sin parseInt
-      medidaId: formData.medidaId,             // string clave de medida ("cja", "kg", ...)
-      stock: parseFloat(formData.stock) || 0,
-      valorMedida: parseFloat(formData.valorMedida) || 0,
-      propiedades: propiedadesParaAPI,
-      imageFile: formData.imageFile || null,   // File object para multipart/form-data
-      eliminarImagen: formData.eliminarImagen, // solo relevante en update
-    };
-
     try {
-      await onSubmit(dataToSubmit);
+      await onSubmit({
+        nombre:         formData.nombre.trim(),
+        categoriaId:    formData.categoriaId,
+        medidaId:       formData.medidaId,
+        stock:          parseFloat(formData.stock)      || 0,
+        valorMedida:    parseFloat(formData.valorMedida) || 0,
+        propiedades:    propiedadesParaAPI,
+        imageFile:      formData.imageFile || null,
+        eliminarImagen: formData.eliminarImagen,
+      });
     } catch (error) {
-      showAlert(
-        "error",
-        "Error al guardar",
-        error.message || "No se pudo guardar el insumo.",
-      );
+      showAlert("error", "Error al guardar", error.message || "No se pudo guardar el insumo.");
     }
   };
 
-  // ── Cancelar ───────────────────────────────────────────────────────────────
-  const handleCancel = () => {
-    showAlert(
-      "confirm",
-      "¿Cancelar?",
-      "Los datos ingresados se perderán.",
-      () => {
-        closeAlert();
-        onCancel?.();
-      },
-    );
-  };
+  const handleCancel = () =>
+    showAlert("confirm", "¿Cancelar?", "Los datos ingresados se perderán.", () => {
+      closeAlert();
+      onCancel?.();
+    });
 
-  // ── Estilos ────────────────────────────────────────────────────────────────
-  const inputStyle = (hasError) => ({
-    width: "100%",
-    padding: "10px 14px",
-    border: `1px solid ${hasError ? "#E91E8C" : "#d1d5db"}`,
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    transition: "border-color 0.2s, background-color 0.2s",
-  });
-
-  const labelStyle = {
-    display: "block",
-    fontSize: "13px",
-    fontWeight: "500",
-    color: "#555",
-    marginBottom: "6px",
-  };
-
-  const errorStyle = {
-    color: "#E91E8C",
-    fontWeight: "bold",
-    fontSize: "11px",
-    marginTop: "4px",
-    display: "block",
-  };
-
-  const requiredStar = (
-    <span style={{ color: "#ff4fd6", marginLeft: "2px" }}>*</span>
-  );
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          gap: "40px",
-          padding: "30px",
-          background: "#fff",
-          borderRadius: "10px",
-          width: "100%",
-          maxWidth: "900px",
-          maxHeight: "90vh",
-          overflow: "hidden",
-        }}
-      >
-        {/* COLUMNA IZQUIERDA */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            scrollbarGutter: "stable",
-            paddingRight: "12px",
-          }}
-        >
-          <h2
-            style={{
-              marginBottom: "24px",
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#1a1a1a",
-            }}
-          >
-            {supply ? "Editar insumo" : "Crear nuevo insumo"}
-          </h2>
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => { alertConfig.onConfirm?.(); closeAlert(); }}
+        onCancel={closeAlert}
+      />
 
-          {/* Nombre */}
-          <div style={{ marginBottom: "20px" }}>
-            <label style={labelStyle}>Nombre {requiredStar}</label>
-            <input
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Ej. Hilo de algodón"
-              style={inputStyle(errors.nombre)}
-            />
-            {errors.nombre && <p style={errorStyle}>{errors.nombre}</p>}
+      {/* El SupplyForm se renderiza dentro de un modal externo — no tiene overlay propio */}
+      <div style={{
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        width: "100%",
+        maxWidth: 800,
+        maxHeight: "90vh",
+        overflowY: "auto",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+        position: "relative",
+      }}>
+        <div style={{ padding: "28px 30px" }}>
+
+          {/* ── Header con ícono — patrón ProductionForm ── */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10,
+              background: "#ff4fd6",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {/* Ícono: caja / insumo */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1f2937" }}>
+                {isEdit ? "Editar insumo" : "Nuevo insumo"}
+              </h2>
+              <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>
+                {isEdit
+                  ? `Editando: ${supply?.nombre || "insumo"}`
+                  : "Completa todos los campos obligatorios"}
+              </p>
+            </div>
           </div>
 
-          {/* Categoría + Stock */}
-          <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Categoría {requiredStar}</label>
-              <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
-              >
-                <select
-                  name="categoriaId"
-                  value={formData.categoriaId}
+          {/* ── Layout: dos columnas ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+
+            {/* ════════════════════════════════════════
+                COLUMNA IZQUIERDA — campos del insumo
+            ════════════════════════════════════════ */}
+            <div>
+
+              {sectionTitle("Datos del insumo")}
+
+              {/* Nombre */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  Nombre <span style={requiredStar}>*</span>
+                </label>
+                <input
+                  name="nombre"
+                  value={formData.nombre}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  style={{ ...inputStyle(errors.categoriaId), flex: 1 }}
-                >
-                  <option value="">Seleccionar categoría</option>
-                  {categorias.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.nombre}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={onCreateCategory}
-                  title="Crear nueva categoría"
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    border: "none",
-                    backgroundColor: "#FF4FD6",
-                    color: "#fff",
-                    fontSize: "22px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    boxShadow: "0 2px 8px #FF4FD644",
-                  }}
-                >
-                  +
-                </button>
+                  placeholder="Ej: Hilo de algodón"
+                  style={getInputStyle(errors.nombre)}
+                />
+                {errors.nombre && <span style={errMsg}>⚠ {errors.nombre}</span>}
               </div>
-              {errors.categoriaId && (
-                <p style={errorStyle}>{errors.categoriaId}</p>
-              )}
-            </div>
 
-            <div style={{ flex: "0 0 140px" }}>
-              <label style={labelStyle}>Stock {requiredStar}</label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ej. 130"
-                style={inputStyle(errors.stock)}
-              />
-              {errors.stock && <p style={errorStyle}>{errors.stock}</p>}
-            </div>
-          </div>
-
-          {/* Medida + Valor medida */}
-          <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Medida {requiredStar}</label>
-              <select
-                name="medidaId"
-                value={formData.medidaId}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                style={inputStyle(errors.medidaId)}
-              >
-                <option value="">Seleccionar medida</option>
-                {medidas.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nombre}
-                  </option>
-                ))}
-              </select>
-              {errors.medidaId && <p style={errorStyle}>{errors.medidaId}</p>}
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Valor medida {requiredStar}</label>
-              <input
-                type="number"
-                name="valorMedida"
-                value={formData.valorMedida}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ej. 20"
-                style={inputStyle(errors.valorMedida)}
-              />
-              {errors.valorMedida && (
-                <p style={errorStyle}>{errors.valorMedida}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Propiedades */}
-          <div style={{ marginBottom: "10px" }}>
-            <label style={labelStyle}>Propiedades</label>
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                marginTop: "10px",
-                marginBottom: "20px",
-              }}
-            >
-              <select
-                value={propiedadId}
-                onChange={(e) => setPropiedadId(e.target.value)}
-                style={{
-                  ...inputStyle(errors.propiedades ? "#ef4444" : false),
-                  flex: 1,
-                }}
-              >
-                <option value="">Seleccionar propiedad</option>
-                {propiedades
-                  .filter(
-                    (p) =>
-                      !formData.propiedades.find(
-                        (fp) => String(fp.propiedadId) === String(p.id),
-                      ),
-                  )
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-              </select>
-              <input
-                placeholder="Valor (Ej. rojo)"
-                value={valorPropiedad}
-                onChange={(e) => setValorPropiedad(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && (e.preventDefault(), agregarPropiedad())
-                }
-                style={{ ...inputStyle(false), flex: 1 }}
-              />
-              <button
-                type="button"
-                onClick={agregarPropiedad}
-                style={{
-                  padding: "10px 24px",
-                  backgroundColor: "#ff4fd6",
-                  color: "#fff",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Agregar
-              </button>
-            </div>
-
-            {formData.propiedades.length > 0 ? (
-              <div
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-              >
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "#fdf0f7" }}>
-                      {["Propiedad", "Valor", "Acción"].map((h, i) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "10px 12px",
-                            textAlign: i === 2 ? "center" : "left",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            color: "#ff4fd6",
-                            borderBottom: "1px solid #ff4fd6",
-                            width: i === 2 ? "60px" : undefined,
-                          }}
-                        >
-                          {h}
-                        </th>
+              {/* Categoría + Stock */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: 14, marginBottom: 14, alignItems: "start",
+              }}>
+                <div>
+                  <label style={labelStyle}>
+                    Categoría <span style={requiredStar}>*</span>
+                  </label>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <select
+                      name="categoriaId"
+                      value={formData.categoriaId}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      style={{ ...getInputStyle(errors.categoriaId), flex: 1 }}
+                    >
+                      <option value="">Seleccionar categoría...</option>
+                      {categorias.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.propiedades.map((prop, index) => {
-                      // Buscar la definición por id (comparar como strings)
-                      const propDef = propiedades.find(
-                        (p) => String(p.id) === String(prop.propiedadId),
-                      );
-                      const isLast = index === formData.propiedades.length - 1;
-                      const cellStyle = {
-                        padding: "10px 12px",
-                        fontSize: "13px",
-                        color: "#333",
-                        borderBottom: isLast ? "none" : "1px solid #e5e7eb",
-                        backgroundColor: index % 2 === 0 ? "#fff" : "#fafafa",
-                      };
-                      return (
-                        <tr key={prop.propiedadId}>
-                          {/* Mostrar label o nombre de la definición — nunca NaN */}
-                          <td style={cellStyle}>
-                            {propDef?.label ??
-                              propDef?.nombre ??
-                              prop.propiedadId}
-                          </td>
-                          <td style={cellStyle}>{prop.valor}</td>
-                          <td style={{ ...cellStyle, textAlign: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                eliminarPropiedad(prop.propiedadId)
-                              }
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "#ff4fd6",
-                                fontSize: "18px",
-                                fontWeight: "bold",
-                                padding: "0 4px",
-                              }}
-                              title="Eliminar propiedad"
-                            >
-                              ×
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    backgroundColor: "#f9f9f9",
-                    borderTop: "1px solid #e5e7eb",
-                    fontSize: "12px",
-                    color: "#666",
-                    textAlign: "right",
-                  }}
-                >
-                  Total: {formData.propiedades.length} propiedad(es)
+                    </select>
+                    <button
+                      type="button"
+                      onClick={onCreateCategory}
+                      title="Crear nueva categoría"
+                      style={{
+                        width: 34, height: 34, borderRadius: "50%",
+                        border: "none", background: "#ff4fd6",
+                        color: "#fff", fontSize: 20, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0, boxShadow: "0 2px 8px rgba(255,79,214,0.3)",
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                  {errors.categoriaId && <span style={errMsg}>⚠ {errors.categoriaId}</span>}
                 </div>
               </div>
-            ) : (
-              <div
-                style={{
-                  padding: "18px",
-                  backgroundColor: errors.propiedades ? "#fff5f5" : "#fafafa",
-                  border: `1px dashed ${errors.propiedades ? "#ef4444" : "#e5e7eb"}`,
-                  borderRadius: "8px",
-                  textAlign: "center",
-                  fontSize: "13px",
-                  color: errors.propiedades ? "#ef4444" : "#999",
-                  marginTop: "8px",
-                }}
-              >
-                {errors.propiedades
-                  ? "⚠ Debes agregar al menos una propiedad"
-                  : "No hay propiedades agregadas."}
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* COLUMNA DERECHA — Imagen + Botones */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                padding: "16px",
-                backgroundColor: "#fafafa",
-                minHeight: "250px",
-                width: "300px",
-                marginTop: "20%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+              {/* Stock */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  Stock <span style={requiredStar}>*</span>
+                </label>
+                <input
+                  type="number" name="stock"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Ej: 130"
+                  style={getInputStyle(errors.stock)}
+                />
+                {errors.stock && <span style={errMsg}>⚠ {errors.stock}</span>}
+              </div>
+
+              {/* Medida + Valor medida */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 14, marginBottom: 4,
+              }}>
+                <div>
+                  <label style={labelStyle}>
+                    Medida <span style={requiredStar}>*</span>
+                  </label>
+                  <select
+                    name="medidaId"
+                    value={formData.medidaId}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    style={getInputStyle(errors.medidaId)}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {medidas.map((m) => (
+                      <option key={m.id} value={m.id}>{m.nombre}</option>
+                    ))}
+                  </select>
+                  {errors.medidaId && <span style={errMsg}>⚠ {errors.medidaId}</span>}
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    Valor medida <span style={requiredStar}>*</span>
+                  </label>
+                  <input
+                    type="number" name="valorMedida"
+                    value={formData.valorMedida}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="Ej: 20"
+                    style={getInputStyle(errors.valorMedida)}
+                  />
+                  {errors.valorMedida && <span style={errMsg}>⚠ {errors.valorMedida}</span>}
+                </div>
+              </div>
+
+              {/* ── Propiedades ── */}
+              {sectionTitle("Propiedades")}
+
+              {/* Selector + valor + botón agregar */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-end" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Propiedad</label>
+                  <select
+                    value={propiedadId}
+                    onChange={(e) => setPropiedadId(e.target.value)}
+                    style={getInputStyle(false)}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {propiedades
+                      .filter((p) => !formData.propiedades.find((fp) => String(fp.propiedadId) === String(p.id)))
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Valor</label>
+                  <input
+                    placeholder="Ej: Rojo"
+                    value={valorPropiedad}
+                    onChange={(e) => setValorPropiedad(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), agregarPropiedad())}
+                    style={getInputStyle(false)}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={agregarPropiedad}
+                  style={{
+                    padding: "0 16px", height: 42, flexShrink: 0,
+                    background: "#ff4fd6", color: "#fff",
+                    border: "none", borderRadius: 10,
+                    fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  + Agregar
+                </button>
+              </div>
+
+              {/* Tabla de propiedades */}
+              {formData.propiedades.length > 0 ? (
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#fff0fb" }}>
+                        {["Propiedad", "Valor", ""].map((h, i) => (
+                          <th key={i} style={{
+                            padding: "9px 12px",
+                            textAlign: i === 2 ? "center" : "left",
+                            fontSize: 11, fontWeight: 700,
+                            color: "#ff4fd6", letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                            borderBottom: "1px solid #f9a8d4",
+                            width: i === 2 ? 44 : undefined,
+                          }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.propiedades.map((prop, idx) => {
+                        const def = propiedades.find((p) => String(p.id) === String(prop.propiedadId));
+                        const isLast = idx === formData.propiedades.length - 1;
+                        const cell = {
+                          padding: "9px 12px", fontSize: 13, color: "#374151",
+                          borderBottom: isLast ? "none" : "1px solid #f3f4f6",
+                          background: idx % 2 === 0 ? "#fff" : "#fafafa",
+                        };
+                        return (
+                          <tr key={prop.propiedadId}>
+                            <td style={cell}>{def?.label ?? def?.nombre ?? prop.propiedadId}</td>
+                            <td style={cell}>{prop.valor}</td>
+                            <td style={{ ...cell, textAlign: "center" }}>
+                              <button
+                                type="button"
+                                onClick={() => eliminarPropiedad(prop.propiedadId)}
+                                style={{
+                                  background: "none", border: "none",
+                                  cursor: "pointer", color: "#ff4fd6",
+                                  fontSize: 18, fontWeight: 700, padding: "0 4px",
+                                }}
+                                title="Eliminar propiedad"
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div style={{
+                    padding: "7px 12px", background: "#fff0fb",
+                    borderTop: "1px solid #f9a8d4",
+                    fontSize: 11, color: "#ff4fd6", fontWeight: 700, textAlign: "right",
+                  }}>
+                    {formData.propiedades.length} propiedad{formData.propiedades.length !== 1 ? "es" : ""}
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: "16px", borderRadius: 10, textAlign: "center",
+                  fontSize: 13, marginTop: 4,
+                  background: errors.propiedades ? "#fff5f5" : "#fafafa",
+                  border: `1.5px dashed ${errors.propiedades ? "#ef4444" : "#e5e7eb"}`,
+                  color: errors.propiedades ? "#ef4444" : "#9ca3af",
+                }}>
+                  {errors.propiedades
+                    ? "⚠ Debes agregar al menos una propiedad"
+                    : "Aún no hay propiedades agregadas"}
+                </div>
+              )}
+            </div>
+
+            {/* ════════════════════════════════════════
+                COLUMNA DERECHA — imagen del insumo
+            ════════════════════════════════════════ */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+
+              {sectionTitle("Imagen del insumo")}
+
+              {/* Drop zone / preview */}
               {imagePreview ? (
-                <div style={{ textAlign: "center", width: "100%" }}>
+                <div style={{
+                  border: "1.5px solid #f9a8d4", borderRadius: 12,
+                  padding: 16, background: "#fff0fb",
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", gap: 12,
+                }}>
                   <img
                     src={imagePreview}
                     alt="Preview"
                     style={{
-                      maxWidth: "100%",
-                      maxHeight: "150px",
-                      objectFit: "contain",
-                      borderRadius: "4px",
+                      maxWidth: "100%", maxHeight: 200,
+                      objectFit: "contain", borderRadius: 8,
                     }}
                   />
                   <button
                     type="button"
                     onClick={handleRemoveImage}
                     style={{
-                      marginTop: "10px",
-                      padding: "4px 12px",
-                      backgroundColor: "#ff4fd6",
-                      border: "1px solid #ff4fd6",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      color: "#fff",
-                      cursor: "pointer",
+                      padding: "6px 16px", background: "#fff",
+                      border: "1.5px solid #ff4fd6",
+                      borderRadius: 8, fontSize: 12,
+                      color: "#ff4fd6", fontWeight: 700, cursor: "pointer",
                     }}
                   >
-                    Eliminar imagen
+                    × Eliminar imagen
                   </button>
                 </div>
               ) : (
-                <>
-                  <svg
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#aaa"
-                    strokeWidth="1.5"
-                  >
-                    <rect
-                      x="2"
-                      y="2"
-                      width="20"
-                      height="20"
-                      rx="2.18"
-                      ry="2.18"
-                    />
-                    <line x1="8" y1="2" x2="8" y2="22" />
-                    <line x1="16" y1="2" x2="16" y2="22" />
-                    <line x1="2" y1="8" x2="22" y2="8" />
-                    <line x1="2" y1="16" x2="22" y2="16" />
+                <label style={{
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  gap: 10, padding: "32px 20px", borderRadius: 12,
+                  border: "2px dashed #f9a8d4", background: "#fafafa",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#fff0fb"; e.currentTarget.style.borderColor = "#ff4fd6"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.borderColor = "#f9a8d4"; }}>
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+                    stroke="#ff4fd6" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
-                  <p
-                    style={{
-                      margin: "10px 0 0 0",
-                      fontSize: "14px",
-                      color: "#666",
-                      textAlign: "center",
-                    }}
-                  >
-                    <span style={{ color: "#E91E8C", fontWeight: "500" }}>
-                      Sube una imagen
-                    </span>
-                    <br />o arrastra y suelta
-                  </p>
-                  <p
-                    style={{
-                      margin: "5px 0 0 0",
-                      fontSize: "12px",
-                      color: "#999",
-                    }}
-                  >
-                    PNG, JPG, GIF hasta 5MB
-                  </p>
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#ff4fd6" }}>
+                      Subir imagen del insumo
+                    </p>
+                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9ca3af" }}>
+                      PNG, JPG, GIF — hasta 5 MB
+                    </p>
+                  </div>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={handleImageUpload}
                     style={{ display: "none" }}
-                    id="supply-image-upload"
                   />
-                  <label
-                    htmlFor="supply-image-upload"
-                    style={{
-                      marginTop: "10px",
-                      padding: "6px 16px",
-                      backgroundColor: "#f3f4f6",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      color: "#555",
-                      cursor: "pointer",
-                    }}
-                  >
+                  <span style={{
+                    padding: "6px 16px", background: "#f3f4f6",
+                    border: "1.5px solid #e5e7eb", borderRadius: 8,
+                    fontSize: 12, color: "#6b7280", cursor: "pointer",
+                  }}>
                     Seleccionar archivo
-                  </label>
-                </>
+                  </span>
+                </label>
               )}
-            </div>
-          </div>
 
-          {/* Botones */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "15px",
-              marginTop: "30px",
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleCancel}
-              style={{
-                padding: "10px 32px",
-                backgroundColor: "#f3f4f6",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: "14px",
-                color: "#555",
-                cursor: "pointer",
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              style={{
-                padding: "11px 32px",
-                backgroundColor: "#ff4fd6",
-                color: "#fff",
-                fontSize: "14px",
-                fontWeight: "600",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              {supply ? "Guardar insumo" : "Crear insumo"}
-            </button>
+              {/* Espaciador para empujar botones al fondo */}
+              <div style={{ flex: 1 }} />
+
+              {/* ── Botones ── */}
+              <div style={{
+                display: "flex", justifyContent: "flex-end", gap: 10,
+                paddingTop: 16, marginTop: 20,
+                borderTop: "1px solid #f3f4f6",
+              }}>
+                <Button type="button" variant="secondary" onClick={handleCancel}>
+                  Cancelar
+                </Button>
+                <Button type="button" variant="primary" onClick={handleSubmit}>
+                  {isEdit ? "Guardar insumo" : "Crear insumo"}
+                </Button>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
-
-      <Alert
-        isOpen={alertConfig.open}
-        type={alertConfig.type}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onConfirm={() => {
-          alertConfig.onConfirm?.();
-          closeAlert();
-        }}
-        onCancel={closeAlert}
-      />
     </>
   );
 };

@@ -1,6 +1,7 @@
 /**
  * @file SupplierForm/index.jsx
  * @description Formulario modal para crear o editar un proveedor.
+ *              Estilo visual alineado con ProductionForm (UniStock design system).
  *
  * CAMPOS Y SUS VALIDACIONES:
  *   nombreEmpresa  — texto libre, obligatorio
@@ -8,36 +9,93 @@
  *   direccion      — texto libre, obligatorio
  *   correoEmpresa  — formato email, obligatorio
  *   sitioWeb       — texto libre, opcional
- *   nombreContacto — texto libre, opcional
+ *   nombreContacto — texto libre, obligatorio
  *   telefono       — solo dígitos, exactamente 10, obligatorio
  *   correoContacto — formato email, opcional (solo valida si tiene valor)
  *
  * PROPS:
- *   supplier  {object|null}  — proveedor a editar; null para crear nuevo
- *   onSubmit  {function}     — recibe los datos del formulario
- *   onCancel  {function}     — cierra el modal sin guardar
+ *   supplier     {object|null}  — proveedor a editar; null para crear nuevo
+ *   onSubmit     {function}     — recibe los datos del formulario
+ *   onCancel     {function}     — cierra el modal sin guardar
+ *   allSuppliers {array}        — lista completa para validación de duplicados
  */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Button from "../../../shared/components/Button";
-import Input from "../../../shared/components/Input";
 import Alert from "../../../shared/components/Alert";
 import { validators } from "../../../shared/utils/validators";
 import { blockInput } from "../../../shared/utils/blockInput";
 import { get } from "../../../shared/utils/httpClient";
+import {
+  getInputStyleBox,
+  errorStyle as errMsg,
+  labelStyle,
+  requiredStar,
+} from "../../../shared/utils/validationStyles";
 
-/**
- * @param {object}      props
- * @param {object|null} [props.supplier]  — datos del proveedor existente (edición)
- * @param {function}    props.onSubmit
- * @param {function}    props.onCancel
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTILOS LOCALES (alineados con ProductionForm)
+// ─────────────────────────────────────────────────────────────────────────────
+const getInputStyle = (err) => getInputStyleBox(err);
+
+/** Título de sección — uppercase pequeño gris, igual que ProductionForm */
+const sectionTitle = (text) => (
+  <p style={{
+    fontSize: 11, fontWeight: 700, color: "#9ca3af",
+    textTransform: "uppercase", letterSpacing: "0.06em",
+    margin: "18px 0 10px",
+  }}>
+    {text}
+  </p>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIELD — componente de campo genérico (definido FUERA para evitar remount)
+// ─────────────────────────────────────────────────────────────────────────────
+const Field = React.memo(({
+  label, name, type = "text", required = false,
+  disabled = false, hint = null, placeholder = "",
+  value, onChange, onBlur, error,
+}) => {
+  const inputStyle = useMemo(() => getInputStyle(error), [error]);
+  return (
+    <div>
+      <label style={labelStyle}>
+        {label}
+        {required
+          ? <span style={requiredStar}> *</span>
+          : <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400, marginLeft: 4 }}>(opcional)</span>
+        }
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={disabled ? undefined : onChange}
+        onBlur={disabled ? undefined : onBlur}
+        disabled={disabled}
+        placeholder={placeholder}
+        autoComplete="off"
+        style={{
+          ...inputStyle,
+          ...(disabled ? { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" } : {}),
+        }}
+      />
+      {error && <span style={errMsg}>⚠ {error}</span>}
+      {hint && <p style={{ margin: "3px 0 0", fontSize: 10, color: "#9ca3af" }}>{hint}</p>}
+    </div>
+  );
+});
+
+Field.displayName = "Field";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
-
   const modalRef = useRef(null);
+  const initializedRef = useRef(false);
 
-  // ✅ Fix: verificar si el NIT está bloqueado consultando las compras
-  // REALES en la base de datos (antes dependía de localStorage, que no
-  // reflejaba necesariamente el estado real ni era confiable).
+  // ── NIT bloqueado si ya tiene compras ────────────────────────────────────
   const [nitBloqueado, setNitBloqueado] = useState(false);
   useEffect(() => {
     if (!supplier?.id) { setNitBloqueado(false); return; }
@@ -53,30 +111,41 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   }, [supplier?.id]);
 
   // ── Estado del formulario ─────────────────────────────────────────────────
-  const [formData, setFormData] = useState({
-    nombreEmpresa:  "",
-    nit:            "",
-    direccion:      "",
-    correoEmpresa:  "",
-    sitioWeb:       "",
-    nombreContacto: "",
-    telefono:       "",
-    correoContacto: "",
+  const [formData, setFormData] = useState(() => {
+    if (supplier) {
+      return {
+        nombreEmpresa:  supplier.nombreEmpresa  || "",
+        nit:            supplier.nit            || "",
+        direccion:      supplier.direccion      || "",
+        correoEmpresa:  supplier.correoEmpresa  || supplier.email || "",
+        sitioWeb:       supplier.sitioWeb       || supplier.sitioweb || "",
+        nombreContacto: supplier.nombreContacto || "",
+        telefono:       supplier.telefono != null ? String(supplier.telefono) : "",
+        correoContacto: supplier.correoContacto || "",
+      };
+    }
+    return {
+      nombreEmpresa:  "",
+      nit:            "",
+      direccion:      "",
+      correoEmpresa:  "",
+      sitioWeb:       "",
+      nombreContacto: "",
+      telefono:       "",
+      correoContacto: "",
+    };
   });
 
   const [errors,       setErrors]       = useState({});
   const [pendingClose, setPendingClose] = useState(false);
   const [alertConfig,  setAlertConfig]  = useState({
-    open:      false,
-    type:      "confirm",
-    title:     "",
-    message:   "",
-    onConfirm: null,
+    open: false, type: "confirm", title: "", message: "", onConfirm: null,
   });
 
-  // ── Cargar datos del proveedor si es modo edición ─────────────────────────
+  // ── Cargar datos en modo edición (solo cuando cambia el proveedor) ────────
   useEffect(() => {
-    if (supplier) {
+    if (supplier?.id && supplier.id !== initializedRef.current) {
+      initializedRef.current = supplier.id;
       setFormData({
         nombreEmpresa:  supplier.nombreEmpresa  || "",
         nit:            supplier.nit            || "",
@@ -88,68 +157,68 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         correoContacto: supplier.correoContacto || "",
       });
     }
+    if (!supplier) {
+      initializedRef.current = false;
+    }
   }, [supplier]);
 
-  /**
-   * Cierra el modal después de que el Alert de éxito/error se cierre.
-   * pendingClose se activa cuando el submit fue exitoso.
-   */
+  // Cierra el modal cuando el Alert de éxito se cierra
   useEffect(() => {
     if (pendingClose && !alertConfig.open) {
       setPendingClose(false);
       onCancel();
     }
-  }, [alertConfig.open, pendingClose]);
+  }, [alertConfig.open, pendingClose, onCancel]);
 
-  // ── ESC para cerrar ───────────────────────────────────────────────────────
+  const handleCancelClick = useCallback(() => {
+    setAlertConfig({
+      open: true, type: "confirm",
+      title: "Cancelar",
+      message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, open: false }));
+        onCancel();
+      },
+    });
+  }, [onCancel]);
+
+  // ESC cierra el modal
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === "Escape") handleCancelClick(); };
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
+    const handler = (e) => { if (e.key === "Escape") handleCancelClick(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleCancelClick]);
 
-  /** Cierra si el clic fue fuera del modal */
-  const handleOverlayClick = (e) => {
+  const handleOverlayClick = useCallback((e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
-  };
+  }, [handleCancelClick]);
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // VALIDACIÓN DE CAMPO INDIVIDUAL
-  // ─────────────────────────────────────────────────────────────────────────────
-  /**
-   * Valida un campo específico y actualiza el estado de errores.
-   * Se llama en onBlur para mostrar el error al salir del campo.
-   *
-   * @param {string} name  — nombre del campo
-   * @param {string} value — valor actual
-   * @returns {string} mensaje de error o ""
-   */
-  // Campos que deben ser únicos entre proveedores
-  const UNIQUE_FIELDS = {
+  // ── Validación de duplicados ──────────────────────────────────────────────
+  const UNIQUE_FIELDS = useMemo(() => ({
     nit:           (s) => s?.nit,
     correoEmpresa: (s) => s?.correoEmpresa || s?.email,
     telefono:      (s) => s?.telefono,
     nombreEmpresa: (s) => (s?.nombreEmpresa || "").toLowerCase().trim(),
-  };
+  }), []);
 
-  const isDuplicate = (name, value) => {
-
+  const isDuplicate = useCallback((name, value) => {
     if (!value || !String(value).trim()) return false;
     const getter = UNIQUE_FIELDS[name];
     if (!getter) return false;
-    const normalized = name === "nombreEmpresa" ? String(value).toLowerCase().trim() : String(value).trim();
-    return allSuppliers.some(s => {
-      // Skip the supplier being edited
+    const normalized = name === "nombreEmpresa"
+      ? String(value).toLowerCase().trim()
+      : String(value).trim();
+    return allSuppliers.some((s) => {
       if (supplier && s.id === supplier.id) return false;
       const existing = name === "nombreEmpresa"
-        ? (String(getter(s) || "")).toLowerCase().trim()
+        ? String(getter(s) || "").toLowerCase().trim()
         : String(getter(s) || "").trim();
       return existing === normalized;
     });
-  };
+  }, [allSuppliers, supplier, UNIQUE_FIELDS]);
 
-
-  const validateField = (name, value) => {
+  // ── Validación individual ─────────────────────────────────────────────────
+  const validateField = useCallback((name, value) => {
     let error = "";
     switch (name) {
       case "nombreEmpresa":
@@ -172,9 +241,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         break;
       case "telefono":
         error = validators.required(value) || validators.numbers(value);
-        // ✅ Fix: el backend devuelve telefono como Number al editar.
-        // String(value).length funciona siempre; value.length falla si es Number.
-        if (!error && String(value).trim().length !== 10) error = "Debe tener exactamente 10 dígitos";
+        if (!error && String(value).trim().length !== 10)
+          error = "Debe tener exactamente 10 dígitos";
         if (!error && isDuplicate("telefono", value))
           error = "El proveedor ya se encuentra registrado";
         break;
@@ -187,83 +255,72 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
       default:
         break;
     }
-    setErrors(prev => ({ ...prev, [name]: error }));
+    setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
-  };
+  }, [isDuplicate]);
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // HANDLER DE CAMBIO DE CAMPO
-  // ─────────────────────────────────────────────────────────────────────────────
-  /**
-   * Maneja el cambio de cualquier campo del formulario.
-   *
-   * Para "nit" y "telefono": bloquea en tiempo real cualquier carácter que
-   * no sea dígito. El bloqueo es inmediato (no espera al onBlur).
-   * Esto se hace comprobando con blockInput.onlyNumbers antes de actualizar el estado.
-   */
-  const handleChange = (e) => {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
+    if (name === "telefono") { if (!blockInput.onlyNumbers(e)) return; }
+    else if (name === "nit") { if (!blockInput.nit(e)) return; }
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, [errors]);
 
-    // ── Bloqueo a nivel de carácter ────────────────────────────────────────
-    // Validar en tiempo real según el tipo de campo
-    if (name === "telefono") {
-      if (!blockInput.onlyNumbers(e)) return; // Solo dígitos
-    } else if (name === "nit") {
-      if (!blockInput.nit(e)) return; // Dígitos y guión (ej: 900123456-7)
-    }
+  const handleBlur = useCallback((e) => validateField(e.target.name, e.target.value), [validateField]);
 
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  /** Dispara la validación de campo al salir del input */
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    validateField(name, value);
-  };
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // VALIDACIÓN COMPLETA (antes del submit)
-  // ─────────────────────────────────────────────────────────────────────────────
-  /**
-   * Valida todos los campos obligatorios y los opcionales con valor.
-   * @returns {boolean} true si no hay errores
-   */
-  const validateAll = () => {
-    const requiredFields = ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono"];
+  // ── Validación completa ───────────────────────────────────────────────────
+  const validateAll = useCallback(() => {
+    const required = ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono", "nombreContacto"];
     let newErrors = {};
-
-    requiredFields.forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
+    required.forEach((key) => {
+      const err = validateField(key, formData[key]);
+      if (err) newErrors[key] = err;
     });
-
-    // Check global uniqueness — if ANY unique field matches an existing supplier, show one error
     const anyDuplicate = ["nombreEmpresa", "nit", "correoEmpresa", "telefono"].some(
-      f => isDuplicate(f, formData[f])
+      (f) => isDuplicate(f, formData[f])
     );
-    if (anyDuplicate && !Object.values(newErrors).some(e => e === "El proveedor ya se encuentra registrado")) {
+    if (anyDuplicate && !Object.values(newErrors).some((e) => e === "El proveedor ya se encuentra registrado")) {
       newErrors.nombreEmpresa = "El proveedor ya se encuentra registrado";
     }
-
-    // correoContacto: opcional — solo valida si tiene valor
     if (formData.correoContacto) {
-      const emailError = validators.email(formData.correoContacto);
-      if (emailError) newErrors.correoContacto = emailError;
+      const emailErr = validators.email(formData.correoContacto);
+      if (emailErr) newErrors.correoContacto = emailErr;
     }
-
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+
+    const LABELS = {
+      nombreEmpresa:  "Nombre de empresa",
+      nit:            "NIT",
+      direccion:      "Dirección",
+      correoEmpresa:  "Correo empresa",
+      telefono:       "Teléfono",
+      nombreContacto: "Nombre de contacto",
+      correoContacto: "Correo de contacto",
+    };
+    const missing = Object.entries(newErrors)
+      .filter(([, v]) => v)
+      .map(([k]) => LABELS[k] || k);
+
+    if (missing.length > 0) {
+      setAlertConfig({
+        open: true, type: "warning",
+        title: `Faltan ${missing.length} campo${missing.length > 1 ? "s" : ""} por completar`,
+        message: missing.map((m) => `• ${m}`).join("\n"),
+        onConfirm: null,
+      });
+      return false;
+    }
+    return true;
+  }, [formData, validateField, isDuplicate]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateAll()){ 
-      return;
-    }
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!validateAll()) return;
     try {
       await onSubmit(formData);
-      // pendingClose = true hace que el modal se cierre cuando el Alert de éxito se cierre
       setPendingClose(true);
       setAlertConfig({
         open: true, type: "success",
@@ -281,23 +338,10 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         onConfirm: null,
       });
     }
-  };
-
-  /** Confirma cancelación con Alert antes de cerrar si hay cambios */
-  const handleCancelClick = () => {
-    setAlertConfig({
-      open: true, type: "confirm",
-      title: "Cancelar",
-      message: "¿Seguro que deseas cancelar? Se perderán los cambios.",
-      onConfirm: () => {
-        setAlertConfig(prev => ({ ...prev, open: false }));
-        onCancel();
-      },
-    });
-  };
+  }, [formData, onSubmit, supplier, validateAll]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // RENDER
+  // RENDER PRINCIPAL
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
@@ -308,12 +352,12 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         message={alertConfig.message}
         onConfirm={() => {
           if (alertConfig.onConfirm) alertConfig.onConfirm();
-          else setAlertConfig(prev => ({ ...prev, open: false }));
+          else setAlertConfig((prev) => ({ ...prev, open: false }));
         }}
-        onCancel={() => setAlertConfig(prev => ({ ...prev, open: false }))}
+        onCancel={() => setAlertConfig((prev) => ({ ...prev, open: false }))}
       />
 
-      {/* Overlay del modal */}
+      {/* ── Overlay ── */}
       <div
         onClick={handleOverlayClick}
         style={{
@@ -326,149 +370,214 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         <div
           ref={modalRef}
           style={{
-            backgroundColor: "#fff", borderRadius: "16px",
-            width: "100%", maxWidth: "860px",
-            padding: "28px 32px",
-            boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+            backgroundColor: "#fff",
+            borderRadius: 16,
+            width: "100%",
+            maxWidth: 700,
+            maxHeight: "90vh",
+            overflowY: "auto",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
             position: "relative",
-            maxHeight: "92vh", overflowY: "auto",
           }}
         >
-          {/* Botón cerrar ✕ */}
-          <button
-            onClick={handleCancelClick}
-            style={{
-              position: "absolute", top: "16px", right: "16px",
-              width: "32px", height: "32px", borderRadius: "50%",
-              border: "none", backgroundColor: "#f3f4f6", cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            ✕
-          </button>
+          <div style={{ padding: "28px 30px" }}>
 
-          {/* Título estandarizado: 18px bold — igual al de Third_partiesForm */}
-          <h2 style={{ textAlign: "center", marginBottom: "22px", fontSize: 18, fontWeight: 800, color: "#1f2937" }}>
-            {supplier ? "Editar Proveedor" : "Crear Nuevo Proveedor"}
-          </h2>
+            {/* ── Botón cerrar ── */}
+            <button
+              onClick={handleCancelClick}
+              style={{
+                position: "absolute", top: 14, right: 14,
+                width: 32, height: 32, borderRadius: "50%",
+                border: "none", background: "#f3f4f6",
+                cursor: "pointer", fontSize: 14, zIndex: 1,
+              }}
+            >
+              ✕
+            </button>
 
-          <form onSubmit={handleSubmit} noValidate>
-            {/* Gap reducido de 40px→28px para consistencia con otros forms de 2 columnas */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px" }}>
+            {/* ── Header con ícono — mismo patrón que ProductionForm ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: "#ff4fd6",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                  <line x1="12" y1="12" x2="12" y2="16"/>
+                  <line x1="8"  y1="12" x2="8"  y2="12.01"/>
+                  <line x1="16" y1="12" x2="16" y2="12.01"/>
+                </svg>
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1f2937" }}>
+                  {supplier ? "Editar proveedor" : "Nuevo proveedor"}
+                </h2>
+                <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>
+                  {supplier
+                    ? `Editando: ${supplier.nombreEmpresa || "proveedor"}`
+                    : "Completa todos los campos obligatorios"}
+                </p>
+              </div>
+            </div>
 
-              {/* ── COLUMNA IZQUIERDA ── */}
-              {/* gap entre campos: 16px (antes 18px) — estandarizado con Third_partiesForm */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px", borderRight: "1px solid #e5e7eb", paddingRight: "24px" }}>
+            <form onSubmit={handleSubmit} noValidate>
 
-                {/* Nombre empresa — texto libre */}
-                <Input
-                  label="Nombre Empresa *"
-                  name="nombreEmpresa"
+              {/* ══════════════════════════════════════════════════
+                  SECCIÓN 1 — DATOS DE LA EMPRESA
+              ══════════════════════════════════════════════════ */}
+              {sectionTitle("Datos de la empresa")}
+
+              {/* Fila 1: Nombre empresa + NIT */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 14, marginBottom: 14,
+              }}>
+                <Field
+                  label="Nombre de empresa" name="nombreEmpresa"
+                  required placeholder="Ej: Textiles S.A.S."
                   value={formData.nombreEmpresa}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.nombreEmpresa}
                 />
 
-                {/* NIT — dígitos y guión opcional (bloqueado + validado) */}
+                {/* NIT — tiene lógica especial de bloqueo */}
                 <div>
-                  <Input
-                    label={`NIT * (8-12 caracteres, ej: 900123456-7)${nitBloqueado ? " 🔒" : ""}`}
-                    name="nit"
+                  <label style={labelStyle}>
+                    NIT <span style={requiredStar}>*</span>
+                    {nitBloqueado && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, color: "#d97706",
+                        background: "#fef3c7", padding: "2px 7px",
+                        borderRadius: 8, marginLeft: 6,
+                      }}>
+                        🔒 Bloqueado
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="text" name="nit"
                     value={formData.nit}
                     onChange={nitBloqueado ? undefined : handleChange}
                     onBlur={nitBloqueado ? undefined : handleBlur}
-                    error={errors.nit}
                     disabled={nitBloqueado}
-                    style={nitBloqueado ? { backgroundColor: "#f3f4f6", cursor: "not-allowed", color: "#9ca3af" } : {}}
+                    placeholder="Ej: 900123456-7"
+                    autoComplete="off"
+                    style={{
+                      ...getInputStyle(errors.nit),
+                      ...(nitBloqueado
+                        ? { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }
+                        : {}),
+                    }}
                   />
+                  {errors.nit && <span style={errMsg}>⚠ {errors.nit}</span>}
                   {nitBloqueado && (
-                    <p style={{ fontSize: 11, color: "#f59e0b", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                      ⚠️ El NIT no puede editarse porque este proveedor ya tiene compras asociadas.
+                    <p style={{ margin: "4px 0 0", fontSize: 10, color: "#d97706" }}>
+                      No editable: este proveedor ya tiene compras asociadas.
                     </p>
                   )}
                 </div>
+              </div>
 
-                {/* Dirección — texto libre */}
-                <Input
-                  label="Dirección *"
-                  name="direccion"
-                  value={formData.direccion}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.direccion}
-                />
-
-                {/* Correo empresa — formato email */}
-                <Input
-                  label="Correo Empresa *"
-                  type="email"
-                  name="correoEmpresa"
+              {/* Fila 2: Correo empresa + Teléfono */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 14, marginBottom: 14,
+              }}>
+                <Field
+                  label="Correo empresa" name="correoEmpresa"
+                  type="email" required placeholder="Ej: ventas@empresa.com"
                   value={formData.correoEmpresa}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.correoEmpresa}
                 />
-
-                {/* Sitio web — opcional */}
-                <Input
-                  label="Sitio Web"
-                  name="sitioWeb"
-                  value={formData.sitioWeb}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                />
-              </div>
-
-              {/* ── COLUMNA DERECHA — mismo gap que columna izquierda ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-                {/* Nombre contacto — opcional */}
-                <Input
-                  label="Nombre Contacto *"
-                  name="nombreContacto"
-                  value={formData.nombreContacto}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.nombreContacto}
-                />
-
-                {/* Teléfono — solo dígitos (bloqueado + validado), exactamente 10 */}
-                <Input
-                  label="Teléfono * (10 dígitos)"
-                  name="telefono"
+                <Field
+                  label="Teléfono" name="telefono"
+                  required placeholder="Ej: 3001234567"
+                  hint="Exactamente 10 dígitos, sin espacios ni guiones"
                   value={formData.telefono}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.telefono}
                 />
+              </div>
 
-                {/* Correo contacto — opcional, solo valida formato si tiene valor */}
-                <Input
-                  label="Correo Contacto"
-                  type="email"
-                  name="correoContacto"
+              {/* Fila 3: Dirección (ancho completo) */}
+              <div style={{ marginBottom: 14 }}>
+                <Field
+                  label="Dirección" name="direccion"
+                  required placeholder="Ej: Calle 50 #30-20, Medellín"
+                  value={formData.direccion}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.direccion}
+                />
+              </div>
+
+              {/* Fila 4: Sitio web (opcional, ancho completo) */}
+              <div style={{ marginBottom: 4 }}>
+                <Field
+                  label="Sitio web" name="sitioWeb"
+                  placeholder="Ej: www.empresa.com"
+                  value={formData.sitioWeb}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.sitioWeb}
+                />
+              </div>
+
+              {/* ══════════════════════════════════════════════════
+                  SECCIÓN 2 — PERSONA DE CONTACTO
+              ══════════════════════════════════════════════════ */}
+              {sectionTitle("Persona de contacto")}
+
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 14, marginBottom: 20,
+              }}>
+                <Field
+                  label="Nombre del contacto" name="nombreContacto"
+                  required placeholder="Ej: Carlos Ramírez"
+                  value={formData.nombreContacto}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.nombreContacto}
+                />
+                <Field
+                  label="Correo del contacto" name="correoContacto"
+                  type="email" placeholder="Ej: carlos@empresa.com"
                   value={formData.correoContacto}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.correoContacto}
                 />
               </div>
-            </div>
 
-            {/* ── BOTONES ── */}
-            {/* Botones — margen superior estandarizado 24px */}
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="secondary" onClick={handleCancelClick}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="primary">
-                {supplier ? "Guardar cambios" : "Guardar Proveedor"}
-              </Button>
-            </div>
-          </form>
+              {/* ── Botones ── */}
+              <div style={{
+                display: "flex", justifyContent: "flex-end", gap: 10,
+                paddingTop: 16, borderTop: "1px solid #f3f4f6",
+              }}>
+                <Button type="button" variant="secondary" onClick={handleCancelClick}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary">
+                  {supplier ? "Guardar cambios" : "Guardar proveedor"}
+                </Button>
+              </div>
+
+            </form>
+          </div>
         </div>
       </div>
+
     </>
   );
 };
