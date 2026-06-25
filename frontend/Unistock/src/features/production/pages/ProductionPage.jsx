@@ -259,7 +259,6 @@ const ProductionsPage = () => {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: #f0f2f5;
     color: #1a1a2e;
     font-size: 11px;
   }
@@ -269,14 +268,12 @@ const ProductionsPage = () => {
     width: 210mm;
     min-height: 297mm;
     margin: 0 auto;
-    background: #fff;
     padding: 0;
   }
 
   /* ── Encabezado ── */
   .header {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-    color: #fff;
     padding: 28px 32px 22px;
     position: relative;
     overflow: hidden;
@@ -1217,7 +1214,7 @@ const ProductionsPage = () => {
         )}
 
         {/* Tabla — scroll horizontal en móvil */}
-        <div style={{ background: '#fff', borderRadius: 10, padding: '6px 0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
+        <div style={{ background: '#fff', borderRadius: 10, padding: '0px 0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
           <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} />
         </div>
 

@@ -189,6 +189,7 @@ export const ProductionAPIClient = {
   deleteOrderDetail: async (id) => {
     const res = await httpRequest(`/produccion/detalle-orden/${id}`, {
       method: "DELETE",
+      body: { id_usuario: getCurrentUserName(), user: getCurrentUserName() },
     });
     return res?.data || res;
   },
@@ -297,6 +298,18 @@ export const ProductionAPIClient = {
    */
   deleteAssignment: async (assignmentId) => {
     const res = await httpRequest(`/produccion/asignaciones/${assignmentId}`, {
+      method: "DELETE",
+    });
+    return res?.data || res;
+  },
+
+  /**
+   * Elimina todas las asignaciones de terceros de una orden.
+   * Se usa antes de reasignar para evitar duplicar cantidades al retroceder
+   * y volver a avanzar el flujo.
+   */
+  deleteAssignmentsByOrder: async (orderId) => {
+    const res = await httpRequest(`/produccion/asignaciones/orden/${orderId}`, {
       method: "DELETE",
     });
     return res?.data || res;

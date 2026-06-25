@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from "react";
+import { blockInput } from "../../../shared/utils/blockInput";
 
 const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
   const [cantidad, setCantidad] = useState("");
   const [color, setColor]    = useState("");
-
+  const [colorOpen, setColorOpen] = useState(false);
+  const [savedColors, setSavedColors] = useState(() => {
+    try {
+      const stored = localStorage.getItem("productionColors");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // ✅ Fix: pre-poblar con los valores actuales del detail al abrir
   useEffect(() => {
     if (isOpen && detail) {
       setCantidad(String(detail.quantity || ""));
       setColor(detail.color || "");
+      try {
+        const stored = localStorage.getItem("productionColors");
+        setSavedColors(stored ? JSON.parse(stored) : []);
+      } catch {
+        setSavedColors([]);
+      }
+      setColorOpen(false);
     }
   }, [isOpen, detail]);
 
   if (!isOpen) return null;
-
-  const COLORS = ["Rojo", "Negro", "Azul", "Blanco", "Verde", "Amarillo", "Rosado", "Gris"];
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
@@ -45,16 +59,45 @@ const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
               className="border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
             />
           </div>
-          <div className="flex flex-col w-1/2">
+          <div className="flex flex-col w-1/2 relative">
             <label className="text-xs font-semibold text-gray-500 mb-1">Color</label>
-            <select
+            <input
+              type="text"
               value={color}
-              onChange={(e) => setColor(e.target.value)}
+              onChange={(e) => {
+                if (!blockInput.onlyLetters(e)) return;
+                setColor(e.target.value);
+                setColorOpen(false);
+              }}
+              onFocus={() => savedColors.length > 0 && setColorOpen(true)}
+              placeholder="Ej: Rojo"
+              autoComplete="off"
               className="border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+            />
+            <button
+              type="button"
+              onClick={() => savedColors.length > 0 && setColorOpen((open) => !open)}
+              className="absolute right-2 top-7 text-gray-400"
+              title="Colores usados"
             >
-              <option value="">Seleccionar</option>
-              {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {colorOpen && savedColors.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden">
+                {savedColors.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => { setColor(c); setColorOpen(false); }}
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-pink-50 ${color === c ? "bg-pink-50 text-pink-600 font-semibold" : "text-gray-700"}`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -66,7 +109,7 @@ const AlertEditProduction = ({ isOpen, detail, onAccept, onCancel }) => {
             Cancelar
           </button>
           <button
-            onClick={() => onAccept({ cantidad, color })}
+            onClick={() => onAccept({ cantidad, color: color.trim() })}
             disabled={!cantidad || !color}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition
               ${cantidad && color
