@@ -7,7 +7,7 @@ import { AuthAPI } from '../../../auth/services/AuthAPI';
 import { useAuthContext } from '../../../shared/AuthContext';
 
 const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
-  const { versions, currentVersion, loadVersions, createVersion, deleteLastVersion, editVersion } = useTechnicalSheet(product?.id);
+  const { versions, currentVersion, loadVersions, createVersion, deleteLastVersion } = useTechnicalSheet(product?.id);
   // ✅ Se necesita el usuario actual para validar la contraseña al eliminar
   const { user: currentUser } = useAuthContext();
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -39,11 +39,6 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
     setShowVersions(false);
     setIsEditingMode(false);
     setEditDraft(null);
-  };
-
-  const handleStartEdit = () => {
-    setEditDraft({ ...currentVersionObj });
-    setIsEditingMode(true);
   };
 
   const handleCancelEdit = () => {
@@ -289,11 +284,6 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
               </>
             ) : (
               <>
-                {/* ✅ "Editar" no modifica la ficha existente: guarda una ficha
-                    NUEVA con los datos actualizados, preservando el historial */}
-                <button style={styles.editBtn} onClick={handleStartEdit} disabled={loading}>
-                  ✏️ Editar ficha
-                </button>
 
                 {/* Eliminar: solo cuando hay más de una versión y estás en la última */}
                 {isLastVersion && versions.length > 1 && (
