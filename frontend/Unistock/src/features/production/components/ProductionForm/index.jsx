@@ -384,7 +384,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const handleSubmit = (e) => { e.preventDefault(); if (validate()) setShowConfirm(true); };
 
+  const [isCreating, setIsCreating] = useState(false);
   const handleConfirm = async () => {
+    setIsCreating(true);
+    try {
     saveColor(formData.color); saveClient(formData.cliente);
     // ✅ Fix: el color de los artículos adicionales nunca se guardaba en
     // localStorage — solo se guardaba el del artículo principal.
@@ -437,6 +440,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     });
     setShowConfirm(false);
     setAlertConfig({ open: true, type: 'success', title: 'Orden creada', message: 'La orden de producción fue creada correctamente.', onConfirm: null });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const sectionTitle = (t) => (
@@ -544,7 +550,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: nuevaRefOpen ? '2px solid #e879f9' : '1.5px solid #e5e7eb',
+                      border: nuevaRefOpen ? '2px solid #ff4fd6' : '1.5px solid #e5e7eb',
                       background: nuevaRefOpen ? '#fdf4ff' : '#fafafa',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}
@@ -552,7 +558,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                       <div style={{
                         width: 22, height: 22, borderRadius: 6,
-                        background: nuevaRefOpen ? '#e879f9' : '#e5e7eb',
+                        background: nuevaRefOpen ? '#ff4fd6' : '#e5e7eb',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                         transition: 'background 0.15s',
                       }}>
@@ -563,7 +569,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           }
                         </svg>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: nuevaRefOpen ? '#9333ea' : '#374151' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: nuevaRefOpen ? '#ff4fd6' : '#374151' }}>
                         Nueva referencia
                       </span>
                       <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400 }}>
@@ -600,11 +606,11 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                                 const prefix = nuevaRef.name ? nuevaRef.name.substring(0,2).toUpperCase() : 'NR';
                                 setNuevaRef(p => ({ ...p, reference: `${prefix}-${ts}` }));
                               }}
-                              style={{ padding: '8px 10px', borderRadius: 9, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 11, color: '#9333ea', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              style={{ padding: '8px 10px', borderRadius: 9, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 11, color: '#ff4fd6', fontWeight: 700, whiteSpace: 'nowrap' }}>
                               ↻ Generar
                             </button>
                           </div>
-                          <p style={{ margin: '3px 0 0', fontSize: 10, color: '#a78bfa' }}>El código se genera automáticamente basado en el nombre.</p>
+                          <p style={{ margin: '3px 0 0', fontSize: 10, color: '#ff4fd6' }}>El código se genera automáticamente basado en el nombre.</p>
                         </div>
                         {/* Nombre */}
                         <div>
@@ -663,15 +669,15 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           style={getInputStyle(nuevaRefErrors.price)}
                         />
                         {nuevaRefErrors.price && <span style={errMsg}>⚠ {nuevaRefErrors.price}</span>}
-                        <p style={{ margin: '3px 0 0', fontSize: 10, color: '#a78bfa' }}>
+                        <p style={{ margin: '3px 0 0', fontSize: 10, color: '#ff4fd6' }}>
                           El stock inicial se tomará de la cantidad total de la orden.
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#fff', borderRadius: 8, border: '1px solid #f0abfc' }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2" strokeLinecap="round">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2" strokeLinecap="round">
                           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" strokeWidth="2.5"/><line x1="12" y1="11" x2="12" y2="16"/>
                         </svg>
-                        <span style={{ fontSize: 11, color: '#7c3aed' }}>
+                        <span style={{ fontSize: 11, color: '#ff4fd6' }}>
                           Esta referencia se registrará automáticamente en el catálogo de productos al crear la orden.
                         </span>
                       </div>
@@ -812,10 +818,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               )}
 
               {type === 'diseno' && (
-                <div style={{ background: '#fdf4ff', border: '1.5px dashed #e879f9', borderRadius: 10, padding: '14px', marginBottom: 14 }}>
-                  <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#9333ea' }}>
+                <div style={{ background: '#fdf4ff', border: '1.5px dashed #ff4fd6', borderRadius: 10, padding: '14px', marginBottom: 14 }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#ff4fd6' }}>
                     📸 Imágenes del diseño
-                    <span style={{ fontWeight: 400, color: '#a78bfa', marginLeft: 6 }}>— Sube bocetos o referencias visuales (opcional)</span>
+                    <span style={{ fontWeight: 400, color: '#ff4fd6', marginLeft: 6 }}>— Sube bocetos o referencias visuales (opcional)</span>
                   </p>
 
                   {/* Miniaturas de imágenes ya cargadas */}
@@ -840,17 +846,17 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     <label style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                       gap: 8, padding: '20px 16px', borderRadius: 10,
-                      border: '2px dashed #e879f9', background: '#fff',
+                      border: '2px dashed #ff4fd6', background: '#fff',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.borderColor = '#c026d3'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e879f9'; }}>
+                    onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#ff4fd6'; }}>
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c026d3" strokeWidth="1.5" strokeLinecap="round">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                       </svg>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#9333ea' }}>Subir imágenes del diseño</span>
-                      <span style={{ fontSize: 11, color: '#a78bfa' }}>JPG, PNG — múltiples archivos permitidos</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#ff4fd6' }}>Subir imágenes del diseño</span>
+                      <span style={{ fontSize: 11, color: '#ff4fd6' }}>JPG, PNG — múltiples archivos permitidos</span>
                       <input type="file" accept="image/*" multiple style={{ display: 'none' }}
                         onChange={e => {
                           const files = Array.from(e.target.files || []);
@@ -879,13 +885,13 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           </div>
                         ))}
                         {/* Agregar más */}
-                        <label style={{ aspectRatio: '1', borderRadius: 8, border: '2px dashed #e879f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#fff', gap: 4, transition: 'background 0.15s' }}
+                        <label style={{ aspectRatio: '1', borderRadius: 8, border: '2px dashed #ff4fd6', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#fff', gap: 4, transition: 'background 0.15s' }}
                           onMouseEnter={e => e.currentTarget.style.background = '#fdf4ff'}
                           onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c026d3" strokeWidth="2" strokeLinecap="round">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                           </svg>
-                          <span style={{ fontSize: 9, color: '#a78bfa', fontWeight: 700 }}>Más</span>
+                          <span style={{ fontSize: 9, color: '#ff4fd6', fontWeight: 700 }}>Más</span>
                           <input type="file" accept="image/*" multiple style={{ display: 'none' }}
                             onChange={e => {
                               const files = Array.from(e.target.files || []);
@@ -898,7 +904,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                             }} />
                         </label>
                       </div>
-                      <p style={{ fontSize: 11, color: '#a78bfa', margin: 0 }}>
+                      <p style={{ fontSize: 11, color: '#ff4fd6', margin: 0 }}>
                         {designImages.length} imagen{designImages.length !== 1 ? 'es' : ''} · Haz clic en × para eliminar
                       </p>
                     </div>
@@ -1015,7 +1021,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
             <div style={{ background: '#fdf4ff', border: '1px solid #f5d0fe', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #f5d0fe' }}>
                 <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipo</span>
-                <span style={{ background: type === 'produccion' ? '#fce7f3' : '#f3e8ff', color: type === 'produccion' ? '#be185d' : '#7c3aed', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                <span style={{ background: type === 'produccion' ? '#fce7f3' : '#f3e8ff', color: type === 'produccion' ? '#be185d' : '#ff4fd6', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
                   {type === 'produccion' ? 'Producción' : 'Diseño'}
                 </span>
               </div>
@@ -1038,8 +1044,8 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <Button type="button" variant="secondary" onClick={() => setShowConfirm(false)}>Volver a editar</Button>
-              <Button type="button" variant="primary" onClick={handleConfirm}>Confirmar y crear</Button>
+              <Button type="button" variant="secondary" onClick={() => setShowConfirm(false)} disabled={isCreating}>Volver a editar</Button>
+              <Button type="button" variant="primary" onClick={handleConfirm} loading={isCreating} loadingText="Creando...">Confirmar y crear</Button>
             </div>
           </div>
         </div>
