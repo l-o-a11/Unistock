@@ -19,11 +19,25 @@ export const ROUTE_MODULE_MAP = {
 };
 
 const ROLES_KEY = "app_roles";
+const ROLES_TTL_MS = 30 * 60 * 1000; // 30 minutos — después se refetch de la API
 
 const getRolesFromStorage = () => {
   try {
     const raw = localStorage.getItem(ROLES_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Soporte para el formato nuevo { roles, savedAt } y el legacy (array directo)
+    if (Array.isArray(parsed)) return parsed; // legacy sin TTL — se refresca igual
+    if (parsed?.roles && parsed?.savedAt) {
+      const age = Date.now() - parsed.savedAt;
+      if (age > ROLES_TTL_MS) {
+        // Cache expirado — forzar refetch de la API
+        localStorage.removeItem(ROLES_KEY);
+        return [];
+      }
+      return parsed.roles;
+    }
+    return [];
   } catch {
     return [];
   }
@@ -31,8 +45,13 @@ const getRolesFromStorage = () => {
 
 const saveRolesToStorage = (roles) => {
   try {
-    localStorage.setItem(ROLES_KEY, JSON.stringify(roles));
+    localStorage.setItem(ROLES_KEY, JSON.stringify({ roles, savedAt: Date.now() }));
   } catch { }
+};
+
+// Permite forzar invalidación del cache desde fuera (ej. cuando cambian permisos)
+export const invalidateRolesCache = () => {
+  try { localStorage.removeItem(ROLES_KEY); } catch { }
 };
 
 const normalizeRole = (role) => {

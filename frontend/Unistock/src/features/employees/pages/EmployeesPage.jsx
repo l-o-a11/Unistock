@@ -13,14 +13,15 @@ import { userAPI } from "../../users/services/usersAPI";
 const EmployeesPage = () => {
   const {
     employees,
+    loading,
     createEmployee,
     updateEmployee,
     deleteEmployee,
     toggleEmployee,
   } = useEmployees();
 
-  const { roles } = useRoles();
-  const { sedes } = useSedes();
+  const { roles, loading: loadingRoles, error: errorRoles } = useRoles();
+  const { sedes, loading: loadingSedes, error: errorSedes } = useSedes();
 
   // Filtrar roles: excluir Gerente, Admin y Administrador (cualquier capitalización)
   const ROLES_EXCLUIDOS_FORM = ["gerente", "admin", "administrador"];
@@ -216,6 +217,74 @@ const EmployeesPage = () => {
 
     return pages;
   };
+
+  // Si los catálogos fallan, mostrar error claro en lugar de selects vacíos silenciosos
+  if (loading) return (
+    <div style={{ padding: '24px 32px' }}>
+      <style>{`
+        @keyframes empskshimmer {
+          0% { background-position: -600px 0; }
+          100% { background-position: 600px 0; }
+        }
+        .empsk {
+          background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+          background-size: 600px 100%;
+          animation: empskshimmer 1.4s infinite;
+          border-radius: 4px;
+        }
+      `}</style>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div className="empsk" style={{ width: 120, height: 26, borderRadius: 6 }} />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div className="empsk" style={{ width: 220, height: 34, borderRadius: 8 }} />
+          <div className="empsk" style={{ width: 120, height: 34, borderRadius: 20 }} />
+        </div>
+      </div>
+
+      <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.4fr 0.8fr 0.8fr 0.7fr', padding: '10px 20px', borderBottom: '1px solid #f3f4f6' }}>
+          {[80, 70, 90, 40, 50, 60].map((w, i) => (
+            <div key={i} className="empsk" style={{ width: w, height: 11 }} />
+          ))}
+        </div>
+        {[...Array(6)].map((_, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.4fr 0.8fr 0.8fr 0.7fr', padding: '14px 20px', borderBottom: i < 5 ? '1px solid #f9fafb' : 'none', alignItems: 'center' }}>
+            <div className="empsk" style={{ width: 44, height: 13 }} />
+            <div className="empsk" style={{ width: 80, height: 13 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="empsk" style={{ width: 160, height: 13 }} />
+              <div className="empsk" style={{ width: 120, height: 10 }} />
+            </div>
+            <div className="empsk" style={{ width: 55, height: 13 }} />
+            <div className="empsk" style={{ width: 50, height: 13 }} />
+            <div className="empsk" style={{ width: 72, height: 24, borderRadius: 20 }} />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="empsk" style={{ width: 28, height: 28, borderRadius: 6 }} />
+        ))}
+      </div>
+    </div>
+  );
+
+  if (errorRoles || errorSedes) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', flexDirection: 'column', gap: 12 }}>
+        <p style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>
+          ⚠ No se pudieron cargar los catálogos de roles o sedes
+        </p>
+        <p style={{ fontSize: 12, color: '#9ca3af' }}>{errorRoles || errorSedes}</p>
+        <button onClick={() => window.location.reload()}
+          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#ff4fd6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "24px 32px" }}>

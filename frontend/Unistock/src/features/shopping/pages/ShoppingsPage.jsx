@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { useShoppings } from "../hooks/useShoppings";
 import { shoppingAPI } from "../services/shoppingAPI";
 import ShoppingTable from "../components/ShoppingTable";
@@ -151,10 +151,86 @@ const ShoppingsPage = () => {
         { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 28 },
         { wch: 35 }, { wch: 15 }, { wch: 12 }, { wch: 30 }, { wch: 18 },
       ];
+
+      // ── Estilos (mismo patrón que el módulo de Productos) ──────────────
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" }, name: "Arial", sz: 11 },
+        fill: { patternType: "solid", fgColor: { rgb: "E91E8C" } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: "C2185B" } },
+          bottom: { style: "thin", color: { rgb: "C2185B" } },
+          left: { style: "thin", color: { rgb: "C2185B" } },
+          right: { style: "thin", color: { rgb: "C2185B" } },
+        },
+      };
+
+      const rowStyleEven = {
+        font: { name: "Arial", sz: 10, color: { rgb: "1A1A1A" } },
+        fill: { patternType: "solid", fgColor: { rgb: "FCE4F3" } },
+        alignment: { vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: "F48FB1" } },
+          bottom: { style: "thin", color: { rgb: "F48FB1" } },
+          left: { style: "thin", color: { rgb: "F48FB1" } },
+          right: { style: "thin", color: { rgb: "F48FB1" } },
+        },
+      };
+
+      const rowStyleOdd = {
+        font: { name: "Arial", sz: 10, color: { rgb: "1A1A1A" } },
+        fill: { patternType: "solid", fgColor: { rgb: "FFFFFF" } },
+        alignment: { vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: "F48FB1" } },
+          bottom: { style: "thin", color: { rgb: "F48FB1" } },
+          left: { style: "thin", color: { rgb: "F48FB1" } },
+          right: { style: "thin", color: { rgb: "F48FB1" } },
+        },
+      };
+
+      // Columna "Estado" — Activa en rosa vibrante, Anulada en gris
+      const activeStyle = {
+        font: { bold: true, name: "Arial", sz: 10, color: { rgb: "6A0040" } },
+        fill: { patternType: "solid", fgColor: { rgb: "FF4FD6" } },
+        alignment: { horizontal: "center", vertical: "center" },
+      };
+
+      const inactiveStyle = {
+        font: { bold: true, name: "Arial", sz: 10, color: { rgb: "555555" } },
+        fill: { patternType: "solid", fgColor: { rgb: "F3F3F3" } },
+        alignment: { horizontal: "center", vertical: "center" },
+      };
+
+      // 9 columnas: ID, Fecha, N° Factura, Proveedor, Observaciones,
+      // Costo Total, Estado, Motivo anulación, Fecha anulación
+      const headers = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+      const estadoCol = "G"; // columna "Estado"
+      const totalRows = data.length;
+
+      headers.forEach((col) => {
+        const cellRef = `${col}1`;
+        if (worksheet[cellRef]) worksheet[cellRef].s = headerStyle;
+      });
+
+      for (let row = 2; row <= totalRows + 1; row++) {
+        const isEven = row % 2 === 0;
+        headers.forEach((col) => {
+          const cellRef = `${col}${row}`;
+          if (worksheet[cellRef]) {
+            if (col === estadoCol) {
+              worksheet[cellRef].s = worksheet[cellRef].v === "Activa" ? activeStyle : inactiveStyle;
+            } else {
+              worksheet[cellRef].s = isEven ? rowStyleEven : rowStyleOdd;
+            }
+          }
+        });
+      }
+
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Compras");
       const fecha = new Date().toISOString().split("T")[0];
-      XLSX.writeFile(workbook, `compras_${fecha}.xlsx`);
+      XLSX.writeFile(workbook, `compras_${fecha}.xlsx`, { cellStyles: true });
       showAlert("success", "¡Éxito!", "Archivo exportado correctamente.");
     } catch (error) {
       console.error("Error al exportar:", error);
