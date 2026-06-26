@@ -201,7 +201,7 @@ const ProductionsPage = () => {
 
     const ARGB = (hex) => 'FF' + hex.replace('#', '').toUpperCase();
     const fillSolid = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: ARGB(hex) } });
-    const thinBorder = (hex = '#F0E8F5') => {
+    const thinBorder = (hex = '#ffffff') => {
       const c = { style: 'thin', color: { argb: ARGB(hex) } };
       return { top: c, bottom: c, left: c, right: c };
     };
@@ -224,7 +224,7 @@ const ProductionsPage = () => {
     titleCell.value = 'Órdenes de Producción — Sistema de Gestión UniStock';
     titleCell.font = { name: 'Arial', size: 15, bold: true, color: { argb: '000000' } };
     titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    ['A1','B1','C1','D1','E1','F1','G1'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#F0E8F5'); });
+    ['A1','B1','C1','D1','E1','F1','G1'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#FDF6FF'); });
 
     /* ── Fila 2: subtítulo ── */
     ws.mergeCells('B2:G2');
@@ -233,11 +233,11 @@ const ProductionsPage = () => {
     subCell.value = `Generado el ${fecha}  ·  ${filteredProductions.length} orden${filteredProductions.length !== 1 ? 'es' : ''}`;
     subCell.font = { name: 'Arial', size: 10, color: { argb: '#000000' } };
     subCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    ['A2','B2','C2','D2','E2','F2','G2'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#F0E8F5'); });
+    ['A2','B2','C2','D2','E2','F2','G2'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#FDF6FF'); });
 
     /* ── Fila 3: separadora ── */
     ws.getRow(3).height = 6;
-    ['A3','B3','C3','D3','E3','F3','G3'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#F0E8F5'); });
+    ['A3','B3','C3','D3','E3','F3','G3'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#ffffff'); });
 
     /* ── Fila 4: encabezados de columnas ── */
     const headerRow = ws.getRow(4);
@@ -281,7 +281,7 @@ const ProductionsPage = () => {
       /* Número de orden: magenta bold */
       row.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#FF4FD6') } };
       /* Cantidad: morado oscuro bold */
-      row.getCell(5).font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#7C3DAD') } };
+      row.getCell(5).font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#a858d6') } };
     });
 
     /* ── Fila de totales ── */
@@ -291,22 +291,22 @@ const ProductionsPage = () => {
 
     const totalLabelCell = totalRow.getCell(2);
     totalLabelCell.value = 'Total unidades';
-    totalLabelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#7C3DAD') } };
-    totalLabelCell.fill = fillSolid('#F0E8F5');
+    totalLabelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#363636') } };
+    totalLabelCell.fill = fillSolid('#ffffff');
     totalLabelCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
     totalLabelCell.border = { top: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
 
     const totalValueCell = totalRow.getCell(5);
     totalValueCell.value = totalUnidades;
-    totalValueCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: ARGB('#FF4FD6') } };
-    totalValueCell.fill = fillSolid('#F0E8F5');
+    totalValueCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: ARGB('#a858d6') } };
+    totalValueCell.fill = fillSolid('#ffffff');
     totalValueCell.alignment = { horizontal: 'right', vertical: 'middle' };
     totalValueCell.border = { top: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
 
     /* Resto de celdas de la fila de totales con el mismo fondo */
     [1, 3, 4, 6, 7].forEach(col => {
       const c = totalRow.getCell(col);
-      c.fill = fillSolid('#F0E8F5');
+      c.fill = fillSolid('#FDF6FF'); //por aqui
       c.border = { top: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
     });
 
@@ -369,8 +369,8 @@ const ProductionsPage = () => {
     const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     const statusBadge = () => ({
-      bg:    '#f0e8f5',
-      color: '#F0E8F5',
+      bg:    '#ffffff',
+      color: '#000000',
       dot:   '#FF4FD6',
     });
 
@@ -450,7 +450,7 @@ const ProductionsPage = () => {
   .header-meta strong { color:#ffffff; font-weight:700; font-size:12px; letter-spacing:0.02em; }
 
   .doc-id {
-    display:inline-block; background:rgba(255,79,214,0.25); color:#ffb3f0;
+    display:inline-block; background:rgba(255,79,214,0.25); color:#ffffff;
     font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px;
     border:1px solid rgba(255,79,214,0.4); margin-top:6px; letter-spacing:0.06em;
   }
@@ -462,7 +462,7 @@ const ProductionsPage = () => {
     padding:8px 14px; margin-bottom:18px; font-size:10px; color:#6b7280;
     display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   }
-  .filter-bar strong { color:#F0E8F5; }
+  .filter-bar strong { color:#ffffff; }
 
   /* ── Resumen estados ── */
   .summary    { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
@@ -476,11 +476,11 @@ const ProductionsPage = () => {
   /* ── Tarjetas totales: planas rosas/lilas, sin degradado, sin negro ── */
   .totals-row { display:flex; gap:12px; margin-bottom:22px; }
   .total-card { flex:1; border-radius:10px; padding:14px 18px; }
-  .tc-a { background:#f0e8f5; border:1.5px solid #d8b4f8; }
+  .tc-a { background:#ffffff; border:1.5px solid #d8b4f8; }
   .tc-b { background:#fce7f9; border:1.5px solid #f9a8d4; }
   .tc-c { background:#ede9fe; border:1.5px solid #c4b5fd; }
   .total-val   { font-size:26px; font-weight:800; line-height:1; letter-spacing:-0.03em; color:#FF4FD6; }
-  .total-label { font-size:10px; color:#F0E8F5; margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
+  .total-label { font-size:10px; color #636264; margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
 
   /* ── Tabla ── */
   .section-title {
@@ -507,7 +507,7 @@ const ProductionsPage = () => {
   .td-qty         { text-align:right; white-space:nowrap; }
   .qty-badge      { font-size:12px; font-weight:800; color:#2d1b4e; }
   .qty-label      { font-size:9px; color:#9ca3af; }
-  .td-color .color-pill { background:#f0e8f5; border-radius:4px; padding:2px 7px; font-size:9.5px; color:#F0E8F5; font-weight:500; }
+  .td-color .color-pill { background:#ffffff; border-radius:4px; padding:2px 7px; font-size:9.5px; color:#000000; font-weight:500; }
   .td-date        { color:#6b7280; font-variant-numeric:tabular-nums; }
 
   .status-badge {
@@ -532,7 +532,7 @@ const ProductionsPage = () => {
   .reparto-verify{ display:flex; align-items:center; gap:7px; margin-top:10px; padding-top:8px; border-top:1px dashed #e8d5f5; font-size:9px; color:#9ca3af; }
 
   /* ── Footer ── */
-  .footer { background:#f0e8f5; border-top:2px solid #e8d5f5; padding:14px 32px; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#F0E8F5; margin-top:auto; }
+  .footer { background:#ffffff; border-top:2px solid #e8d5f5; padding:14px 32px; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#ffffff; margin-top:auto; }
   .footer strong { color:#2d1b4e; }
   .footer-sig    { text-align:right; line-height:1.6; }
   .footer-brand  { display:flex; align-items:center; gap:8px; }
@@ -547,7 +547,7 @@ const ProductionsPage = () => {
   }
   .print-bar { display:flex; justify-content:flex-end; padding:12px 32px 0; gap:10px; }
   .btn-print { background:#FF4FD6; color:#fff; border:none; border-radius:8px; padding:9px 20px; font-size:12px; font-weight:700; cursor:pointer; }
-  .btn-close { background:#f0e8f5; color:#2d1b4e; border:none; border-radius:8px; padding:9px 16px; font-size:12px; font-weight:600; cursor:pointer; }
+  .btn-close { background:#ffffff; color:#2d1b4e; border:none; border-radius:8px; padding:9px 16px; font-size:12px; font-weight:600; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -780,7 +780,7 @@ const ProductionsPage = () => {
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {/* Excel */}
               <button className="download-opt-btn" onClick={handleDownloadExcel}>
-                <div className="download-opt-icon" style={{ background:'#f0e8f5' }}>
+                <div className="download-opt-icon" style={{ background:'#ffffff' }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={PINK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                     <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
@@ -794,7 +794,7 @@ const ProductionsPage = () => {
               </button>
               {/* PDF */}
               <button className="download-opt-btn" onClick={handleDownloadPDF}>
-                <div className="download-opt-icon" style={{ background:'#f0e8f5' }}>
+                <div className="download-opt-icon" style={{ background:'#ffffff' }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={DARK1} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
