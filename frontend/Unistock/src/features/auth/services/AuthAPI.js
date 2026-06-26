@@ -14,7 +14,7 @@ export const authService = {
         password = correoOrPayload.password;
       }
 
-      const res = await post("/auth/login", { correo, password }, { skipAuth: true });
+      const res = await post("/auth/login", { correo, password }, { skipAuth: true, suppressAutoLogout: true });
       const payload = res?.data ?? res;
       const token = payload?.token ?? payload?.data?.token ?? null;
       const user = payload?.user ?? payload?.data?.user ?? payload ?? null;

@@ -15,10 +15,17 @@ const HEADERS = [
 const EmployeeTable = ({ employees = [], roles = [], sedes = [], onEdit, onDelete, onToggle }) => {
     const renderRow = (employee) => {
         const isActive = employee.estado !== false;
-        
-        // Resolver nombres de rol y sede desde IDs
-        const roleName = roles.find((r) => r.id === (employee.rolId ?? employee.rol))?.nombre ?? "—";
-        const sedeName = sedes.find((s) => s.id === (employee.sedeId ?? employee.sede))?.nombre ?? "—";
+
+        // Prioridad 1: usar rolNombre/sedeNombre que ya vienen del backend (populate)
+        // Prioridad 2: cruzar con el catálogo por ID (fallback con String() para comparar ObjectIds)
+        const roleName =
+            employee.rolNombre ||
+            roles.find((r) => String(r.id) === String(employee.rolId ?? employee.rol))?.nombre ||
+            "—";
+        const sedeName =
+            employee.sedeNombre ||
+            sedes.find((s) => String(s.id) === String(employee.sedeId ?? employee.sede))?.nombre ||
+            "—";
 
         return (
             <tr key={employee.id} className="transition-colors duration-150 hover:bg-gray-50">
