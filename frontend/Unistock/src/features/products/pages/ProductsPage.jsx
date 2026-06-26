@@ -11,6 +11,9 @@ import ProductForm from '../components/ProductForm';
 import TechnicalSheetModal from '../components/TechnicalSheetModal';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
+// 🔥 Importa aquí la URL de tu logo (ajusta la ruta según tu proyecto)
+import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
+
 const ProductsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { products, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
@@ -67,42 +70,25 @@ const ProductsPage = () => {
   const filteredProducts = products.filter(product => {
     const searchLower = searchTerm.toLowerCase().trim();
 
-    // Si no hay término de búsqueda, mostrar todos
     if (!searchLower) return true;
 
-    // 🔥 BUSCAR POR ESTADO - BÚSQUEDA EXACTA
     const estaActivo = product.active !== false;
 
-    // Verificar si el término de búsqueda coincide con "activo" o sus variantes
     const esBusquedaActivo = searchLower === "activo" || searchLower === "act" || searchLower === "acti" || searchLower === "activ";
     const esBusquedaInactivo = searchLower === "inactivo" || searchLower === "inac" || searchLower === "inact" || searchLower === "inacti";
 
-    // Si está buscando activo y el producto está activo
-    if (esBusquedaActivo && estaActivo) {
-      return true;
-    }
-    // Si está buscando inactivo y el producto está inactivo
-    if (esBusquedaInactivo && !estaActivo) {
-      return true;
-    }
+    if (esBusquedaActivo && estaActivo) return true;
+    if (esBusquedaInactivo && !estaActivo) return true;
 
-    // Si NO está buscando por estado, buscar en los demás campos
     if (!esBusquedaActivo && !esBusquedaInactivo) {
-      // Buscar por nombre
-      const matchesName = product.name?.toLowerCase().includes(searchLower);
-      // Buscar por referencia
+      const matchesName      = product.name?.toLowerCase().includes(searchLower);
       const matchesReference = product.reference?.toLowerCase().includes(searchLower);
-      // Buscar por categoría
-      const matchesCategory = product.category?.toLowerCase().includes(searchLower);
-      // Buscar por precio (convertir número a string)
-      const matchesPrice = product.price?.toString().includes(searchTerm);
-      // Buscar por stock (convertir número a string)
-      const matchesStock = product.stock?.toString().includes(searchTerm);
-
+      const matchesCategory  = product.category?.toLowerCase().includes(searchLower);
+      const matchesPrice     = product.price?.toString().includes(searchTerm);
+      const matchesStock     = product.stock?.toString().includes(searchTerm);
       return matchesName || matchesReference || matchesCategory || matchesPrice || matchesStock;
     }
 
-    // Si es búsqueda de estado pero no coincide con el estado del producto
     return false;
   });
 
@@ -116,41 +102,20 @@ const ProductsPage = () => {
     if (type === "success") {
       setSuccessAlert({ open: false, key: Date.now() });
       setTimeout(() => {
-        setSuccessAlert({
-          open: true,
-          key: Date.now(),
-          title,
-          message
-        });
-        setTimeout(() => {
-          setSuccessAlert(prev => ({ ...prev, open: false }));
-        }, 3000);
+        setSuccessAlert({ open: true, key: Date.now(), title, message });
+        setTimeout(() => setSuccessAlert(prev => ({ ...prev, open: false })), 3000);
       }, 50);
     } else if (type === "error") {
       setErrorAlert({ open: false, key: Date.now() });
       setTimeout(() => {
-        setErrorAlert({
-          open: true,
-          key: Date.now(),
-          title,
-          message
-        });
-        setTimeout(() => {
-          setErrorAlert(prev => ({ ...prev, open: false }));
-        }, 3000);
+        setErrorAlert({ open: true, key: Date.now(), title, message });
+        setTimeout(() => setErrorAlert(prev => ({ ...prev, open: false })), 3000);
       }, 50);
     } else if (type === "warning") {
       setWarningAlert({ open: false, key: Date.now() });
       setTimeout(() => {
-        setWarningAlert({
-          open: true,
-          key: Date.now(),
-          title,
-          message
-        });
-        setTimeout(() => {
-          setWarningAlert(prev => ({ ...prev, open: false }));
-        }, 3000);
+        setWarningAlert({ open: true, key: Date.now(), title, message });
+        setTimeout(() => setWarningAlert(prev => ({ ...prev, open: false })), 3000);
       }, 50);
     }
   };
@@ -171,9 +136,7 @@ const ProductsPage = () => {
     }, 50);
   };
 
-  const handleAddProduct = () => {
-    setShowCreateForm(true);
-  };
+  const handleAddProduct = () => setShowCreateForm(true);
 
   const handleEdit = (product) => {
     setEditingProduct(product);
@@ -190,20 +153,14 @@ const ProductsPage = () => {
     try {
       await createProduct(productData);
       handleCloseForm();
-      handleShowAlert({
-        type: "success",
-        title: "¡Éxito!",
-        message: "Producto creado correctamente"
-      });
+      handleShowAlert({ type: "success", title: "¡Éxito!", message: "Producto creado correctamente" });
     } catch (error) {
-      // Detectar error de duplicado de MongoDB
       const isDuplicate =
         error.message?.includes("duplicate key") ||
         error.message?.includes("E11000") ||
         error.message?.includes("dup key") ||
         error.message?.includes("ya existe");
 
-      // No cerrar el formulario si es duplicado — el usuario puede corregir
       if (isDuplicate) {
         handleShowAlert({
           type: "error",
@@ -212,11 +169,7 @@ const ProductsPage = () => {
         });
       } else {
         handleCloseForm();
-        handleShowAlert({
-          type: "error",
-          title: "¡Error!",
-          message: error.message || "Error al crear producto"
-        });
+        handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al crear producto" });
       }
     }
   };
@@ -225,18 +178,10 @@ const ProductsPage = () => {
     try {
       await updateProduct(editingProduct.id, productData);
       handleCloseForm();
-      handleShowAlert({
-        type: "success",
-        title: "¡Éxito!",
-        message: "Producto actualizado correctamente"
-      });
+      handleShowAlert({ type: "success", title: "¡Éxito!", message: "Producto actualizado correctamente" });
     } catch (error) {
       handleCloseForm();
-      handleShowAlert({
-        type: "error",
-        title: "¡Error!",
-        message: error.message || "Error al actualizar producto"
-      });
+      handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar producto" });
     }
   };
 
@@ -255,11 +200,7 @@ const ProductsPage = () => {
       await AuthAPI.verifyPassword(password);
       await deleteProduct(deleteAlert.productId);
       setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() });
-      handleShowAlert({
-        type: "success",
-        title: "¡Éxito!",
-        message: "Producto eliminado correctamente"
-      });
+      handleShowAlert({ type: "success", title: "¡Éxito!", message: "Producto eliminado correctamente" });
     } catch (error) {
       const isInvalidPassword = error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
       handleShowAlert({
@@ -269,11 +210,7 @@ const ProductsPage = () => {
           ? "La contraseña no coincide con tu usuario actual."
           : (error.message || "Error al eliminar producto")
       });
-      setDeleteAlert((prev) => ({
-        ...prev,
-        open: isInvalidPassword,
-        step: "password",
-      }));
+      setDeleteAlert((prev) => ({ ...prev, open: isInvalidPassword, step: "password" }));
     }
   };
 
@@ -289,12 +226,7 @@ const ProductsPage = () => {
       return;
     }
 
-    setDeleteAlert({
-      open: true,
-      step: "password",
-      productId: id,
-      key: Date.now()
-    });
+    setDeleteAlert({ open: true, step: "password", productId: id, key: Date.now() });
   };
 
   const handleStockChange = async (id, delta) => {
@@ -309,132 +241,372 @@ const ProductsPage = () => {
     try {
       await updateProduct(id, { ...product, stock: newStock });
     } catch (error) {
-      handleShowAlert({
-        type: "error",
-        title: "¡Error!",
-        message: error.message || "Error al actualizar el stock"
-      });
+      handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar el stock" });
     }
   };
 
-  const handleDownload = () => {
+  /* ══════════════════════════════════════════════════════════════════════
+     DESCARGA EXCEL — ExcelJS con logo + estilos paleta empresa UniStock
+     Header magenta, filas rosas/blancas, total de stock al final
+  ══════════════════════════════════════════════════════════════════════ */
+    const handleDownloadExcel = async () => {
+    const ExcelJS = (await import("exceljs")).default;
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "UniStock";
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet("Productos", {
+      pageSetup: {
+        orientation: "landscape",
+        fitToPage: true,
+      },
+    });
+
+    const now = new Date();
+    const fecha = now.toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+
+    ws.columns = [
+      { key: "referencia", width: 14 },
+      { key: "nombre", width: 28 },
+      { key: "categoria", width: 18 },
+      { key: "precio", width: 12 },
+      { key: "stock", width: 10 },
+      { key: "estado", width: 12 },
+    ];
+
+    const ARGB = (hex) => "FF" + hex.replace("#", "").toUpperCase();
+
+    const fillSolid = (hex) => ({
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: ARGB(hex) },
+    });
+
+    const thinBorder = (hex = "#ffffff") => {
+      const c = {
+        style: "thin",
+        color: { argb: ARGB(hex) },
+      };
+      return {
+        top: c,
+        bottom: c,
+        left: c,
+        right: c,
+      };
+    };
+
+    /* ===================== LOGO ===================== */
+
+    let logoLoaded = false;
+
     try {
-      const data = filteredProducts.map(p => ({
-        'Referencia': p.reference,
-        'Nombre': p.name,
-        'Categoría': p.category,
-        'Precio': p.price,
-        'Stock': p.stock,
-        'Estado': p.active !== false ? 'Activo' : 'Inactivo'
-      }));
+      const logoRes = await fetch(putongasLogoUrl);
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
+      if (logoRes.ok) {
+        const blob = await logoRes.blob();
 
-      worksheet['!cols'] = [
-        { wch: 15 },
-        { wch: 30 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 10 },
-        { wch: 10 },
-      ];
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
 
-      // Estilo encabezados — fondo rosa fuerte, texto blanco
-      const headerStyle = {
-        font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Arial', sz: 11 },
-        fill: { patternType: 'solid', fgColor: { rgb: 'E91E8C' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top:    { style: 'thin', color: { rgb: 'C2185B' } },
-          bottom: { style: 'thin', color: { rgb: 'C2185B' } },
-          left:   { style: 'thin', color: { rgb: 'C2185B' } },
-          right:  { style: 'thin', color: { rgb: 'C2185B' } },
-        }
+        const logoId = wb.addImage({
+          base64,
+          extension:
+            putongasLogoUrl.toLowerCase().endsWith(".jpg") ||
+            putongasLogoUrl.toLowerCase().endsWith(".jpeg")
+              ? "jpeg"
+              : "png",
+        });
+
+        ws.addImage(logoId, {
+          tl: { col: 0.02, row: 0.08 },
+          ext: {
+            width: 46,
+            height: 56,
+          },
+        });
+
+        logoLoaded = true;
+      }
+    } catch (e) {
+      console.warn("No se pudo cargar el logo:", e);
+    }
+
+    /* ===================== HEADER ===================== */
+
+    if (logoLoaded) {
+      ws.mergeCells("B1:F1");
+      ws.mergeCells("B2:F2");
+    } else {
+      ws.mergeCells("A1:F1");
+      ws.mergeCells("A2:F2");
+    }
+
+    /* Altura de filas */
+
+    ws.getRow(1).height = 24; // Título
+    ws.getRow(2).height = 18; // Generado el...
+    ws.getRow(3).height = 5;  // Separación antes del header
+
+    /* Fondo */
+
+    [
+      "A1","B1","C1","D1","E1","F1",
+      "A2","B2","C2","D2","E2","F2",
+      "A3","B3","C3","D3","E3","F3"
+    ].forEach(cell => {
+      ws.getCell(cell).fill = fillSolid("#FDF6FF");
+    });
+
+    /* ---------- TÍTULO ---------- */
+
+    const titleCell = ws.getCell(logoLoaded ? "B1" : "A1");
+
+    titleCell.value = "Productos — Sistema de Gestión UniStock";
+
+    titleCell.font = {
+      name: "Arial",
+      size: 14,          // Antes 16
+      bold: true,
+      color: { argb: "FF000000" },
+    };
+
+    titleCell.alignment = {
+      horizontal: "left",
+      vertical: "middle",
+    };
+
+    /* ---------- SUBTÍTULO ---------- */
+
+    const subCell = ws.getCell(logoLoaded ? "B2" : "A2");
+
+    subCell.value =
+      `Generado el ${fecha} · ${filteredProducts.length} producto` +
+      `${filteredProducts.length !== 1 ? "s" : ""}`;
+
+    subCell.font = {
+      name: "Arial",
+      size: 10,
+      color: { argb: "FF6B7280" },
+    };
+
+    subCell.alignment = {
+      horizontal: "left",
+      vertical: "middle",
+    };
+    /* ===================== ENCABEZADOS ===================== */
+
+    const headerRow = ws.getRow(4);
+
+    headerRow.height = 26;
+
+    [
+      "Referencia",
+      "Nombre",
+      "Categoría",
+      "Precio",
+      "Stock",
+      "Estado",
+    ].forEach((h, i) => {
+
+      const cell = headerRow.getCell(i + 1);
+
+      cell.value = h;
+
+      cell.font = {
+        bold: true,
+        color: { argb: "FFFFFFFF" },
       };
 
-      // Filas pares — rosa muy claro
-      const rowStyleEven = {
-        font: { name: 'Arial', sz: 10, color: { rgb: '1A1A1A' } },
-        fill: { patternType: 'solid', fgColor: { rgb: 'FCE4F3' } },
-        alignment: { vertical: 'center' },
-        border: {
-          top:    { style: 'thin', color: { rgb: 'F48FB1' } },
-          bottom: { style: 'thin', color: { rgb: 'F48FB1' } },
-          left:   { style: 'thin', color: { rgb: 'F48FB1' } },
-          right:  { style: 'thin', color: { rgb: 'F48FB1' } },
-        }
+      cell.fill = fillSolid("#FF4FD6");
+
+      cell.alignment = {
+        horizontal: i >= 3 ? "right" : "left",
+        vertical: "middle",
+        indent: i >= 3 ? 0 : 1,
       };
 
-      // Filas impares — blanco
-      const rowStyleOdd = {
-        font: { name: 'Arial', sz: 10, color: { rgb: '1A1A1A' } },
-        fill: { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } },
-        alignment: { vertical: 'center' },
-        border: {
-          top:    { style: 'thin', color: { rgb: 'F48FB1' } },
-          bottom: { style: 'thin', color: { rgb: 'F48FB1' } },
-          left:   { style: 'thin', color: { rgb: 'F48FB1' } },
-          right:  { style: 'thin', color: { rgb: 'F48FB1' } },
-        }
+      cell.border = {
+        bottom: {
+          style: "medium",
+          color: {
+            argb: ARGB("#FF4FD6"),
+          },
+        },
       };
+    });
 
-      // Columna Estado — Activo en rosa vibrante
-      const activeStyle = {
-        font: { bold: true, name: 'Arial', sz: 10, color: { rgb: '6A0040' } },
-        fill: { patternType: 'solid', fgColor: { rgb: 'FF4FD6' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-      };
+    /* ===================== DATOS ===================== */
 
-      // Columna Estado — Inactivo en gris
-      const inactiveStyle = {
-        font: { bold: true, name: 'Arial', sz: 10, color: { rgb: '555555' } },
-        fill: { patternType: 'solid', fgColor: { rgb: 'F3F3F3' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-      };
+    filteredProducts.forEach((p, i) => {
 
-      const headers = ['A', 'B', 'C', 'D', 'E', 'F'];
-      const totalRows = data.length;
+      const row = ws.getRow(i + 5);
 
-      // Aplicar estilos a encabezados (fila 1)
-      headers.forEach(col => {
-        const cellRef = `${col}1`;
-        if (worksheet[cellRef]) worksheet[cellRef].s = headerStyle;
+      const even = i % 2 === 0;
+
+      const fill = fillSolid(even ? "#FFFFFF" : "#FDF6FF");
+
+      [
+        p.reference || "—",
+        p.name || "—",
+        p.category || "—",
+        p.price ?? 0,
+        p.stock ?? 0,
+        p.active !== false ? "Activo" : "Inactivo",
+      ].forEach((v, c) => {
+
+        const cell = row.getCell(c + 1);
+
+        cell.value = v;
+
+        cell.fill = fill;
+
+        cell.border = thinBorder();
+
+        cell.alignment = {
+          horizontal: c >= 3 ? "right" : "left",
+          vertical: "middle",
+          indent: c >= 3 ? 0 : 1,
+        };
+
+        cell.font = {
+          name: "Arial",
+          size: 10,
+          color: { argb: "FF374151" },
+        };
       });
 
-      // Aplicar estilos a filas de datos
-      for (let row = 2; row <= totalRows + 1; row++) {
-        const isEven = row % 2 === 0;
-        headers.forEach(col => {
-          const cellRef = `${col}${row}`;
-          if (worksheet[cellRef]) {
-            if (col === 'F') {
-              // Columna Estado con color según valor
-              worksheet[cellRef].s = worksheet[cellRef].v === 'Activo' ? activeStyle : inactiveStyle;
-            } else {
-              worksheet[cellRef].s = isEven ? rowStyleEven : rowStyleOdd;
-            }
-          }
-        });
-      }
+      row.getCell(1).font = {
+        bold: true,
+        color: { argb: ARGB("#FF4FD6") },
+      };
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos');
+      row.getCell(5).font = {
+        bold: true,
+        color: { argb: ARGB("#a858d6") },
+      };
+    });
 
-      const fecha = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(workbook, `productos_${fecha}.xlsx`, { cellStyles: true });
+    /* ===================== TOTAL ===================== */
+
+    const totalRow = ws.getRow(filteredProducts.length + 6);
+
+    const totalStock = filteredProducts.reduce(
+      (s, p) => s + (Number(p.stock) || 0),
+      0
+    );
+
+    totalRow.height = 22;
+
+    [1,3,4,6].forEach(col=>{
+
+      const c=totalRow.getCell(col);
+
+      c.value="";
+
+      c.fill=fillSolid("#FDF6FF");
+
+      c.border={
+        top:{
+          style:"medium",
+          color:{argb:ARGB("#FF4FD6")}
+        }
+      };
+    });
+
+    const totalLabelCell = totalRow.getCell(2);
+
+    totalLabelCell.value = "Total stock";
+
+    totalLabelCell.font = {
+      bold: true,
+      color: {
+        argb: ARGB("#a858d6"),
+      },
+    };
+
+    totalLabelCell.fill = fillSolid("#FDF6FF");
+
+    totalLabelCell.alignment = {
+      horizontal: "left",
+      vertical: "middle",
+      indent: 1,
+    };
+
+    totalLabelCell.border = {
+      top: {
+        style: "medium",
+        color: {
+          argb: ARGB("#FF4FD6"),
+        },
+      },
+    };
+
+    const totalValueCell = totalRow.getCell(5);
+
+    totalValueCell.value = totalStock;
+
+    totalValueCell.font = {
+      bold: true,
+      color: {
+        argb: ARGB("#FF4FD6"),
+      },
+    };
+
+    totalValueCell.fill = fillSolid("#FDF6FF");
+
+    totalValueCell.alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
+
+    totalValueCell.border = {
+      top: {
+        style: "medium",
+        color: {
+          argb: ARGB("#FF4FD6"),
+        },
+      },
+    };
+
+    try {
+
+      const buffer = await wb.xlsx.writeBuffer();
+
+      const blob = new Blob([buffer], {
+        type: "application/octet-stream",
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+
+      link.href = url;
+
+      link.download = "productos.xlsx";
+
+      link.click();
+
+      URL.revokeObjectURL(url);
 
       handleShowAlert({
         type: "success",
         title: "¡Éxito!",
-        message: "Archivo exportado correctamente"
+        message: "Archivo exportado correctamente",
       });
-    } catch (error) {
-      console.error('Error al exportar:', error);
-      handleShowAlert({
-        type: "error",
-        title: "¡Error!",
-        message: "Error al exportar archivo"
-      });
+
+    } catch (e) {
+
+      console.error(e);
+
     }
   };
 
@@ -461,10 +633,7 @@ const ProductsPage = () => {
 
   const modalOverlayStyle = {
     position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 1000,
     pointerEvents: 'none'
@@ -472,10 +641,7 @@ const ProductsPage = () => {
 
   const modalBackgroundStyle = {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     pointerEvents: 'auto',
     zIndex: 1001
@@ -483,8 +649,7 @@ const ProductsPage = () => {
 
   const modalContentStyle = {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
+    top: '50%', left: '50%',
     transform: 'translate(-50%, -50%)',
     width: '90%',
     maxWidth: '1000px',
@@ -541,7 +706,7 @@ const ProductsPage = () => {
         marginBottom: '20px',
       }}>
         <button
-          onClick={handleDownload}
+          onClick={handleDownloadExcel}
           title="Exportar"
           style={{
             background: 'none',
@@ -556,16 +721,8 @@ const ProductsPage = () => {
           onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
           onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
@@ -645,9 +802,7 @@ const ProductsPage = () => {
 
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>
-                ...
-              </span>
+              <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>...</span>
             ) : (
               <button
                 key={p}
@@ -716,9 +871,7 @@ const ProductsPage = () => {
           confirmText={confirmAlert.confirmText}
           cancelText={confirmAlert.cancelText}
           onConfirm={() => {
-            if (confirmAlert.onConfirm) {
-              confirmAlert.onConfirm();
-            }
+            if (confirmAlert.onConfirm) confirmAlert.onConfirm();
             setConfirmAlert({ ...confirmAlert, open: false });
           }}
           onCancel={() => setConfirmAlert({ ...confirmAlert, open: false })}

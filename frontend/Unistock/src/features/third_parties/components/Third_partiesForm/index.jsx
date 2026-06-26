@@ -2,6 +2,10 @@
  * @file Third_partiesForm/index.jsx
  * @description Formulario modal para crear o editar un tercero.
  *              Estilo visual alineado con ProductionForm (UniStock design system).
+ *
+ * FIX: El componente Field fue movido fuera de Third_partieForm para que React
+ * no lo desmonte/remonte en cada render (lo que causaba pérdida de foco tras
+ * escribir un solo carácter).
  */
 import React, { useState, useEffect, useRef } from 'react';
 import Alert from '../../../shared/components/Alert';
@@ -28,6 +32,34 @@ const sectionTitle = (text) => (
   }}>
     {text}
   </p>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIELD — definido fuera del componente para que React no lo desmonte en cada
+// render. Recibe formData, errors y handlers como props explícitas.
+// ─────────────────────────────────────────────────────────────────────────────
+const Field = ({ label, name, type = 'text', required = false, placeholder = '', hint = null, formData, errors, onChange, onBlur }) => (
+  <div>
+    <label style={labelStyle}>
+      {label}
+      {required
+        ? <span style={requiredStar}> *</span>
+        : <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400, marginLeft: 4 }}>(opcional)</span>
+      }
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={formData[name]}
+      onChange={onChange}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      autoComplete="off"
+      style={getInputStyle(errors[name])}
+    />
+    {errors[name] && <span style={errMsg}>⚠ {errors[name]}</span>}
+    {hint && <p style={{ margin: '3px 0 0', fontSize: 10, color: '#9ca3af' }}>{hint}</p>}
+  </div>
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,7 +144,6 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     if (formData.correo) { const e = validateField('correo', formData.correo); if (e) newErrors.correo = e; }
     setErrors(newErrors);
 
-    // Alert con lista de campos faltantes — patrón ProductionForm
     const LABELS = {
       nombre: 'Nombre empresa', direccion: 'Dirección',
       telefono: 'Teléfono', contacto: 'Contacto principal',
@@ -188,31 +219,6 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     });
   };
 
-  // ── Helper: campo de texto genérico ──────────────────────────────────────
-  const Field = ({ label, name, type = 'text', required = false, placeholder = '', hint = null }) => (
-    <div>
-      <label style={labelStyle}>
-        {label}
-        {required
-          ? <span style={requiredStar}> *</span>
-          : <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400, marginLeft: 4 }}>(opcional)</span>
-        }
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={formData[name]}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        autoComplete="off"
-        style={getInputStyle(errors[name])}
-      />
-      {errors[name] && <span style={errMsg}>⚠ {errors[name]}</span>}
-      {hint && <p style={{ margin: '3px 0 0', fontSize: 10, color: '#9ca3af' }}>{hint}</p>}
-    </div>
-  );
-
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────────
@@ -268,7 +274,7 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
               ✕
             </button>
 
-            {/* ── Header con ícono — patrón ProductionForm ── */}
+            {/* ── Header con ícono ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10,
@@ -293,7 +299,6 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
                     : 'Completa todos los campos obligatorios'}
                 </p>
               </div>
-              {/* Badge NIT visible en modo edición */}
               {isEdit && Third_partie?.nit && (
                 <span style={{
                   marginLeft: 'auto', fontSize: 11, fontWeight: 700,
@@ -308,67 +313,42 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
 
             <form onSubmit={handleSubmit} noValidate>
 
-              {/* ══════════════════════════════════════════════════
-                  SECCIÓN 1 — DATOS DE LA EMPRESA
-              ══════════════════════════════════════════════════ */}
               {sectionTitle('Datos de la empresa')}
 
-              {/* Nombre + NIT */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: 14, marginBottom: 14,
               }}>
-                <Field
-                  label="Nombre empresa" name="nombre"
-                  required placeholder="Ej: Confecciones López S.A.S."
-                />
-                <Field
-                  label="NIT" name="nit"
-                  placeholder="Ej: 900123456-7"
-                  hint="8-12 dígitos, guión opcional"
-                />
+                <Field label="Nombre empresa" name="nombre" required placeholder="Ej: Confecciones López S.A.S."
+                  formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
+                <Field label="NIT" name="nit" placeholder="Ej: 900123456-7" hint="8-12 dígitos, guión opcional"
+                  formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 
-              {/* Dirección — ancho completo */}
               <div style={{ marginBottom: 4 }}>
-                <Field
-                  label="Dirección" name="direccion"
-                  required placeholder="Ej: Carrera 45 #10-30, Medellín"
-                />
+                <Field label="Dirección" name="direccion" required placeholder="Ej: Carrera 45 #10-30, Medellín"
+                  formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 
-              {/* ══════════════════════════════════════════════════
-                  SECCIÓN 2 — PERSONA DE CONTACTO
-              ══════════════════════════════════════════════════ */}
               {sectionTitle('Persona de contacto')}
 
-              {/* Contacto + Teléfono */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: 14, marginBottom: 14,
               }}>
-                <Field
-                  label="Contacto principal" name="contacto"
-                  required placeholder="Ej: María González"
-                />
-                <Field
-                  label="Teléfono" name="telefono"
-                  required placeholder="Ej: 3001234567"
-                  hint="Exactamente 10 dígitos"
-                />
+                <Field label="Contacto principal" name="contacto" required placeholder="Ej: María González"
+                  formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
+                <Field label="Teléfono" name="telefono" required placeholder="Ej: 3001234567" hint="Exactamente 10 dígitos"
+                  formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 
-              {/* Correo — ancho completo, opcional */}
               <div style={{ marginBottom: 20 }}>
-                <Field
-                  label="Correo" name="correo"
-                  type="email" placeholder="Ej: contacto@empresa.com"
-                />
+                <Field label="Correo" name="correo" type="email" placeholder="Ej: contacto@empresa.com"
+                  formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 
-              {/* ── Botones ── */}
               <div style={{
                 display: 'flex', justifyContent: 'flex-end', gap: 10,
                 paddingTop: 16, borderTop: '1px solid #f3f4f6',
