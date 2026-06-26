@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { useProducts } from '../hooks/useProducts';
 import { useProductSearch } from '../hooks/useProductSearch';
 import Alert from '../../shared/components/Alert';
@@ -297,6 +297,26 @@ const ProductsPage = () => {
     });
   };
 
+  const handleStockChange = async (id, delta) => {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    const currentStock = Number(product.stock) || 0;
+    const newStock = Math.max(0, currentStock + delta);
+
+    if (newStock === currentStock) return;
+
+    try {
+      await updateProduct(id, { ...product, stock: newStock });
+    } catch (error) {
+      handleShowAlert({
+        type: "error",
+        title: "¡Error!",
+        message: error.message || "Error al actualizar el stock"
+      });
+    }
+  };
+
   const handleDownload = () => {
     try {
       const data = filteredProducts.map(p => ({
@@ -310,7 +330,7 @@ const ProductsPage = () => {
 
       const worksheet = XLSX.utils.json_to_sheet(data);
 
-      const columnWidths = [
+      worksheet['!cols'] = [
         { wch: 15 },
         { wch: 30 },
         { wch: 20 },
@@ -318,13 +338,90 @@ const ProductsPage = () => {
         { wch: 10 },
         { wch: 10 },
       ];
-      worksheet['!cols'] = columnWidths;
+
+      // Estilo encabezados — fondo rosa fuerte, texto blanco
+      const headerStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Arial', sz: 11 },
+        fill: { patternType: 'solid', fgColor: { rgb: 'E91E8C' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top:    { style: 'thin', color: { rgb: 'C2185B' } },
+          bottom: { style: 'thin', color: { rgb: 'C2185B' } },
+          left:   { style: 'thin', color: { rgb: 'C2185B' } },
+          right:  { style: 'thin', color: { rgb: 'C2185B' } },
+        }
+      };
+
+      // Filas pares — rosa muy claro
+      const rowStyleEven = {
+        font: { name: 'Arial', sz: 10, color: { rgb: '1A1A1A' } },
+        fill: { patternType: 'solid', fgColor: { rgb: 'FCE4F3' } },
+        alignment: { vertical: 'center' },
+        border: {
+          top:    { style: 'thin', color: { rgb: 'F48FB1' } },
+          bottom: { style: 'thin', color: { rgb: 'F48FB1' } },
+          left:   { style: 'thin', color: { rgb: 'F48FB1' } },
+          right:  { style: 'thin', color: { rgb: 'F48FB1' } },
+        }
+      };
+
+      // Filas impares — blanco
+      const rowStyleOdd = {
+        font: { name: 'Arial', sz: 10, color: { rgb: '1A1A1A' } },
+        fill: { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } },
+        alignment: { vertical: 'center' },
+        border: {
+          top:    { style: 'thin', color: { rgb: 'F48FB1' } },
+          bottom: { style: 'thin', color: { rgb: 'F48FB1' } },
+          left:   { style: 'thin', color: { rgb: 'F48FB1' } },
+          right:  { style: 'thin', color: { rgb: 'F48FB1' } },
+        }
+      };
+
+      // Columna Estado — Activo en rosa vibrante
+      const activeStyle = {
+        font: { bold: true, name: 'Arial', sz: 10, color: { rgb: '6A0040' } },
+        fill: { patternType: 'solid', fgColor: { rgb: 'FF4FD6' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+      };
+
+      // Columna Estado — Inactivo en gris
+      const inactiveStyle = {
+        font: { bold: true, name: 'Arial', sz: 10, color: { rgb: '555555' } },
+        fill: { patternType: 'solid', fgColor: { rgb: 'F3F3F3' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+      };
+
+      const headers = ['A', 'B', 'C', 'D', 'E', 'F'];
+      const totalRows = data.length;
+
+      // Aplicar estilos a encabezados (fila 1)
+      headers.forEach(col => {
+        const cellRef = `${col}1`;
+        if (worksheet[cellRef]) worksheet[cellRef].s = headerStyle;
+      });
+
+      // Aplicar estilos a filas de datos
+      for (let row = 2; row <= totalRows + 1; row++) {
+        const isEven = row % 2 === 0;
+        headers.forEach(col => {
+          const cellRef = `${col}${row}`;
+          if (worksheet[cellRef]) {
+            if (col === 'F') {
+              // Columna Estado con color según valor
+              worksheet[cellRef].s = worksheet[cellRef].v === 'Activo' ? activeStyle : inactiveStyle;
+            } else {
+              worksheet[cellRef].s = isEven ? rowStyleEven : rowStyleOdd;
+            }
+          }
+        });
+      }
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos');
 
       const fecha = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(workbook, `productos_${fecha}.xlsx`);
+      XLSX.writeFile(workbook, `productos_${fecha}.xlsx`, { cellStyles: true });
 
       handleShowAlert({
         type: "success",
@@ -485,6 +582,7 @@ const ProductsPage = () => {
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
         onToggle={toggleProduct}
+        onStockChange={handleStockChange}
       />
 
       {showCreateForm && (
