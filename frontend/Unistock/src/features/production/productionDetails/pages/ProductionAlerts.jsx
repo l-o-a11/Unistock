@@ -12,6 +12,7 @@
  *   anular     — anulación de orden con campo de motivo obligatorio
  */
 import React, { useState, useEffect } from "react";
+import { Spinner } from "../../../shared/components/LoadingState";
 import { userAPI } from "../../../users/services/usersAPI";
 
 const BRAND = "#FF4FD6";
@@ -120,6 +121,7 @@ const ProductionAlerts = ({
     if (isOpen) {
       setAssignments([{ option: "", cantidad: "" }]);
       setMotivo("");
+      setConfirming(false);
     }
   }, [isOpen, type]);
 
@@ -280,25 +282,32 @@ const ProductionAlerts = ({
     : { background: "#e5e7eb", color: "#9ca3af", cursor: "not-allowed" };
 
   /* ── Confirmar ── */
-  const handleAccept = () => {
-    if (type === "anular" || type === "password") { onAccept(motivo.trim()); setMotivo(""); return; }
-    if (isAssign) {
-      // Retorna el array de asignaciones al padre
-      onAccept(assignments.map((assignment) => {
-        const selectedOption = optionByValue.get(assignment.option);
-        if (!selectedOption || typeof selectedOption === "string") return assignment;
-        return {
-          ...assignment,
-          option: selectedOption.label,
-          id_tercero: selectedOption.value,
-        };
-      }));
-      // También dispara los legacy props si existen (compatibilidad)
-      onChangeTercero?.(assignments[0]?.option || "");
-      onChangeSede?.(assignments[0]?.option || "");
-      return;
+  const [confirming, setConfirming] = useState(false);
+  const handleAccept = async () => {
+    if (confirming) return;
+    try {
+      setConfirming(true);
+      if (type === "anular" || type === "password") { await onAccept(motivo.trim()); setMotivo(""); return; }
+      if (isAssign) {
+        // Retorna el array de asignaciones al padre
+        await onAccept(assignments.map((assignment) => {
+          const selectedOption = optionByValue.get(assignment.option);
+          if (!selectedOption || typeof selectedOption === "string") return assignment;
+          return {
+            ...assignment,
+            option: selectedOption.label,
+            id_tercero: selectedOption.value,
+          };
+        }));
+        // También dispara los legacy props si existen (compatibilidad)
+        onChangeTercero?.(assignments[0]?.option || "");
+        onChangeSede?.(assignments[0]?.option || "");
+        return;
+      }
+      await onAccept("");
+    } finally {
+      setConfirming(false);
     }
-    onAccept("");
   };
 
   const handleCancel = () => { setMotivo(""); onCancel(); };
@@ -497,25 +506,30 @@ const ProductionAlerts = ({
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
           <button
             onClick={handleCancel}
+            disabled={confirming}
             style={{
               padding: "9px 20px", borderRadius: 12, border: "1.5px solid #e5e7eb",
               background: "#fff", color: "#6b7280", fontSize: 13, fontWeight: 600,
-              cursor: "pointer",
+              cursor: confirming ? "not-allowed" : "pointer",
+              opacity: confirming ? 0.6 : 1,
             }}
           >
             Cancelar
           </button>
           <button
             onClick={handleAccept}
-            disabled={!canConfirm}
+            disabled={!canConfirm || confirming}
             style={{
               padding: "9px 22px", borderRadius: 12, border: "none",
               fontSize: 13, fontWeight: 700, transition: "all 0.15s",
               boxShadow: canConfirm ? "0 4px 14px rgba(255,79,214,0.3)" : "none",
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
               ...confirmStyle,
+              ...(confirming ? { opacity: 0.75, cursor: "not-allowed" } : {}),
             }}
           >
-            Confirmar
+            {confirming && <Spinner size={14} color="#fff" trackColor="rgba(255,255,255,0.35)" />}
+            {confirming ? "Procesando..." : "Confirmar"}
           </button>
         </div>
       </div>

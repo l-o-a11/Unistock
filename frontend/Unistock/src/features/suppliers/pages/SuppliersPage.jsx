@@ -8,6 +8,7 @@ import SupplierTable from "../components/SupplierTable";
 import AddSupplierButton from "../components/AddSupplierButton";
 import SupplierDetail from "../components/SupplierDetail";
 import Alert from "../../shared/components/Alert";
+import LoadingState from "../../shared/components/LoadingState";
 import SearchInput from "../../shared/components/SearchInput";
 import { get } from "../../shared/utils/httpClient";
 import { AuthAPI } from "../../auth/services/AuthAPI";
@@ -15,7 +16,7 @@ import { useAuthContext } from "../../shared/AuthContext";
 
 const SuppliersPage = () => {
   const { user: currentUser } = useAuthContext();
-  const { suppliers, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } =
+  const { suppliers, loading, deleteSupplier, toggleSupplier, createSupplier, updateSupplier } =
     useSuppliers();
   const { searchTerm, handleSearch } = useSupplierSearch();
   const { selectedSupplier, isOpen, openDetail, closeDetail } = useSupplierDetail();
@@ -268,13 +269,17 @@ const SuppliersPage = () => {
       </div>
 
       {/* TABLA */}
-      <SupplierTable
-        suppliers={paginatedSupplier}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
-      />
+      {loading && suppliers.length === 0 ? (
+        <LoadingState message="Cargando proveedores, por favor espera un momento..." />
+      ) : (
+        <SupplierTable
+          suppliers={paginatedSupplier}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onToggle={handleToggle}
+        />
+      )}
 
       {/* MODAL DETALLE */}
       {isOpen && (

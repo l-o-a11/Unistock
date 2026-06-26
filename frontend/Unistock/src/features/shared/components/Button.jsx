@@ -16,6 +16,7 @@
  *   <Button variant="secondary" icon={<IconX />}>Cancelar</Button>
  */
 import React from "react";
+import { Spinner } from "./LoadingState";
 
 /**
  * @param {object}   props
@@ -26,6 +27,8 @@ import React from "react";
  * @param {React.ReactNode} [props.icon]  - Icono opcional mostrado a la izquierda
  * @param {string} [props.className]      - Clases Tailwind adicionales
  * @param {boolean} [props.disabled]      - Deshabilita el botón
+ * @param {boolean} [props.loading]       - Muestra un círculo de carga y bloquea el botón mientras una acción está en curso
+ * @param {string} [props.loadingText]    - Texto opcional a mostrar junto al spinner (si no se da, se mantiene el texto original)
  */
 function Button({
   onClick,
@@ -35,6 +38,8 @@ function Button({
   icon,
   className = "",
   disabled = false,
+  loading = false,
+  loadingText,
 }) {
   /**
    * Paleta de colores por variante.
@@ -65,7 +70,8 @@ function Button({
     <button
       type={type}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={`
         inline-flex items-center justify-center gap-2
         px-5 py-2.5
@@ -79,9 +85,18 @@ function Button({
         ${className}
       `}
     >
-      {/* Icono opcional a la izquierda del texto */}
-      {icon && <span className="w-[18px] h-[18px] flex-shrink-0">{icon}</span>}
-      {children}
+      {loading ? (
+        <>
+          <Spinner size={16} />
+          {(loadingText ?? children) && <span>{loadingText ?? children}</span>}
+        </>
+      ) : (
+        <>
+          {/* Icono opcional a la izquierda del texto */}
+          {icon && <span className="w-[18px] h-[18px] flex-shrink-0">{icon}</span>}
+          {children}
+        </>
+      )}
     </button>
   );
 }

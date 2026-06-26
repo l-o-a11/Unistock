@@ -6,6 +6,7 @@ import ProductionSearch from '../components/ProductionSearch';
 import ProductionForm from '../components/ProductionForm';
 import DamagedProductsModal from '../components/DamagedProductsModal';
 import Alert from '../../shared/components/Alert';
+import LoadingState from '../../shared/components/LoadingState';
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
@@ -19,6 +20,7 @@ const ProductionsPage = () => {
   const navigate = useNavigate();
   const {
     Productions: productions,
+    loading,
     createProduction,
     cancelProduction,
     fetchAndSetDetails,
@@ -992,7 +994,11 @@ const ProductionsPage = () => {
         )}
 
         <div style={{ background:'#fff', borderRadius:10, boxShadow:'0 1px 4px rgba(0,0,0,0.07)', overflowX:'auto' }}>
-          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails}/>
+          {loading && productions.length === 0 ? (
+            <LoadingState message="Cargando producciones, por favor espera un momento..." />
+          ) : (
+            <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails}/>
+          )}
         </div>
 
         {/* Paginación */}
