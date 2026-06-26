@@ -920,18 +920,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
               </table>
             </div>
 
-            {/* GALERÍA CON CLOUDINARY */}
-            <div style={{ flex: 1 }}>
-              <div style={{ 
-                border: "1px solid #e5e7eb", 
-                borderRadius: "10px", 
-                padding: "16px", 
-                backgroundColor: "#fafafa", 
-                minHeight: "250px", 
-                display: "flex", 
-                flexDirection: "column", 
-                alignItems: "center", 
-                justifyContent: "center" 
+          {/* GALERÍA CON CLOUDINARY */}
+          <div style={{ flex: 1 }}>
+              <div style={{
+                border: (formData.allImages && formData.allImages.length > 0) ? "1.5px solid #f9a8d4" : "2px dashed #f9a8d4",
+                borderRadius: "12px",
+                padding: "16px",
+                backgroundColor: (formData.allImages && formData.allImages.length > 0) ? "#fff0fb" : "#fafafa",
+                minHeight: "250px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center"
               }}>
                 {(() => {
                   const allImages = formData.allImages || [];
@@ -962,10 +962,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                             }}
                           >
                             {allImages[0]?.src && (
-                              <img 
-                                src={allImages[0].src} 
-                                alt={formData.name} 
-                                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} 
+                              <img
+                                src={allImages[0].src}
+                                alt={formData.name}
+                                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
                               />
                             )}
                             {allImages.length > 1 && (
@@ -995,12 +995,12 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                                     setSelectedImageIdx(i + 1);
                                     setShowImageModal(true);
                                   }}
-                                  style={{ 
-                                    width: 34, 
-                                    height: 34, 
-                                    borderRadius: 6, 
-                                    overflow: "hidden", 
-                                    cursor: "pointer", 
+                                  style={{
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: 6,
+                                    overflow: "hidden",
+                                    cursor: "pointer",
                                     border: "1.5px solid #f9a8d4",
                                     transition: "all 0.2s"
                                   }}
@@ -1022,19 +1022,28 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                           )}
 
                           <div style={{ marginTop: "12px", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-                            
                             <button
                               type="button"
                               onClick={handleDeleteAllImages}
-                              style={{ padding: "5px 12px", backgroundColor: "transparent", border: "1px solid #ff4fd6", borderRadius: "8px", fontSize: "11px", color: "#ff4fd6", cursor: "pointer", transition: "all 0.2s" }}
+                              style={{
+                                padding: "6px 16px",
+                                backgroundColor: "#fff",
+                                border: "1.5px solid #ff4fd6",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                color: "#ff4fd6",
+                                cursor: "pointer",
+                                transition: "all 0.2s"
+                              }}
                               onMouseEnter={e => {
                                 e.currentTarget.style.backgroundColor = "#fff0fb";
                               }}
                               onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = "transparent";
+                                e.currentTarget.style.backgroundColor = "#fff";
                               }}
                             >
-                              Eliminar imagen
+                              × Eliminar imagen
                             </button>
                           </div>
                         </>
@@ -1049,49 +1058,41 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                               marginBottom: "10px"
                             }}
                           >
-                            <svg
-                              width="48"
-                              height="48"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="#9ca3af"
-                              strokeWidth="1.5"
-                            >
-                              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-                              <line x1="8" y1="2" x2="8" y2="22" />
-                              <line x1="16" y1="2" x2="16" y2="22" />
-                              <line x1="2" y1="8" x2="22" y2="8" />
-                              <line x1="2" y1="16" x2="22" y2="16" />
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+                              stroke="#ff4fd6" strokeWidth="1.5" strokeLinecap="round">
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                              <polyline points="17 8 12 3 7 8"/>
+                              <line x1="12" y1="3" x2="12" y2="15"/>
                             </svg>
                           </div>
-                          <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#9ca3af", textAlign: "center" }}>
-                            <span style={{ color: "#ff4fd6", fontWeight: "700" }}>Sube una imagen</span><br />o arrastra y suelta
+                          <p style={{ margin: "10px 0 0 0", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
+                            <span style={{ color: "#ff4fd6", fontWeight: 700 }}>Sube una imagen</span><br />o arrastra y suelta
                           </p>
-                          <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#9ca3af" }}>PNG, JPG, GIF hasta 10MB</p>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
+                          <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#9ca3af" }}>PNG, JPG, GIF hasta 10MB</p>
+                          <input
+                            type="file"
+                            accept="image/*"
                             multiple
                             onChange={handleImageUpload}
                             disabled={uploading}
-                            style={{ display: "none" }} 
-                            id="product-image-upload" 
+                            style={{ display: "none" }}
+                            id="product-image-upload"
                           />
-                          <label 
-                            htmlFor="product-image-upload" 
-                            style={{ 
-                              marginTop: "10px", 
-                              padding: "6px 16px", 
-                              backgroundColor: uploading ? "#e5e7eb" : "#f3f4f6", 
-                              border: "1.5px solid #e5e7eb", 
-                              borderRadius: "8px", 
-                              fontSize: "12px", 
-                              color: uploading ? "#9ca3af" : "#374151", 
+                          <label
+                            htmlFor="product-image-upload"
+                            style={{
+                              marginTop: "10px",
+                              padding: "6px 16px",
+                              backgroundColor: uploading ? "#e5e7eb" : "#f3f4f6",
+                              border: "1.5px solid #e5e7eb",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                              color: uploading ? "#9ca3af" : "#6b7280",
                               cursor: uploading ? "not-allowed" : "pointer",
                               pointerEvents: uploading ? "none" : "auto"
                             }}
                           >
-                            {uploading ? "Subiendo a Cloudinary..." : "Seleccionar archivo(s)"}
+                            {uploading ? "Subiendo a Cloudinary..." : "Seleccionar archivo"}
                           </label>
                         </>
                       )}

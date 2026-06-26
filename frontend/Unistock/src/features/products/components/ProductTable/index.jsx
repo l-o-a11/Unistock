@@ -3,7 +3,7 @@ import HoverCard from "../../../shared/components/HoverCart";
 import Alert from "../../../shared/components/Alert";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 
-const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => {
+const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onStockChange }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   /* 🔥 ESTADOS PARA ALERTA DE CAMBIO DE ESTADO */
@@ -246,10 +246,67 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle }) => 
                       <span>{formatPrice(product.price)}</span>
                     </td>
 
-                    {/* Stock */}
-                    <td style={tdStyle}>
-                      <span>{product.stock}</span>
-                    </td>
+                   {/* Stock */}
+                  <td style={tdStyle}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => onStockChange?.(product.id, -1)}
+                        disabled={Number(product.stock) <= 0}
+                        title="Restar stock"
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          border: "1px solid #f9a8d4",
+                          background: "#fff",
+                          color: Number(product.stock) <= 0 ? "#d1d5db" : "#ff4fd6",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          lineHeight: 1,
+                          cursor: Number(product.stock) <= 0 ? "not-allowed" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          transition: "background-color 0.15s",
+                        }}
+                        onMouseEnter={(e) => { if (Number(product.stock) > 0) e.currentTarget.style.backgroundColor = "#fff0fb"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
+                      >
+                        −
+                      </button>
+
+                      <span style={{ minWidth: "18px", textAlign: "center" }}>{product.stock}</span>
+
+                      <button
+                        type="button"
+                        onClick={() => onStockChange?.(product.id, 1)}
+                        title="Sumar stock"
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          border: "1px solid #f9a8d4",
+                          background: "#fff",
+                          color: "#ff4fd6",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          lineHeight: 1,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          transition: "background-color 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fff0fb"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </td>
 
                     {/* ACCIONES */}
                     <td style={tdActionsStyle}>
