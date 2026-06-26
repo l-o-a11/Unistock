@@ -222,51 +222,25 @@ const EmployeesPage = () => {
   if (loading) return (
     <div style={{ padding: '24px 32px' }}>
       <style>{`
-        @keyframes empskshimmer {
-          0% { background-position: -600px 0; }
-          100% { background-position: 600px 0; }
-        }
-        .empsk {
-          background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
-          background-size: 600px 100%;
-          animation: empskshimmer 1.4s infinite;
-          border-radius: 4px;
+        @keyframes eloadbar {
+          0%   { left: -40%; width: 40%; }
+          50%  { left: 30%;  width: 50%; }
+          100% { left: 110%; width: 40%; }
         }
       `}</style>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div className="empsk" style={{ width: 120, height: 26, borderRadius: 6 }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Empleados</p>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div className="empsk" style={{ width: 220, height: 34, borderRadius: 8 }} />
-          <div className="empsk" style={{ width: 120, height: 34, borderRadius: 20 }} />
+          <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+          <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
         </div>
       </div>
-
-      <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.4fr 0.8fr 0.8fr 0.7fr', padding: '10px 20px', borderBottom: '1px solid #f3f4f6' }}>
-          {[80, 70, 90, 40, 50, 60].map((w, i) => (
-            <div key={i} className="empsk" style={{ width: w, height: 11 }} />
-          ))}
-        </div>
-        {[...Array(6)].map((_, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.4fr 0.8fr 0.8fr 0.7fr', padding: '14px 20px', borderBottom: i < 5 ? '1px solid #f9fafb' : 'none', alignItems: 'center' }}>
-            <div className="empsk" style={{ width: 44, height: 13 }} />
-            <div className="empsk" style={{ width: 80, height: 13 }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="empsk" style={{ width: 160, height: 13 }} />
-              <div className="empsk" style={{ width: 120, height: 10 }} />
-            </div>
-            <div className="empsk" style={{ width: 55, height: 13 }} />
-            <div className="empsk" style={{ width: 50, height: 13 }} />
-            <div className="empsk" style={{ width: 72, height: 24, borderRadius: 20 }} />
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="empsk" style={{ width: 28, height: 28, borderRadius: 6 }} />
-        ))}
+      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: 0, height: '100%', borderRadius: 99,
+          background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)',
+          animation: 'eloadbar 1.6s ease-in-out infinite',
+        }} />
       </div>
     </div>
   );
