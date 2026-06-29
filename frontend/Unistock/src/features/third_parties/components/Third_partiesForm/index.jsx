@@ -166,10 +166,12 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateAll()) return;
     try {
+      setIsSubmitting(true);
       Promise.resolve(onSubmit({
         nombreEmpresa:  formData.nombre,
         nombre:         formData.nombre,
@@ -190,8 +192,11 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
         });
       }).catch((err) => {
         setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message: err?.message || 'No se pudo guardar. Intenta de nuevo.', onConfirm: null });
+      }).finally(() => {
+        setIsSubmitting(false);
       });
     } catch (err) {
+      setIsSubmitting(false);
       setAlertConfig({ open: true, type: 'error', title: 'Error al guardar', message: err?.message || 'No se pudo guardar. Intenta de nuevo.', onConfirm: null });
     }
   };
@@ -353,10 +358,10 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
                 display: 'flex', justifyContent: 'flex-end', gap: 10,
                 paddingTop: 16, borderTop: '1px solid #f3f4f6',
               }}>
-                <Button type="button" variant="secondary" onClick={handleCancelClick}>
+                <Button type="button" variant="secondary" onClick={handleCancelClick} disabled={isSubmitting}>
                   Cancelar
                 </Button>
-                <Button type="submit" variant="primary">
+                <Button type="submit" variant="primary" loading={isSubmitting} loadingText="Guardando...">
                   {isEdit ? 'Guardar cambios' : 'Crear tercero'}
                 </Button>
               </div>

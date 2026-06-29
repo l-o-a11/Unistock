@@ -10,6 +10,16 @@ const internal = {
     }
   },
 
+  // Igual que getUsers pero excluye Gerente y Administrador directamente en MongoDB
+  getEmployees: async () => {
+    try {
+      const res = await get("/users?excludeRoleNames=Gerente,Administrador");
+      return res?.data ?? res;
+    } catch (err) {
+      throw err?.data || err;
+    }
+  },
+
   getUserById: async (id) => {
     try {
       const res = await get(`/users/${id}`);
@@ -50,6 +60,7 @@ const internal = {
 // API pública con los nombres que esperan los hooks/components
 export const userAPI = {
   getAll: internal.getUsers,
+  getEmployees: internal.getEmployees,
   getById: internal.getUserById,
   create: internal.createUser,
   update: internal.updateUser,

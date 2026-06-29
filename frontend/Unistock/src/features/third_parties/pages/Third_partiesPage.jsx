@@ -8,10 +8,11 @@ import Third_partieSearch from '../components/Third_partiesSearch';
 import AddThird_partieButton from '../components/AddThird_partiesButton';
 import Third_partieDetail from '../components/Third_partiesDetail';
 import Alert from '../../shared/components/Alert';
+import LoadingState from '../../shared/components/LoadingState';
 
 const Third_partiePage = () => {
   const navigate = useNavigate();
-  const { Third_parties, deleteThird_partie, toggleThird_partie, createThird_partie, updateThird_partie } = useThird_parties();
+  const { Third_parties, loading, deleteThird_partie, toggleThird_partie, createThird_partie, updateThird_partie } = useThird_parties();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedThird_partie, setSelectedThird_partie] = useState(null);
@@ -355,33 +356,39 @@ const Third_partiePage = () => {
               <AddThird_partieButton onClick={handleAdd} />
             </div>
 
-            <Third_partieTable
-              Third_parties={paginated}
-              selectedId={selectedThird_partie?.id}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggle={handleToggle}
-            />
+            {loading && Third_parties.length === 0 ? (
+              <LoadingState message="Cargando terceros, por favor espera un momento..." />
+            ) : (
+              <>
+                <Third_partieTable
+                  Third_parties={paginated}
+                  selectedId={selectedThird_partie?.id}
+                  onView={handleView}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onToggle={handleToggle}
+                />
 
-            {filtered.length > 0 && (
-              <div className="tp-pagination">
-                <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
-                {getPages().map((p, i) =>
-                  p === '...'
-                    ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
-                    : <button key={p} className="tp-pg-btn"
-                      onClick={() => setCurrentPage(p)}
-                      style={{
-                        background: p === currentPage ? '#FF4FD6' : '#fff',
-                        color: p === currentPage ? '#fff' : '#374151',
-                        border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
-                      }}>
-                      {p}
-                    </button>
+                {filtered.length > 0 && (
+                  <div className="tp-pagination">
+                    <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+                    {getPages().map((p, i) =>
+                      p === '...'
+                        ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
+                        : <button key={p} className="tp-pg-btn"
+                          onClick={() => setCurrentPage(p)}
+                          style={{
+                            background: p === currentPage ? '#FF4FD6' : '#fff',
+                            color: p === currentPage ? '#fff' : '#374151',
+                            border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
+                          }}>
+                          {p}
+                        </button>
+                    )}
+                    <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
+                  </div>
                 )}
-                <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
-              </div>
+              </>
             )}
           </div>
 

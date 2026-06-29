@@ -316,10 +316,12 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   }, [formData, validateField, isDuplicate]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateAll()) return;
     try {
+      setIsSubmitting(true);
       await onSubmit(formData);
       setPendingClose(true);
       setAlertConfig({
@@ -337,6 +339,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         message: "No se pudo guardar el proveedor. Intenta de nuevo.",
         onConfirm: null,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }, [formData, onSubmit, supplier, validateAll]);
 
@@ -565,10 +569,10 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                 display: "flex", justifyContent: "flex-end", gap: 10,
                 paddingTop: 16, borderTop: "1px solid #f3f4f6",
               }}>
-                <Button type="button" variant="secondary" onClick={handleCancelClick}>
+                <Button type="button" variant="secondary" onClick={handleCancelClick} disabled={isSubmitting}>
                   Cancelar
                 </Button>
-                <Button type="submit" variant="primary">
+                <Button type="submit" variant="primary" loading={isSubmitting} loadingText="Guardando...">
                   {supplier ? "Guardar cambios" : "Guardar proveedor"}
                 </Button>
               </div>

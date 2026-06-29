@@ -682,10 +682,10 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
         {/* Columna derecha: imagen */}
         <div style={{ flex: 1 }}>
           <div style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
+            border: imagePreview ? "1.5px solid #f9a8d4" : "2px dashed #f9a8d4",
+            borderRadius: "12px",
             padding: "16px",
-            backgroundColor: "#fafafa",
+            backgroundColor: imagePreview ? "#fff0fb" : "#fafafa",
             minHeight: "400px",
             display: "flex",
             flexDirection: "column",
@@ -697,37 +697,58 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
                 <img
                   src={imagePreview}
                   alt="Producto"
-                  style={{ maxWidth: "100%", maxHeight: "300px", objectFit: "contain", borderRadius: "4px" }}
+                  style={{ maxWidth: "100%", maxHeight: "300px", objectFit: "contain", borderRadius: "8px" }}
                 />
                 {isEditing && (
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); setImagePreview(null); handleChange("image", null); }}
-                    style={{ marginTop: "10px", padding: "4px 12px", backgroundColor: "#ff4fd6", border: "none", borderRadius: "4px", fontSize: "12px", color: "#fff", cursor: "pointer" }}
+                    style={{
+                      marginTop: "10px",
+                      padding: "6px 16px",
+                      backgroundColor: "#fff",
+                      border: "1.5px solid #ff4fd6",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      color: "#ff4fd6",
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#fff0fb"; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = "#fff"; }}
                   >
-                    Eliminar imagen
+                    × Eliminar imagen
                   </button>
                 )}
               </div>
             ) : (
               <>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5">
-                  <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-                  <line x1="8" y1="2" x2="8" y2="22" />
-                  <line x1="16" y1="2" x2="16" y2="22" />
-                  <line x1="2" y1="8" x2="22" y2="8" />
-                  <line x1="2" y1="16" x2="22" y2="16" />
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+                  stroke="#ff4fd6" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <p style={{ margin: "10px 0 0 0", fontSize: "14px", color: "#666", textAlign: "center" }}>
+                <p style={{ margin: "10px 0 0 0", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
                   {isEditing ? (
-                    <><span style={{ color: "#ff4fd6", fontWeight: "500", cursor: "pointer" }}>Sube una imagen</span><br />o arrastra y suelta</>
+                    <><span style={{ color: "#ff4fd6", fontWeight: 700, cursor: "pointer" }}>Sube una imagen</span><br />o arrastra y suelta</>
                   ) : "Sin imagen"}
                 </p>
                 {isEditing && (
                   <>
-                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>PNG, JPG, GIF hasta 10MB</p>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#9ca3af" }}>PNG, JPG, GIF hasta 10MB</p>
                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} id="image-upload" />
-                    <label htmlFor="image-upload" style={{ marginTop: "10px", padding: "6px 16px", backgroundColor: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "12px", color: "#555", cursor: "pointer" }}>
+                    <label htmlFor="image-upload" style={{
+                      marginTop: "10px",
+                      padding: "6px 16px",
+                      backgroundColor: "#f3f4f6",
+                      border: "1.5px solid #e5e7eb",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#6b7280",
+                      cursor: "pointer"
+                    }}>
                       Seleccionar archivo
                     </label>
                   </>

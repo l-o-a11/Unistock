@@ -1,130 +1,80 @@
-// src/feature/employees/hooks/mockEmployees.js
-// Comparte el mismo localStorage que users (app_users)
-// Filtra usuarios excluyendo Gerente y Admin
+// src/features/employees/hooks/mockEmployees.js
+// Usa GET /users?excludeRoleNames=Gerente,Administrador
+// El filtro lo hace MongoDB directamente — sin depender de rolNombre en frontend.
 
-import { useState, useEffect } from "react";
-import { useRoles } from "../../roles/hooks/useRoles";
-
-const STORAGE_KEY = "app_users";
-
-const loadFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    // Error silencioso al leer localStorage
-  }
-  return [];
-};
-
-const saveToStorage = (allUsers) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allUsers));
-  } catch (e) {
-    // Error silencioso al guardar en localStorage
-  }
-};
+import { useState, useEffect, useCallback } from "react";
+import { userAPI } from "../../users/services/usersAPI";
 
 export const useEmployees = () => {
-  // allUsers: TODOS los usuarios (admins, gerentes, empleados)
-  const [allUsers, setAllUsers] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { roles } = useRoles();
+  const [error, setError] = useState(null);
 
-  // Carga inicial
-  useEffect(() => {
-    setAllUsers(loadFromStorage());
-    setLoading(false);
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await userAPI.getEmployees();
+      setEmployees(data ?? []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Persiste cada cambio — sobre TODOS los usuarios, no solo empleados
-  useEffect(() => {
-    if (!loading) saveToStorage(allUsers);
-  }, [allUsers, loading]);
+  useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
 
-  // Obtener IDs de Gerente y Admin para excluirlos
-  const gerenteId = roles.find((r) => r.nombre === "Gerente")?.id;
-  const adminId = roles.find((r) => r.nombre === "Administrador")?.id;
-
-  // Vista filtrada: excluir Gerente y Admin
-  const employees = allUsers.filter((u) => {
-    const userRolId = u.rolId ?? u.rol;
-    return userRolId !== gerenteId && userRolId !== adminId;
-  });
-
-  // ── CRUD (solo afecta registros que no sean Gerente ni Admin) ────────────
+  // ── CRUD ──────────────────────────────────────────────────────────────────
 
   const createEmployee = async (formData) => {
-    const exists = allUsers.find(
-      (u) =>
-        u.numeroDocumento === formData.documentNumber ||
-        u.correo === formData.email,
-    );
-    if (exists)
-      throw new Error("Ya existe un usuario con ese documento o correo.");
-
-    const newEmployee = {
-      id: Date.now(),
+    const result = await userAPI.create({
       tipoDocumento: formData.documentType,
       numeroDocumento: formData.documentNumber,
       nombreCompleto: formData.name,
       correo: formData.email,
-      rolId: parseInt(formData.role),
-      sedeId: parseInt(formData.sede),
-      password: formData.password || null,
-      estado: true,
-    };
-
-    setAllUsers((prev) => [...prev, newEmployee]);
-    return newEmployee;
+      rolId: formData.role,
+      sedeId: formData.sede,
+    });
+    // Refetch para que el nuevo empleado aparezca con todos sus datos resueltos
+    await fetchEmployees();
+    return result;
   };
 
   const updateEmployee = async (id, formData) => {
-    const exists = allUsers.find(
-      (u) =>
-        String(u.id) !== String(id) &&
-        (u.numeroDocumento === formData.documentNumber ||
-          u.correo === formData.email),
-    );
-    if (exists)
-      throw new Error("Ya existe otro usuario con ese documento o correo.");
-
-    setAllUsers((prev) =>
-      prev.map((u) =>
-        String(u.id) === String(id)
-          ? {
-              ...u,
-              tipoDocumento: formData.documentType,
-              numeroDocumento: formData.documentNumber,
-              nombreCompleto: formData.name,
-              correo: formData.email,
-              rolId: parseInt(formData.role),
-              sedeId: parseInt(formData.sede),
-            }
-          : u,
-      ),
-    );
+    const updated = await userAPI.update(id, {
+      tipoDocumento: formData.documentType,
+      numeroDocumento: formData.documentNumber,
+      nombreCompleto: formData.name,
+      correo: formData.email,
+      rolId: formData.role,
+      sedeId: formData.sede,
+    });
+    await fetchEmployees();
+    return updated;
   };
 
   const deleteEmployee = async (id) => {
-    setAllUsers((prev) => prev.filter((u) => String(u.id) !== String(id)));
+    await userAPI.delete(id);
+    setEmployees((prev) => prev.filter((u) => String(u.id) !== String(id)));
   };
 
-  const toggleEmployee = (id) => {
-    setAllUsers((prev) =>
-      prev.map((u) =>
-        String(u.id) === String(id) ? { ...u, estado: !u.estado } : u,
-      ),
+  const toggleEmployee = async (id) => {
+    const updated = await userAPI.toggleStatus(id);
+    setEmployees((prev) =>
+      prev.map((u) => (String(u.id) === String(id) ? updated : u))
     );
+    return updated;
   };
 
   return {
-    employees, // todos menos Gerente y Admin
+    employees,
     loading,
+    error,
     createEmployee,
     updateEmployee,
     deleteEmployee,
     toggleEmployee,
+    refetch: fetchEmployees,
   };
 };
 

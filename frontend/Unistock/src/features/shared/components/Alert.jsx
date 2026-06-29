@@ -20,6 +20,7 @@
  *   />
  */
 import React, { useState, useEffect, useRef } from "react";
+import { Spinner } from "./LoadingState";
 
 /**
  * @param {object}   props
@@ -46,6 +47,7 @@ const Alert = ({
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
   const timerRef = useRef(null);
   const isAlertOpen = typeof isOpen === "boolean" ? isOpen : Boolean(open);
 
@@ -78,6 +80,7 @@ const Alert = ({
       setPassword("");
       setEmail("");
       setError("");
+      setConfirming(false);
       // Auto-cierre para toasts
       if (isToast) {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -118,12 +121,21 @@ const Alert = ({
   };
 
   /** Confirma la acción — para "password" valida primero */
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    // ✅ Fix: el tipo "managerAuth" pide correo + contraseña reales del
-    // gerente (no asume que el usuario logueado actualmente lo es).
-    if (type === "managerAuth") { onConfirm && onConfirm({ email, password }); return; }
-    onConfirm && onConfirm(password);
+    if (confirming) return; // evita doble clic mientras se procesa
+    try {
+      setConfirming(true);
+      // ✅ Fix: el tipo "managerAuth" pide correo + contraseña reales del
+      // gerente (no asume que el usuario logueado actualmente lo es).
+      if (type === "managerAuth") {
+        await onConfirm?.({ email, password });
+      } else {
+        await onConfirm?.(password);
+      }
+    } finally {
+      setConfirming(false);
+    }
   };
 
   /* ── TOAST ── */
@@ -227,19 +239,24 @@ const Alert = ({
 
         {/* Botones */}
         <div style={actions}>
-          <button style={cancelBtn} onClick={handleClose}>{cancelText}</button>
+          <button style={{ ...cancelBtn, opacity: confirming ? 0.5 : 1, cursor: confirming ? "not-allowed" : "pointer" }} onClick={handleClose} disabled={confirming}>{cancelText}</button>
           <button
             style={{
               ...confirmBtn,
               background: `linear-gradient(135deg, ${current.color} 0%, ${current.color}cc 100%)`,
               boxShadow: `0 4px 12px ${current.color}44`,
-              opacity: ((type === "password" && !password) || (type === "managerAuth" && (!password || !email))) ? 0.5 : 1,
-              cursor: ((type === "password" && !password) || (type === "managerAuth" && (!password || !email))) ? "not-allowed" : "pointer",
+              opacity: (confirming || (type === "password" && !password) || (type === "managerAuth" && (!password || !email))) ? 0.6 : 1,
+              cursor: (confirming || (type === "password" && !password) || (type === "managerAuth" && (!password || !email))) ? "not-allowed" : "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
             }}
             onClick={handleConfirm}
-            disabled={(type === "password" && !password) || (type === "managerAuth" && (!password || !email))}
+            disabled={confirming || (type === "password" && !password) || (type === "managerAuth" && (!password || !email))}
           >
-            {confirmText}
+            {confirming && <Spinner size={14} color="#fff" trackColor="rgba(255,255,255,0.35)" />}
+            {confirming ? "Procesando..." : confirmText}
           </button>
         </div>
       </div>
