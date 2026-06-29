@@ -5,7 +5,7 @@ import {
   PRIVILEGIOS_PREDETERMINADOS,
 } from "../../services/RolesAPI";
 
-const RolDetail = ({ rol, onClose, onEdit, onDelete }) => {
+const RolDetail = ({ rol, onClose, onDelete }) => {
   if (!rol) return null;
 
   return (
@@ -59,7 +59,7 @@ const RolDetail = ({ rol, onClose, onEdit, onDelete }) => {
             marginBottom: "20px",
           }}
         >
-          {/* ID y Nombre */}
+          {/* Nombre */}
 
           <div style={{display: "flex", flexDirection: "row", alignItems: "center", gap: "20px"}}>
             <div>
@@ -67,9 +67,6 @@ const RolDetail = ({ rol, onClose, onEdit, onDelete }) => {
             </div>
 
             <div>
-              <div style={{ fontSize: "12px", color: "#be185d" }}>
-                ID: #{rol.id}
-              </div>
               <div style={{ fontSize: "18px", fontWeight: "600" }}>
                 {rol.nombre}
               </div>
@@ -174,26 +171,7 @@ const RolDetail = ({ rol, onClose, onEdit, onDelete }) => {
           })}
         </div>
 
-        {/* FOOTER */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderTop: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "10px",
-          }}
-        >
-          <button onClick={onClose}>Cerrar</button>
-          <button 
-            onClick={() => {
-              onEdit(rol); 
-              onClose();
-              }}>
-                Editar
-          </button>
-          
-        </div>
+       
       </div>
     </div>
   );
