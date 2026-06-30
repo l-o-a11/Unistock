@@ -64,19 +64,19 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formData.nombre.trim()) { setError('El nombre es obligatorio'); return; }
     const normalizado = {
       ...formData,
-      nombre: formData.nombre.trim()
-        ? formData.nombre.trim().charAt(0).toUpperCase() + formData.nombre.trim().slice(1).toLowerCase()
-        : formData.nombre,
+      nombre: formData.nombre.trim().charAt(0).toUpperCase() +
+        formData.nombre.trim().slice(1).toLowerCase(),
     };
     onSubmit(normalizado);
   };
-
   return (
     <form onSubmit={handleSubmit} noValidate style={{ padding: '28px 30px', boxSizing: 'border-box' }}>
 
@@ -137,7 +137,23 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
       </div>
 
     </form>
+
   );
+
+  // Modo standalone: envuelve en su propia card
+  if (standalone) {
+    return (
+      <div style={{
+        backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 420,
+        boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative', padding: '28px 30px',
+      }}>
+        {formContent}
+      </div>
+    );
+  }
+
+  // Modo legacy: solo el contenido, sin card (la página ya provee el contenedor)
+  return <div style={{ padding: '32px' }}>{formContent}</div>;
 };
 
 export default CategoryForm;
