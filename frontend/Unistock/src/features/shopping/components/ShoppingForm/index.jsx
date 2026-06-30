@@ -5,6 +5,8 @@ import { useSuppliers } from '../../../suppliers/hooks/mockSuppliers';
 import { useSupplies } from '../../../supplies/hooks/useSupplies';
 import SupplyForm from '../../../supplies/components/SupplyForm';
 import SupplierForm from '../../../suppliers/components/SupplierForm';
+import CategoryForm from '../../../categoriesSupply/components/CategoryForm';
+import { categoryAPI } from '../../../categoriesSupply/services/categoryAPI';
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -39,9 +41,12 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
   const [insumoSearch, setInsumoSearch] = useState('');
   const [showInsumoDD, setShowInsumoDD] = useState(false);
   const [showCreateSupply, setShowCreateSupply] = useState(false);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [proveedorSearch, setProveedorSearch] = useState('');
   const [showProveedorDD, setShowProveedorDD] = useState(false);
   const [showCreateSupplier, setShowCreateSupplier] = useState(false);
+  const [fotoFactura, setFotoFactura] = useState(null);       // FIX 4: foto de factura
+  const [fotoPreview, setFotoPreview] = useState(null);
   const [alertConfig, setAlertConfig] = useState({ open: false, type: 'success', title: '', message: '', onConfirm: null });
 
   const closeAlert = () => setAlertConfig((p) => ({ ...p, open: false }));
@@ -154,6 +159,31 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     } catch (e) { showAlert('error', 'Error', e.message || 'No se pudo crear el insumo.'); }
   };
 
+  // FIX 1: Crear categoría desde dentro del SupplyForm anidado
+  const handleCreateCategorySubmit = async (data) => {
+    try {
+      const cat = await categoryAPI.create(data);
+      // Refrescar el catálogo de categorías en useSupplies
+      await categorias; // el hook ya lo tiene; se agrega optimistamente
+      setShowCreateCategory(false);
+      showAlert('success', 'Categoría creada', `"${cat.nombre}" fue creada. Selecciónala en el formulario de insumo.`);
+    } catch (e) { showAlert('error', 'Error', e.message || 'No se pudo crear la categoría.'); }
+  };
+
+  // FIX 4: Manejar foto de factura
+  const handleFotoFactura = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (fotoPreview?.startsWith('blob:')) URL.revokeObjectURL(fotoPreview);
+    setFotoFactura(file);
+    setFotoPreview(URL.createObjectURL(file));
+  };
+  const handleRemoveFoto = () => {
+    if (fotoPreview?.startsWith('blob:')) URL.revokeObjectURL(fotoPreview);
+    setFotoFactura(null);
+    setFotoPreview(null);
+  };
+
   const handleSubmit = async () => {
     const fields = ['numeroFactura', 'proveedorId', 'fecha', 'costoTotal'];
     const newErrors = {};
@@ -162,22 +192,40 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     if (Object.values(newErrors).some(Boolean)) { showAlert('warning', 'Campos inválidos', 'Corrige los campos marcados antes de guardar.'); return; }
     if (formData.detalles.length === 0) { showAlert('warning', 'Sin detalles', 'Agrega al menos un producto o insumo.'); return; }
     try {
-      await onSubmit({ ...formData, costoTotal: parseFloat(formData.costoTotal) });
+      await onSubmit({ ...formData, costoTotal: parseFloat(formData.costoTotal), fotoFactura });
     } catch (e) { showAlert('error', 'Error al guardar', e.message || 'No se pudo guardar la compra.'); }
   };
 
-  const handleCancel = () =>
+  // Detecta si el formulario tiene algún dato ingresado
+  const isFormBlank = () => {
+    const mainEmpty = !formData.numeroFactura && !formData.proveedorId && !formData.fecha
+      && !formData.observaciones && formData.detalles.length === 0;
+    const detalleEmpty = !detalleActual.nombre && !detalleActual.costo && !detalleActual.cantidad;
+    return mainEmpty && detalleEmpty;
+  };
+
+  const handleCancel = () => {
+    // Si no hay ningún dato ingresado, cerrar directamente sin modal
+    if (isFormBlank()) { onCancel?.(); return; }
     showAlert('confirm', '¿Cancelar?', 'Los datos ingresados se perderán.', () => { closeAlert(); onCancel?.(); });
+  };
 
   if (showCreateSupplier) return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <SupplierForm onSubmit={handleCreateSupplierSubmit} onCancel={() => setShowCreateSupplier(false)} />
     </div>
   );
+  // FIX 1: CategoryForm se muestra con zIndex más alto que SupplyForm para apilarse encima
+  if (showCreateCategory) return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
+      <CategoryForm standalone={true} onSubmit={handleCreateCategorySubmit} onCancel={() => setShowCreateCategory(false)} />
+    </div>
+  );
   if (showCreateSupply) return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <SupplyForm categorias={categorias} medidas={medidas} propiedades={propiedades}
-        onSubmit={handleCreateSupplySubmit} onCancel={() => setShowCreateSupply(false)} />
+        onSubmit={handleCreateSupplySubmit} onCancel={() => setShowCreateSupply(false)}
+        onCreateCategory={() => setShowCreateCategory(true)} />
     </div>
   );
 
@@ -248,11 +296,14 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
             {/* Fecha + Observaciones */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               <div>
-                <label style={labelStyle}>Fecha <span style={requiredStar}>*</span></label>
+                <label style={labelStyle}>Fecha de la factura <span style={requiredStar}>*</span></label>
                 <input type="date" name="fecha" value={formData.fecha}
                   onChange={handleChange} onBlur={(e) => validateField('fecha', e.target.value)}
                   style={inp(errors.fecha)} />
-                {errors.fecha && <span style={errMsg}>⚠ {errors.fecha}</span>}
+                {errors.fecha
+                  ? <span style={errMsg}>⚠ {errors.fecha}</span>
+                  : <p style={{ margin: '4px 0 0', fontSize: 10, color: '#9ca3af' }}>Fecha de la compra</p>
+                }
               </div>
               <div>
                 <label style={labelStyle}>Observaciones <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
@@ -262,37 +313,59 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
               </div>
             </div>
 
-            {/* Costo total */}
+            {/* FIX 2: Costo total SIEMPRE calculado automáticamente — nunca editable */}
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>
-                Costo total <span style={requiredStar}>*</span>
-                {formData.detalles.length > 0 && <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 10 }}>calculado automáticamente</span>}
+                Costo total
+                <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 10 }}>calculado automáticamente</span>
               </label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: formData.detalles.length > 0 ? '#ff4fd6' : '#9ca3af', fontWeight: 600 }}>$</span>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#ff4fd6', fontWeight: 600 }}>$</span>
                 <input type="number" name="costoTotal" value={formData.costoTotal}
-                  onChange={formData.detalles.length === 0 ? handleChange : undefined}
-                  readOnly={formData.detalles.length > 0}
-                  placeholder="0.00"
-                  style={{
-                    ...inp(errors.costoTotal), paddingLeft: 24,
-                    background: formData.detalles.length > 0 ? '#fdf4ff' : '#fff',
-                    color: formData.detalles.length > 0 ? '#ff4fd6' : '#333',
-                    fontWeight: formData.detalles.length > 0 ? 700 : 400,
-                    cursor: formData.detalles.length > 0 ? 'default' : 'text',
-                  }} />
+                  readOnly placeholder="0.00"
+                  style={{ ...inp(false), paddingLeft: 24, background: '#fdf4ff', color: '#ff4fd6', fontWeight: 700, cursor: 'default' }} />
               </div>
-              {errors.costoTotal && <span style={errMsg}>⚠ {errors.costoTotal}</span>}
             </div>
+
+            {/* FIX 4: Foto de factura */}
+            {/*<div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>
+                Foto de factura
+                <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 10 }}>(opcional)</span>
+              </label>
+              <p style={{ margin: '0 0 6px', fontSize: 10, color: '#9ca3af', lineHeight: 1.5 }}>
+                La <strong>fecha</strong> del formulario es de registro en el sistema. Sube la foto para tener la fecha real de la factura física.
+              </p>
+              {fotoPreview ? (
+                <div style={{ border: '1.5px solid #f9a8d4', borderRadius: 10, padding: 10, background: '#fff0fb', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img src={fotoPreview} alt="Factura" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontSize: 12, color: '#374151' }}>{fotoFactura?.name}</div>
+                  <button type="button" onClick={handleRemoveFoto}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff4fd6', fontSize: 18, fontWeight: 700 }}>×</button>
+                </div>
+              ) : (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1.5px dashed #f9a8d4', background: '#fafafa', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#fff0fb'; e.currentTarget.style.borderColor = '#ff4fd6'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#fafafa'; e.currentTarget.style.borderColor = '#f9a8d4'; }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span style={{ fontSize: 12, color: '#ff4fd6', fontWeight: 600 }}>Subir foto de la factura</span>
+                  <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto' }}>JPG, PNG</span>
+                  <input type="file" accept="image/*" onChange={handleFotoFactura} style={{ display: 'none' }} />
+                </label>
+              )}
+            </div>*/}
 
             {sectionTitle('Detalles de la compra')}
 
-            {/* Insumo */}
+            {/* FIX 3: DOS BOTONES — buscar existente vs crear nuevo */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Producto o insumo</label>
+              <label style={labelStyle}>Insumo</label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <div style={{ flex: 1, position: 'relative' }}>
-                  <input value={insumoSearch} placeholder="Buscar insumo..."
+                  <input value={insumoSearch} placeholder="Buscar insumo existente..."
                     style={inp(false)}
                     onChange={(e) => { setInsumoSearch(e.target.value); setShowInsumoDD(true); }}
                     onFocus={() => setShowInsumoDD(true)}
@@ -308,7 +381,9 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                     </div>
                   )}
                 </div>
-                {plusBtn(() => setShowCreateSupply(true), 'Nuevo insumo')}
+                {/* Botón crear nuevo insumo — mismo círculo que proveedor */}
+                <button type="button" onClick={() => setShowCreateSupply(true)} title="Crear nuevo insumo"
+                  style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#ff4fd6', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px #FF4FD644' }}>+</button>
               </div>
             </div>
 
@@ -348,9 +423,10 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                 style={inp(false)} />
             </div>
 
+            {/* FIX 3: botón de agregar detalle claramente diferenciado del de "crear nuevo" */}
             <button type="button" onClick={handleAgregarDetalle}
-              style={{ background: 'none', border: '1.5px dashed #f9a8d4', borderRadius: 8, color: '#ff4fd6', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '8px 14px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              + Agregar otro producto
+              style={{ background: '#ff4fd6', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '9px 14px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 2px 8px #ff4fd644' }}>
+              ⊕ Agregar a la compra
             </button>
           </div>
 
