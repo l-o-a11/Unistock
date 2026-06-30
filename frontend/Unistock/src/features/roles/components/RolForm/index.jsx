@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import Alert from '../../../shared/components/Alert';
+import Button from '../../../shared/components/Button';
 
-// ─────────────────────────────────────────────────
-// Datos
-// ─────────────────────────────────────────────────
 import { MODULOS_PREDETERMINADOS, PRIVILEGIOS_PREDETERMINADOS } from "../../services/RolesAPI";
 
 // ─────────────────────────────────────────────────
@@ -20,38 +18,70 @@ const validators = {
 };
 
 // ─────────────────────────────────────────────────
-// Estilos
+// Tokens de estilo
 // ─────────────────────────────────────────────────
+const PINK        = '#ff4fd6';
+const PINK_LIGHT  = '#fff0fb';
+const PINK_BORDER = '#f9a8d4';
+
+// Input igual al ProductionForm: fondo blanco, borde gris, border-radius 10
 const fieldStyle = (hasError) => ({
   width: '100%',
   padding: '10px 14px',
-  border: `1px solid ${hasError ? '#E91E8C' : '#d1d5db'}`,
-  borderRadius: '8px',
+  border: `2px solid ${hasError ? PINK : '#e5e7eb'}`,
+  borderRadius: '10px',
   fontSize: '14px',
   outline: 'none',
   boxSizing: 'border-box',
-  transition: 'border-color 0.2s, background-color 0.2s',
-  backgroundColor: 'white',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+  backgroundColor: '#ffffff',
   resize: 'vertical',
   fontFamily: 'inherit',
+  color: '#1f2937',
 });
 
+// Label: sentence case (primera mayúscula, resto normal), igual a ProductionForm
 const labelStyle = {
   display: 'block',
   fontSize: '13px',
   fontWeight: '500',
-  color: '#555',
-  marginBottom: '6px',
+  color: '#374151',
+  marginBottom: '5px',
 };
 
 const errorStyle = {
-  color: '#E91E8C',
-  fontWeight: 'bold',
+  color: PINK,
   fontSize: '11px',
   marginTop: '4px',
   display: 'block',
+  fontWeight: '500',
 };
-const req  = <span style={{ color: "#FF4FD6" }}> *</span>;
+
+// Título de sección — UPPERCASE pequeño, igual a ProductionForm
+const sectionTitle = (text) => (
+  <p style={{
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    margin: '20px 0 10px',
+  }}>
+    {text}
+  </p>
+);
+
+const req = <span style={{ color: PINK }}> *</span>;
+
+// Handlers de focus/blur sin cambiar el fondo (fondo siempre blanco)
+const onFocusField = (e) => {
+  e.target.style.borderColor = PINK;
+  e.target.style.boxShadow = '0 0 0 3px rgba(255,79,214,0.1)';
+};
+const onBlurField = (e) => {
+  e.target.style.borderColor = '#e5e7eb';
+  e.target.style.boxShadow = 'none';
+};
 
 // ─────────────────────────────────────────────────
 // RolForm
@@ -68,26 +98,19 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   const [privilegiosSeleccionados, setPrivilegiosSeleccionados] = useState([]);
 
   const [alertConfig, setAlertConfig] = useState({
-    open: false,
-    type: 'success',
-    title: '',
-    message: '',
-    onConfirm: null,
+    open: false, type: 'success', title: '', message: '', onConfirm: null,
   });
 
-  // ── Helpers ──────────────────────────────────────
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
-
   const showAlert = (type, title, message, onConfirm) =>
     setAlertConfig({ open: true, type, title, message, onConfirm: onConfirm || closeAlert });
 
   const getModuloNombre = (id) =>
     MODULOS_PREDETERMINADOS.find((m) => m.id === id)?.nombre || 'Módulo desconocido';
 
-  // ── Validación de campo individual ───────────────
+  // ── Validación ────────────────────────────────────
   const validateField = (name, value) => {
     let error = '';
-
     if (name === 'nombre') {
       error =
         validators.required(value) ||
@@ -95,20 +118,16 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         validators.minLength(3)(value) ||
         validators.maxLength(50)(value);
     }
-
     if (name === 'descripcion' && value) {
       error = validators.maxLength(200)(value);
     }
-
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
   };
 
-  // ── Validación completa del form ─────────────────
   const validateAll = () => {
     const nameError = validateField('nombre', formData.nombre);
     const descError = validateField('descripcion', formData.descripcion);
-
     let modulosError = '';
     if (formData.modulos.length === 0) {
       modulosError = 'Debes agregar al menos un módulo con sus privilegios';
@@ -116,11 +135,10 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     } else {
       setErrors((prev) => ({ ...prev, modulos: '' }));
     }
-
     return !nameError && !descError && !modulosError;
   };
 
-  // ── Handlers de campos ───────────────────────────
+  // ── Handlers ──────────────────────────────────────
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -131,7 +149,6 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     validateField(name, value);
   };
 
-  // ── Módulo selector ──────────────────────────────
   const handleModuloChange = (e) => {
     setModuloSeleccionado(e.target.value);
     setPrivilegiosSeleccionados([]);
@@ -152,15 +169,11 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
       showAlert('warning', 'Campo requerido', 'Debes seleccionar al menos un privilegio para el módulo.');
       return;
     }
-
-    const yaExiste = formData.modulos.find(
-      (m) => m.moduloId === parseInt(moduloSeleccionado)
-    );
+    const yaExiste = formData.modulos.find((m) => m.moduloId === parseInt(moduloSeleccionado));
     if (yaExiste) {
       showAlert('warning', 'Módulo duplicado', 'Este módulo ya está agregado al rol. Edita sus privilegios directamente en la lista.');
       return;
     }
-
     setFormData((prev) => ({
       ...prev,
       modulos: [
@@ -184,7 +197,6 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
           : [...m.privilegios, privilegioId],
       };
     }).filter((m) => m.privilegios.length > 0);
-
     setFormData((prev) => ({ ...prev, modulos: nuevosModulos }));
   };
 
@@ -203,17 +215,13 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     );
   };
 
-  // ── Submit ───────────────────────────────────────
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const isValid = validateAll();
-
     if (!isValid) {
       showAlert('warning', 'Campos incompletos', 'Corrige los campos marcados antes de guardar.');
       return;
     }
-
     const dataNormalizada = {
       ...formData,
       nombre: formData.nombre.trim()
@@ -223,7 +231,6 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     onSubmit(dataNormalizada);
   };
 
-  // ── Cancelar ─────────────────────────────────────
   const handleCancel = () => {
     showAlert('confirm', '¿Cancelar?', '¿Seguro que deseas cancelar? Los cambios no guardados se perderán.', () => {
       closeAlert();
@@ -236,14 +243,47 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   // ─────────────────────────────────────────────────
   return (
     <>
-      <form onSubmit={handleSubmit}>
-        {/* TÍTULO */}
-        <h1 className="text-xl font-semibold mb-6">
-          {rol ? 'Editar rol' : 'Crear nuevo rol'}
-        </h1>
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => { alertConfig.onConfirm?.(); }}
+        onCancel={closeAlert}
+      />
+
+      <form onSubmit={handleSubmit} noValidate>
+
+        {/* HEADER */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 10, background: PINK,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937' }}>
+              {rol ? 'Editar rol' : 'Crear nuevo rol'}
+            </h2>
+            <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>
+              {rol
+                ? `Editando rol · ${usuariosEnlazados} usuario${usuariosEnlazados !== 1 ? 's' : ''} vinculado${usuariosEnlazados !== 1 ? 's' : ''}`
+                : 'Completa todos los campos obligatorios'}
+            </p>
+          </div>
+        </div>
+
+        {/* SECCIÓN: INFO BÁSICA */}
+        {sectionTitle('Información del rol')}
 
         {/* NOMBRE */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: 16 }}>
           <label htmlFor="nombre" style={labelStyle}>
             Nombre del rol{req}
           </label>
@@ -253,22 +293,20 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
             name="nombre"
             value={formData.nombre}
             onChange={handleChange}
-            onBlur={handleBlur}
+            onBlur={(e) => { handleBlur(e); onBlurField(e); }}
             style={fieldStyle(!!errors.nombre)}
-            onFocus={(e) => {
-              e.target.style.borderColor = '#e91e8c';
-              e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
-            }}
+            placeholder="Ej: Administrador de bodega"
+            onFocus={onFocusField}
           />
-          {errors.nombre && <span style={errorStyle}>{errors.nombre}</span>}
+          {errors.nombre && <span style={errorStyle}>⚠ {errors.nombre}</span>}
         </div>
 
         {/* DESCRIPCIÓN */}
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: 20 }}>
           <label htmlFor="descripcion" style={labelStyle}>
             Descripción
-            <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: '6px', fontSize: '12px' }}>
-              (máx. 200 caracteres)
+            <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
+              (opcional · máx. 200 caracteres)
             </span>
           </label>
           <textarea
@@ -276,17 +314,18 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
             name="descripcion"
             value={formData.descripcion}
             onChange={handleChange}
-            onBlur={handleBlur}
-            rows="3"
+            onBlur={(e) => { handleBlur(e); onBlurField(e); }}
+            rows={3}
+            placeholder="Describe las responsabilidades de este rol..."
             style={fieldStyle(!!errors.descripcion)}
-            onFocus={(e) => {
-              e.target.style.borderColor = '#e91e8c';
-              e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
-            }}
+            onFocus={onFocusField}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            {errors.descripcion && <span style={errorStyle}>{errors.descripcion}</span>}
-            <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {errors.descripcion
+              ? <span style={errorStyle}>⚠ {errors.descripcion}</span>
+              : <span />
+            }
+            <span style={{ fontSize: 11, color: formData.descripcion.length > 180 ? PINK : '#9ca3af' }}>
               {formData.descripcion.length}/200
             </span>
           </div>
@@ -294,135 +333,195 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
 
         {/* MÓDULOS ASIGNADOS */}
         {formData.modulos.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937', marginBottom: '12px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' }}>
-              Módulos y privilegios asignados
-            </h4>
+          <>
+            {sectionTitle(`Módulos asignados (${formData.modulos.length})`)}
+            <div style={{ marginBottom: 16 }}>
+              {formData.modulos.map((modulo, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: '#fff8fe',
+                    border: `1px solid ${PINK_BORDER}`,
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    marginBottom: 8,
+                    position: 'relative',
+                  }}
+                >
+                  <span style={{
+                    position: 'absolute', top: 7, left: 14,
+                    fontSize: 10, color: PINK, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.04em',
+                  }}>
+                    Módulo #{index + 1}
+                  </span>
 
-            {formData.modulos.map((modulo, index) => (
-              <div
-                key={index}
-                style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '16px', marginBottom: '10px', border: '1px solid #e5e7eb' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <h5 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#e91e8c' }}>
-                    {getModuloNombre(modulo.moduloId)}
-                  </h5>
-                  <button
-                    type="button"
-                    onClick={() => handleEliminarModulo(index)}
-                    style={{ padding: '4px 8px', background: 'none', border: '1px solid #e5e7eb', borderRadius: '4px', color: '#ef4444', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                    Eliminar
-                  </button>
-                </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 10 }}>
+                    <h5 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1f2937' }}>
+                      {getModuloNombre(modulo.moduloId)}
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => handleEliminarModulo(index)}
+                      style={{
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: PINK_LIGHT, border: `1px solid ${PINK}`,
+                        color: PINK, cursor: 'pointer', fontSize: 15,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, lineHeight: 1,
+                      }}
+                      title="Eliminar módulo"
+                    >
+                      ×
+                    </button>
+                  </div>
 
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  {PRIVILEGIOS_PREDETERMINADOS.map((priv) => (
-                    <label key={priv.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px' }}>
-                      <input
-                        type="checkbox"
-                        checked={modulo.privilegios.includes(priv.id)}
-                        onChange={() => handleTogglePrivilegioModulo(index, priv.id)}
-                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#e91e8c' }}
-                      />
-                      {priv.nombre}
-                    </label>
-                  ))}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {PRIVILEGIOS_PREDETERMINADOS.map((priv) => {
+                      const checked = modulo.privilegios.includes(priv.id);
+                      return (
+                        <label
+                          key={priv.id}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            cursor: 'pointer', fontSize: 13,
+                            padding: '4px 10px', borderRadius: 20,
+                            border: `2px solid ${checked ? PINK : '#e5e7eb'}`,
+                            background: checked ? PINK_LIGHT : '#fff',
+                            color: checked ? PINK : '#6b7280',
+                            fontWeight: checked ? 600 : 400,
+                            transition: 'all 0.15s', userSelect: 'none',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleTogglePrivilegioModulo(index, priv.id)}
+                            style={{ display: 'none' }}
+                          />
+                          {checked && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={PINK} strokeWidth="3" strokeLinecap="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                          {priv.nombre}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* ERROR MÓDULOS */}
         {errors.modulos && (
-          <span style={{ ...errorStyle, marginBottom: '12px' }}>{errors.modulos}</span>
+          <span style={{ ...errorStyle, marginBottom: 12, display: 'block' }}>⚠ {errors.modulos}</span>
         )}
 
         {/* AGREGAR MÓDULO */}
-        <div style={{ marginBottom: '24px', backgroundColor: '#fafafa', border: '1px dashed #d1d5db', borderRadius: '10px', padding: '16px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-            Agregar módulo {req}
-          </h4>
+        {sectionTitle('Agregar módulo')}
+        <div style={{
+          marginBottom: 24,
+          background: '#fafafa',
+          border: `1.5px dashed ${PINK_BORDER}`,
+          borderRadius: 12,
+          padding: 16,
+        }}>
 
-          <select
-            value={moduloSeleccionado}
-            onChange={handleModuloChange}
-            style={{ ...fieldStyle(false), marginBottom: '12px', cursor: 'pointer' }}
-            onFocus={(e) => { e.target.style.borderColor = '#e91e8c'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; }}
-            onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'none'; }}
-          >
-            <option value="">Seleccionar módulo</option>
-            {MODULOS_PREDETERMINADOS.filter(
-              (m) => !formData.modulos.find((fm) => fm.moduloId === m.id)
-            ).map((m) => (
-              <option key={m.id} value={m.id}>{m.nombre}</option>
-            ))}
-          </select>
-
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ ...labelStyle, marginBottom: '10px' }}>Privilegios *</label>
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              {PRIVILEGIOS_PREDETERMINADOS.map((priv) => (
-                <label key={priv.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={privilegiosSeleccionados.includes(priv.id)}
-                    onChange={() => handlePrivilegioToggle(priv.id)}
-                    style={{ width: '16px', height: '16px', accentColor: '#e91e8c', cursor: 'pointer' }}
-                  />
-                  {priv.nombre}
-                </label>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Módulo{req}</label>
+            <select
+              value={moduloSeleccionado}
+              onChange={handleModuloChange}
+              style={{ ...fieldStyle(false), cursor: 'pointer' }}
+              onFocus={onFocusField}
+              onBlur={onBlurField}
+            >
+              <option value="">Seleccionar módulo...</option>
+              {MODULOS_PREDETERMINADOS.filter(
+                (m) => !formData.modulos.find((fm) => fm.moduloId === m.id)
+              ).map((m) => (
+                <option key={m.id} value={m.id}>{m.nombre}</option>
               ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Privilegios{req}</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+              {PRIVILEGIOS_PREDETERMINADOS.map((priv) => {
+                const checked = privilegiosSeleccionados.includes(priv.id);
+                return (
+                  <label
+                    key={priv.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      cursor: 'pointer', fontSize: 13,
+                      padding: '5px 12px', borderRadius: 20,
+                      border: `1.5px solid ${checked ? PINK : '#e5e7eb'}`,
+                      background: checked ? PINK_LIGHT : '#ffffff',
+                      color: checked ? PINK : '#6b7280',
+                      fontWeight: checked ? 600 : 400,
+                      transition: 'all 0.15s', userSelect: 'none',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => handlePrivilegioToggle(priv.id)}
+                      style={{ display: 'none' }}
+                    />
+                    {checked && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={PINK} strokeWidth="3" strokeLinecap="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                    {priv.nombre}
+                  </label>
+                );
+              })}
             </div>
           </div>
 
           <button
             type="button"
             onClick={handleAgregarModulo}
-            style={{ padding: '8px 16px', background: 'white', border: '1px solid #e91e8c', borderRadius: '6px', color: '#e91e8c', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f3ff'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
+            style={{
+              background: 'none',
+              border: `1.5px dashed ${PINK}`,
+              borderRadius: 8,
+              color: PINK, cursor: 'pointer',
+              fontSize: 12, fontWeight: 700,
+              padding: '8px 14px', width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = PINK_LIGHT; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Agregar módulo
+            Agregar módulo a este rol
           </button>
         </div>
 
         {/* BOTONES */}
-        <div className="flex justify-end gap-4 mt-6">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium transition-colors"
-          >
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: 10,
+          paddingTop: 16, borderTop: '1px solid #f3f4f6',
+        }}>
+          <Button type="button" variant="secondary" onClick={handleCancel}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-semibold shadow transition-colors"
-          >
+          </Button>
+          <Button type="submit" variant="primary">
             {rol ? 'Guardar cambios' : 'Crear rol'}
-          </button>
+          </Button>
         </div>
-      </form>
 
-      <Alert
-        isOpen={alertConfig.open}
-        type={alertConfig.type}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onConfirm={() => { alertConfig.onConfirm?.(); }}
-        onCancel={closeAlert}
-      />
+      </form>
     </>
   );
 };

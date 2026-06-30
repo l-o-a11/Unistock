@@ -11,9 +11,8 @@ import SupplyCategoriesModal from "../components/SupplyCategoriesModal";
 import CategoryForm from "../../categoriesSupply/components/CategoryForm";
 import { useCategories } from "../../categoriesSupply/hooks/useCategories";
 import { supplyAPI } from "../services/supplyAPI";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// TODO: ajustar la ruta del logo según la ubicación real del asset en tu proyecto
+import putongasLogoUrl from "../../../assets/transparent-Photoroom.png";
 
 const SuppliesPage = () => {
   const {
@@ -351,93 +350,475 @@ const SuppliesPage = () => {
   const handleCancelCreate = () => handleCloseForm();
   const handleCancelEdit = () => handleCloseForm();
 
-  const getExportData = () =>
-    filteredSupplies.map((s) => ({
-      ID: s.id,
-      Nombre: s.nombre,
-      Categoría: getCategoriaNombre(s.categoriaId) || "",
-      Medida: getMedidaNombre(s.medidaId) || "",
-      "Valor medida": s.valorMedida,
-      Stock: s.stock,
-      Estado: s.estado ? "Activo" : "Inactivo",
-    }));
+  /* ══════════════════════════════════════════════════════════════════════
+   * DESCARGA EXCEL — ExcelJS con estilos paleta empresa + logo Putongas
+   * Sin negros en fondos: header magenta UniStock, filas rosas/blancas
+   * ══════════════════════════════════════════════════════════════════════ */
+  const handleDownloadExcel = async () => {
+    setShowDownloadModal(false);
 
-  const handleDownloadExcel = () => {
     try {
-      const data = getExportData();
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      worksheet["!cols"] = [
-        { wch: 8 },
-        { wch: 30 },
-        { wch: 18 },
-        { wch: 16 },
-        { wch: 14 },
-        { wch: 10 },
-        { wch: 12 },
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "UniStock";
+      wb.created = new Date();
+
+      const ws = wb.addWorksheet("Insumos", {
+        pageSetup: { orientation: "landscape", fitToPage: true },
+      });
+
+      const now = new Date();
+      const fecha = now.toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+
+      /* ── Columnas ── */
+      ws.columns = [
+        { key: "id", width: 10 },
+        { key: "nombre", width: 30 },
+        { key: "categoria", width: 20 },
+        { key: "medida", width: 16 },
+        { key: "valorMedida", width: 14 },
+        { key: "stock", width: 12 },
+        { key: "estado", width: 14 },
       ];
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Insumos");
+      const ARGB = (hex) => "FF" + hex.replace("#", "").toUpperCase();
+      const fillSolid = (hex) => ({
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: ARGB(hex) },
+      });
+      const thinBorder = (hex = "#ffffff") => {
+        const c = { style: "thin", color: { argb: ARGB(hex) } };
+        return { top: c, bottom: c, left: c, right: c };
+      };
 
-      const fecha = new Date().toISOString().split("T")[0];
-      XLSX.writeFile(workbook, `insumos_${fecha}.xlsx`);
-      showAlert(
-        "success",
-        "Descarga lista",
-        "El archivo Excel se descargó correctamente.",
-      );
-    } catch (error) {
-      console.error("Error exportando Excel:", error);
-      showAlert("error", "Error", "No se pudo descargar el archivo Excel.");
+      /* ── Logo Putongas (filas 1-4, columna A) ── */
+      try {
+        const logoRes = await fetch(putongasLogoUrl);
+        const logoBlob = await logoRes.blob();
+        const logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(",")[1]);
+          reader.readAsDataURL(logoBlob);
+        });
+        const logoImageId = wb.addImage({ base64: logoBase64, extension: "png" });
+        ws.addImage(logoImageId, {
+          tl: { col: 0.15, row: 0.15 },
+          ext: { width: 46, height: 60 },
+        });
+      } catch (logoError) {
+        console.warn("No se pudo cargar el logo:", logoError);
+      }
+
+      /* ── Fila 1: título (logo ocupa col A visualmente) ── */
+      ws.mergeCells("B1:G1");
+      ws.getRow(1).height = 30;
+      const titleCell = ws.getCell("B1");
+      titleCell.value = "Insumos — Sistema de Gestión UniStock";
+      titleCell.font = { name: "Arial", size: 15, bold: true, color: { argb: "000000" } };
+      titleCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      ["A1", "B1", "C1", "D1", "E1", "F1", "G1"].forEach((ref) => {
+        ws.getCell(ref).fill = fillSolid("#FDF6FF");
+      });
+
+      /* ── Fila 2: subtítulo ── */
+      ws.mergeCells("B2:G2");
+      ws.getRow(2).height = 18;
+      const subCell = ws.getCell("B2");
+      subCell.value = `Generado el ${fecha}  ·  ${filteredSupplies.length} insumo${filteredSupplies.length !== 1 ? "s" : ""}`;
+      subCell.font = { name: "Arial", size: 10, color: { argb: "#000000" } };
+      subCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      ["A2", "B2", "C2", "D2", "E2", "F2", "G2"].forEach((ref) => {
+        ws.getCell(ref).fill = fillSolid("#FDF6FF");
+      });
+
+      /* ── Fila 3: separadora ── */
+      ws.getRow(3).height = 6;
+      ["A3", "B3", "C3", "D3", "E3", "F3", "G3"].forEach((ref) => {
+        ws.getCell(ref).fill = fillSolid("#ffffff");
+      });
+
+      /* ── Fila 4: encabezados de columnas ── */
+      const headerRow = ws.getRow(4);
+      headerRow.height = 26;
+      const headers = ["ID", "Nombre", "Categoría", "Medida", "Valor medida", "Stock", "Estado"];
+      headers.forEach((h, i) => {
+        const cell = headerRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = fillSolid("#FF4FD6");
+        cell.alignment = {
+          horizontal: i === 4 || i === 5 ? "right" : "left",
+          vertical: "middle",
+          indent: i === 4 || i === 5 ? 0 : 1,
+        };
+        cell.border = { bottom: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+      });
+
+      /* ── Filas de datos ── */
+      filteredSupplies.forEach((s, i) => {
+        const row = ws.getRow(5 + i);
+        row.height = 20;
+        const even = i % 2 === 0;
+        const baseFill = fillSolid(even ? "#FFFFFF" : "#FDF6FF");
+
+        const values = [
+          `#${s.id ?? ""}`,
+          s.nombre || "—",
+          getCategoriaNombre(s.categoriaId) || "—",
+          getMedidaNombre(s.medidaId) || "—",
+          s.valorMedida ?? "—",
+          s.stock ?? 0,
+          s.estado ? "Activo" : "Inactivo",
+        ];
+
+        values.forEach((v, ci) => {
+          const cell = row.getCell(ci + 1);
+          cell.value = v;
+          cell.fill = baseFill;
+          cell.border = thinBorder();
+          cell.alignment = {
+            horizontal: ci === 4 || ci === 5 ? "right" : "left",
+            vertical: "middle",
+            indent: ci === 4 || ci === 5 ? 0 : 1,
+          };
+          cell.font = { name: "Arial", size: 10, color: { argb: "FF374151" } };
+        });
+
+        /* ID: magenta bold */
+        row.getCell(1).font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#FF4FD6") } };
+        /* Stock: morado oscuro bold */
+        row.getCell(6).font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#a858d6") } };
+      });
+
+      /* ── Fila de totales ── */
+      const totalRowIdx = filteredSupplies.length + 6;
+      const totalStock = filteredSupplies.reduce((s, item) => s + (Number(item.stock) || 0), 0);
+      const totalRow = ws.getRow(totalRowIdx);
+
+      const totalLabelCell = totalRow.getCell(2);
+      totalLabelCell.value = "Total stock";
+      totalLabelCell.font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#363636") } };
+      totalLabelCell.fill = fillSolid("#ffffff");
+      totalLabelCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      totalLabelCell.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+
+      const totalValueCell = totalRow.getCell(6);
+      totalValueCell.value = totalStock;
+      totalValueCell.font = { name: "Arial", size: 11, bold: true, color: { argb: ARGB("#a858d6") } };
+      totalValueCell.fill = fillSolid("#ffffff");
+      totalValueCell.alignment = { horizontal: "right", vertical: "middle" };
+      totalValueCell.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+
+      /* Resto de celdas de la fila de totales con el mismo fondo */
+      [1, 3, 4, 5, 7].forEach((col) => {
+        const c = totalRow.getCell(col);
+        c.fill = fillSolid("#FDF6FF");
+        c.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+      });
+
+      /* ── Generar y descargar ── */
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "insumos.xlsx";
+      link.click();
+      URL.revokeObjectURL(url);
+
+      showAlert("success", "Descarga lista", "El archivo Excel se descargó correctamente.");
+    } catch (e) {
+      console.error("Error generando Excel:", e);
+      try {
+        const rows = [
+          ["ID", "Nombre", "Categoría", "Medida", "Valor medida", "Stock", "Estado"],
+          ...filteredSupplies.map((s) => [
+            `#${s.id ?? ""}`,
+            s.nombre || "",
+            getCategoriaNombre(s.categoriaId) || "",
+            getMedidaNombre(s.medidaId) || "",
+            s.valorMedida ?? "",
+            s.stock ?? 0,
+            s.estado ? "Activo" : "Inactivo",
+          ]),
+        ];
+        const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "insumos.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+        showAlert("success", "Descarga lista", "Se generó un CSV de respaldo (no se pudo generar el Excel).");
+      } catch (fallbackError) {
+        console.error("Error generando CSV de respaldo:", fallbackError);
+        showAlert("error", "Error", "No se pudo descargar el archivo Excel.");
+      }
     }
   };
 
+  /* ══════════════════════════════════════════════════════════════════════
+   * DESCARGA PDF — sin degradados, sin negros en fondos, logo Putongas
+   * Header: #ff4fd698 (morado suave)
+   * Fecha/hora: blanco puro #ffffff
+   * Tarjetas totales: rosas/lila planos
+   * Color principal: #FF4FD6
+   * ══════════════════════════════════════════════════════════════════════ */
   const handleDownloadPDF = () => {
-    try {
-      const data = getExportData();
-      const doc = new jsPDF({ orientation: "landscape" });
-      const fecha = new Date().toISOString().split("T")[0];
+    setShowDownloadModal(false);
 
-      doc.setFontSize(16);
-      doc.text("Reporte de insumos", 14, 16);
+    const now = new Date();
+    const fecha = now.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+    const hora = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 
-      autoTable(doc, {
-        startY: 22,
-        head: [
-          [
-            "ID",
-            "Nombre",
-            "Categoría",
-            "Medida",
-            "Valor medida",
-            "Stock",
-            "Estado",
-          ],
-        ],
-        body: data.map((item) => [
-          item.ID,
-          item.Nombre,
-          item.Categoría,
-          item.Medida,
-          item["Valor medida"],
-          item.Stock,
-          item.Estado,
-        ]),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [255, 79, 214], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { left: 14, right: 14 },
-      });
+    const estadoSummary = filteredSupplies.reduce((acc, s) => {
+      const e = s.estado ? "Activo" : "Inactivo";
+      acc[e] = (acc[e] || 0) + 1;
+      return acc;
+    }, {});
+    const totalStock = filteredSupplies.reduce((s, item) => s + (Number(item.stock) || 0), 0);
 
-      doc.save(`insumos_${fecha}.pdf`);
-      showAlert(
-        "success",
-        "Descarga lista",
-        "El archivo PDF se descargó correctamente.",
-      );
-    } catch (error) {
-      console.error("Error exportando PDF:", error);
-      showAlert("error", "Error", "No se pudo descargar el archivo PDF.");
+    const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const estadoBadge = (activo) => ({
+      bg: activo ? "#dcfce7" : "#fee2e2",
+      color: activo ? "#15803d" : "#b91c1c",
+      dot: activo ? "#22c55e" : "#ef4444",
+    });
+
+    const tableRows = filteredSupplies.map((s, i) => {
+      const sc = estadoBadge(s.estado);
+      return `
+        <tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
+          <td class="td-order"><span class="order-num">#${esc(s.id)}</span></td>
+          <td class="td-product">
+            <span class="product-name">${esc(s.nombre || "—")}</span>
+          </td>
+          <td class="td-client">${esc(getCategoriaNombre(s.categoriaId) || "—")}</td>
+          <td class="td-color"><span class="color-pill">${esc(getMedidaNombre(s.medidaId) || "—")}</span></td>
+          <td class="td-qty"><span class="qty-badge">${esc(s.valorMedida ?? "—")}</span></td>
+          <td class="td-qty"><span class="qty-badge">${esc(s.stock ?? 0)}</span></td>
+          <td class="td-status">
+            <span class="status-badge" style="background:${sc.bg};color:${sc.color};">
+              <span class="status-dot" style="background:${sc.dot};"></span>
+              ${esc(s.estado ? "Activo" : "Inactivo")}
+            </span>
+          </td>
+        </tr>`;
+    }).join("");
+
+    const summaryCards = Object.entries(estadoSummary).map(([e, n]) => `
+      <div class="sum-card">
+        <span class="sum-count">${n}</span>
+        <span class="sum-label">${esc(e)}</span>
+      </div>`
+    ).join("");
+
+    const filterInfo = [
+      statusFilter !== "todos" ? `Estado: <strong>${esc(statusFilter)}</strong>` : "",
+      searchTerm ? `Búsqueda: <strong>"${esc(searchTerm)}"</strong>` : "",
+    ].filter(Boolean).join(" &nbsp;·&nbsp; ");
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Insumos — ${fecha}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #2d1b4e; font-size: 11px; }
+  .page { width: 210mm; min-height: 297mm; margin: 0 auto; }
+
+  .header {
+    background: #ff4fd67e;
+    padding: 24px 32px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content:''; position:absolute; top:-30px; right:-30px;
+    width:140px; height:140px; border-radius:50%;
+    background:rgba(255,79,214,0.18);
+  }
+  .header::after {
+    content:''; position:absolute; bottom:-20px; right:60px;
+    width:80px; height:80px; border-radius:50%;
+    background:rgba(255,79,214,0.10);
+  }
+  .header-top  { display:flex; justify-content:space-between; align-items:flex-start; }
+  .brand       { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .brand-logo  { width:32px; height:auto; display:block; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
+  .brand-name  { font-size:11px; font-weight:600; color:rgba(255,255,255,0.6); letter-spacing:0.12em; text-transform:uppercase; }
+  .doc-title   { font-size:22px; font-weight:700; color:#fff; letter-spacing:-0.02em; line-height:1.2; }
+  .doc-subtitle{ font-size:12px; color:rgba(255,255,255,0.65); margin-top:4px; }
+
+  .header-meta        { text-align:right; font-size:11px; color:#ffffff; line-height:2; }
+  .header-meta strong { color:#ffffff; font-weight:700; font-size:12px; letter-spacing:0.02em; }
+
+  .doc-id {
+    display:inline-block; background:rgba(255,79,214,0.25); color:#ffffff;
+    font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px;
+    border:1px solid rgba(255,79,214,0.4); margin-top:6px; letter-spacing:0.06em;
+  }
+
+  .body { padding: 22px 32px 28px; }
+
+  .filter-bar {
+    background:#fdf6ff; border:1px solid #e8d5f5; border-radius:8px;
+    padding:8px 14px; margin-bottom:18px; font-size:10px; color:#6b7280;
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  }
+  .filter-bar strong { color:#2d1b4e; }
+
+  .summary    { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .sum-card   {
+    flex:1; min-width:90px; background:#fdf6ff; border:1px solid #e8d5f5;
+    border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:2px;
+  }
+  .sum-count  { font-size:20px; font-weight:800; line-height:1; color:#FF4FD6; }
+  .sum-label  { font-size:9.5px; color:#9ca3af; font-weight:500; text-transform:uppercase; letter-spacing:0.05em; }
+
+  .totals-row { display:flex; gap:12px; margin-bottom:22px; }
+  .total-card { flex:1; border-radius:10px; padding:14px 18px; }
+  .tc-a { background:#ffffff; border:1.5px solid #d8b4f8; }
+  .tc-b { background:#fce7f9; border:1.5px solid #f9a8d4; }
+  .total-val   { font-size:26px; font-weight:800; line-height:1; letter-spacing:-0.03em; color:#FF4FD6; }
+  .total-label { font-size:10px; color:#636264; margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
+
+  .section-title {
+    font-size:10px; font-weight:700; color:#9ca3af;
+    text-transform:uppercase; letter-spacing:0.1em;
+    margin-bottom:10px; display:flex; align-items:center; gap:7px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:#e8d5f5; }
+
+  table           { width:100%; border-collapse:collapse; font-size:10.5px; }
+  thead tr        { background:#FF4FD6; }
+  thead th        { padding:9px 10px; text-align:left; color:#fff; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+  thead th:first-child { border-radius:6px 0 0 0; }
+  thead th:last-child  { border-radius:0 6px 0 0; }
+  .row-even       { background:#fff; }
+  .row-odd        { background:#fdf6ff; }
+  tbody tr        { border-bottom:1px solid #f6f6f8; }
+  td              { padding:9px 10px; vertical-align:middle; }
+
+  .td-order .order-num    { font-size:12px; font-weight:800; color:#FF4FD6; letter-spacing:-0.02em; }
+  .td-product .product-name { display:block; font-weight:600; color:#2d1b4e; font-size:10.5px; }
+  .td-client      { color:#374151; font-weight:500; }
+  .td-qty         { text-align:right; white-space:nowrap; }
+  .qty-badge      { font-size:12px; font-weight:800; color:#2d1b4e; }
+  .td-color .color-pill { background:#ffffff; border-radius:4px; padding:2px 7px; font-size:9.5px; color:#000000; font-weight:500; }
+
+  .status-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 8px; border-radius:20px; font-size:9.5px; font-weight:700; white-space:nowrap;
+  }
+  .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+  .footer { background:#ffffff; border-top:2px solid #e8d5f5; padding:14px 32px; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#9ca3af; margin-top:auto; }
+  .footer strong { color:#2d1b4e; }
+  .footer-sig    { text-align:right; line-height:1.6; }
+  .footer-brand  { display:flex; align-items:center; gap:8px; }
+  .footer-logo   { width:18px; height:auto; display:block; }
+
+  @media print {
+    body { background:#fff; }
+    .page { width:100%; margin:0; }
+    .no-print { display:none !important; }
+    thead { display:table-header-group; }
+    tr { page-break-inside:avoid; }
+  }
+  .print-bar { display:flex; justify-content:flex-end; padding:12px 32px 0; gap:10px; }
+  .btn-print { background:#FF4FD6; color:#fff; border:none; border-radius:8px; padding:9px 20px; font-size:12px; font-weight:700; cursor:pointer; }
+  .btn-close { background:#ffffff; color:#2d1b4e; border:1px solid #e8d5f5; border-radius:8px; padding:9px 16px; font-size:12px; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="print-bar no-print">
+  <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+  <button class="btn-print" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+</div>
+<div class="page">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand">
+          <img src="${putongasLogoUrl}" class="brand-logo" alt="Putongas" />
+          <span class="brand-name">UniStock</span>
+        </div>
+        <div class="doc-title">Reporte de Insumos</div>
+        <div class="doc-subtitle">${filteredSupplies.length} insumo${filteredSupplies.length !== 1 ? "s" : ""} en el inventario</div>
+        <div class="doc-id">INSUMOS-${now.getTime().toString().slice(-6)}</div>
+      </div>
+      <div class="header-meta">
+        <div><strong>${fecha}</strong></div>
+        <div>${hora}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+    ${filterInfo ? `<div class="filter-bar">🔍 ${filterInfo}</div>` : ""}
+
+    <div class="section-title">Resumen por estado</div>
+    <div class="summary">${summaryCards}</div>
+
+    <div class="totals-row">
+      <div class="total-card tc-a">
+        <div class="total-val">${filteredSupplies.length}</div>
+        <div class="total-label">Insumos totales</div>
+      </div>
+      <div class="total-card tc-b">
+        <div class="total-val">${totalStock}</div>
+        <div class="total-label">Stock acumulado</div>
+      </div>
+    </div>
+
+    <div class="section-title">Detalle de insumos</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Categoría</th>
+          <th>Medida</th>
+          <th>Valor medida</th>
+          <th>Stock</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <div class="footer-brand">
+      <img src="${putongasLogoUrl}" class="footer-logo" alt="Putongas" />
+      <span>UniStock — Sistema de Gestión</span>
+    </div>
+    <div class="footer-sig">
+      <div><strong>Generado automáticamente</strong></div>
+      <div>${fecha} · ${hora}</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    } else {
+      showAlert("error", "Error", "No se pudo abrir la ventana de impresión. Verifica el bloqueador de pop-ups.");
     }
   };
 

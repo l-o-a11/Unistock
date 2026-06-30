@@ -1,38 +1,120 @@
 import React, { useState } from "react";
 import Alert from "../../../shared/components/Alert";
+import Button from "../../../shared/components/Button";
 
+// ─────────────────────────────────────────────────
+// Tokens de estilo — alineados con ProductionForm / RolForm / CategoryForm
+// ─────────────────────────────────────────────────
+const PINK = "#ff4fd6";
+
+const fieldStyle = (hasError) => ({
+  width: "100%",
+  padding: "10px 14px",
+  border: `1.5px solid ${hasError ? PINK : "#e5e7eb"}`,
+  borderRadius: "10px",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box",
+  transition: "border-color 0.2s, box-shadow 0.2s",
+  backgroundColor: "#ffffff",
+  fontFamily: "inherit",
+  color: "#1f2937",
+});
+
+// Label sentence case, igual al resto del sistema
+const labelStyle = {
+  display: "block",
+  fontSize: "13px",
+  fontWeight: "500",
+  color: "#374151",
+  marginBottom: "5px",
+};
+
+const errorStyle = {
+  color: PINK,
+  fontSize: "11px",
+  marginTop: "4px",
+  display: "block",
+  fontWeight: "500",
+};
+
+const sectionTitle = (text) => (
+  <p
+    style={{
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#9ca3af",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      margin: "0 0 10px",
+    }}
+  >
+    {text}
+  </p>
+);
+
+const req = <span style={{ color: PINK }}> *</span>;
+
+const onFocusField = (e) => {
+  e.target.style.borderColor = PINK;
+  e.target.style.boxShadow = "0 0 0 3px rgba(255,79,214,0.1)";
+};
+
+// ─────────────────────────────────────────────────
+// SedeForm
+// ─────────────────────────────────────────────────
 const SedeForm = ({ sede, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
-    nombre:    sede?.nombre    || "",
-    ciudad:    sede?.ciudad    || "",
-    barrio:    sede?.barrio    || "",
+    nombre: sede?.nombre || "",
+    ciudad: sede?.ciudad || "",
+    barrio: sede?.barrio || "",
     direccion: sede?.direccion || "",
-    telefono:  sede?.telefono  || "",
+    telefono: sede?.telefono || "",
   });
 
   const [errors, setErrors] = useState({});
-  const [alertConfig, setAlertConfig] = useState({ open: false, type: "success", title: "", message: "", onConfirm: null });
+  const [alertConfig, setAlertConfig] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
 
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
-  const showAlert  = (type, title, message, onConfirm = null) =>
+  const showAlert = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
 
   // ── Validaciones ────────────────────────────────────────────────────────
   const validators = {
-    required:  (v) => (!v?.trim() ? "Este campo es obligatorio" : ""),
+    required: (v) => (!v?.trim() ? "Este campo es obligatorio" : ""),
     minLength: (v) => (v && v.trim().length < 3 ? "Mínimo 3 caracteres" : ""),
-    telefono:  (v) => (v && !/^\d{7,15}$/.test(v.trim()) ? "Solo números, entre 7 y 15 dígitos" : ""),
+    telefono: (v) =>
+      v && !/^\d{7,15}$/.test(v.trim())
+        ? "Solo números, entre 7 y 15 dígitos"
+        : "",
   };
 
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
-      case "nombre":    error = validators.required(value) || validators.minLength(value); break;
-      case "ciudad":    error = validators.required(value); break;
-      case "barrio":    error = validators.required(value); break;
-      case "direccion": error = validators.required(value); break;
-      case "telefono":  error = validators.required(value) || validators.telefono(value); break;
-      default: break;
+      case "nombre":
+        error = validators.required(value) || validators.minLength(value);
+        break;
+      case "ciudad":
+        error = validators.required(value);
+        break;
+      case "barrio":
+        error = validators.required(value);
+        break;
+      case "direccion":
+        error = validators.required(value);
+        break;
+      case "telefono":
+        error = validators.required(value) || validators.telefono(value);
+        break;
+      default:
+        break;
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
@@ -44,200 +126,226 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
     validateField(name, value);
   };
 
-  const handleBlur = (e) => validateField(e.target.name, e.target.value);
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    validateField(name, value);
+    e.target.style.borderColor = errors[name] ? PINK : "#e5e7eb";
+    e.target.style.boxShadow = "none";
+  };
 
   const handleSubmit = (e) => {
     e?.preventDefault();
     const fields = ["nombre", "ciudad", "barrio", "direccion", "telefono"];
     let newErrors = {};
-    fields.forEach((f) => { const err = validateField(f, formData[f]); if (err) newErrors[f] = err; });
+    fields.forEach((f) => {
+      const err = validateField(f, formData[f]);
+      if (err) newErrors[f] = err;
+    });
     setErrors(newErrors);
 
     if (Object.values(newErrors).some((e) => e)) {
-      showAlert("warning", "Campos inválidos", "Corrige los campos marcados antes de guardar.");
+      showAlert(
+        "warning",
+        "Campos inválidos",
+        "Corrige los campos marcados antes de guardar."
+      );
       return;
     }
 
     try {
       onSubmit(formData);
     } catch (error) {
-      showAlert("error", "Error al guardar", error.message || "No se pudo guardar la sede.");
+      showAlert(
+        "error",
+        "Error al guardar",
+        error.message || "No se pudo guardar la sede."
+      );
     }
   };
 
   const handleCancel = () => {
-    showAlert("confirm", "¿Cancelar?", "Los datos ingresados se perderán.", () => {
-      closeAlert();
-      onCancel?.();
-    });
+    showAlert(
+      "confirm",
+      "¿Cancelar?",
+      "Los datos ingresados se perderán.",
+      () => {
+        closeAlert();
+        onCancel?.();
+      }
+    );
   };
 
-  // ── Estilos ──────────────────────────────────────────────────────────────
-  const inp = (hasError) => ({
-    width: "100%",
-    padding: "12px 14px",
-    borderRadius: "8px",
-    border: `1.5px solid ${hasError ? "#ef4444" : "#e5e7eb"}`,
-    fontSize: "14px",
-    color: "#333",
-    outline: "none",
-    boxSizing: "border-box",
-    backgroundColor: "#fff",
-    transition: "border-color 0.15s, box-shadow 0.15s",
-  });
-
-  const lbl = {
-    display: "block",
-    fontSize: "13px",
-    fontWeight: 600,
-    color: "#374151",
-    marginBottom: "6px",
-  };
-
-  const errS = { color: "#ef4444", fontSize: "12px", marginTop: "4px" };
-  const req  = <span style={{ color: "#FF4FD6" }}> *</span>;
-
-  const onFocus = (e) => {
-    e.target.style.borderColor = "#FF4FD6";
-    e.target.style.boxShadow   = "0 0 0 3px rgba(255,79,214,0.12)";
-  };
-  const onBlurStyle = (e) => {
-    e.target.style.borderColor = errors[e.target.name] ? "#ef4444" : "#e5e7eb";
-    e.target.style.boxShadow   = "none";
-  };
-
+  // ─────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────
   return (
     <>
-      <div style={{ width: "100%", maxWidth: "440px" }}>
-        <h2 style={{ margin: "0 0 24px", fontSize: "20px", fontWeight: 700, color: "#111" }}>
-          {sede ? "Editar sede" : "Crear nueva sede"}
-        </h2>
+      <form onSubmit={handleSubmit} noValidate style={{ padding: "12px 14px", boxSizing: "border-box" }}>
 
-        {/* Nombre */}
-        <div style={{ marginBottom: "18px" }}>
-          <label style={lbl}>Nombre{req}</label>
+        {/* HEADER */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: PINK,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1f2937" }}>
+              {sede ? "Editar sede" : "Crear nueva sede"}
+            </h2>
+            <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>
+              Completa todos los campos obligatorios
+            </p>
+          </div>
+        </div>
+
+        {/* SECCIÓN: INFO BÁSICA */}
+        {sectionTitle("Información de la sede")}
+
+        {/* NOMBRE */}
+        <div style={{ marginBottom: 16 }}>
+          <label htmlFor="nombre" style={labelStyle}>
+            Nombre{req}
+          </label>
           <input
+            id="nombre"
             name="nombre"
             value={formData.nombre}
             onChange={handleChange}
             onBlur={handleBlur}
-            onFocus={onFocus}
-            placeholder="Ej. Putonga"
-            style={inp(errors.nombre)}
+            onFocus={onFocusField}
+            placeholder="Ej: Putonga"
+            style={fieldStyle(!!errors.nombre)}
           />
-          {errors.nombre && <p style={errS}>{errors.nombre}</p>}
+          {errors.nombre && <span style={errorStyle}>⚠ {errors.nombre}</span>}
         </div>
 
-        {/* Ciudad + Barrio */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "18px" }}>
+        {/* CIUDAD + BARRIO */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+            marginBottom: 16,
+          }}
+        >
           <div>
-            <label style={lbl}>Ciudad{req}</label>
+            <label htmlFor="ciudad" style={labelStyle}>
+              Ciudad{req}
+            </label>
             <input
+              id="ciudad"
               name="ciudad"
               value={formData.ciudad}
               onChange={handleChange}
               onBlur={handleBlur}
-              onFocus={onFocus}
-              placeholder="Ej. Medellín"
-              style={inp(errors.ciudad)}
+              onFocus={onFocusField}
+              placeholder="Ej: Medellín"
+              style={fieldStyle(!!errors.ciudad)}
             />
-            {errors.ciudad && <p style={errS}>{errors.ciudad}</p>}
+            {errors.ciudad && <span style={errorStyle}>⚠ {errors.ciudad}</span>}
           </div>
           <div>
-            <label style={lbl}>Barrio{req}</label>
+            <label htmlFor="barrio" style={labelStyle}>
+              Barrio{req}
+            </label>
             <input
+              id="barrio"
               name="barrio"
               value={formData.barrio}
               onChange={handleChange}
               onBlur={handleBlur}
-              onFocus={onFocus}
-              placeholder="Ej. Buenos aires"
-              style={inp(errors.barrio)}
+              onFocus={onFocusField}
+              placeholder="Ej: Buenos aires"
+              style={fieldStyle(!!errors.barrio)}
             />
-            {errors.barrio && <p style={errS}>{errors.barrio}</p>}
+            {errors.barrio && <span style={errorStyle}>⚠ {errors.barrio}</span>}
           </div>
         </div>
 
-        {/* Dirección + Teléfono */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "28px" }}>
+        {/* DIRECCIÓN + TELÉFONO */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
           <div>
-            <label style={lbl}>Dirección{req}</label>
+            <label htmlFor="direccion" style={labelStyle}>
+              Dirección{req}
+            </label>
             <input
+              id="direccion"
               name="direccion"
               value={formData.direccion}
               onChange={handleChange}
               onBlur={handleBlur}
-              onFocus={onFocus}
-              placeholder="Ej. Carrera 123 # 12 - 34"
-              style={inp(errors.direccion)}
+              onFocus={onFocusField}
+              placeholder="Ej: Carrera 123 # 12 - 34"
+              style={fieldStyle(!!errors.direccion)}
             />
-            {errors.direccion && <p style={errS}>{errors.direccion}</p>}
+            {errors.direccion && <span style={errorStyle}>⚠ {errors.direccion}</span>}
           </div>
           <div>
-            <label style={lbl}>Teléfono{req}</label>
+            <label htmlFor="telefono" style={labelStyle}>
+              Teléfono{req}
+            </label>
             <input
+              id="telefono"
               name="telefono"
               value={formData.telefono}
               onChange={handleChange}
               onBlur={handleBlur}
-              onFocus={onFocus}
-              placeholder="Ej. 4670000"
-              style={inp(errors.telefono)}
+              onFocus={onFocusField}
+              placeholder="Ej: 4670000"
+              style={fieldStyle(!!errors.telefono)}
             />
-            {errors.telefono && <p style={errS}>{errors.telefono}</p>}
+            {errors.telefono && <span style={errorStyle}>⚠ {errors.telefono}</span>}
           </div>
         </div>
 
-        {/* Botones */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-          <button
-            type="button"
-            onClick={handleCancel}
-            style={{
-              padding: "10px 24px",
-              borderRadius: "50px",
-              border: "1.5px solid #e5e7eb",
-              background: "#fff",
-              color: "#6b7280",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#d1d5db"; e.currentTarget.style.backgroundColor = "#f9fafb"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#fff"; }}
-          >
+        {/* BOTONES */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 10,
+            paddingTop: 16,
+            borderTop: "1px solid #f3f4f6",
+          }}
+        >
+          <Button type="button" variant="secondary" onClick={handleCancel}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            style={{
-              padding: "10px 24px",
-              borderRadius: "50px",
-              border: "none",
-              background: "#FF4FD6",
-              color: "#fff",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(255,79,214,0.35)",
-              transition: "filter 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; }}
-          >
+          </Button>
+          <Button type="submit" variant="primary">
             {sede ? "Guardar cambios" : "Guardar sede"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </form>
 
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
-        onConfirm={() => { alertConfig.onConfirm?.(); closeAlert(); }}
+        onConfirm={() => {
+          alertConfig.onConfirm?.();
+          closeAlert();
+        }}
         onCancel={closeAlert}
       />
     </>
