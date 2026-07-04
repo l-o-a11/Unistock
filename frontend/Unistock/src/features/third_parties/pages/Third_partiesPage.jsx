@@ -8,7 +8,6 @@ import Third_partieSearch from '../components/Third_partiesSearch';
 import AddThird_partieButton from '../components/AddThird_partiesButton';
 import Third_partieDetail from '../components/Third_partiesDetail';
 import Alert from '../../shared/components/Alert';
-import LoadingState from '../../shared/components/LoadingState';
 
 const Third_partiePage = () => {
   const navigate = useNavigate();
@@ -130,6 +129,22 @@ const Third_partiePage = () => {
     p.push(totalPages);
     return p;
   };
+
+  if (loading && Third_parties.length === 0) return (
+    <div style={{ padding: '24px 32px' }}>
+      <style>{`@keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }`}</style>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Terceros</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+          <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
+        </div>
+      </div>
+      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
@@ -356,40 +371,36 @@ const Third_partiePage = () => {
               <AddThird_partieButton onClick={handleAdd} />
             </div>
 
-            {loading && Third_parties.length === 0 ? (
-              <LoadingState message="Cargando terceros, por favor espera un momento..." />
-            ) : (
-              <>
-                <Third_partieTable
-                  Third_parties={paginated}
-                  selectedId={selectedThird_partie?.id}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggle={handleToggle}
-                />
+            <>
+              <Third_partieTable
+                Third_parties={paginated}
+                selectedId={selectedThird_partie?.id}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggle={handleToggle}
+              />
 
-                {filtered.length > 0 && (
-                  <div className="tp-pagination">
-                    <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
-                    {getPages().map((p, i) =>
-                      p === '...'
-                        ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
-                        : <button key={p} className="tp-pg-btn"
-                          onClick={() => setCurrentPage(p)}
-                          style={{
-                            background: p === currentPage ? '#FF4FD6' : '#fff',
-                            color: p === currentPage ? '#fff' : '#374151',
-                            border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
-                          }}>
-                          {p}
-                        </button>
-                    )}
-                    <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
-                  </div>
-                )}
-              </>
-            )}
+              {filtered.length > 0 && (
+                <div className="tp-pagination">
+                  <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+                  {getPages().map((p, i) =>
+                    p === '...'
+                      ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
+                      : <button key={p} className="tp-pg-btn"
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          background: p === currentPage ? '#FF4FD6' : '#fff',
+                          color: p === currentPage ? '#fff' : '#374151',
+                          border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
+                        }}>
+                        {p}
+                      </button>
+                  )}
+                  <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
+                </div>
+              )}
+            </>
           </div>
 
           {/* ── Panel detalle DESKTOP (columna lateral) ── */}

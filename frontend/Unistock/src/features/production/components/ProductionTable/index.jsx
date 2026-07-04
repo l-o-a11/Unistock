@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Spinner } from '../../../shared/components/LoadingState';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const IconEye = () => (
@@ -74,6 +75,7 @@ const StatusBadge = ({ status, small }) => {
 // ── Main component ───────────────────────────────────────────────────────────
 const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [loadingDetailId, setLoadingDetailId] = useState(null);
   const navigate = useNavigate();
 
   if (!productions || productions.length === 0) {
@@ -258,11 +260,19 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                       {/* Acordeón toggle */}
                       <button
                         title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
-                        onClick={() => {
+                        disabled={loadingDetailId === prod.id}
+                        onClick={async () => {
                           const next = isOpen ? null : prod.id;
                           setExpandedRow(next);
                           if (next && typeof onExpandRow === 'function') {
-                            onExpandRow(prod.id);
+                            setLoadingDetailId(prod.id);
+                            try {
+                              await Promise.resolve(onExpandRow(prod.id));
+                            } catch (err) {
+                              console.error('[ProductionTable] Error cargando detalles:', err);
+                            } finally {
+                              setLoadingDetailId(null);
+                            }
                           }
                         }}
                         style={{
@@ -271,24 +281,33 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                           border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
                           background: isOpen ? '#fffff4' : '#fff',
                           color: isOpen ? '#FF4FD6' : '#6b7280',
-                          cursor: 'pointer', fontSize: 10, fontWeight: 700,
+                          cursor: loadingDetailId === prod.id ? 'wait' : 'pointer', fontSize: 10, fontWeight: 700,
                           transition: 'all 0.15s',
                         }}
-                        onMouseEnter={(e) => { if (!isOpen) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
-                        onMouseLeave={(e) => { if (!isOpen) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                        onMouseEnter={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
+                        onMouseLeave={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
                       >
-                        <IconChevron open={isOpen} />
-                        {(prod.details || []).length > 0 && (
-                          <span style={{
-                            minWidth: 16, height: 16, borderRadius: 8,
-                            background: isOpen ? '#FF4FD6' : '#e5e7eb',
-                            color: isOpen ? '#fff' : '#6b7280',
-                            fontSize: 9, fontWeight: 700,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.15s',
-                          }}>
-                            {(prod.details || []).length}
+                        {loadingDetailId === prod.id ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
                           </span>
+                        ) : (
+                          <>
+                            <IconChevron open={isOpen} />
+                            {(prod.details || []).length > 0 && (
+                              <span style={{
+                                minWidth: 16, height: 16, borderRadius: 8,
+                                background: isOpen ? '#FF4FD6' : '#e5e7eb',
+                                color: isOpen ? '#fff' : '#6b7280',
+                                fontSize: 9, fontWeight: 700,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.15s',
+                              }}>
+                                {(prod.details || []).length}
+                              </span>
+                            )}
+                          </>
                         )}
                       </button>
 
@@ -352,7 +371,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                {['#', 'Ref_corte', 'Referencia', 'Estado', 'Fecha estado', 'Cantidad', 'Color'].map(h => (
+                                {['#', 'Ref_corte', 'Referencia', 'Estado',  'Cantidad', 'Color'].map(h => (
                                   <th key={h} style={{
                                     padding: '7px 10px', textAlign: 'left',
                                     fontSize: 10, fontWeight: 700, color: '#a78bfa',
@@ -378,12 +397,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                                   <td style={{ padding: '7px 10px' }}>
                                     <StatusBadge status={d.status} small />
                                   </td>
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#9ca3af', fontSize: 11 }}>
-                                      <IconCalendar />
-                                      {d.statusDate}
-                                    </div>
-                                  </td>
+                                  
                                   <td style={{ padding: '7px 10px' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
                                       {(d.quantity || 0).toLocaleString('es-CO')}

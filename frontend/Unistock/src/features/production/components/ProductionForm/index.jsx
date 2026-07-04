@@ -119,7 +119,8 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const [type,          setType]         = useState('produccion');
   const [products,      setProducts]     = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productsLoaded, setProductsLoaded] = useState(false);
   const [extraRefs,     setExtraRefs]    = useState(
     (initialData?.referencias || []).map(r => ({
       cantidad: String(r.cantidad || ''),
@@ -183,31 +184,48 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [errors,      setErrors]      = useState({});
   const [alertConfig, setAlertConfig] = useState({ open: false, type: 'warning', title: '', message: '', onConfirm: null });
 
+  const loadProducts = async () => {
+    if (productsLoaded || loadingProducts) return;
+    setLoadingProducts(true);
+    try {
+      const { productAPI } = await import('../../../products/services/productAPI');
+      const data = await productAPI.getSummaries();
+      const normalized = Array.isArray(data) ? data : [];
+
+      if (normalized.length === 0) {
+        console.warn('[ProductionForm] ⚠️ No hay productos cargados');
+      } else {
+        console.log('[ProductionForm] ✓ Productos cargados:', normalized.length);
+      }
+
+      setProducts(normalized);
+      setProductsLoaded(true);
+    } catch (err) {
+      console.error('[ProductionForm] ❌ Error cargando productos:', err?.message || err);
+      setProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
-        const { productAPI } = await import('../../../products/services/productAPI');
-        const data = await productAPI.getAll();
-        console.log('[ProductionForm] Productos cargados:', data?.length || 0, 'items'); // DEBUG
+        const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
+        const cats = await productCategoryAPI.getAll();
+        console.log('[ProductionForm] Categorías cargadas:', cats?.length || 0, 'items'); // DEBUG
         
-        const normalized = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-            ? data.data
-            : [];
-        
-        if (normalized.length === 0) {
-          console.warn('[ProductionForm] ⚠️ No hay productos cargados');
+        const categoryNames = (cats || []).map(c => c.name);
+        if (categoryNames.length === 0) {
+          console.warn('[ProductionForm] ⚠️ No hay categorías, usando fallback');
+          setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
         } else {
-          console.log('[ProductionForm] ✓ Productos normalizados:', normalized.length);
+          console.log('[ProductionForm] ✓ Categorías cargadas:', categoryNames);
+          setCategories(categoryNames);
         }
-        
-        setProducts(normalized);
       } catch (err) {
-        console.error('[ProductionForm] ❌ Error cargando productos:', err?.message || err);
-        setProducts([]);
-      } finally {
-        setLoadingProducts(false);
+        console.error('[ProductionForm] ❌ Error cargando categorías:', err?.message || err);
+        setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
       }
     })();
   }, []);
@@ -692,11 +710,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     {type === 'diseno' && !nuevaRefOpen ? 'Producto / Artículo ' : type === 'diseno' && nuevaRefOpen ? 'Producto base (opcional) ' : 'Producto / Artículo '}
                     {!nuevaRefOpen && <span style={requiredStar}>*</span>}
                   </label>
-                  <select name="referencia" value={formData.referencia} onChange={handleChange}
-                    style={getInputStyle(errors.referencia)}
-                    disabled={type === 'diseno' && nuevaRefOpen}
+                  <select
+                    name="referencia"
+                    value={formData.referencia}
+                    onChange={handleChange}
+                    onFocus={loadProducts}
+                    onClick={loadProducts}
+                    style={{ ...getInputStyle(errors.referencia), opacity: loadingProducts ? 0.7 : 1 }}
+                    disabled={loadingProducts || (type === 'diseno' && nuevaRefOpen)}
                   >
-                    <option value="">{loadingProducts ? 'Cargando productos...' : type === 'diseno' && nuevaRefOpen ? '— Nueva referencia —' : 'Seleccionar producto...'}</option>
+                    <option value="" disabled>
+                      {loadingProducts ? 'Cargando productos...' : type === 'diseno' && nuevaRefOpen ? '— Nueva referencia —' : 'Seleccionar producto...'}
+                    </option>
                     {products.map(p => (
                       <option key={p.id} value={p.reference || p.id}>{p.reference} — {p.name}</option>
                     ))}

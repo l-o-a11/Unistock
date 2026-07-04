@@ -102,8 +102,11 @@ const toFrontendFormat = (backendData) => {
     updatedAt: backendData.updatedAt,
     estado: backendData.estado,
     status: backendData.estado,
-    producto: backendData.producto || null,
-    referencia: backendData.referencia || null,
+    producto: backendData.producto || backendData.referencia || null,
+    referencia: backendData.referencia || backendData.producto || null,
+    cantidad: backendData.cantidad || backendData.quantity || 0,
+    quantity: backendData.quantity || backendData.cantidad || 0,
+    color: backendData.color || '',
     detalles: backendData.detalles || [],
     asignaciones: backendData.asignaciones || [],
     terceros: backendData.asignaciones || [],
@@ -112,6 +115,7 @@ const toFrontendFormat = (backendData) => {
     terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
     historial: backendData.historial || [],
     history: backendData.historial || [],
+    rawData: backendData,
     // ✅ Fix defensivo: también se exponen en el formato enriquecido que usa
     // la vista de detalle ("details"/"history" con sus campos ya mapeados),
     // por si algún código llega a usar este resultado directamente para
