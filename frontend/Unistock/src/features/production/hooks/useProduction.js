@@ -43,34 +43,51 @@ const summarizeDetails = (details) => {
  * Los campos de detalle (referencia, cantidad, color, details) se rellenan
  * después con mergeDetails().
  */
-const mapOrder = (order) => ({
-  id: order._id || order.id,
-  orderNumber: order.numero_orden,
-  cliente: order.cliente,
-  cliente_name: order.cliente,
-  client: order.cliente,
-  status: order.estado,
-  estado: order.estado,
-  deliveryDate: fmtDate(order.fecha_entrega),
-  statusDate: fmtDate(order.updatedAt || order.createdAt),
-  history: (order.historial || []).map((h) => ({
-    status: h.estado,
-    date: fmtDate(h.fecha),
-    user: h.id_usuario || 'Sistema',
-    motivo: h.motivo,
-  })),
-  // Campos de artículo — se rellenan tras cargar detalles
-  referencia: '',
-  producto: '',
-  quantity: 0,
-  color: '',
-  details: [],
-  rawData: order,
-});
+const mapOrder = (order) => {
+  const base = {
+    id: order._id || order.id,
+    orderNumber: order.numero_orden,
+    cliente: order.cliente,
+    cliente_name: order.cliente,
+    client: order.cliente,
+    status: order.estado,
+    estado: order.estado,
+    deliveryDate: fmtDate(order.fecha_entrega),
+    statusDate: fmtDate(order.updatedAt || order.createdAt),
+    history: (order.historial || []).map((h) => ({
+      status: h.estado,
+      date: fmtDate(h.fecha),
+      user: h.id_usuario || 'Sistema',
+      motivo: h.motivo,
+    })),
+    // Campos de artículo — si `detalles` vienen en la respuesta, se usan aquí
+    referencia: order.referencia || '',
+    producto: order.producto || order.referencia || '',
+    quantity: Number(order.quantity || order.cantidad || 0),
+    color: order.color || '',
+    details: Array.isArray(order.details) ? order.details : [],
+    rawData: order,
+  };
 
-/**
- * Fusiona los detalles cargados en un objeto de producción ya mapeado.
- */
+  const availableDetails = Array.isArray(order.details) && order.details.length > 0
+    ? order.details
+    : Array.isArray(order.detalles) && order.detalles.length > 0
+      ? order.detalles
+      : [];
+
+  if (!availableDetails.length) return base;
+
+  const { totalQty, uniqueColors, firstRef } = summarizeDetails(availableDetails);
+  return {
+    ...base,
+    details: availableDetails,
+    quantity: totalQty,
+    color: uniqueColors[0] || base.color,
+    referencia: firstRef || base.referencia,
+    producto: base.producto || firstRef || `Orden #${base.orderNumber}`,
+  };
+};
+
 const mergeDetails = (prod, rawDetails) => {
   const details = mapDetails(rawDetails, prod.status, prod.statusDate);
   const { totalQty, uniqueColors, firstRef } = summarizeDetails(details);
@@ -78,9 +95,9 @@ const mergeDetails = (prod, rawDetails) => {
     ...prod,
     details,
     quantity: totalQty,
-    color: uniqueColors[0] || '',
-    referencia: firstRef,
-    producto: firstRef || `Orden #${prod.orderNumber}`,
+    color: uniqueColors[0] || prod.color,
+    referencia: firstRef || prod.referencia,
+    producto: prod.producto || firstRef || `Orden #${prod.orderNumber}`,
   };
 };
 
@@ -95,7 +112,7 @@ export const useProductions = () => {
 
   useEffect(() => { loadProductions(); }, []);
 
-  // ── Carga inicial: órdenes + sus detalles en paralelo ─────────────────────
+  // ── Carga inicial: órdenes sin detalles para mejorar tiempos de carga ──
   const loadProductions = async () => {
     try {
       setLoading(true);
@@ -113,22 +130,31 @@ export const useProductions = () => {
         [];
       const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
 
-      // 1. Mapear órdenes base (sin detalles)
-      const baseProducciones = list.map(mapOrder);
+      const producciones = list.map(mapOrder);
 
-      // 2. Cargar detalles de todas las órdenes en paralelo
-      const detailsArray = await Promise.all(
-        baseProducciones.map((p) =>
-          ProductionAPIClient.getOrderDetails(p.id).catch(() => [])
-        )
-      );
+      const ordersToEnrich = producciones.filter((order) => {
+        const hasDetails = Array.isArray(order.details) && order.details.length > 0;
+        const hasSummary = (order.quantity || order.cantidad) && (order.color || order.color === '');
+        return !hasDetails && !hasSummary;
+      });
 
-      // 3. Fusionar detalles en cada orden
-      const producciones = baseProducciones.map((p, i) =>
-        mergeDetails(p, detailsArray[i] || [])
-      );
-
-      setProductions(producciones);
+      if (ordersToEnrich.length > 0) {
+        const enrichedOrders = await Promise.all(
+          ordersToEnrich.map(async (order) => {
+            try {
+              const rawDetails = await ProductionAPIClient.getOrderDetails(order.id);
+              return mergeDetails(order, rawDetails || []);
+            } catch (err) {
+              console.warn(`No se pudieron obtener detalles de la orden ${order.id}:`, err?.message || err);
+              return order;
+            }
+          })
+        );
+        const enrichedMap = new Map(enrichedOrders.map((order) => [order.id, order]));
+        setProductions(producciones.map((order) => enrichedMap.get(order.id) || order));
+      } else {
+        setProductions(producciones);
+      }
     } catch (err) {
       console.error('Error al cargar producciones:', err);
       setError('Error al cargar las órdenes de producción. Verifica la conexión con el servidor.');
@@ -243,14 +269,21 @@ export const useProductions = () => {
   // mantiene para que ProductionTable pueda recargar tras crear nuevos detalles.
   const fetchAndSetDetails = async (productionId) => {
     try {
+      const existing = Productions.find((p) => p.id === productionId);
+      if (existing && Array.isArray(existing.details) && existing.details.length > 0) {
+        return existing.details;
+      }
+
       const rawDetails = await ProductionAPIClient.getOrderDetails(productionId);
       setProductions((prev) =>
         prev.map((p) =>
           p.id === productionId ? mergeDetails(p, rawDetails || []) : p
         )
       );
+      return rawDetails || [];
     } catch (err) {
       console.error('Error al cargar detalles de la orden:', err);
+      throw err;
     }
   };
 

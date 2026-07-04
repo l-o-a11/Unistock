@@ -6,7 +6,7 @@ import ProductionSearch from '../components/ProductionSearch';
 import ProductionForm from '../components/ProductionForm';
 import DamagedProductsModal from '../components/DamagedProductsModal';
 import Alert from '../../shared/components/Alert';
-import LoadingState from '../../shared/components/LoadingState';
+import Button from '../../shared/components/Button';
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
@@ -43,6 +43,7 @@ const ProductionsPage = () => {
   const [showCreateForm,  setShowCreateForm]  = useState(false);
   const [downloadModal,   setDownloadModal]   = useState(false);
   const [cancelAlert,     setCancelAlert]     = useState({ open: false, type: 'success', title: '', message: '' });
+  const [isCancelling,   setIsCancelling]    = useState(false);
 
   const itemsPerPage  = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
@@ -97,6 +98,7 @@ const ProductionsPage = () => {
 
   const confirmCancel = async () => {
     if (!cancelModal.motivo.trim()) { setMotivoError('El motivo es obligatorio'); return; }
+    setIsCancelling(true);
     const prodBefore = (productions || []).find(p => p.id === cancelModal.id);
     const wasDamaged = prodBefore && DAMAGED_TRIGGER_STEPS.includes(prodBefore.status);
     try {
@@ -108,6 +110,8 @@ const ProductionsPage = () => {
       console.error(e);
       closeCancelModal();
       setCancelAlert({ open: true, type: 'error', title: 'Error al anular', message: 'No se pudo anular la orden. Intenta de nuevo.' });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -690,6 +694,22 @@ const ProductionsPage = () => {
   const hasDateFilter = filterDateFrom || filterDateTo;
   const hasAnyFilter  = searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter;
 
+  if (loading && (productions || []).length === 0) return (
+    <div style={{ padding: '24px 32px' }}>
+      <style>{`@keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }`}</style>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Producciones</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+          <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
+        </div>
+      </div>
+      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
+      </div>
+    </div>
+  );
+
   /* ══════════════════════════════════════════════════════════════════════
    * RENDER — idéntico al original
    * ══════════════════════════════════════════════════════════════════════ */
@@ -860,8 +880,8 @@ const ProductionsPage = () => {
             />
             {motivoError && <p style={{ color:PINK, fontSize:11, marginTop:4, fontWeight:'bold' }}>{motivoError}</p>}
             <div style={{ marginTop:16, display:'flex', justifyContent:'flex-end', gap:10 }}>
-              <button onClick={closeCancelModal} style={{ border:'none', background:'#f3f4f6', color:'#555', fontWeight:500, cursor:'pointer', padding:'8px 16px', borderRadius:8, fontSize:13 }}>Cancelar</button>
-              <button onClick={confirmCancel} style={{ border:'none', background:'#ef4444', color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', padding:'8px 18px', borderRadius:8 }}>Confirmar anulación</button>
+              <Button type="button" variant="secondary" onClick={closeCancelModal} disabled={isCancelling}>Cancelar</Button>
+              <Button type="button" variant="danger" onClick={confirmCancel} loading={isCancelling} loadingText="Anulando...">Confirmar anulación</Button>
             </div>
           </div>
         </div>
@@ -995,7 +1015,19 @@ const ProductionsPage = () => {
 
         <div style={{ background:'#fff', borderRadius:10, boxShadow:'0 1px 4px rgba(0,0,0,0.07)', overflowX:'auto' }}>
           {loading && productions.length === 0 ? (
-            <LoadingState message="Cargando producciones, por favor espera un momento..." />
+            <div style={{ padding: '24px 32px' }}>
+              <style>{`@keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }`}</style>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Producciones</p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+                  <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
+                </div>
+              </div>
+              <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
+              </div>
+            </div>
           ) : (
             <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails}/>
           )}

@@ -115,6 +115,7 @@ const ProductionAlerts = ({
   const [loadingTerceros, setLoadingTerceros] = useState(false);
   const [sedesOptions, setSedesOptions] = useState([]);
   const [loadingSedes, setLoadingSedes] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   // Resetear assignments cada vez que se abre el modal
   useEffect(() => {
@@ -282,7 +283,6 @@ const ProductionAlerts = ({
     : { background: "#e5e7eb", color: "#9ca3af", cursor: "not-allowed" };
 
   /* ── Confirmar ── */
-  const [confirming, setConfirming] = useState(false);
   const handleAccept = async () => {
     if (confirming) return;
     try {

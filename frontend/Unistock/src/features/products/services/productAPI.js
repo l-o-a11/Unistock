@@ -426,6 +426,12 @@ export const productAPI = {
     );
   },
 
+  getSummaries: async () => {
+    const categories = await getCategories();
+    const response = await requestEndpointFallback(PRODUCT_ENDPOINTS, { method: "GET" });
+    return asArray(response).map((product) => toUiProduct(product, categories));
+  },
+
   getById: async (id) => {
     const categories = await getCategories();
     const response = await requestEndpointFallback(PRODUCT_ENDPOINTS.map((endpoint) => `${endpoint}/${id}`), { method: "GET" });
