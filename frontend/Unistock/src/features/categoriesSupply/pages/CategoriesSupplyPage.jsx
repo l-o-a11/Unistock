@@ -8,8 +8,13 @@ import Alert from "../../shared/components/Alert";
 import { supplyAPI } from "../../supplies/services/supplyAPI";
 
 const CategoriesSupplyPage = () => {
-  const { categories, createCategory, updateCategory, deleteCategory } =
-    useCategories();
+  const {
+    categories,
+    loading,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useCategories();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,24 +129,24 @@ const CategoriesSupplyPage = () => {
       );
     }
   };
-  
+
   useEffect(() => {
-  const loadCounts = async () => {
-    try {
-      const result = await supplyAPI.getAll({ limit: 1000 });
-      const counts = (result.data || []).reduce((acc, supply) => {
-        const catId = String(supply.categoriaId ?? "");
-        if (!catId) return acc;
-        acc[catId] = (acc[catId] || 0) + 1;
-        return acc;
-      }, {});
-      setSupplyCounts(counts);
-    } catch (error) {
-      console.error("Error cargando conteo:", error);
-    }
-  };
-  loadCounts();
-}, []);
+    const loadCounts = async () => {
+      try {
+        const result = await supplyAPI.getAll({ limit: 1000 });
+        const counts = (result.data || []).reduce((acc, supply) => {
+          const catId = String(supply.categoriaId ?? "");
+          if (!catId) return acc;
+          acc[catId] = (acc[catId] || 0) + 1;
+          return acc;
+        }, {});
+        setSupplyCounts(counts);
+      } catch (error) {
+        console.error("Error cargando conteo:", error);
+      }
+    };
+    loadCounts();
+  }, []);
 
   const handleDelete = (id) => {
     const category = categories.find((c) => c.id === id);
@@ -177,6 +182,80 @@ const CategoriesSupplyPage = () => {
     cursor: "pointer",
     fontSize: "14px",
   };
+
+  if (loading && categories.length === 0) {
+    return (
+      <div style={{ padding: "24px 32px" }}>
+        <style>{`
+          @keyframes eloadbar {
+            0%   { left: -40%; width: 40%; }
+            50%  { left: 30%;  width: 50%; }
+            100% { left: 110%; width: 40%; }
+          }
+        `}</style>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: "#1f2937",
+            }}
+          >
+            Categorías de insumos
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div
+              style={{
+                width: 220,
+                height: 34,
+                background: "#f3f4f6",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <div
+              style={{
+                width: 110,
+                height: 34,
+                background: "#FF4FD6",
+                borderRadius: 20,
+                opacity: 0.15,
+              }}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            position: "relative",
+            height: 3,
+            background: "#fce7f3",
+            borderRadius: 99,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              height: "100%",
+              borderRadius: 99,
+              background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)",
+              animation: "eloadbar 1.6s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -206,7 +285,13 @@ const CategoriesSupplyPage = () => {
         >
           Categorías de insumos
         </h1>
-        <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" width="400px" maxWidth="400px" />
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Buscar"
+          width="400px"
+          maxWidth="400px"
+        />
       </div>
 
       <div

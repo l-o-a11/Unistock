@@ -15,7 +15,8 @@ import { RolesAPI } from "../services/RolesAPI";
 const ROLES_PROTEGIDOS = ["Gerente"];
 
 const RolesPage = () => {
-  const { roles, createRol, updateRol, deleteRol, toggleRol } = useRoles();
+  const { roles, loading, createRol, updateRol, deleteRol, toggleRol } =
+    useRoles();
 
   const { searchTerm, handleSearch } = useRolSearch();
   const { selectedRol, isOpen, openDetail, closeDetail } = useRolDetail();
@@ -31,6 +32,79 @@ const RolesPage = () => {
     message: "",
     onConfirm: null,
   });
+
+  if (loading && roles.length === 0) {
+    return (
+      <div style={{ padding: "24px 32px" }}>
+        <style>{`
+          @keyframes eloadbar {
+            0%   { left: -40%; width: 40%; }
+            50%  { left: 30%;  width: 50%; }
+            100% { left: 110%; width: 40%; }
+          }
+        `}</style>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: "#1f2937",
+            }}
+          >
+            Roles
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div
+              style={{
+                width: 220,
+                height: 34,
+                background: "#f3f4f6",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <div
+              style={{
+                width: 110,
+                height: 34,
+                background: "#FF4FD6",
+                borderRadius: 20,
+                opacity: 0.15,
+              }}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            position: "relative",
+            height: 3,
+            background: "#fce7f3",
+            borderRadius: 99,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              height: "100%",
+              borderRadius: 99,
+              background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)",
+              animation: "eloadbar 1.6s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // ── Alert helpers ─────────────────────────────────
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
@@ -152,7 +226,7 @@ const RolesPage = () => {
             "error",
             "Error",
             err.message ||
-            "Ocurrió un error al eliminar el rol. Intenta nuevamente.",
+              "Ocurrió un error al eliminar el rol. Intenta nuevamente.",
           );
         }
       },
@@ -220,7 +294,7 @@ const RolesPage = () => {
             "error",
             "Error",
             err.message ||
-            `Ocurrió un error al ${accion} el rol. Intenta nuevamente.`,
+              `Ocurrió un error al ${accion} el rol. Intenta nuevamente.`,
           );
         }
       },
@@ -320,9 +394,24 @@ const RolesPage = () => {
         >
           Roles
         </h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-          <SearchInput value={searchTerm} onChange={handleSearch} placeholder="Buscar" width="400px" maxWidth="400px" />
-          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
+          <SearchInput
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Buscar"
+            width="400px"
+            maxWidth="400px"
+          />
+          <span
+            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
+          >
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos
           </span>
@@ -342,7 +431,6 @@ const RolesPage = () => {
           marginBottom: "20px",
         }}
       >
-
         {/* DERECHA - BOTÓN */}
         <AddRolButton onClick={handleAddRol} />
       </div>

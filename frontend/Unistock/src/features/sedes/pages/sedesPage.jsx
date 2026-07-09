@@ -53,11 +53,15 @@ const SedesPage = () => {
   const showAlert = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
 
+  const showInitialLoading = loading && sedes.length === 0;
+
   // FIX #9: búsqueda delegada al servidor con debounce simple
   const handleSearch = useCallback(
     (e) => {
       const value = e?.target?.value ?? e;
-      const text = String(value || "").toLowerCase().trim();
+      const text = String(value || "")
+        .toLowerCase()
+        .trim();
 
       // Atajo de texto: escribir "activo"/"inactivo" filtra por el
       // parámetro ?estado= en vez de mandarlo como término de búsqueda
@@ -204,6 +208,79 @@ const SedesPage = () => {
     fontSize: "14px",
   };
 
+  if (showInitialLoading) {
+    return (
+      <div style={{ padding: "24px 32px" }}>
+        <style>{`
+          @keyframes eloadbar {
+            0%   { left: -40%; width: 40%; }
+            50%  { left: 30%;  width: 50%; }
+            100% { left: 110%; width: 40%; }
+          }
+        `}</style>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: "#1f2937",
+            }}
+          >
+            Sedes
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div
+              style={{
+                width: 220,
+                height: 34,
+                background: "#f3f4f6",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <div
+              style={{
+                width: 110,
+                height: 34,
+                background: "#FF4FD6",
+                borderRadius: 20,
+                opacity: 0.15,
+              }}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            position: "relative",
+            height: 3,
+            background: "#fce7f3",
+            borderRadius: 99,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              height: "100%",
+              borderRadius: 99,
+              background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)",
+              animation: "eloadbar 1.6s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
@@ -228,9 +305,23 @@ const SedesPage = () => {
           Sedes
         </h1>
         {/* FIX #9: onChange llama a applyFilters → búsqueda server-side */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-          <SearchInput onChange={handleSearch} placeholder="Buscar" width="400px" maxWidth="400px" />
-          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap", }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
+          <SearchInput
+            onChange={handleSearch}
+            placeholder="Buscar"
+            width="400px"
+            maxWidth="400px"
+          />
+          <span
+            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
+          >
             Escribe <strong>activo</strong> para ver compras activas ·{" "}
             <strong>anulado</strong> para ver compras anuladas
           </span>
