@@ -16,9 +16,10 @@ const ShoppingsPage = () => {
 
   // ✅ FIX: sin parseInt — proveedorId vendrá como string desde MongoDB
   const getProveedorNombre = (proveedorId) =>
-    suppliers.find((s) => String(s.id) === String(proveedorId))?.nombreEmpresa ?? "—";
+    suppliers.find((s) => String(s.id) === String(proveedorId))
+      ?.nombreEmpresa ?? "—";
 
-  const { shoppings, createShopping, anularShopping } = useShoppings();
+  const { shoppings, loading, createShopping, anularShopping } = useShoppings();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedShopping, setSelectedShopping] = useState(null);
@@ -31,19 +32,106 @@ const ShoppingsPage = () => {
   const [downloadModal, setDownloadModal] = useState(false);
 
   // ── Modal anulación con motivo ────────────────────────────────────────────
-  const [cancelModal, setCancelModal] = useState({ open: false, id: null, motivo: "" });
+  const [cancelModal, setCancelModal] = useState({
+    open: false,
+    id: null,
+    motivo: "",
+  });
   const [motivoError, setMotivoError] = useState("");
 
-  const openCancelModal = (id) => { setCancelModal({ open: true, id, motivo: "" }); setMotivoError(""); };
-  const closeCancelModal = () => { setCancelModal({ open: false, id: null, motivo: "" }); setMotivoError(""); };
+  const openCancelModal = (id) => {
+    setCancelModal({ open: true, id, motivo: "" });
+    setMotivoError("");
+  };
+  const closeCancelModal = () => {
+    setCancelModal({ open: false, id: null, motivo: "" });
+    setMotivoError("");
+  };
 
   // ── Alert global ─────────────────────────────────────────────────────────
   const [alertConfig, setAlertConfig] = useState({
-    open: false, type: "success", title: "", message: "", onConfirm: null,
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+    onConfirm: null,
   });
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
   const showAlert = (type, title, message, onConfirm = null) =>
     setAlertConfig({ open: true, type, title, message, onConfirm });
+
+  if (loading && shoppings.length === 0) {
+    return (
+      <div style={{ padding: "24px 32px" }}>
+        <style>{`
+          @keyframes eloadbar {
+            0%   { left: -40%; width: 40%; }
+            50%  { left: 30%;  width: 50%; }
+            100% { left: 110%; width: 40%; }
+          }
+        `}</style>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: "#1f2937",
+            }}
+          >
+            Compras
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div
+              style={{
+                width: 220,
+                height: 34,
+                background: "#f3f4f6",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <div
+              style={{
+                width: 110,
+                height: 34,
+                background: "#FF4FD6",
+                borderRadius: 20,
+                opacity: 0.15,
+              }}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            position: "relative",
+            height: 3,
+            background: "#fce7f3",
+            borderRadius: 99,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              height: "100%",
+              borderRadius: 99,
+              background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)",
+              animation: "eloadbar 1.6s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // ── Filtrado y paginación ─────────────────────────────────────────────────
   const filteredShoppings = shoppings.filter((p) => {
@@ -71,9 +159,15 @@ const ShoppingsPage = () => {
   });
 
   const itemsPerPage = 7;
-  const totalPages = Math.max(1, Math.ceil(filteredShoppings.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredShoppings.length / itemsPerPage),
+  );
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedShoppings = filteredShoppings.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedShoppings = filteredShoppings.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
   // ── Acciones ──────────────────────────────────────────────────────────────
   const handleView = async (shopping) => {
@@ -100,7 +194,11 @@ const ShoppingsPage = () => {
   const handleAnular = (id) => {
     const shopping = shoppings.find((p) => p.id === id);
     if (shopping?.anulada) {
-      showAlert("error", "Compra ya anulada", `La factura "${shopping?.numeroFactura || id}" ya fue anulada anteriormente.`);
+      showAlert(
+        "error",
+        "Compra ya anulada",
+        `La factura "${shopping?.numeroFactura || id}" ya fue anulada anteriormente.`,
+      );
       return;
     }
     openCancelModal(id);
@@ -115,10 +213,18 @@ const ShoppingsPage = () => {
     try {
       await anularShopping(cancelModal.id, cancelModal.motivo.trim());
       closeCancelModal();
-      showAlert("success", "Compra anulada", `La factura "${shopping?.numeroFactura || cancelModal.id}" fue anulada correctamente.`);
+      showAlert(
+        "success",
+        "Compra anulada",
+        `La factura "${shopping?.numeroFactura || cancelModal.id}" fue anulada correctamente.`,
+      );
     } catch {
       closeCancelModal();
-      showAlert("error", "Error", "No se pudo anular la compra. Intenta nuevamente.");
+      showAlert(
+        "error",
+        "Error",
+        "No se pudo anular la compra. Intenta nuevamente.",
+      );
     }
   };
 
@@ -126,42 +232,58 @@ const ShoppingsPage = () => {
     try {
       await createShopping(shoppingData);
       setShowCreateForm(false);
-      showAlert("success", "Compra registrada", `Factura "${shoppingData.numeroFactura}" creada correctamente.`);
+      showAlert(
+        "success",
+        "Compra registrada",
+        `Factura "${shoppingData.numeroFactura}" creada correctamente.`,
+      );
     } catch (error) {
-      showAlert("error", "Error al crear", error.message || "No se pudo registrar la compra.");
+      showAlert(
+        "error",
+        "Error al crear",
+        error.message || "No se pudo registrar la compra.",
+      );
     }
   };
 
   const handleDownloadExcel = async () => {
     setDownloadModal(false);
     try {
-      const ExcelJS = (await import('exceljs')).default;
+      const ExcelJS = (await import("exceljs")).default;
       const wb = new ExcelJS.Workbook();
-      wb.creator = 'UniStock';
+      wb.creator = "UniStock";
       wb.created = new Date();
 
-      const ws = wb.addWorksheet('Compras', {
-        pageSetup: { orientation: 'landscape', fitToPage: true },
+      const ws = wb.addWorksheet("Compras", {
+        pageSetup: { orientation: "landscape", fitToPage: true },
       });
 
       const now = new Date();
-      const fecha = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+      const fecha = now.toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
 
       ws.columns = [
-        { key: 'id', width: 10 },
-        { key: 'factura', width: 16 },
-        { key: 'proveedor', width: 30 },
-        { key: 'fecha', width: 16 },
-        { key: 'obs', width: 32 },
-        { key: 'total', width: 16 },
-        { key: 'estado', width: 12 },
-        { key: 'motivo', width: 28 },
+        { key: "id", width: 10 },
+        { key: "factura", width: 16 },
+        { key: "proveedor", width: 30 },
+        { key: "fecha", width: 16 },
+        { key: "obs", width: 32 },
+        { key: "total", width: 16 },
+        { key: "estado", width: 12 },
+        { key: "motivo", width: 28 },
       ];
 
-      const ARGB = (hex) => 'FF' + hex.replace('#', '').toUpperCase();
-      const fillSolid = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: ARGB(hex) } });
-      const thinBorder = (hex = '#ffffff') => {
-        const c = { style: 'thin', color: { argb: ARGB(hex) } };
+      const ARGB = (hex) => "FF" + hex.replace("#", "").toUpperCase();
+      const fillSolid = (hex) => ({
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: ARGB(hex) },
+      });
+      const thinBorder = (hex = "#ffffff") => {
+        const c = { style: "thin", color: { argb: ARGB(hex) } };
         return { top: c, bottom: c, left: c, right: c };
       };
 
@@ -170,44 +292,82 @@ const ShoppingsPage = () => {
       const logoBlob = await logoRes.blob();
       const logoBase64 = await new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onloadend = () => resolve(reader.result.split(",")[1]);
         reader.readAsDataURL(logoBlob);
       });
-      const logoId = wb.addImage({ base64: logoBase64, extension: 'png' });
-      ws.addImage(logoId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 46, height: 60 } });
+      const logoId = wb.addImage({ base64: logoBase64, extension: "png" });
+      ws.addImage(logoId, {
+        tl: { col: 0.15, row: 0.15 },
+        ext: { width: 46, height: 60 },
+      });
 
       /* ── Fila 1: título ── */
-      ws.mergeCells('B1:H1');
+      ws.mergeCells("B1:H1");
       ws.getRow(1).height = 30;
-      const titleCell = ws.getCell('B1');
-      titleCell.value = 'Reporte de Compras — Sistema de Gestión UniStock';
-      titleCell.font = { name: 'Arial', size: 15, bold: true, color: { argb: '00000000' } };
-      titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1'].forEach(r => { ws.getCell(r).fill = fillSolid('#FDF6FF'); });
+      const titleCell = ws.getCell("B1");
+      titleCell.value = "Reporte de Compras — Sistema de Gestión UniStock";
+      titleCell.font = {
+        name: "Arial",
+        size: 15,
+        bold: true,
+        color: { argb: "00000000" },
+      };
+      titleCell.alignment = {
+        horizontal: "left",
+        vertical: "middle",
+        indent: 1,
+      };
+      ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"].forEach((r) => {
+        ws.getCell(r).fill = fillSolid("#FDF6FF");
+      });
 
       /* ── Fila 2: subtítulo ── */
-      ws.mergeCells('B2:H2');
+      ws.mergeCells("B2:H2");
       ws.getRow(2).height = 18;
-      const subCell = ws.getCell('B2');
-      subCell.value = `Generado el ${fecha}  ·  ${filteredShoppings.length} compra${filteredShoppings.length !== 1 ? 's' : ''}`;
-      subCell.font = { name: 'Arial', size: 10, color: { argb: '00000000' } };
-      subCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      ['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2', 'H2'].forEach(r => { ws.getCell(r).fill = fillSolid('#FDF6FF'); });
+      const subCell = ws.getCell("B2");
+      subCell.value = `Generado el ${fecha}  ·  ${filteredShoppings.length} compra${filteredShoppings.length !== 1 ? "s" : ""}`;
+      subCell.font = { name: "Arial", size: 10, color: { argb: "00000000" } };
+      subCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      ["A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2"].forEach((r) => {
+        ws.getCell(r).fill = fillSolid("#FDF6FF");
+      });
 
       /* ── Fila 3: separadora ── */
       ws.getRow(3).height = 6;
-      ['A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3', 'H3'].forEach(r => { ws.getCell(r).fill = fillSolid('#ffffff'); });
+      ["A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3"].forEach((r) => {
+        ws.getCell(r).fill = fillSolid("#ffffff");
+      });
 
       /* ── Fila 4: encabezados ── */
       const headerRow = ws.getRow(4);
       headerRow.height = 26;
-      ['#', 'N° Factura', 'Proveedor', 'Fecha', 'Observaciones', 'Costo Total', 'Estado', 'Motivo anulación'].forEach((h, i) => {
+      [
+        "#",
+        "N° Factura",
+        "Proveedor",
+        "Fecha",
+        "Observaciones",
+        "Costo Total",
+        "Estado",
+        "Motivo anulación",
+      ].forEach((h, i) => {
         const cell = headerRow.getCell(i + 1);
         cell.value = h;
-        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.fill = fillSolid('#FF4FD6');
-        cell.alignment = { horizontal: i === 5 ? 'right' : 'left', vertical: 'middle', indent: i === 5 ? 0 : 1 };
-        cell.border = { bottom: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+        cell.font = {
+          name: "Arial",
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        cell.fill = fillSolid("#FF4FD6");
+        cell.alignment = {
+          horizontal: i === 5 ? "right" : "left",
+          vertical: "middle",
+          indent: i === 5 ? 0 : 1,
+        };
+        cell.border = {
+          bottom: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+        };
       });
 
       /* ── Filas de datos ── */
@@ -215,17 +375,17 @@ const ShoppingsPage = () => {
         const row = ws.getRow(5 + i);
         row.height = 20;
         const even = i % 2 === 0;
-        const bg = fillSolid(even ? '#FFFFFF' : '#FDF6FF');
+        const bg = fillSolid(even ? "#FFFFFF" : "#FDF6FF");
 
         const values = [
-          `#${p.consecutivo ?? p.id ?? ''}`,
-          p.numeroFactura || '—',
-          getProveedorNombre(p.proveedorId) || p.proveedor || '—',
-          p.fecha || '—',
-          p.observaciones || '—',
+          `#${p.consecutivo ?? p.id ?? ""}`,
+          p.numeroFactura || "—",
+          getProveedorNombre(p.proveedorId) || p.proveedor || "—",
+          p.fecha || "—",
+          p.observaciones || "—",
           Number(p.costoTotal ?? 0),
-          p.anulada ? 'Anulada' : 'Activa',
-          p.motivoAnulacion || '—',
+          p.anulada ? "Anulada" : "Activa",
+          p.motivoAnulacion || "—",
         ];
 
         values.forEach((v, ci) => {
@@ -233,59 +393,106 @@ const ShoppingsPage = () => {
           cell.value = v;
           cell.fill = bg;
           cell.border = thinBorder();
-          cell.alignment = { horizontal: ci === 5 ? 'right' : 'left', vertical: 'middle', indent: ci === 5 ? 0 : 1 };
-          cell.font = { name: 'Arial', size: 10, color: { argb: 'FF374151' } };
+          cell.alignment = {
+            horizontal: ci === 5 ? "right" : "left",
+            vertical: "middle",
+            indent: ci === 5 ? 0 : 1,
+          };
+          cell.font = { name: "Arial", size: 10, color: { argb: "FF374151" } };
         });
 
         /* # compra: magenta bold */
-        row.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#FF4FD6') } };
+        row.getCell(1).font = {
+          name: "Arial",
+          size: 10,
+          bold: true,
+          color: { argb: ARGB("#FF4FD6") },
+        };
         /* Costo total: morado bold */
-        row.getCell(6).font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#a858d6') } };
+        row.getCell(6).font = {
+          name: "Arial",
+          size: 10,
+          bold: true,
+          color: { argb: ARGB("#a858d6") },
+        };
         row.getCell(6).numFmt = '"$"#,##0.00';
         /* Estado: color según valor */
         const estadoCell = row.getCell(7);
         if (p.anulada) {
-          estadoCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#991b1b') } };
-          estadoCell.fill = fillSolid('#fee2e2');
+          estadoCell.font = {
+            name: "Arial",
+            size: 10,
+            bold: true,
+            color: { argb: ARGB("#991b1b") },
+          };
+          estadoCell.fill = fillSolid("#fee2e2");
         } else {
-          estadoCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#166534') } };
-          estadoCell.fill = fillSolid('#dcfce7');
+          estadoCell.font = {
+            name: "Arial",
+            size: 10,
+            bold: true,
+            color: { argb: ARGB("#166534") },
+          };
+          estadoCell.fill = fillSolid("#dcfce7");
         }
       });
 
       /* ── Fila de totales ── */
       const totalRowIdx = filteredShoppings.length + 6;
-      const totalGeneral = filteredShoppings.reduce((s, p) => s + (Number(p.costoTotal) || 0), 0);
+      const totalGeneral = filteredShoppings.reduce(
+        (s, p) => s + (Number(p.costoTotal) || 0),
+        0,
+      );
       const totalRow = ws.getRow(totalRowIdx);
 
       const labelCell = totalRow.getCell(2);
-      labelCell.value = 'Total general';
-      labelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#363636') } };
-      labelCell.fill = fillSolid('#ffffff');
-      labelCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      labelCell.border = { top: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      labelCell.value = "Total general";
+      labelCell.font = {
+        name: "Arial",
+        size: 10,
+        bold: true,
+        color: { argb: ARGB("#363636") },
+      };
+      labelCell.fill = fillSolid("#ffffff");
+      labelCell.alignment = {
+        horizontal: "left",
+        vertical: "middle",
+        indent: 1,
+      };
+      labelCell.border = {
+        top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+      };
 
       const valueCell = totalRow.getCell(6);
       valueCell.value = totalGeneral;
       valueCell.numFmt = '"$"#,##0.00';
-      valueCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: ARGB('#a858d6') } };
-      valueCell.fill = fillSolid('#ffffff');
-      valueCell.alignment = { horizontal: 'right', vertical: 'middle' };
-      valueCell.border = { top: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      valueCell.font = {
+        name: "Arial",
+        size: 11,
+        bold: true,
+        color: { argb: ARGB("#a858d6") },
+      };
+      valueCell.fill = fillSolid("#ffffff");
+      valueCell.alignment = { horizontal: "right", vertical: "middle" };
+      valueCell.border = {
+        top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+      };
 
-      [1, 3, 4, 5, 7, 8].forEach(col => {
+      [1, 3, 4, 5, 7, 8].forEach((col) => {
         const c = totalRow.getCell(col);
-        c.fill = fillSolid('#FDF6FF');
-        c.border = { top: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+        c.fill = fillSolid("#FDF6FF");
+        c.border = {
+          top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+        };
       });
 
       /* ── Descargar ── */
       const buffer = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/octet-stream' });
+      const blob = new Blob([buffer], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `compras_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = `compras_${new Date().toISOString().split("T")[0]}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
       showAlert("success", "¡Éxito!", "Archivo exportado correctamente.");
@@ -300,63 +507,82 @@ const ShoppingsPage = () => {
     setDownloadModal(false);
 
     const now = new Date();
-    const fecha = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
-    const hora = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    const docId = `CP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const fecha = now.toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const hora = now.toLocaleTimeString("es-CO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const docId = `CP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 
-    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const esc = (v) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 
-    const totalGeneral = filteredShoppings.reduce((s, p) => s + (Number(p.costoTotal) || 0), 0);
+    const totalGeneral = filteredShoppings.reduce(
+      (s, p) => s + (Number(p.costoTotal) || 0),
+      0,
+    );
     const totalAnuladas = filteredShoppings.filter((p) => p.anulada).length;
     const totalActivas = filteredShoppings.length - totalAnuladas;
 
-    const estadoColor = (anulada) => anulada
-      ? { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' }
-      : { bg: '#dcfce7', color: '#166534', dot: '#22c55e' };
+    const estadoColor = (anulada) =>
+      anulada
+        ? { bg: "#fee2e2", color: "#991b1b", dot: "#ef4444" }
+        : { bg: "#dcfce7", color: "#166534", dot: "#22c55e" };
 
-    const tableRows = filteredShoppings.map((p, i) => {
-      const ec = estadoColor(p.anulada);
-      return `
-        <tr class="${i % 2 === 0 ? 'row-even' : 'row-odd'}">
+    const tableRows = filteredShoppings
+      .map((p, i) => {
+        const ec = estadoColor(p.anulada);
+        return `
+        <tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
           <td class="td-order"><span class="order-num">#${esc(p.consecutivo ?? p.id)}</span></td>
-          <td>${esc(p.numeroFactura || '—')}</td>
-          <td><span style="font-weight:600;color:#2d1b4e;">${esc(getProveedorNombre(p.proveedorId) || p.proveedor || '—')}</span></td>
-          <td style="color:#6b7280;">${esc(p.fecha || '—')}</td>
-          <td style="color:#6b7280;">${esc(p.observaciones || '—')}</td>
-          <td style="text-align:right;font-weight:700;">$${Number(p.costoTotal || 0).toLocaleString('es-CO')}</td>
+          <td>${esc(p.numeroFactura || "—")}</td>
+          <td><span style="font-weight:600;color:#2d1b4e;">${esc(getProveedorNombre(p.proveedorId) || p.proveedor || "—")}</span></td>
+          <td style="color:#6b7280;">${esc(p.fecha || "—")}</td>
+          <td style="color:#6b7280;">${esc(p.observaciones || "—")}</td>
+          <td style="text-align:right;font-weight:700;">$${Number(p.costoTotal || 0).toLocaleString("es-CO")}</td>
           <td style="text-align:right;">
             <span class="status-badge" style="background:${ec.bg};color:${ec.color};">
               <span class="status-dot" style="background:${ec.dot};"></span>
-              ${p.anulada ? 'Anulada' : 'Activa'}
+              ${p.anulada ? "Anulada" : "Activa"}
             </span>
           </td>
         </tr>`;
-    }).join('');
+      })
+      .join("");
 
-    const detailCards = filteredShoppings.map((p) => {
-      const ec = estadoColor(p.anulada);
-      return `
+    const detailCards = filteredShoppings
+      .map((p) => {
+        const ec = estadoColor(p.anulada);
+        return `
         <div class="reparto-card">
           <div class="reparto-card-header">
             <div>
               <div class="reparto-order">#${esc(p.consecutivo ?? p.id)}</div>
-              <div style="font-size:10px;color:#2d1b4e;font-weight:600;margin-top:2px;">Factura ${esc(p.numeroFactura || '—')}</div>
+              <div style="font-size:10px;color:#2d1b4e;font-weight:600;margin-top:2px;">Factura ${esc(p.numeroFactura || "—")}</div>
             </div>
             <span class="reparto-status-badge" style="background:${ec.bg};color:${ec.color};">
               <span class="status-dot" style="background:${ec.dot};"></span>
-              ${p.anulada ? 'Anulada' : 'Activa'}
+              ${p.anulada ? "Anulada" : "Activa"}
             </span>
           </div>
-          <div class="reparto-field"><span class="reparto-key">Proveedor</span><span class="reparto-val">${esc(getProveedorNombre(p.proveedorId) || p.proveedor || '—')}</span></div>
-          <div class="reparto-field"><span class="reparto-key">Fecha factura</span><span class="reparto-val">${esc(p.fecha || '—')}</span></div>
-          <div class="reparto-field"><span class="reparto-key">Observaciones</span><span class="reparto-val">${esc(p.observaciones || '—')}</span></div>
-          ${p.anulada ? `<div class="reparto-field"><span class="reparto-key">Motivo</span><span class="reparto-val">${esc(p.motivoAnulacion || '—')}</span></div>` : ''}
+          <div class="reparto-field"><span class="reparto-key">Proveedor</span><span class="reparto-val">${esc(getProveedorNombre(p.proveedorId) || p.proveedor || "—")}</span></div>
+          <div class="reparto-field"><span class="reparto-key">Fecha factura</span><span class="reparto-val">${esc(p.fecha || "—")}</span></div>
+          <div class="reparto-field"><span class="reparto-key">Observaciones</span><span class="reparto-val">${esc(p.observaciones || "—")}</span></div>
+          ${p.anulada ? `<div class="reparto-field"><span class="reparto-key">Motivo</span><span class="reparto-val">${esc(p.motivoAnulacion || "—")}</span></div>` : ""}
           <div class="reparto-field" style="margin-top:6px;">
             <span class="reparto-key">Costo total</span>
-            <span class="reparto-qty-big">$${Number(p.costoTotal || 0).toLocaleString('es-CO')}</span>
+            <span class="reparto-qty-big">$${Number(p.costoTotal || 0).toLocaleString("es-CO")}</span>
           </div>
         </div>`;
-    }).join('');
+      })
+      .join("");
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -471,7 +697,7 @@ const ShoppingsPage = () => {
         <div class="total-label">Total compras</div>
       </div>
       <div class="total-card tc-b">
-        <div class="total-val">$${totalGeneral.toLocaleString('es-CO')}</div>
+        <div class="total-val">$${totalGeneral.toLocaleString("es-CO")}</div>
         <div class="total-label">Monto total</div>
       </div>
       <div class="total-card tc-c">
@@ -528,30 +754,48 @@ const ShoppingsPage = () => {
 </body>
 </html>`;
 
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (win) { win.document.write(html); win.document.close(); }
-    else showAlert('error', 'Bloqueado', 'El navegador bloqueó la ventana emergente. Permite pop-ups para exportar a PDF.');
+    const win = window.open("", "_blank", "width=900,height=700");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    } else
+      showAlert(
+        "error",
+        "Bloqueado",
+        "El navegador bloqueó la ventana emergente. Permite pop-ups para exportar a PDF.",
+      );
   };
 
   // ── Paginación visual ─────────────────────────────────────────────────────
   const getPageNumbers = () => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (totalPages <= 5)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    )
+      pages.push(i);
     if (currentPage < totalPages - 2) pages.push("...");
     pages.push(totalPages);
     return pages;
   };
 
   const paginationBtn = {
-    padding: "6px 12px", borderRadius: "6px",
-    border: "1px solid #ddd", background: "#fff",
-    cursor: "pointer", fontSize: "14px",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ddd",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: "14px",
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
+    >
       <style>{`
         @keyframes shFadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
         .sh-download-modal { border-radius:16px; padding:24px; background:#fff; box-shadow:0 12px 40px rgba(0,0,0,0.18); width:calc(100vw - 32px); max-width:360px; animation:shFadeIn 0.18s ease; }
@@ -561,11 +805,42 @@ const ShoppingsPage = () => {
       `}</style>
 
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", }} >
-        <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a", }} >Compras</h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar" width="400px" maxWidth="400px" />
-          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap", }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "26px",
+            fontWeight: 700,
+            margin: 0,
+            color: "#1a1a1a",
+          }}
+        >
+          Compras
+        </h1>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Buscar"
+            width="400px"
+            maxWidth="400px"
+          />
+          <span
+            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
+          >
             Escribe <strong>activo</strong> para ver compras activas ·{" "}
             <strong>anulado</strong> para ver compras anuladas
           </span>
@@ -573,11 +848,17 @@ const ShoppingsPage = () => {
       </div>
 
       {/* TOOLBAR */}
-      <div style={{
-        display: "flex", justifyContent: "space-between",
-        background: "#fff", padding: "12px 20px",
-        borderRadius: "10px", marginBottom: "20px", alignItems: "center",
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          background: "#fff",
+          padding: "12px 20px",
+          borderRadius: "10px",
+          marginBottom: "20px",
+          alignItems: "center",
+        }}
+      >
         {/* IZQUIERDA */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button
@@ -647,158 +928,469 @@ const ShoppingsPage = () => {
 
       {/* PAGINACIÓN */}
       {filteredShoppings.length > 0 && (
-        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            justifyContent: "center",
+            gap: "6px",
+          }}
+        >
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            style={paginationBtn}
+          >
+            ‹
+          </button>
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>...</span>
+              <span key={i} style={{ padding: "6px 10px" }}>
+                ...
+              </span>
             ) : (
-              <button key={p} onClick={() => setCurrentPage(p)}
-                style={{ ...paginationBtn, background: p === currentPage ? "#FF4FD6" : "#fff", color: p === currentPage ? "#fff" : "#000" }}>
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                style={{
+                  ...paginationBtn,
+                  background: p === currentPage ? "#FF4FD6" : "#fff",
+                  color: p === currentPage ? "#fff" : "#000",
+                }}
+              >
                 {p}
               </button>
-            )
+            ),
           )}
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={paginationBtn}>›</button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            style={paginationBtn}
+          >
+            ›
+          </button>
         </div>
       )}
 
       {/* MODAL ANULACIÓN CON MOTIVO */}
-      {cancelModal.open && (() => {
-        const shopping = shoppings.find((p) => p.id === cancelModal.id);
-        return (
-          <div style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-            backdropFilter: "blur(3px)", display: "flex",
-            alignItems: "center", justifyContent: "center", zIndex: 1100, padding: "16px",
-          }}>
-            <div style={{
-              background: "#fff", borderRadius: "14px", width: "100%", maxWidth: "420px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.15)", padding: "24px",
-            }}>
-              {/* Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#111" }}>
-                  Anular compra
-                </h3>
-                <button onClick={closeCancelModal}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: "20px", lineHeight: 1, padding: "2px 6px" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#555")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}>
-                  ×
-                </button>
-              </div>
-
-              {/* Info */}
-              <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#555", lineHeight: 1.6 }}>
-                Estás por anular la factura{" "}
-                <strong style={{ color: "#111" }}>"{shopping?.numeroFactura || cancelModal.id}"</strong>.
-                Esta acción no se puede deshacer.
-              </p>
-
-              {/* Motivo */}
-              <label style={{ fontSize: "12px", fontWeight: 600, color: "#555", display: "block", marginBottom: "6px" }}>
-                Motivo de anulación *
-              </label>
-              <textarea
-                value={cancelModal.motivo}
-                onChange={(e) => { setCancelModal((p) => ({ ...p, motivo: e.target.value })); setMotivoError(""); }}
-                placeholder="Describe el motivo..."
-                rows={3}
+      {cancelModal.open &&
+        (() => {
+          const shopping = shoppings.find((p) => p.id === cancelModal.id);
+          return (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.45)",
+                backdropFilter: "blur(3px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 1100,
+                padding: "16px",
+              }}
+            >
+              <div
                 style={{
-                  width: "100%", padding: "10px 12px", borderRadius: "8px",
-                  boxSizing: "border-box", resize: "vertical", fontSize: "13px", outline: "none",
-                  border: motivoError ? "2px solid #ef4444" : "1.5px solid #d1d5db",
-                  transition: "border-color 0.2s",
+                  background: "#fff",
+                  borderRadius: "14px",
+                  width: "100%",
+                  maxWidth: "420px",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                  padding: "24px",
                 }}
-                onFocus={(e) => { if (!motivoError) e.target.style.borderColor = "#FF4FD6"; }}
-                onBlur={(e) => { if (!motivoError) e.target.style.borderColor = "#d1d5db"; }}
-              />
-              {motivoError && (
-                <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#ef4444" }}>{motivoError}</p>
-              )}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      color: "#111",
+                    }}
+                  >
+                    Anular compra
+                  </h3>
+                  <button
+                    onClick={closeCancelModal}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#aaa",
+                      fontSize: "20px",
+                      lineHeight: 1,
+                      padding: "2px 6px",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#555")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}
+                  >
+                    ×
+                  </button>
+                </div>
 
-              {/* Botones */}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
-                <button
-                  onClick={closeCancelModal}
+                {/* Info */}
+                <p
                   style={{
-                    padding: "8px 18px", borderRadius: "8px", border: "1px solid #e5e7eb",
-                    background: "#fff", fontSize: "13px", cursor: "pointer", color: "#555",
+                    margin: "0 0 16px",
+                    fontSize: "13px",
+                    color: "#555",
+                    lineHeight: 1.6,
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
                 >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmAnular}
+                  Estás por anular la factura{" "}
+                  <strong style={{ color: "#111" }}>
+                    "{shopping?.numeroFactura || cancelModal.id}"
+                  </strong>
+                  . Esta acción no se puede deshacer.
+                </p>
+
+                {/* Motivo */}
+                <label
                   style={{
-                    padding: "8px 18px", borderRadius: "8px", border: "none",
-                    background: "#ef4444", color: "#fff", fontSize: "13px",
-                    fontWeight: 600, cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#555",
+                    display: "block",
+                    marginBottom: "6px",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
                 >
-                  Confirmar anulación
-                </button>
+                  Motivo de anulación *
+                </label>
+                <textarea
+                  value={cancelModal.motivo}
+                  onChange={(e) => {
+                    setCancelModal((p) => ({ ...p, motivo: e.target.value }));
+                    setMotivoError("");
+                  }}
+                  placeholder="Describe el motivo..."
+                  rows={3}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    boxSizing: "border-box",
+                    resize: "vertical",
+                    fontSize: "13px",
+                    outline: "none",
+                    border: motivoError
+                      ? "2px solid #ef4444"
+                      : "1.5px solid #d1d5db",
+                    transition: "border-color 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    if (!motivoError) e.target.style.borderColor = "#FF4FD6";
+                  }}
+                  onBlur={(e) => {
+                    if (!motivoError) e.target.style.borderColor = "#d1d5db";
+                  }}
+                />
+                {motivoError && (
+                  <p
+                    style={{
+                      margin: "4px 0 0",
+                      fontSize: "11px",
+                      color: "#ef4444",
+                    }}
+                  >
+                    {motivoError}
+                  </p>
+                )}
+
+                {/* Botones */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "10px",
+                    marginTop: "20px",
+                  }}
+                >
+                  <button
+                    onClick={closeCancelModal}
+                    style={{
+                      padding: "8px 18px",
+                      borderRadius: "8px",
+                      border: "1px solid #e5e7eb",
+                      background: "#fff",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      color: "#555",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f9fafb")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#fff")
+                    }
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmAnular}
+                    style={{
+                      padding: "8px 18px",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: "#ef4444",
+                      color: "#fff",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#dc2626")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#ef4444")
+                    }
+                  >
+                    Confirmar anulación
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* MODAL DESCARGA — mismo diseño que ProductionPage */}
       {downloadModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1200, padding: "0 16px" }}>
-          <div style={{ borderRadius: 16, padding: 24, background: "#fff", boxShadow: "0 12px 40px rgba(0,0,0,0.18)", width: "calc(100vw - 32px)", maxWidth: 360 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1200,
+            padding: "0 16px",
+          }}
+        >
+          <div
+            style={{
+              borderRadius: 16,
+              padding: 24,
+              background: "#fff",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+              width: "calc(100vw - 32px)",
+              maxWidth: 360,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 18,
+              }}
+            >
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#FF4FD6" }}>Descargar compras</h3>
-                <p style={{ margin: "3px 0 0", fontSize: 12, color: "#888" }}>Elige el formato de exportación</p>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "#FF4FD6",
+                  }}
+                >
+                  Descargar compras
+                </h3>
+                <p style={{ margin: "3px 0 0", fontSize: 12, color: "#888" }}>
+                  Elige el formato de exportación
+                </p>
               </div>
-              <button onClick={() => setDownloadModal(false)} style={{ border: "none", background: "none", cursor: "pointer", color: "#9ca3af", fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
+              <button
+                onClick={() => setDownloadModal(false)}
+                style={{
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  color: "#9ca3af",
+                  fontSize: 20,
+                  lineHeight: 1,
+                  padding: 4,
+                }}
+              >
+                ×
+              </button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {/* Excel */}
-              <button onClick={handleDownloadExcel} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 10, cursor: "pointer", border: "1.5px solid #e5e7eb", background: "#fafafa", textAlign: "left", transition: "border-color 0.15s, background 0.15s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ff4fd6"; e.currentTarget.style.background = "#fff0fb"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#fafafa"; }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#ffffff", border: "1px solid #f3f4f6" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <button
+                onClick={handleDownloadExcel}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 16px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  border: "1.5px solid #e5e7eb",
+                  background: "#fafafa",
+                  textAlign: "left",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#ff4fd6";
+                  e.currentTarget.style.background = "#fff0fb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.background = "#fafafa";
+                }}
+              >
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    background: "#ffffff",
+                    border: "1px solid #f3f4f6",
+                  }}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ff4fd6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" />
-                    <line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="3" y1="15" x2="21" y2="15" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    <line x1="15" y1="3" x2="15" y2="21" />
                   </svg>
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#FF4FD6" }}>Excel (.xlsx)</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b7280" }}>Tabla estilada con colores de la empresa y logo</p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#FF4FD6",
+                    }}
+                  >
+                    Excel (.xlsx)
+                  </p>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: 11,
+                      color: "#6b7280",
+                    }}
+                  >
+                    Tabla estilada con colores de la empresa y logo
+                  </p>
                 </div>
               </button>
 
               {/* PDF */}
-              <button onClick={handleDownloadPDF} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 10, cursor: "pointer", border: "1.5px solid #e5e7eb", background: "#fafafa", textAlign: "left", transition: "border-color 0.15s, background 0.15s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ff4fd6"; e.currentTarget.style.background = "#fff0fb"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#fafafa"; }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#ffffff", border: "1px solid #f3f4f6" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <button
+                onClick={handleDownloadPDF}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 16px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  border: "1.5px solid #e5e7eb",
+                  background: "#fafafa",
+                  textAlign: "left",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#ff4fd6";
+                  e.currentTarget.style.background = "#fff0fb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.background = "#fafafa";
+                }}
+              >
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    background: "#ffffff",
+                    border: "1px solid #f3f4f6",
+                  }}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF4FD6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
-                    <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <line x1="10" y1="9" x2="8" y2="9" />
                   </svg>
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#FF4FD6" }}>PDF</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b7280" }}>Documento listo para imprimir o compartir, con logo</p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#FF4FD6",
+                    }}
+                  >
+                    PDF
+                  </p>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: 11,
+                      color: "#6b7280",
+                    }}
+                  >
+                    Documento listo para imprimir o compartir, con logo
+                  </p>
                 </div>
               </button>
             </div>
 
-            <p style={{ margin: "14px 0 0", fontSize: 11, color: "#d1d5db", textAlign: "center" }}>
-              {filteredShoppings.length} compra{filteredShoppings.length !== 1 ? "s" : ""} se exportará{filteredShoppings.length !== 1 ? "n" : ""}
+            <p
+              style={{
+                margin: "14px 0 0",
+                fontSize: 11,
+                color: "#d1d5db",
+                textAlign: "center",
+              }}
+            >
+              {filteredShoppings.length} compra
+              {filteredShoppings.length !== 1 ? "s" : ""} se exportará
+              {filteredShoppings.length !== 1 ? "n" : ""}
             </p>
           </div>
         </div>
@@ -810,7 +1402,9 @@ const ShoppingsPage = () => {
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
-        onConfirm={(pwd) => { alertConfig.onConfirm?.(pwd); }}
+        onConfirm={(pwd) => {
+          alertConfig.onConfirm?.(pwd);
+        }}
         onCancel={closeAlert}
       />
     </div>

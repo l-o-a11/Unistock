@@ -17,6 +17,7 @@ import putongasLogoUrl from "../../../assets/transparent-Photoroom.png";
 const SuppliesPage = () => {
   const {
     supplies,
+    loading,
     createSupply,
     updateSupply,
     deleteSupply,
@@ -53,6 +54,79 @@ const SuppliesPage = () => {
     message: "",
     onConfirm: null,
   });
+
+  if (loading) {
+    return (
+      <div style={{ padding: "24px 32px" }}>
+        <style>{`
+          @keyframes eloadbar {
+            0%   { left: -40%; width: 40%; }
+            50%  { left: 30%;  width: 50%; }
+            100% { left: 110%; width: 40%; }
+          }
+        `}</style>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: "#1f2937",
+            }}
+          >
+            Insumos
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div
+              style={{
+                width: 220,
+                height: 34,
+                background: "#f3f4f6",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <div
+              style={{
+                width: 110,
+                height: 34,
+                background: "#FF4FD6",
+                borderRadius: 20,
+                opacity: 0.15,
+              }}
+            />
+          </div>
+        </div>
+        <div
+          style={{
+            position: "relative",
+            height: 3,
+            background: "#fce7f3",
+            borderRadius: 99,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              height: "100%",
+              borderRadius: 99,
+              background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)",
+              animation: "eloadbar 1.6s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // ── Alert helpers ──────────────────────────────────────────────────────────
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
@@ -277,7 +351,7 @@ const SuppliesPage = () => {
             "error",
             "Error",
             error.message ||
-            "No se pudo eliminar el insumo. Intenta nuevamente.",
+              "No se pudo eliminar el insumo. Intenta nuevamente.",
           );
         }
       },
@@ -304,7 +378,7 @@ const SuppliesPage = () => {
             "error",
             "Error",
             error.message ||
-            "No se pudo cambiar el estado del insumo. Intenta nuevamente.",
+              "No se pudo cambiar el estado del insumo. Intenta nuevamente.",
           );
         }
       },
@@ -405,7 +479,10 @@ const SuppliesPage = () => {
           reader.onloadend = () => resolve(reader.result.split(",")[1]);
           reader.readAsDataURL(logoBlob);
         });
-        const logoImageId = wb.addImage({ base64: logoBase64, extension: "png" });
+        const logoImageId = wb.addImage({
+          base64: logoBase64,
+          extension: "png",
+        });
         ws.addImage(logoImageId, {
           tl: { col: 0.15, row: 0.15 },
           ext: { width: 46, height: 60 },
@@ -419,8 +496,17 @@ const SuppliesPage = () => {
       ws.getRow(1).height = 30;
       const titleCell = ws.getCell("B1");
       titleCell.value = "Insumos — Sistema de Gestión UniStock";
-      titleCell.font = { name: "Arial", size: 15, bold: true, color: { argb: "000000" } };
-      titleCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      titleCell.font = {
+        name: "Arial",
+        size: 15,
+        bold: true,
+        color: { argb: "000000" },
+      };
+      titleCell.alignment = {
+        horizontal: "left",
+        vertical: "middle",
+        indent: 1,
+      };
       ["A1", "B1", "C1", "D1", "E1", "F1", "G1"].forEach((ref) => {
         ws.getCell(ref).fill = fillSolid("#FDF6FF");
       });
@@ -445,18 +531,33 @@ const SuppliesPage = () => {
       /* ── Fila 4: encabezados de columnas ── */
       const headerRow = ws.getRow(4);
       headerRow.height = 26;
-      const headers = ["ID", "Nombre", "Categoría", "Medida", "Valor medida", "Stock", "Estado"];
+      const headers = [
+        "ID",
+        "Nombre",
+        "Categoría",
+        "Medida",
+        "Valor medida",
+        "Stock",
+        "Estado",
+      ];
       headers.forEach((h, i) => {
         const cell = headerRow.getCell(i + 1);
         cell.value = h;
-        cell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.font = {
+          name: "Arial",
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
         cell.fill = fillSolid("#FF4FD6");
         cell.alignment = {
           horizontal: i === 4 || i === 5 ? "right" : "left",
           vertical: "middle",
           indent: i === 4 || i === 5 ? 0 : 1,
         };
-        cell.border = { bottom: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+        cell.border = {
+          bottom: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+        };
       });
 
       /* ── Filas de datos ── */
@@ -490,35 +591,68 @@ const SuppliesPage = () => {
         });
 
         /* ID: magenta bold */
-        row.getCell(1).font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#FF4FD6") } };
+        row.getCell(1).font = {
+          name: "Arial",
+          size: 10,
+          bold: true,
+          color: { argb: ARGB("#FF4FD6") },
+        };
         /* Stock: morado oscuro bold */
-        row.getCell(6).font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#a858d6") } };
+        row.getCell(6).font = {
+          name: "Arial",
+          size: 10,
+          bold: true,
+          color: { argb: ARGB("#a858d6") },
+        };
       });
 
       /* ── Fila de totales ── */
       const totalRowIdx = filteredSupplies.length + 6;
-      const totalStock = filteredSupplies.reduce((s, item) => s + (Number(item.stock) || 0), 0);
+      const totalStock = filteredSupplies.reduce(
+        (s, item) => s + (Number(item.stock) || 0),
+        0,
+      );
       const totalRow = ws.getRow(totalRowIdx);
 
       const totalLabelCell = totalRow.getCell(2);
       totalLabelCell.value = "Total stock";
-      totalLabelCell.font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#363636") } };
+      totalLabelCell.font = {
+        name: "Arial",
+        size: 10,
+        bold: true,
+        color: { argb: ARGB("#363636") },
+      };
       totalLabelCell.fill = fillSolid("#ffffff");
-      totalLabelCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-      totalLabelCell.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+      totalLabelCell.alignment = {
+        horizontal: "left",
+        vertical: "middle",
+        indent: 1,
+      };
+      totalLabelCell.border = {
+        top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+      };
 
       const totalValueCell = totalRow.getCell(6);
       totalValueCell.value = totalStock;
-      totalValueCell.font = { name: "Arial", size: 11, bold: true, color: { argb: ARGB("#a858d6") } };
+      totalValueCell.font = {
+        name: "Arial",
+        size: 11,
+        bold: true,
+        color: { argb: ARGB("#a858d6") },
+      };
       totalValueCell.fill = fillSolid("#ffffff");
       totalValueCell.alignment = { horizontal: "right", vertical: "middle" };
-      totalValueCell.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+      totalValueCell.border = {
+        top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+      };
 
       /* Resto de celdas de la fila de totales con el mismo fondo */
       [1, 3, 4, 5, 7].forEach((col) => {
         const c = totalRow.getCell(col);
         c.fill = fillSolid("#FDF6FF");
-        c.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+        c.border = {
+          top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
+        };
       });
 
       /* ── Generar y descargar ── */
@@ -531,12 +665,24 @@ const SuppliesPage = () => {
       link.click();
       URL.revokeObjectURL(url);
 
-      showAlert("success", "Descarga lista", "El archivo Excel se descargó correctamente.");
+      showAlert(
+        "success",
+        "Descarga lista",
+        "El archivo Excel se descargó correctamente.",
+      );
     } catch (e) {
       console.error("Error generando Excel:", e);
       try {
         const rows = [
-          ["ID", "Nombre", "Categoría", "Medida", "Valor medida", "Stock", "Estado"],
+          [
+            "ID",
+            "Nombre",
+            "Categoría",
+            "Medida",
+            "Valor medida",
+            "Stock",
+            "Estado",
+          ],
           ...filteredSupplies.map((s) => [
             `#${s.id ?? ""}`,
             s.nombre || "",
@@ -547,7 +693,11 @@ const SuppliesPage = () => {
             s.estado ? "Activo" : "Inactivo",
           ]),
         ];
-        const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const csv = rows
+          .map((r) =>
+            r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","),
+          )
+          .join("\n");
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -555,7 +705,11 @@ const SuppliesPage = () => {
         link.download = "insumos.csv";
         link.click();
         URL.revokeObjectURL(url);
-        showAlert("success", "Descarga lista", "Se generó un CSV de respaldo (no se pudo generar el Excel).");
+        showAlert(
+          "success",
+          "Descarga lista",
+          "Se generó un CSV de respaldo (no se pudo generar el Excel).",
+        );
       } catch (fallbackError) {
         console.error("Error generando CSV de respaldo:", fallbackError);
         showAlert("error", "Error", "No se pudo descargar el archivo Excel.");
@@ -574,17 +728,31 @@ const SuppliesPage = () => {
     setShowDownloadModal(false);
 
     const now = new Date();
-    const fecha = now.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
-    const hora = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+    const fecha = now.toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const hora = now.toLocaleTimeString("es-CO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     const estadoSummary = filteredSupplies.reduce((acc, s) => {
       const e = s.estado ? "Activo" : "Inactivo";
       acc[e] = (acc[e] || 0) + 1;
       return acc;
     }, {});
-    const totalStock = filteredSupplies.reduce((s, item) => s + (Number(item.stock) || 0), 0);
+    const totalStock = filteredSupplies.reduce(
+      (s, item) => s + (Number(item.stock) || 0),
+      0,
+    );
 
-    const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const esc = (v) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 
     const estadoBadge = (activo) => ({
       bg: activo ? "#dcfce7" : "#fee2e2",
@@ -592,9 +760,10 @@ const SuppliesPage = () => {
       dot: activo ? "#22c55e" : "#ef4444",
     });
 
-    const tableRows = filteredSupplies.map((s, i) => {
-      const sc = estadoBadge(s.estado);
-      return `
+    const tableRows = filteredSupplies
+      .map((s, i) => {
+        const sc = estadoBadge(s.estado);
+        return `
         <tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
           <td class="td-order"><span class="order-num">#${esc(s.id)}</span></td>
           <td class="td-product">
@@ -611,19 +780,27 @@ const SuppliesPage = () => {
             </span>
           </td>
         </tr>`;
-    }).join("");
+      })
+      .join("");
 
-    const summaryCards = Object.entries(estadoSummary).map(([e, n]) => `
+    const summaryCards = Object.entries(estadoSummary)
+      .map(
+        ([e, n]) => `
       <div class="sum-card">
         <span class="sum-count">${n}</span>
         <span class="sum-label">${esc(e)}</span>
-      </div>`
-    ).join("");
+      </div>`,
+      )
+      .join("");
 
     const filterInfo = [
-      statusFilter !== "todos" ? `Estado: <strong>${esc(statusFilter)}</strong>` : "",
+      statusFilter !== "todos"
+        ? `Estado: <strong>${esc(statusFilter)}</strong>`
+        : "",
       searchTerm ? `Búsqueda: <strong>"${esc(searchTerm)}"</strong>` : "",
-    ].filter(Boolean).join(" &nbsp;·&nbsp; ");
+    ]
+      .filter(Boolean)
+      .join(" &nbsp;·&nbsp; ");
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -818,7 +995,11 @@ const SuppliesPage = () => {
       win.document.write(html);
       win.document.close();
     } else {
-      showAlert("error", "Error", "No se pudo abrir la ventana de impresión. Verifica el bloqueador de pop-ups.");
+      showAlert(
+        "error",
+        "Error",
+        "No se pudo abrir la ventana de impresión. Verifica el bloqueador de pop-ups.",
+      );
     }
   };
 
@@ -872,7 +1053,14 @@ const SuppliesPage = () => {
         >
           Insumos
         </h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "4px",
+          }}
+        >
           <SearchInput
             value={searchTerm}
             onChange={handleSearchWithState}
@@ -880,7 +1068,9 @@ const SuppliesPage = () => {
             width="400px"
             maxWidth="400px"
           />
-          <span style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}>
+          <span
+            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
+          >
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos
           </span>
