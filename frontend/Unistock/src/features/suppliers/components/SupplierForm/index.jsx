@@ -3,15 +3,24 @@
  * @description Formulario modal para crear o editar un proveedor.
  *              Estilo visual alineado con ProductionForm (UniStock design system).
  *
+ * NUEVO: al igual que ProductionForm distingue "Producción" vs "Diseño",
+ * este formulario distingue el TIPO DE PROVEEDOR:
+ *   - juridica → Empresa (Persona Jurídica): razón social, NIT, sitio web,
+ *                sección de "Persona de contacto" separada.
+ *   - natural  → Persona Natural: nombre completo, cédula, sin razón social
+ *                ni sección de contacto (el proveedor ES el contacto).
+ *
  * CAMPOS Y SUS VALIDACIONES:
- *   nombreEmpresa  — texto libre, obligatorio
- *   nit            — 8-12 dígitos, opcionalmente con guión (ej: 900123456-7), obligatorio
+ *   tipoProveedor  — 'juridica' | 'natural', obligatorio (default: 'juridica')
+ *   nombreEmpresa  — texto libre, obligatorio (Razón social / Nombre completo)
+ *   nit            — juridica: 8-12 dígitos, opcional guión (ej: 900123456-7)
+ *                     natural : 6-10 dígitos (cédula), sin guión
  *   direccion      — texto libre, obligatorio
  *   correoEmpresa  — formato email, obligatorio
- *   sitioWeb       — texto libre, opcional
- *   nombreContacto — texto libre, obligatorio
+ *   sitioWeb       — texto libre, opcional (solo juridica)
+ *   nombreContacto — texto libre, obligatorio (solo juridica)
  *   telefono       — solo dígitos, exactamente 10, obligatorio
- *   correoContacto — formato email, opcional (solo valida si tiene valor)
+ *   correoContacto — formato email, opcional (solo juridica)
  *
  * PROPS:
  *   supplier     {object|null}  — proveedor a editar; null para crear nuevo
@@ -47,6 +56,13 @@ const sectionTitle = (text) => (
     {text}
   </p>
 );
+
+/** Caja de selección de tipo — mismo patrón visual que typeBox en ProductionForm */
+const tipoBox = (active) => ({
+  flex: 1, border: active ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb",
+  borderRadius: 12, padding: 14, cursor: "pointer",
+  background: active ? "#fff0fb" : "#fafafa", transition: "all 0.15s",
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FIELD — componente de campo genérico (definido FUERA para evitar remount)
@@ -95,7 +111,11 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   const modalRef = useRef(null);
   const initializedRef = useRef(false);
 
-  // ── NIT bloqueado si ya tiene compras ────────────────────────────────────
+  // ── Tipo de proveedor: 'juridica' (empresa) | 'natural' (persona natural) ─
+  const [tipoProveedor, setTipoProveedor] = useState(supplier?.tipoProveedor || "juridica");
+  const esJuridica = tipoProveedor === "juridica";
+
+  // ── NIT/Cédula bloqueado si ya tiene compras ─────────────────────────────
   const [nitBloqueado, setNitBloqueado] = useState(false);
   useEffect(() => {
     if (!supplier?.id) { setNitBloqueado(false); return; }
@@ -111,17 +131,17 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   }, [supplier?.id]);
 
   // ── Estado del formulario ─────────────────────────────────────────────────
-  const [formData, setFormData] = useState(() => {
-    if (supplier) {
+  const buildInitialFormData = (s) => {
+    if (s) {
       return {
-        nombreEmpresa:  supplier.nombreEmpresa  || "",
-        nit:            supplier.nit            || "",
-        direccion:      supplier.direccion      || "",
-        correoEmpresa:  supplier.correoEmpresa  || supplier.email || "",
-        sitioWeb:       supplier.sitioWeb       || supplier.sitioweb || "",
-        nombreContacto: supplier.nombreContacto || "",
-        telefono:       supplier.telefono != null ? String(supplier.telefono) : "",
-        correoContacto: supplier.correoContacto || "",
+        nombreEmpresa:  s.nombreEmpresa  || "",
+        nit:            s.nit            || "",
+        direccion:      s.direccion      || "",
+        correoEmpresa:  s.correoEmpresa  || s.email || "",
+        sitioWeb:       s.sitioWeb       || s.sitioweb || "",
+        nombreContacto: s.nombreContacto || "",
+        telefono:       s.telefono != null ? String(s.telefono) : "",
+        correoContacto: s.correoContacto || "",
       };
     }
     return {
@@ -134,7 +154,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
       telefono:       "",
       correoContacto: "",
     };
-  });
+  };
+
+  const [formData, setFormData] = useState(() => buildInitialFormData(supplier));
 
   const [errors,       setErrors]       = useState({});
   const [pendingClose, setPendingClose] = useState(false);
@@ -146,20 +168,13 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   useEffect(() => {
     if (supplier?.id && supplier.id !== initializedRef.current) {
       initializedRef.current = supplier.id;
-      setFormData({
-        nombreEmpresa:  supplier.nombreEmpresa  || "",
-        nit:            supplier.nit            || "",
-        direccion:      supplier.direccion      || "",
-        correoEmpresa:  supplier.correoEmpresa  || supplier.email || "",
-        sitioWeb:       supplier.sitioWeb       || supplier.sitioweb || "",
-        nombreContacto: supplier.nombreContacto || "",
-        telefono:       supplier.telefono != null ? String(supplier.telefono) : "",
-        correoContacto: supplier.correoContacto || "",
-      });
+      setTipoProveedor(supplier.tipoProveedor || "juridica");
+      setFormData(buildInitialFormData(supplier));
     }
     if (!supplier) {
       initializedRef.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supplier]);
 
   // Cierra el modal cuando el Alert de éxito se cierra
@@ -169,6 +184,25 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
       onCancel();
     }
   }, [alertConfig.open, pendingClose, onCancel]);
+
+  // ── Cambiar de tipo limpia los campos que no aplican al nuevo tipo ────────
+  const handleTipoChange = useCallback((nuevoTipo) => {
+    if (nuevoTipo === tipoProveedor) return;
+    setTipoProveedor(nuevoTipo);
+    setErrors({});
+    if (nuevoTipo === "natural") {
+      // Persona natural: no aplica razón social/contacto separado ni sitio web
+      setFormData((prev) => ({
+        ...prev,
+        nit: "",
+        sitioWeb: "",
+        nombreContacto: "",
+        correoContacto: "",
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, nit: "" }));
+    }
+  }, [tipoProveedor]);
 
   const handleCancelClick = useCallback(() => {
     setAlertConfig({
@@ -217,7 +251,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     });
   }, [allSuppliers, supplier, UNIQUE_FIELDS]);
 
-  // ── Validación individual ─────────────────────────────────────────────────
+  // ── Validación individual (depende del tipo de proveedor) ─────────────────
   const validateField = useCallback((name, value) => {
     let error = "";
     switch (name) {
@@ -227,7 +261,14 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
           error = "El proveedor ya se encuentra registrado";
         break;
       case "nit":
-        error = validators.required(value) || validators.nit(value);
+        if (esJuridica) {
+          error = validators.required(value) || validators.nit(value);
+        } else {
+          error = validators.required(value) || validators.numbers(value);
+          if (!error && (String(value).trim().length < 6 || String(value).trim().length > 10)) {
+            error = "La cédula debe tener entre 6 y 10 dígitos";
+          }
+        }
         if (!error && isDuplicate("nit", value))
           error = "El proveedor ya se encuentra registrado";
         break;
@@ -247,7 +288,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
           error = "El proveedor ya se encuentra registrado";
         break;
       case "nombreContacto":
-        error = validators.required(value);
+        if (esJuridica) error = validators.required(value);
         break;
       case "correoContacto":
         error = value ? validators.email(value) : "";
@@ -257,48 +298,66 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
-  }, [isDuplicate]);
+  }, [isDuplicate, esJuridica]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     if (name === "telefono") { if (!blockInput.onlyNumbers(e)) return; }
-    else if (name === "nit") { if (!blockInput.nit(e)) return; }
+    else if (name === "nit") {
+      // Persona jurídica permite guión (NIT); persona natural solo dígitos (cédula)
+      if (esJuridica) { if (!blockInput.nit(e)) return; }
+      else { if (!blockInput.onlyNumbers(e)) return; }
+    }
     if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
     setFormData((prev) => ({ ...prev, [name]: value }));
-  }, [errors]);
+  }, [errors, esJuridica]);
 
   const handleBlur = useCallback((e) => validateField(e.target.name, e.target.value), [validateField]);
 
   // ── Validación completa ───────────────────────────────────────────────────
   const validateAll = useCallback(() => {
-    const required = ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono", "nombreContacto"];
+    const required = esJuridica
+      ? ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono", "nombreContacto"]
+      : ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono"];
+
     let newErrors = {};
     required.forEach((key) => {
       const err = validateField(key, formData[key]);
       if (err) newErrors[key] = err;
     });
-    const anyDuplicate = ["nombreEmpresa", "nit", "correoEmpresa", "telefono"].some(
-      (f) => isDuplicate(f, formData[f])
-    );
+
+    const dupFields = esJuridica
+      ? ["nombreEmpresa", "nit", "correoEmpresa", "telefono"]
+      : ["nombreEmpresa", "nit", "correoEmpresa", "telefono"];
+    const anyDuplicate = dupFields.some((f) => isDuplicate(f, formData[f]));
     if (anyDuplicate && !Object.values(newErrors).some((e) => e === "El proveedor ya se encuentra registrado")) {
       newErrors.nombreEmpresa = "El proveedor ya se encuentra registrado";
     }
-    if (formData.correoContacto) {
+
+    if (esJuridica && formData.correoContacto) {
       const emailErr = validators.email(formData.correoContacto);
       if (emailErr) newErrors.correoContacto = emailErr;
     }
     setErrors(newErrors);
 
-    const LABELS = {
-      nombreEmpresa:  "Nombre de empresa",
-      nit:            "NIT",
-      direccion:      "Dirección",
-      correoEmpresa:  "Correo empresa",
-      telefono:       "Teléfono",
-      nombreContacto: "Nombre de contacto",
-      correoContacto: "Correo de contacto",
-    };
+    const LABELS = esJuridica
+      ? {
+          nombreEmpresa:  "Nombre de empresa",
+          nit:            "NIT",
+          direccion:      "Dirección",
+          correoEmpresa:  "Correo empresa",
+          telefono:       "Teléfono",
+          nombreContacto: "Nombre de contacto",
+          correoContacto: "Correo de contacto",
+        }
+      : {
+          nombreEmpresa:  "Nombre completo",
+          nit:            "Cédula",
+          direccion:      "Dirección",
+          correoEmpresa:  "Correo",
+          telefono:       "Teléfono",
+        };
     const missing = Object.entries(newErrors)
       .filter(([, v]) => v)
       .map(([k]) => LABELS[k] || k);
@@ -313,7 +372,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
       return false;
     }
     return true;
-  }, [formData, validateField, isDuplicate]);
+  }, [formData, validateField, isDuplicate, esJuridica]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -322,7 +381,15 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     if (!validateAll()) return;
     try {
       setIsSubmitting(true);
-      await onSubmit(formData);
+      // Para persona natural, el contacto ES el proveedor: se replican los
+      // datos para no romper integraciones que esperen nombreContacto/correoContacto.
+      const payload = {
+        ...formData,
+        tipoProveedor,
+        nombreContacto: esJuridica ? formData.nombreContacto : formData.nombreEmpresa,
+        correoContacto: esJuridica ? formData.correoContacto : formData.correoEmpresa,
+      };
+      await onSubmit(payload);
       setPendingClose(true);
       setAlertConfig({
         open: true, type: "success",
@@ -342,7 +409,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, onSubmit, supplier, validateAll]);
+  }, [formData, onSubmit, supplier, validateAll, tipoProveedor, esJuridica]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER PRINCIPAL
@@ -406,14 +473,22 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                 background: "#ff4fd6",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-                  <line x1="12" y1="12" x2="12" y2="16"/>
-                  <line x1="8"  y1="12" x2="8"  y2="12.01"/>
-                  <line x1="16" y1="12" x2="16" y2="12.01"/>
-                </svg>
+                {esJuridica ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                    <line x1="12" y1="12" x2="12" y2="16"/>
+                    <line x1="8"  y1="12" x2="8"  y2="12.01"/>
+                    <line x1="16" y1="12" x2="16" y2="12.01"/>
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                )}
               </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1f2937" }}>
@@ -430,29 +505,59 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
             <form onSubmit={handleSubmit} noValidate>
 
               {/* ══════════════════════════════════════════════════
-                  SECCIÓN 1 — DATOS DE LA EMPRESA
+                  SECCIÓN 0 — TIPO DE PROVEEDOR
               ══════════════════════════════════════════════════ */}
-              {sectionTitle("Datos de la empresa")}
+              {sectionTitle("Tipo de proveedor")}
+              <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
+                {[
+                  ["juridica", "Empresa", "Persona jurídica — razón social y NIT"],
+                  ["natural",  "Persona natural", "Proveedor independiente — cédula"],
+                ].map(([val, label, desc]) => (
+                  <div
+                    key={val}
+                    style={tipoBox(tipoProveedor === val)}
+                    onClick={() => handleTipoChange(val)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: "50%",
+                        border: `2px solid ${tipoProveedor === val ? "#ff4fd6" : "#d1d5db"}`,
+                        background: tipoProveedor === val ? "#ff4fd6" : "transparent",
+                        flexShrink: 0,
+                      }} />
+                      <span style={{ fontWeight: 700, fontSize: 13, color: "#1f2937" }}>{label}</span>
+                    </div>
+                    <small style={{ fontSize: 11, color: "#9ca3af", display: "block", paddingLeft: 24 }}>{desc}</small>
+                  </div>
+                ))}
+              </div>
 
-              {/* Fila 1: Nombre empresa + NIT */}
+              {/* ══════════════════════════════════════════════════
+                  SECCIÓN 1 — DATOS DEL PROVEEDOR
+              ══════════════════════════════════════════════════ */}
+              {sectionTitle(esJuridica ? "Datos de la empresa" : "Datos de la persona")}
+
+              {/* Fila 1: Nombre/Razón social + NIT/Cédula */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: 14, marginBottom: 14,
               }}>
                 <Field
-                  label="Nombre de empresa" name="nombreEmpresa"
-                  required placeholder="Ej: Textiles S.A.S."
+                  label={esJuridica ? "Nombre de empresa" : "Nombre completo"}
+                  name="nombreEmpresa"
+                  required
+                  placeholder={esJuridica ? "Ej: Textiles S.A.S." : "Ej: María Fernanda Gómez"}
                   value={formData.nombreEmpresa}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   error={errors.nombreEmpresa}
                 />
 
-                {/* NIT — tiene lógica especial de bloqueo */}
+                {/* NIT/Cédula — tiene lógica especial de bloqueo */}
                 <div>
                   <label style={labelStyle}>
-                    NIT <span style={requiredStar}>*</span>
+                    {esJuridica ? "NIT" : "Cédula de ciudadanía"} <span style={requiredStar}>*</span>
                     {nitBloqueado && (
                       <span style={{
                         fontSize: 10, fontWeight: 700, color: "#d97706",
@@ -469,7 +574,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                     onChange={nitBloqueado ? undefined : handleChange}
                     onBlur={nitBloqueado ? undefined : handleBlur}
                     disabled={nitBloqueado}
-                    placeholder="Ej: 900123456-7"
+                    placeholder={esJuridica ? "Ej: 900123456-7" : "Ej: 1035421789"}
                     autoComplete="off"
                     style={{
                       ...getInputStyle(errors.nit),
@@ -487,15 +592,17 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                 </div>
               </div>
 
-              {/* Fila 2: Correo empresa + Teléfono */}
+              {/* Fila 2: Correo + Teléfono */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: 14, marginBottom: 14,
               }}>
                 <Field
-                  label="Correo empresa" name="correoEmpresa"
-                  type="email" required placeholder="Ej: ventas@empresa.com"
+                  label={esJuridica ? "Correo empresa" : "Correo"}
+                  name="correoEmpresa"
+                  type="email" required
+                  placeholder={esJuridica ? "Ej: ventas@empresa.com" : "Ej: maria.gomez@correo.com"}
                   value={formData.correoEmpresa}
                   onChange={handleChange}
                   onBlur={handleBlur}
@@ -524,45 +631,61 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                 />
               </div>
 
-              {/* Fila 4: Sitio web (opcional, ancho completo) */}
-              <div style={{ marginBottom: 4 }}>
-                <Field
-                  label="Sitio web" name="sitioWeb"
-                  placeholder="Ej: www.empresa.com"
-                  value={formData.sitioWeb}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.sitioWeb}
-                />
-              </div>
+              {/* Fila 4: Sitio web — solo persona jurídica */}
+              {esJuridica && (
+                <div style={{ marginBottom: 4 }}>
+                  <Field
+                    label="Sitio web" name="sitioWeb"
+                    placeholder="Ej: www.empresa.com"
+                    value={formData.sitioWeb}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={errors.sitioWeb}
+                  />
+                </div>
+              )}
 
               {/* ══════════════════════════════════════════════════
-                  SECCIÓN 2 — PERSONA DE CONTACTO
+                  SECCIÓN 2 — PERSONA DE CONTACTO (solo persona jurídica;
+                  en persona natural el proveedor mismo es el contacto)
               ══════════════════════════════════════════════════ */}
-              {sectionTitle("Persona de contacto")}
+              {esJuridica && (
+                <>
+                  {sectionTitle("Persona de contacto")}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                    gap: 14, marginBottom: 20,
+                  }}>
+                    <Field
+                      label="Nombre del contacto" name="nombreContacto"
+                      required placeholder="Ej: Carlos Ramírez"
+                      value={formData.nombreContacto}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={errors.nombreContacto}
+                    />
+                    <Field
+                      label="Correo del contacto" name="correoContacto"
+                      type="email" placeholder="Ej: carlos@empresa.com"
+                      value={formData.correoContacto}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={errors.correoContacto}
+                    />
+                  </div>
+                </>
+              )}
 
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 14, marginBottom: 20,
-              }}>
-                <Field
-                  label="Nombre del contacto" name="nombreContacto"
-                  required placeholder="Ej: Carlos Ramírez"
-                  value={formData.nombreContacto}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.nombreContacto}
-                />
-                <Field
-                  label="Correo del contacto" name="correoContacto"
-                  type="email" placeholder="Ej: carlos@empresa.com"
-                  value={formData.correoContacto}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.correoContacto}
-                />
-              </div>
+              {!esJuridica && (
+                <div style={{
+                  background: "#fdf4ff", border: "1px dashed #ff4fd6",
+                  borderRadius: 10, padding: "10px 14px", marginBottom: 20,
+                  fontSize: 11, color: "#ff4fd6",
+                }}>
+                   Como persona natural, el correo y teléfono ingresados arriba se usarán también como datos de contacto.
+                </div>
+              )}
 
               {/* ── Botones ── */}
               <div style={{

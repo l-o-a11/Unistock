@@ -41,13 +41,6 @@ const barIconKeys = Object.keys(barIcons);
 const SEDE_COLORS = ['#e040b8','#f0a0d8','#a78bfa','#34d399','#f59e0b','#60a5fa'];
 
 // ── Helpers ────────────────────────────────────────────────────────
-const getPrevMonth = () => {
-  const d = new Date();
-  return d.getMonth() === 0
-    ? { month: 11, year: d.getFullYear() - 1 }
-    : { month: d.getMonth() - 1, year: d.getFullYear() };
-};
-
 const sameMonthYear = (val, m, y) => {
   if (!val) return false;
   const d = new Date(val);
@@ -66,15 +59,37 @@ const totalProductos = (o) =>
   (o.detalles || []).reduce((s, d) => s + (Number(d.cantidad) || 0), 0);
 
 const calcAvgDays = (orders) => {
-  const done = orders.filter(o => o.estado === 'Enviado' && o.createdAt);
+  // El “inicio” puede venir en createdAt o updatedAt dependiendo del backend.
+  // También el “fin” puede venir en historial[].fecha (Enviado) o fallback a updatedAt.
+  const done = orders.filter(o => o.estado === 'Enviado');
   if (!done.length) return null;
+
   const sum = done.reduce((acc, o) => {
-    const start = new Date(o.createdAt).getTime();
-    const h = (o.historial || []).find(h => h.estado === 'Enviado');
-    const end = h?.fecha ? new Date(h.fecha).getTime() : (o.updatedAt ? new Date(o.updatedAt).getTime() : Date.now());
+    const h = (o.historial || []).find(hh => hh.estado === 'Enviado');
+
+    const startRaw = o.createdAt || o.updatedAt;
+    const start = startRaw ? new Date(startRaw).getTime() : NaN;
+
+    const endRaw = h?.fecha || o.updatedAt;
+    const end = endRaw ? new Date(endRaw).getTime() : NaN;
+
+    if (Number.isNaN(start) || Number.isNaN(end)) return acc;
+
     return acc + Math.max(0, Math.round((end - start) / 86400000));
   }, 0);
-  return Math.round(sum / done.length);
+
+  // Promediar solo los que aportaron datos válidos
+  const validCount = done.filter(o => {
+    const startRaw = o.createdAt || o.updatedAt;
+    const start = startRaw ? new Date(startRaw).getTime() : NaN;
+    const h = (o.historial || []).find(hh => hh.estado === 'Enviado');
+    const endRaw = h?.fecha || o.updatedAt;
+    const end = endRaw ? new Date(endRaw).getTime() : NaN;
+    return !Number.isNaN(start) && !Number.isNaN(end);
+  }).length;
+
+  if (!validCount) return null;
+  return Math.round(sum / validCount);
 };
 
 // Función universal de coincidencia por período
@@ -216,18 +231,21 @@ export default function ProductionDashboard() {
     ).length;
 
     // ── Tiempo promedio: período ANTERIOR al seleccionado ─────────────────────
+    // ✅ Fix: antes, cuando timeView === 'Semana' (o cualquier caso no
+    // contemplado explícitamente), el "mes anterior" se calculaba con
+    // getPrevMonth(), que usa la fecha REAL de hoy — ignorando por completo
+    // el selectedMonth/selectedYear que el usuario elige en los dropdowns
+    // del filtro "Semana". Por eso el tiempo promedio no reflejaba el
+    // mes/año pasado según el filtro seleccionado. Ahora 'Mes' y 'Semana'
+    // comparten la misma referencia: el mes/año anterior AL SELECCIONADO.
     const prevDone = orders.filter(x => {
       if (x.estado !== 'Enviado') return false;
-      const h = (x.historial || []).find(h => h.estado === 'Enviado');
+      const h = (x.historial || []).find(hh => hh.estado === 'Enviado');
       const d = h?.fecha || x.updatedAt;
       if (timeView === 'Año') return new Date(d || 0).getFullYear() === selectedYear - 1;
-      if (timeView === 'Mes') {
-        const pm = monthIdx === 0 ? 11 : monthIdx - 1;
-        const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
-        return sameMonthYear(d, pm, py);
-      }
-      const { month: prevM, year: prevY } = getPrevMonth();
-      return sameMonthYear(d, prevM, prevY);
+      const pm = monthIdx === 0 ? 11 : monthIdx - 1;
+      const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
+      return sameMonthYear(d, pm, py);
     });
     const avgDays = calcAvgDays(prevDone);
 
@@ -350,7 +368,6 @@ export default function ProductionDashboard() {
   }, [orders, barTimeView, monthIdx, selectedYear]);
 
   const showTerceros = viewMode === 'Todas' || viewMode === 'Terceros';
-  const { month: prevM, year: prevY } = getPrevMonth();
 
   const GlobalTimeFilter = () => (
     <div className="flex items-center gap-2">
