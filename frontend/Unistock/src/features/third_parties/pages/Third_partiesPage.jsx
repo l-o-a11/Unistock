@@ -130,18 +130,108 @@ const Third_partiePage = () => {
     return p;
   };
 
+  // ── Estado de carga inicial ────────────────────────────────────────────
+  // El skeleton replica el layout ya cargado: header (título + buscador +
+  // texto de ayuda), tabs de navegación, tarjeta de tabla con el botón
+  // "Agregar" arriba a la derecha, filas placeholder, y el sidebar de
+  // detalle en desktop — así no hay salto visual cuando termina de cargar.
   if (loading && Third_parties.length === 0) return (
-    <div style={{ padding: '24px 32px' }}>
-      <style>{`@keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }`}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Terceros</p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
-          <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
+    <div style={{ minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
+      <style>{`
+        @keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
+        @keyframes uskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .tp-skel-root { padding: 14px; }
+        @media (min-width: 640px)  { .tp-skel-root { padding: 20px 24px; } }
+        @media (min-width: 1024px) { .tp-skel-root { padding: 24px 32px; } }
+
+        .tp-skel-layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 768px) { .tp-skel-layout { grid-template-columns: 2fr 1fr; } }
+
+        .tp-skel-sidebar { display: none; }
+        @media (min-width: 768px) { .tp-skel-sidebar { display: block; } }
+      `}</style>
+
+      <div className="tp-skel-root">
+        {/* HEADER: título + search — mismo layout que el estado ya cargado */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Terceros</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            {/* mismo alto/ancho/radio que Third_partieSearch (width="400px") */}
+            <div style={{
+              width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
+              background: '#f3f4f6', border: '1px solid #e5e7eb',
+              animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+            }} />
+            <div style={{
+              width: 260, height: 11, borderRadius: 6, background: '#f3f4f6',
+              animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+            }} />
+          </div>
         </div>
-      </div>
-      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
+
+        {/* TABS — mismas dimensiones que "Producciones" / "Terceros" */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+          <div style={{
+            width: 110, height: 32, borderRadius: 8, background: '#f3f4f6',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+          <div style={{
+            width: 90, height: 32, borderRadius: 8, background: '#fbcfec',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+        </div>
+
+        <div className="tp-skel-layout">
+          {/* TARJETA DE TABLA — con el botón "Agregar" en la misma posición */}
+          <div style={{
+            background: '#fff', borderRadius: 16, padding: 20,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)', minWidth: 0, overflow: 'hidden',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
+              <div style={{
+                width: 150, height: 38, borderRadius: 20,
+                background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
+                opacity: 0.4, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+              }} />
+            </div>
+
+            {/* filas placeholder de la tabla */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} style={{
+                  height: 44, borderRadius: 10, background: '#f9fafb',
+                  border: '1px solid #f3f4f6',
+                  animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+                  animationDelay: `${i * 0.08}s`,
+                }} />
+              ))}
+            </div>
+
+            {/* barra de progreso */}
+            <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden', marginTop: 16 }}>
+              <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
+            </div>
+          </div>
+
+          {/* SIDEBAR DE DETALLE — solo visible en desktop, igual que el real */}
+          <div className="tp-skel-sidebar" style={{
+            background: '#fff', borderRadius: 16, minHeight: 200,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: 20,
+          }}>
+            <div style={{
+              width: '60%', height: 16, borderRadius: 6, background: '#f3f4f6',
+              marginBottom: 14, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+            }} />
+            {[...Array(4)].map((_, i) => (
+              <div key={i} style={{
+                width: '100%', height: 12, borderRadius: 6, background: '#f9fafb',
+                marginBottom: 10, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+                animationDelay: `${i * 0.08}s`,
+              }} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

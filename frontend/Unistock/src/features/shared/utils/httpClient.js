@@ -6,7 +6,7 @@
 const BACKEND_API_URL =
   import.meta.env.VITE_BACKEND_API_URL ||
   import.meta.env.VITE_API_URL ||
-  "http://localhost:3001/api";
+  "http://localhost:3000/api";
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000/api";
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
