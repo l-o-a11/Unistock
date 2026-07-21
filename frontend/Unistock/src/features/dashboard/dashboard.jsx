@@ -23,6 +23,12 @@ const ESTADO_TO_PROCESO = {
   'Mercadeo': 'Mercadeo',
 };
 
+// ✅ El backend guarda el estado "en producción" con dos nombres distintos
+// según la ruta que lo creó ('Producción' y 'En producción' — ver el
+// mapeo de arriba). Los cálculos de stats deben reconocer ambas variantes,
+// o subcuentan (y por eso "Producciones actuales" quedaba en 0/"—").
+const ESTADOS_EN_PRODUCCION = ['Producción', 'En producción'];
+
 const barIcons = {
   'En espera':          'M12 2a10 10 0 1 0 4.95 18.66M12 6v6l3 1.5',
   'Tráfico entre sedes':'M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 19a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm13 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
@@ -41,13 +47,6 @@ const barIconKeys = Object.keys(barIcons);
 const SEDE_COLORS = ['#e040b8','#f0a0d8','#a78bfa','#34d399','#f59e0b','#60a5fa'];
 
 // ── Helpers ────────────────────────────────────────────────────────
-const getPrevMonth = () => {
-  const d = new Date();
-  return d.getMonth() === 0
-    ? { month: 11, year: d.getFullYear() - 1 }
-    : { month: d.getMonth() - 1, year: d.getFullYear() };
-};
-
 const sameMonthYear = (val, m, y) => {
   if (!val) return false;
   const d = new Date(val);
@@ -66,15 +65,37 @@ const totalProductos = (o) =>
   (o.detalles || []).reduce((s, d) => s + (Number(d.cantidad) || 0), 0);
 
 const calcAvgDays = (orders) => {
-  const done = orders.filter(o => o.estado === 'Enviado' && o.createdAt);
+  // El “inicio” puede venir en createdAt o updatedAt dependiendo del backend.
+  // También el “fin” puede venir en historial[].fecha (Enviado) o fallback a updatedAt.
+  const done = orders.filter(o => o.estado === 'Enviado');
   if (!done.length) return null;
+
   const sum = done.reduce((acc, o) => {
-    const start = new Date(o.createdAt).getTime();
-    const h = (o.historial || []).find(h => h.estado === 'Enviado');
-    const end = h?.fecha ? new Date(h.fecha).getTime() : (o.updatedAt ? new Date(o.updatedAt).getTime() : Date.now());
+    const h = (o.historial || []).find(hh => hh.estado === 'Enviado');
+
+    const startRaw = o.createdAt || o.updatedAt;
+    const start = startRaw ? new Date(startRaw).getTime() : NaN;
+
+    const endRaw = h?.fecha || o.updatedAt;
+    const end = endRaw ? new Date(endRaw).getTime() : NaN;
+
+    if (Number.isNaN(start) || Number.isNaN(end)) return acc;
+
     return acc + Math.max(0, Math.round((end - start) / 86400000));
   }, 0);
-  return Math.round(sum / done.length);
+
+  // Promediar solo los que aportaron datos válidos
+  const validCount = done.filter(o => {
+    const startRaw = o.createdAt || o.updatedAt;
+    const start = startRaw ? new Date(startRaw).getTime() : NaN;
+    const h = (o.historial || []).find(hh => hh.estado === 'Enviado');
+    const endRaw = h?.fecha || o.updatedAt;
+    const end = endRaw ? new Date(endRaw).getTime() : NaN;
+    return !Number.isNaN(start) && !Number.isNaN(end);
+  }).length;
+
+  if (!validCount) return null;
+  return Math.round(sum / validCount);
 };
 
 // Función universal de coincidencia por período
@@ -179,7 +200,7 @@ export default function ProductionDashboard() {
 
   const { stats, generalStatus } = useMemo(() => {
     if (!orders.length) return {
-      stats: { current: 0, completedThisMonth: 0, pending: 0, avgTime: '—', periodLabel: '' },
+      stats: { current: 0, completedThisMonth: 0, pending: 0, avgTime: '—', periodLabel: '', avgPeriodLabel: '' },
       generalStatus: { delayed: 0, onTrack: 0 },
     };
 
@@ -199,7 +220,7 @@ export default function ProductionDashboard() {
     };
 
     // ── Producciones actuales: estado "Producción" con actividad en el período ──
-    const current = orders.filter(x => x.estado === 'Producción' && inPeriodActive(x)).length;
+    const current = orders.filter(x => ESTADOS_EN_PRODUCCION.includes(x.estado) && inPeriodActive(x)).length;
 
     // ── Completadas en el período ──────────────────────────────────────────────
     const completedThisMonth = orders.filter(x => {
@@ -216,20 +237,50 @@ export default function ProductionDashboard() {
     ).length;
 
     // ── Tiempo promedio: período ANTERIOR al seleccionado ─────────────────────
+    // ✅ Fix: antes, cuando timeView === 'Semana' (o cualquier caso no
+    // contemplado explícitamente), el "mes anterior" se calculaba con
+    // getPrevMonth(), que usa la fecha REAL de hoy — ignorando por completo
+    // el selectedMonth/selectedYear que el usuario elige en los dropdowns
+    // del filtro "Semana". Por eso el tiempo promedio no reflejaba el
+    // mes/año pasado según el filtro seleccionado. Ahora 'Mes' y 'Semana'
+    // comparten la misma referencia: el mes/año anterior AL SELECCIONADO.
     const prevDone = orders.filter(x => {
       if (x.estado !== 'Enviado') return false;
-      const h = (x.historial || []).find(h => h.estado === 'Enviado');
+      const h = (x.historial || []).find(hh => hh.estado === 'Enviado');
       const d = h?.fecha || x.updatedAt;
       if (timeView === 'Año') return new Date(d || 0).getFullYear() === selectedYear - 1;
-      if (timeView === 'Mes') {
-        const pm = monthIdx === 0 ? 11 : monthIdx - 1;
-        const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
-        return sameMonthYear(d, pm, py);
-      }
-      const { month: prevM, year: prevY } = getPrevMonth();
-      return sameMonthYear(d, prevM, prevY);
+      const pm = monthIdx === 0 ? 11 : monthIdx - 1;
+      const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
+      return sameMonthYear(d, pm, py);
     });
-    const avgDays = calcAvgDays(prevDone);
+
+    // ✅ Fix: si no hay NINGUNA orden 'Enviado' en el período anterior exacto
+    // (muy probable con poco historial acumulado), antes esto se quedaba en
+    // "—" para siempre, sin importar cuántas órdenes completadas existieran
+    // en total. Ahora, si el período anterior no tiene datos, se usa como
+    // respaldo el promedio de TODO el histórico de órdenes enviadas, y la
+    // etiqueta lo deja claro ("histórico" en vez del mes/año específico).
+    let avgDays = calcAvgDays(prevDone);
+    let avgIsFallback = false;
+    if (avgDays === null) {
+      const allDone = orders.filter(o => o.estado === 'Enviado');
+      avgDays = calcAvgDays(allDone);
+      avgIsFallback = avgDays !== null;
+    }
+
+    // Etiqueta del período usado para el cálculo — así, aunque "Tiempo
+    // promedio" muestre "—" por falta absoluta de órdenes enviadas, queda
+    // visualmente claro qué período (o si es el histórico completo) se
+    // está mostrando.
+    const avgPeriodLabel = avgIsFallback
+      ? 'histórico'
+      : (timeView === 'Año'
+          ? `${selectedYear - 1}`
+          : (() => {
+              const pm = monthIdx === 0 ? 11 : monthIdx - 1;
+              const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
+              return `${MONTHS[pm]} ${py}`;
+            })());
 
     // ── Retrasos: activas con actividad en el período ─────────────────────────
     const active = orders.filter(x =>
@@ -240,8 +291,8 @@ export default function ProductionDashboard() {
       let isDelayed = false;
       const fe = x.deliveryDate || x.fecha_entrega;
       if (fe) { const ms = new Date(fe).getTime(); if (!isNaN(ms) && nowMs > ms) isDelayed = true; }
-      if (!isDelayed && x.estado === 'Producción' && (x.asignaciones || []).length > 0) {
-        const entrada = (x.historial || []).find(h => h.estado === 'Producción');
+      if (!isDelayed && ESTADOS_EN_PRODUCCION.includes(x.estado) && (x.asignaciones || []).length > 0) {
+        const entrada = (x.historial || []).find(h => ESTADOS_EN_PRODUCCION.includes(h.estado));
         const fechaEntrada = entrada?.fecha || x.updatedAt;
         if (fechaEntrada) {
           const dias = Math.round((nowMs - new Date(fechaEntrada).getTime()) / 86400000);
@@ -252,12 +303,25 @@ export default function ProductionDashboard() {
     });
 
     return {
-      stats: { current, completedThisMonth, pending, avgTime: avgDays !== null ? `${avgDays}d` : '—', periodLabel },
+      stats: { current, completedThisMonth, pending, avgTime: avgDays !== null ? `${avgDays}d` : '—', periodLabel, avgPeriodLabel },
       generalStatus: { delayed, onTrack },
     };
   }, [orders, timeView, monthIdx, selectedYear, selectedMonth]);
 
-
+  // ✅ Fix: las barras de "Estado general de producción" tenían alturas
+  // fijas en el JSX (h-2 y h-30 — esta última ni siquiera es una clase
+  // válida de Tailwind, el spacing scale salta de h-28 a h-32, así que
+  // esa barra quedaba en 0px). Ninguna reflejaba generalStatus.delayed/
+  // onTrack, por eso el gráfico nunca se movía. Ahora la altura se calcula
+  // en px, proporcional al valor más alto entre ambas barras.
+  const GENERAL_BAR_MAX_PX = 140;
+  const generalMaxVal = Math.max(generalStatus.delayed, generalStatus.onTrack, 1);
+  const delayedBarPx  = generalStatus.delayed > 0
+    ? Math.max(6, Math.round((generalStatus.delayed / generalMaxVal) * GENERAL_BAR_MAX_PX))
+    : 4;
+  const onTrackBarPx  = generalStatus.onTrack > 0
+    ? Math.max(6, Math.round((generalStatus.onTrack / generalMaxVal) * GENERAL_BAR_MAX_PX))
+    : 4;
 
   const lineData = useMemo(() => {
     if (!orders.length) return [];
@@ -350,7 +414,6 @@ export default function ProductionDashboard() {
   }, [orders, barTimeView, monthIdx, selectedYear]);
 
   const showTerceros = viewMode === 'Todas' || viewMode === 'Terceros';
-  const { month: prevM, year: prevY } = getPrevMonth();
 
   const GlobalTimeFilter = () => (
     <div className="flex items-center gap-2">
@@ -399,7 +462,7 @@ export default function ProductionDashboard() {
             { label:'Por iniciar', value: stats.pending||'—',
               icon:<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
               color:'text-pink-600 bg-pink-50 border-pink-200' },
-            { label:'Tiempo promedio', value: stats.avgTime||'—',
+            { label: stats.avgPeriodLabel ? `Tiempo promedio (${stats.avgPeriodLabel})` : 'Tiempo promedio', value: stats.avgTime||'—',
               icon:<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
               color:'text-pink-500 bg-pink-50 border-pink-200' },
           ].map(({ label, value, icon, color }) => (
@@ -471,12 +534,12 @@ export default function ProductionDashboard() {
             <div className="flex items-end justify-around h-48">
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xl font-bold">{generalStatus.delayed}</span>
-                <div className="w-10 h-2 rounded-lg bg-pink-200"/>
+                <div className="w-10 rounded-lg bg-pink-300" style={{ height: delayedBarPx, transition: 'height 0.3s ease' }}/>
                 <p className="text-xs text-center text-gray-700 font-medium mt-1">Producciones<br/>con retraso</p>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xl font-bold">{generalStatus.onTrack}</span>
-                <div className="w-10 h-30 rounded-lg bg-green-400"/>
+                <div className="w-10 rounded-lg bg-green-400" style={{ height: onTrackBarPx, transition: 'height 0.3s ease' }}/>
                 <p className="text-xs text-center text-gray-700 font-medium mt-1">Todo en<br/>orden</p>
               </div>
             </div>

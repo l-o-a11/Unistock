@@ -196,16 +196,50 @@ const SuppliersPage = () => {
     fontSize: "14px",
   };
 
+  // ── Estado de carga inicial ────────────────────────────────────────────
+  // El skeleton replica EXACTAMENTE el layout del header, buscador y barra
+  // del botón que se ven una vez que suppliers ya cargó, para que no haya
+  // "salto" visual (título mismo tamaño, buscador mismo ancho/posición,
+  // botón dentro de su propia barra blanca).
   if (loading && suppliers.length === 0) return (
     <div style={{ padding: '24px 32px' }}>
-      <style>{`@keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }`}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Proveedores</p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
-          <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
+      <style>{`
+        @keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
+        @keyframes uskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
+
+      {/* HEADER: título + search — mismo layout que el estado ya cargado */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          {/* mismo alto/ancho/radio que SearchInput (width="400px") */}
+          <div style={{
+            width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
+            background: '#f3f4f6', border: '1px solid #e5e7eb',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+          {/* placeholder del texto de ayuda ("Escribe activo para...") */}
+          <div style={{
+            width: 260, height: 11, borderRadius: 6, background: '#f3f4f6',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
         </div>
       </div>
+
+      {/* BARRA BLANCA CON BOTÓN — mismo contenedor que AddSupplierButton */}
+      <div style={{
+        background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+        padding: "12px 20px", marginBottom: 16,
+        display: "flex", justifyContent: "flex-end", alignItems: "center",
+      }}>
+        <div style={{
+          width: 168, height: 38, borderRadius: 20,
+          background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
+          opacity: 0.4, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+        }} />
+      </div>
+
+      {/* barra de progreso */}
       <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
       </div>

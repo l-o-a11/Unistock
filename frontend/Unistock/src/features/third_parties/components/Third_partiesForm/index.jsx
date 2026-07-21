@@ -327,7 +327,7 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
               }}>
                 <Field label="Nombre empresa" name="nombre" required placeholder="Ej: Confecciones López S.A.S."
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
-                <Field label="NIT" name="nit" placeholder="Ej: 900123456-7" hint="8-12 dígitos, guión opcional"
+                <Field label="NIT" name="nit" placeholder="Ej: 900123456-7" hint="6-10 dígitos, guión opcional"
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 
