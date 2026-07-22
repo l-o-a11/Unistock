@@ -64,13 +64,15 @@ const onFocusField = (e) => {
 // SedeForm
 // ─────────────────────────────────────────────────
 const SedeForm = ({ sede, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     nombre: sede?.nombre || "",
     ciudad: sede?.ciudad || "",
     barrio: sede?.barrio || "",
     direccion: sede?.direccion || "",
     telefono: sede?.telefono || "",
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const [errors, setErrors] = useState({});
   const [alertConfig, setAlertConfig] = useState({
@@ -164,10 +166,21 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
   };
 
   const handleCancel = () => {
+    const hasChanges = Object.keys(initialFormData).some((key) => {
+      const currentValue = String(formData[key] ?? "").trim();
+      const initialValue = String(initialFormData[key] ?? "").trim();
+      return currentValue !== initialValue;
+    });
+
+    if (!hasChanges) {
+      onCancel?.();
+      return;
+    }
+
     showAlert(
       "confirm",
       "¿Cancelar?",
-      "Los datos ingresados se perderán.",
+      "Los cambios realizados se perderán.",
       () => {
         closeAlert();
         onCancel?.();

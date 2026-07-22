@@ -98,7 +98,7 @@ const EmployeesPage = () => {
   }, [employeesEnMiSede, searchTerm, roles, sedes]);
 
   // 📄 Paginación
-  const itemsPerPage = 5;
+  const itemsPerPage = 7;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredEmployees.length / itemsPerPage),

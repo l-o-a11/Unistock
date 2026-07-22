@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Alert from '../../../shared/components/Alert';
 import Button from '../../../shared/components/Button';
 
 // ─────────────────────────────────────────────────
@@ -57,9 +58,22 @@ const onBlurField = (e) => {
 // CategoryForm
 // ─────────────────────────────────────────────────
 const CategoryForm = ({ category, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     nombre: category?.nombre || '',
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [alertConfig, setAlertConfig] = useState({
+    open: false,
+    type: 'success',
+    title: '',
+    message: '',
+    onConfirm: null,
   });
+
+  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
+  const showAlert = (type, title, message, onConfirm = null) =>
+    setAlertConfig({ open: true, type, title, message, onConfirm });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,8 +91,39 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
     };
     onSubmit(normalizado);
   };
+
+  const handleCancel = () => {
+    const hasChanges = Object.keys(initialFormData).some((key) => {
+      const currentValue = formData[key];
+      const initialValue = initialFormData[key];
+      return String(currentValue ?? '').trim() !== String(initialValue ?? '').trim();
+    });
+
+    if (!hasChanges) {
+      onCancel?.();
+      return;
+    }
+
+    showAlert('confirm', '¿Cancelar?', 'Los cambios realizados se perderán.', () => {
+      closeAlert();
+      onCancel?.();
+    });
+  };
+
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ padding: '28px 30px', boxSizing: 'border-box' }}>
+    <>
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => {
+          alertConfig.onConfirm?.();
+          closeAlert();
+        }}
+        onCancel={closeAlert}
+      />
+      <form onSubmit={handleSubmit} noValidate style={{ padding: '28px 30px', boxSizing: 'border-box' }}>
 
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
@@ -128,7 +173,7 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
         display: 'flex', justifyContent: 'flex-end', gap: 10,
         paddingTop: 16, borderTop: '1px solid #f3f4f6',
       }}>
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button type="button" variant="secondary" onClick={handleCancel}>
           Cancelar
         </Button>
         <Button type="submit" variant="primary">
@@ -137,7 +182,7 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
       </div>
 
     </form>
-
+    </>
   );
 
   // Modo standalone: envuelve en su propia card

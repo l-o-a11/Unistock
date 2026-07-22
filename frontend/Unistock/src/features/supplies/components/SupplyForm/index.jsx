@@ -42,11 +42,11 @@ const SupplyForm = ({
 }) => {
   const isEdit = Boolean(supply);
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     nombre:         supply?.nombre      || "",
     categoriaId:    supply?.categoriaId || "",
-    stock:          supply?.stock       || "",
-    valorMedida:    supply?.valorMedida || "",
+    stock:          supply?.stock       ?? "",
+    valorMedida:    supply?.valorMedida ?? "",
     medidaId:       supply?.medidaId    || "",
     propiedades:
       supply?.propiedades?.map((p) => ({
@@ -55,7 +55,9 @@ const SupplyForm = ({
       })) || [],
     imageFile:      null,
     eliminarImagen: false,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const [errors,          setErrors]          = useState({});
   const [propiedadId,     setPropiedadId]     = useState("");
@@ -203,11 +205,32 @@ const SupplyForm = ({
     }
   };
 
-  const handleCancel = () =>
-    showAlert("confirm", "¿Cancelar?", "Los datos ingresados se perderán.", () => {
+  const handleCancel = () => {
+    const hasChanges = Object.keys(initialFormData).some((key) => {
+      const currentValue = formData[key];
+      const initialValue = initialFormData[key];
+
+      if (Array.isArray(currentValue) || Array.isArray(initialValue)) {
+        return JSON.stringify(currentValue) !== JSON.stringify(initialValue);
+      }
+
+      if (currentValue instanceof File || initialValue instanceof File) {
+        return currentValue !== initialValue;
+      }
+
+      return String(currentValue ?? "").trim() !== String(initialValue ?? "").trim();
+    });
+
+    if (!hasChanges) {
+      onCancel?.();
+      return;
+    }
+
+    showAlert("confirm", "¿Cancelar?", "Los cambios realizados se perderán.", () => {
       closeAlert();
       onCancel?.();
     });
+  };
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
