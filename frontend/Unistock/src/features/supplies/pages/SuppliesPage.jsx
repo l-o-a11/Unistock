@@ -59,70 +59,24 @@ const SuppliesPage = () => {
     return (
       <div style={{ padding: "24px 32px" }}>
         <style>{`
-          @keyframes eloadbar {
-            0%   { left: -40%; width: 40%; }
-            50%  { left: 30%;  width: 50%; }
-            100% { left: 110%; width: 40%; }
-          }
+          @keyframes eloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
+          @keyframes eskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 600,
-              color: "#1f2937",
-            }}
-          >
-            Insumos
-          </p>
-          <div style={{ display: "flex", gap: 10 }}>
-            <div
-              style={{
-                width: 220,
-                height: 34,
-                background: "#f3f4f6",
-                borderRadius: 8,
-                border: "1px solid #e5e7eb",
-              }}
-            />
-            <div
-              style={{
-                width: 110,
-                height: 34,
-                background: "#FF4FD6",
-                borderRadius: 20,
-                opacity: 0.15,
-              }}
-            />
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Insumos</h1>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <div style={{ width: 400, maxWidth: "100%", height: 38, borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
+            <div style={{ width: 260, height: 11, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
           </div>
         </div>
-        <div
-          style={{
-            position: "relative",
-            height: 3,
-            background: "#fce7f3",
-            borderRadius: 99,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              height: "100%",
-              borderRadius: 99,
-              background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)",
-              animation: "eloadbar 1.6s ease-in-out infinite",
-            }}
-          />
+
+        <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.07)", padding: "12px 20px", marginBottom: 16, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+          <div style={{ width: 168, height: 38, borderRadius: 20, background: "linear-gradient(90deg, #ff8fe0, #FF4FD6)", opacity: 0.4, animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
+        </div>
+
+        <div style={{ position: "relative", height: 3, background: "#fce7f3", borderRadius: 99, overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: 0, height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)", animation: "eloadbar 1.6s ease-in-out infinite" }} />
         </div>
       </div>
     );
@@ -1202,17 +1156,28 @@ const SuppliesPage = () => {
         onToggle={handleToggle}
       />
 
-      {/* MODAL CATEGORÍAS 👈 nuevo */}
+      {/* MODAL DESCARGA — mismo diseño que Compras */}
       {showDownloadModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1200,
+            padding: "0 16px",
+          }}
+        >
           <div
             style={{
+              borderRadius: 16,
+              padding: 24,
               background: "#fff",
-              borderRadius: "16px",
-              width: "100%",
-              maxWidth: "420px",
-              padding: "24px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+              width: "calc(100vw - 32px)",
+              maxWidth: 360,
             }}
           >
             <div
@@ -1220,135 +1185,216 @@ const SuppliesPage = () => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "16px",
+                marginBottom: 18,
               }}
             >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  color: "#111827",
-                }}
-              >
-                Descargar insumos
-              </h3>
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: "#FF4FD6",
+                  }}
+                >
+                  Descargar insumos
+                </h3>
+                <p style={{ margin: "3px 0 0", fontSize: 12, color: "#888" }}>
+                  Elige el formato de exportación
+                </p>
+              </div>
               <button
-                type="button"
                 onClick={() => setShowDownloadModal(false)}
                 style={{
                   border: "none",
                   background: "none",
                   cursor: "pointer",
                   color: "#9ca3af",
-                  fontSize: "20px",
+                  fontSize: 20,
+                  lineHeight: 1,
+                  padding: 4,
                 }}
-                aria-label="Cerrar"
               >
                 ×
               </button>
             </div>
-            <p
-              style={{ margin: "0 0 18px", color: "#6b7280", fontSize: "14px" }}
-            >
-              Elige el formato para exportar la lista actual.
-            </p>
-            <div style={{ display: "grid", gap: "10px" }}>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Excel */}
               <button
-                type="button"
                 onClick={() => {
                   setShowDownloadModal(false);
                   handleDownloadExcel();
                 }}
                 style={{
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: "10px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  background: "#f9fafb",
-                  padding: "12px",
+                  gap: 14,
+                  padding: "14px 16px",
+                  borderRadius: 10,
                   cursor: "pointer",
+                  border: "1.5px solid #e5e7eb",
+                  background: "#fafafa",
                   textAlign: "left",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#ff4fd6";
+                  e.currentTarget.style.background = "#fff0fb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.background = "#fafafa";
                 }}
               >
-                <span
+                <div
                   style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "10px",
-                    background: "#e8f5ee",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "#15803d",
-                    fontWeight: 700,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    background: "#ffffff",
+                    border: "1px solid #f3f4f6",
                   }}
                 >
-                  X
-                </span>
-                <span>
-                  <strong
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ff4fd6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="3" y1="15" x2="21" y2="15" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    <line x1="15" y1="3" x2="15" y2="21" />
+                  </svg>
+                </div>
+                <div>
+                  <p
                     style={{
-                      display: "block",
-                      color: "#111827",
-                      fontSize: "14px",
+                      margin: 0,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#FF4FD6",
                     }}
                   >
-                    Excel
-                  </strong>
-                  <small style={{ color: "#6b7280" }}>
-                    Compatible con Excel y Google Sheets
-                  </small>
-                </span>
+                    Excel (.xlsx)
+                  </p>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: 11,
+                      color: "#6b7280",
+                    }}
+                  >
+                    Tabla estilada con colores de la empresa y logo
+                  </p>
+                </div>
               </button>
+
+              {/* PDF */}
               <button
-                type="button"
                 onClick={() => {
                   setShowDownloadModal(false);
                   handleDownloadPDF();
                 }}
                 style={{
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: "10px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  background: "#f9fafb",
-                  padding: "12px",
+                  gap: 14,
+                  padding: "14px 16px",
+                  borderRadius: 10,
                   cursor: "pointer",
+                  border: "1.5px solid #e5e7eb",
+                  background: "#fafafa",
                   textAlign: "left",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#ff4fd6";
+                  e.currentTarget.style.background = "#fff0fb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.background = "#fafafa";
                 }}
               >
-                <span
+                <div
                   style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "10px",
-                    background: "#fee2e2",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "#b91c1c",
-                    fontWeight: 700,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    background: "#ffffff",
+                    border: "1px solid #f3f4f6",
                   }}
                 >
-                  P
-                </span>
-                <span>
-                  <strong
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF4FD6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <line x1="10" y1="9" x2="8" y2="9" />
+                  </svg>
+                </div>
+                <div>
+                  <p
                     style={{
-                      display: "block",
-                      color: "#111827",
-                      fontSize: "14px",
+                      margin: 0,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#FF4FD6",
                     }}
                   >
                     PDF
-                  </strong>
-                  <small style={{ color: "#6b7280" }}>
-                    Versión lista para imprimir o compartir
-                  </small>
-                </span>
+                  </p>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: 11,
+                      color: "#6b7280",
+                    }}
+                  >
+                    Documento listo para imprimir o compartir, con logo
+                  </p>
+                </div>
               </button>
             </div>
+
+            <p
+              style={{
+                margin: "14px 0 0",
+                fontSize: 11,
+                color: "#d1d5db",
+                textAlign: "center",
+              }}
+            >
+              {filteredSupplies.length} insumo
+              {filteredSupplies.length !== 1 ? "s" : ""} se exportará
+              {filteredSupplies.length !== 1 ? "n" : ""}
+            </p>
           </div>
         </div>
       )}

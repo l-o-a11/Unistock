@@ -7,7 +7,7 @@ const ROLES_PROTEGIDOS = ["Gerente"];
 // Ej: página 1 → startIndex=0, página 2 → startIndex=5
 const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex = 0 }) => {
   const thStyle = {
-    padding: "14px 20px",
+    padding: "14px 18px",
     textAlign: "left",
     fontSize: "13px",
     fontWeight: "500",
@@ -18,7 +18,7 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
   };
 
   const tdStyle = {
-    padding: "16px 20px",
+    padding: "16px 18px",
     fontSize: "14px",
     color: "#333",
     borderBottom: "1px solid #f1f1f1",
@@ -37,12 +37,12 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
           <thead>
             <tr>
-              <th style={thStyle}>Nombre del rol</th>
-              <th style={thStyle}>Descripción</th>
-              <th style={thStyle}>Acciones</th>
+              <th style={{ ...thStyle, width: "24%" }}>Nombre del rol</th>
+              <th style={{ ...thStyle, width: "56%" }}>Descripción</th>
+              <th style={{ ...thStyle, width: "20%" }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -58,18 +58,18 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
 
-                  <td style={tdStyle}>
-                    {rol.nombre && rol.nombre.length > 12 ? rol.nombre.slice(0, 12) + "..." : rol.nombre}
+                  <td style={{ ...tdStyle, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {rol.nombre && rol.nombre.length > 20 ? rol.nombre.slice(0, 20) + "..." : rol.nombre}
                   </td>
 
-                  <td style={tdStyle}>
-                    {rol.descripcion && rol.descripcion.length > 110
-                      ? rol.descripcion.slice(0, 30) + "..."
+                  <td style={{ ...tdStyle, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {rol.descripcion && rol.descripcion.length > 140
+                      ? rol.descripcion.slice(0, 140) + "..."
                       : rol.descripcion}
                   </td>
 
                   {/* Acciones */}
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, overflow: "hidden", textOverflow: "ellipsis" }}>
                     {protegido ? (
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <button onClick={() => onView(rol)} title="Ver detalles del rol"
