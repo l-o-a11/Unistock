@@ -184,7 +184,7 @@ const SedesPage = () => {
   const { page: currentPage, totalPages } = pagination;
 
   const getPageNumbers = () => {
-    if (totalPages <= 5)
+    if (totalPages <= 7)
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");

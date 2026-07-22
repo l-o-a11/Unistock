@@ -309,7 +309,7 @@ const RolesPage = () => {
 
   // ── Pagination visual ─────────────────────────────
   const getPageNumbers = () => {
-    if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
+    if (totalPages <= 7) return [...Array(totalPages)].map((_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
     for (

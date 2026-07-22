@@ -282,8 +282,7 @@ const SuppliesPage = () => {
     }
   };
 
-  const handleView = (supply, displayId) =>
-    setSelectedSupply({ ...supply, displayId });
+  const handleView = (supply) => setSelectedSupply(supply);
 
   const handleDelete = async (id) => {
     const supply = supplies.find((s) => s.id === id);
@@ -404,7 +403,6 @@ const SuppliesPage = () => {
 
       /* ── Columnas ── */
       ws.columns = [
-        { key: "id", width: 10 },
         { key: "nombre", width: 30 },
         { key: "categoria", width: 20 },
         { key: "medida", width: 16 },
@@ -419,7 +417,7 @@ const SuppliesPage = () => {
         pattern: "solid",
         fgColor: { argb: ARGB(hex) },
       });
-      const thinBorder = (hex = "#ffffff") => {
+      const thinBorder = (hex = "#FF4FD6") => {
         const c = { style: "thin", color: { argb: ARGB(hex) } };
         return { top: c, bottom: c, left: c, right: c };
       };
@@ -446,7 +444,7 @@ const SuppliesPage = () => {
       }
 
       /* ── Fila 1: título (logo ocupa col A visualmente) ── */
-      ws.mergeCells("B1:G1");
+      ws.mergeCells("B1:F1");
       ws.getRow(1).height = 30;
       const titleCell = ws.getCell("B1");
       titleCell.value = "Insumos — Sistema de Gestión UniStock";
@@ -461,32 +459,34 @@ const SuppliesPage = () => {
         vertical: "middle",
         indent: 1,
       };
-      ["A1", "B1", "C1", "D1", "E1", "F1", "G1"].forEach((ref) => {
-        ws.getCell(ref).fill = fillSolid("#FDF6FF");
+      ["A1", "B1", "C1", "D1", "E1", "F1"].forEach((ref) => {
+        ws.getCell(ref).fill = fillSolid("#FFFFFF");
       });
 
       /* ── Fila 2: subtítulo ── */
-      ws.mergeCells("B2:G2");
+      ws.mergeCells("B2:F2");
       ws.getRow(2).height = 18;
       const subCell = ws.getCell("B2");
       subCell.value = `Generado el ${fecha}  ·  ${filteredSupplies.length} insumo${filteredSupplies.length !== 1 ? "s" : ""}`;
       subCell.font = { name: "Arial", size: 10, color: { argb: "#000000" } };
       subCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-      ["A2", "B2", "C2", "D2", "E2", "F2", "G2"].forEach((ref) => {
-        ws.getCell(ref).fill = fillSolid("#FDF6FF");
+      ["A2", "B2", "C2", "D2", "E2", "F2"].forEach((ref) => {
+        ws.getCell(ref).fill = fillSolid("#FFFFFF");
       });
+      ws.getCell("B2").border = {
+        bottom: { style: "thin", color: { argb: ARGB("#FF4FD6") } },
+      };
 
       /* ── Fila 3: separadora ── */
       ws.getRow(3).height = 6;
-      ["A3", "B3", "C3", "D3", "E3", "F3", "G3"].forEach((ref) => {
-        ws.getCell(ref).fill = fillSolid("#ffffff");
+      ["A3", "B3", "C3", "D3", "E3", "F3"].forEach((ref) => {
+        ws.getCell(ref).fill = fillSolid("#FFFFFF");
       });
 
       /* ── Fila 4: encabezados de columnas ── */
       const headerRow = ws.getRow(4);
       headerRow.height = 26;
       const headers = [
-        "ID",
         "Nombre",
         "Categoría",
         "Medida",
@@ -501,15 +501,19 @@ const SuppliesPage = () => {
           name: "Arial",
           size: 11,
           bold: true,
-          color: { argb: "FFFFFFFF" },
+          color: { argb: ARGB("#FF4FD6") },
         };
-        cell.fill = fillSolid("#FF4FD6");
+        cell.fill = fillSolid("#FFFFFF");
         cell.alignment = {
           horizontal: i === 4 || i === 5 ? "right" : "left",
           vertical: "middle",
           indent: i === 4 || i === 5 ? 0 : 1,
         };
+        const pinkThin = { style: "thin", color: { argb: ARGB("#FF4FD6") } };
         cell.border = {
+          top: pinkThin,
+          left: pinkThin,
+          right: pinkThin,
           bottom: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
         };
       });
@@ -518,11 +522,9 @@ const SuppliesPage = () => {
       filteredSupplies.forEach((s, i) => {
         const row = ws.getRow(5 + i);
         row.height = 20;
-        const even = i % 2 === 0;
-        const baseFill = fillSolid(even ? "#FFFFFF" : "#FDF6FF");
+        const baseFill = fillSolid("#FFFFFF");
 
         const values = [
-          `#${s.id ?? ""}`,
           s.nombre || "—",
           getCategoriaNombre(s.categoriaId) || "—",
           getMedidaNombre(s.medidaId) || "—",
@@ -544,15 +546,8 @@ const SuppliesPage = () => {
           cell.font = { name: "Arial", size: 10, color: { argb: "FF374151" } };
         });
 
-        /* ID: magenta bold */
-        row.getCell(1).font = {
-          name: "Arial",
-          size: 10,
-          bold: true,
-          color: { argb: ARGB("#FF4FD6") },
-        };
         /* Stock: morado oscuro bold */
-        row.getCell(6).font = {
+        row.getCell(5).font = {
           name: "Arial",
           size: 10,
           bold: true,
@@ -576,7 +571,7 @@ const SuppliesPage = () => {
         bold: true,
         color: { argb: ARGB("#363636") },
       };
-      totalLabelCell.fill = fillSolid("#ffffff");
+      totalLabelCell.fill = fillSolid("#FFFFFF");
       totalLabelCell.alignment = {
         horizontal: "left",
         vertical: "middle",
@@ -586,7 +581,7 @@ const SuppliesPage = () => {
         top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
       };
 
-      const totalValueCell = totalRow.getCell(6);
+      const totalValueCell = totalRow.getCell(5);
       totalValueCell.value = totalStock;
       totalValueCell.font = {
         name: "Arial",
@@ -594,16 +589,16 @@ const SuppliesPage = () => {
         bold: true,
         color: { argb: ARGB("#a858d6") },
       };
-      totalValueCell.fill = fillSolid("#ffffff");
+      totalValueCell.fill = fillSolid("#FFFFFF");
       totalValueCell.alignment = { horizontal: "right", vertical: "middle" };
       totalValueCell.border = {
         top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
       };
 
       /* Resto de celdas de la fila de totales con el mismo fondo */
-      [1, 3, 4, 5, 7].forEach((col) => {
+      [1, 3, 4, 6].forEach((col) => {
         const c = totalRow.getCell(col);
-        c.fill = fillSolid("#FDF6FF");
+        c.fill = fillSolid("#FFFFFF");
         c.border = {
           top: { style: "medium", color: { argb: ARGB("#FF4FD6") } },
         };
@@ -628,25 +623,23 @@ const SuppliesPage = () => {
       console.error("Error generando Excel:", e);
       try {
         const rows = [
-          [
-            "ID",
-            "Nombre",
-            "Categoría",
-            "Medida",
-            "Valor medida",
-            "Stock",
-            "Estado",
-          ],
-          ...filteredSupplies.map((s) => [
-            `#${s.id ?? ""}`,
-            s.nombre || "",
-            getCategoriaNombre(s.categoriaId) || "",
-            getMedidaNombre(s.medidaId) || "",
-            s.valorMedida ?? "",
-            s.stock ?? 0,
-            s.estado ? "Activo" : "Inactivo",
-          ]),
-        ];
+            [
+              "Nombre",
+              "Categoría",
+              "Medida",
+              "Valor medida",
+              "Stock",
+              "Estado",
+            ],
+            ...filteredSupplies.map((s) => [
+              s.nombre || "",
+              getCategoriaNombre(s.categoriaId) || "",
+              getMedidaNombre(s.medidaId) || "",
+              s.valorMedida ?? "",
+              s.stock ?? 0,
+              s.estado ? "Activo" : "Inactivo",
+            ]),
+          ];
         const csv = rows
           .map((r) =>
             r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","),
@@ -719,7 +712,6 @@ const SuppliesPage = () => {
         const sc = estadoBadge(s.estado);
         return `
         <tr class="${i % 2 === 0 ? "row-even" : "row-odd"}">
-          <td class="td-order"><span class="order-num">#${esc(s.id)}</span></td>
           <td class="td-product">
             <span class="product-name">${esc(s.nombre || "—")}</span>
           </td>
@@ -767,41 +759,32 @@ const SuppliesPage = () => {
   .page { width: 210mm; min-height: 297mm; margin: 0 auto; }
 
   .header {
-    background: #ff4fd67e;
+    background: #ffffff;
+    border-bottom: 3px solid #FF4FD6;
     padding: 24px 32px 22px;
     position: relative;
     overflow: hidden;
   }
-  .header::before {
-    content:''; position:absolute; top:-30px; right:-30px;
-    width:140px; height:140px; border-radius:50%;
-    background:rgba(255,79,214,0.18);
-  }
-  .header::after {
-    content:''; position:absolute; bottom:-20px; right:60px;
-    width:80px; height:80px; border-radius:50%;
-    background:rgba(255,79,214,0.10);
-  }
   .header-top  { display:flex; justify-content:space-between; align-items:flex-start; }
   .brand       { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .brand-logo  { width:32px; height:auto; display:block; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
-  .brand-name  { font-size:11px; font-weight:600; color:rgba(255,255,255,0.6); letter-spacing:0.12em; text-transform:uppercase; }
-  .doc-title   { font-size:22px; font-weight:700; color:#fff; letter-spacing:-0.02em; line-height:1.2; }
-  .doc-subtitle{ font-size:12px; color:rgba(255,255,255,0.65); margin-top:4px; }
+  .brand-name  { font-size:11px; font-weight:600; color:#9ca3af; letter-spacing:0.12em; text-transform:uppercase; }
+  .doc-title   { font-size:22px; font-weight:700; color:#2d1b4e; letter-spacing:-0.02em; line-height:1.2; }
+  .doc-subtitle{ font-size:12px; color:#6b7280; margin-top:4px; }
 
-  .header-meta        { text-align:right; font-size:11px; color:#ffffff; line-height:2; }
-  .header-meta strong { color:#ffffff; font-weight:700; font-size:12px; letter-spacing:0.02em; }
+  .header-meta        { text-align:right; font-size:11px; color:#2d1b4e; line-height:2; }
+  .header-meta strong { color:#2d1b4e; font-weight:700; font-size:12px; letter-spacing:0.02em; }
 
   .doc-id {
-    display:inline-block; background:rgba(255,79,214,0.25); color:#ffffff;
+    display:inline-block; background:#ffffff; color:#FF4FD6;
     font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px;
-    border:1px solid rgba(255,79,214,0.4); margin-top:6px; letter-spacing:0.06em;
+    border:1px solid #FF4FD6; margin-top:6px; letter-spacing:0.06em;
   }
 
   .body { padding: 22px 32px 28px; }
 
   .filter-bar {
-    background:#fdf6ff; border:1px solid #e8d5f5; border-radius:8px;
+    background:#ffffff; border:1px solid #FF4FD6; border-radius:8px;
     padding:8px 14px; margin-bottom:18px; font-size:10px; color:#6b7280;
     display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   }
@@ -809,34 +792,29 @@ const SuppliesPage = () => {
 
   .summary    { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
   .sum-card   {
-    flex:1; min-width:90px; background:#fdf6ff; border:1px solid #e8d5f5;
+    flex:1; min-width:90px; background:#ffffff; border:1px solid #FF4FD6;
     border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:2px;
   }
   .sum-count  { font-size:20px; font-weight:800; line-height:1; color:#FF4FD6; }
   .sum-label  { font-size:9.5px; color:#9ca3af; font-weight:500; text-transform:uppercase; letter-spacing:0.05em; }
 
   .totals-row { display:flex; gap:12px; margin-bottom:22px; }
-  .total-card { flex:1; border-radius:10px; padding:14px 18px; }
-  .tc-a { background:#ffffff; border:1.5px solid #d8b4f8; }
-  .tc-b { background:#fce7f9; border:1.5px solid #f9a8d4; }
+  .total-card { flex:1; border-radius:10px; padding:14px 18px; background:#ffffff; border:1.5px solid #FF4FD6; }
   .total-val   { font-size:26px; font-weight:800; line-height:1; letter-spacing:-0.03em; color:#FF4FD6; }
-  .total-label { font-size:10px; color:#636264; margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
+  .total-label { font-size:10px; color:#6b7280; margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
 
   .section-title {
     font-size:10px; font-weight:700; color:#9ca3af;
     text-transform:uppercase; letter-spacing:0.1em;
     margin-bottom:10px; display:flex; align-items:center; gap:7px;
   }
-  .section-title::after { content:''; flex:1; height:1px; background:#e8d5f5; }
+  .section-title::after { content:''; flex:1; height:1px; background:#FF4FD6; }
 
   table           { width:100%; border-collapse:collapse; font-size:10.5px; }
-  thead tr        { background:#FF4FD6; }
-  thead th        { padding:9px 10px; text-align:left; color:#fff; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
-  thead th:first-child { border-radius:6px 0 0 0; }
-  thead th:last-child  { border-radius:0 6px 0 0; }
-  .row-even       { background:#fff; }
-  .row-odd        { background:#fdf6ff; }
-  tbody tr        { border-bottom:1px solid #f6f6f8; }
+  thead tr        { background:#ffffff; border-bottom:2px solid #FF4FD6; }
+  thead th        { padding:9px 10px; text-align:left; color:#FF4FD6; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+  .row-even, .row-odd { background:#ffffff; }
+  tbody tr        { border-bottom:1px solid #fbcfe8; }
   td              { padding:9px 10px; vertical-align:middle; }
 
   .td-order .order-num    { font-size:12px; font-weight:800; color:#FF4FD6; letter-spacing:-0.02em; }
@@ -852,7 +830,9 @@ const SuppliesPage = () => {
   }
   .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 
-  .footer { background:#ffffff; border-top:2px solid #e8d5f5; padding:14px 32px; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#9ca3af; margin-top:auto; }
+  .divider { border:none; border-top:2px dashed #FF4FD6; margin:22px 0; }
+
+  .footer { background:#ffffff; border-top:2px solid #FF4FD6; padding:14px 32px; display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#6b7280; margin-top:auto; }
   .footer strong { color:#2d1b4e; }
   .footer-sig    { text-align:right; line-height:1.6; }
   .footer-brand  { display:flex; align-items:center; gap:8px; }
@@ -863,11 +843,11 @@ const SuppliesPage = () => {
     .page { width:100%; margin:0; }
     .no-print { display:none !important; }
     thead { display:table-header-group; }
-    tr { page-break-inside:avoid; }
+    tr, .reparto-card { page-break-inside:avoid; }
   }
   .print-bar { display:flex; justify-content:flex-end; padding:12px 32px 0; gap:10px; }
   .btn-print { background:#FF4FD6; color:#fff; border:none; border-radius:8px; padding:9px 20px; font-size:12px; font-weight:700; cursor:pointer; }
-  .btn-close { background:#ffffff; color:#2d1b4e; border:1px solid #e8d5f5; border-radius:8px; padding:9px 16px; font-size:12px; font-weight:600; cursor:pointer; }
+  .btn-close { background:#ffffff; color:#2d1b4e; border:none; border-radius:8px; padding:9px 16px; font-size:12px; font-weight:600; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -881,24 +861,22 @@ const SuppliesPage = () => {
       <div>
         <div class="brand">
           <img src="${putongasLogoUrl}" class="brand-logo" alt="Putongas" />
-          <span class="brand-name">UniStock</span>
+          <span class="brand-name">UniStock · Inventario</span>
         </div>
         <div class="doc-title">Reporte de Insumos</div>
-        <div class="doc-subtitle">${filteredSupplies.length} insumo${filteredSupplies.length !== 1 ? "s" : ""} en el inventario</div>
-        <div class="doc-id">INSUMOS-${now.getTime().toString().slice(-6)}</div>
+        <div class="doc-subtitle">Informe administrativo de insumos</div>
       </div>
       <div class="header-meta">
-        <div><strong>${fecha}</strong></div>
-        <div>${hora}</div>
+        <div><strong>Fecha:</strong> ${fecha}</div>
+        <div><strong>Hora:</strong> ${hora}</div>
+        <div><strong>Total insumos:</strong> ${filteredSupplies.length}</div>
+        <div><span class="doc-id">INS-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}</span></div>
       </div>
     </div>
   </div>
 
   <div class="body">
-    ${filterInfo ? `<div class="filter-bar">🔍 ${filterInfo}</div>` : ""}
-
-    <div class="section-title">Resumen por estado</div>
-    <div class="summary">${summaryCards}</div>
+    ${filterInfo ? `<div class="filter-bar"><strong>Filtros aplicados:</strong> ${filterInfo}</div>` : ''}
 
     <div class="totals-row">
       <div class="total-card tc-a">
@@ -911,33 +889,42 @@ const SuppliesPage = () => {
       </div>
     </div>
 
-    <div class="section-title">Detalle de insumos</div>
+    <div class="section-title">Desglose por estado</div>
+    <div class="summary">${summaryCards}</div>
+
+    <div class="section-title" style="margin-top:4px;">Detalle de insumos</div>
     <table>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Nombre</th>
+          <th style="width:220px">Nombre</th>
           <th>Categoría</th>
-          <th>Medida</th>
-          <th>Valor medida</th>
-          <th>Stock</th>
-          <th>Estado</th>
+          <th style="width:90px">Medida</th>
+          <th style="text-align:right;width:80px">Valor medida</th>
+          <th style="text-align:right;width:64px">Stock</th>
+          <th style="width:110px">Estado</th>
         </tr>
       </thead>
       <tbody>
-        ${tableRows}
+        ${tableRows || '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af;">Sin insumos para mostrar</td></tr>'}
       </tbody>
     </table>
+
+    <hr class="divider"/>
+
   </div>
 
   <div class="footer">
     <div class="footer-brand">
       <img src="${putongasLogoUrl}" class="footer-logo" alt="Putongas" />
-      <span>UniStock — Sistema de Gestión</span>
+      <div>
+        <strong>UniStock · Sistema de Gestión</strong><br/>
+        Documento generado automáticamente · ${fecha} ${hora}
+      </div>
     </div>
     <div class="footer-sig">
-      <div><strong>Generado automáticamente</strong></div>
-      <div>${fecha} · ${hora}</div>
+      <strong>Firma responsable:</strong><br/>
+      ___________________________<br/>
+      Cargo: ____________________
     </div>
   </div>
 </div>
@@ -959,7 +946,7 @@ const SuppliesPage = () => {
 
   // ── Paginación visual ──────────────────────────────────────────────────────
   const getPageNumbers = () => {
-    if (totalPages <= 5)
+    if (totalPages <= 7)
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [1];
     if (currentPage > 3) pages.push("...");
