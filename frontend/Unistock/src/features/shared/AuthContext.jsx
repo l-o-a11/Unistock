@@ -200,7 +200,14 @@ export const AuthProvider = ({ children }) => {
   const canAccess = (rutaSegmento) => {
     if (!user) return false;
     const rolNombre = (user.rolNombre ?? "").toLowerCase();
-    if (rolNombre === "gerente" || rolNombre === "administrador") return true;
+    // Solo "Gerente" tiene acceso total sin mirar permisos. Antes "administrador"
+    // también hacía bypass completo, lo que dejaba ver Usuarios sin importar los
+    // permisos asignados al rol — ahora un admin de sede pasa por la validación
+    // normal de permisos como cualquier otro rol.
+    if (rolNombre === "gerente") return true;
+    // Usuarios es exclusivo de Gerente, sin excepción (aunque el rol tenga
+    // el módulo marcado por error al crearlo).
+    if (rutaSegmento === "usuarios") return false;
     const moduloId = ROUTE_MODULE_MAP[rutaSegmento];
     if (moduloId === undefined) return true;
     return permisos.includes(moduloId);
@@ -214,7 +221,7 @@ export const AuthProvider = ({ children }) => {
   const getFirstAccessibleRoute = (u = user) => {
     if (!u) return "/";
     const rolNombre = (u.rolNombre ?? "").toLowerCase();
-    if (rolNombre === "gerente" || rolNombre === "administrador") return "/layout/dashboard";
+    if (rolNombre === "gerente") return "/layout/dashboard";
     const ORDER = [
       "dashboard", "usuarios", "roles", "sedes", "insumos",
       "categorias de insumos", "proveedores", "compras",
