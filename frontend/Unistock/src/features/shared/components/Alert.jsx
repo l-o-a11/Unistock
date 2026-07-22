@@ -183,7 +183,7 @@ const Alert = ({
               {title}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", textAlign: "center", lineHeight: 1.6 }}>
+          <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", textAlign: "center", lineHeight: 1.6, wordBreak: "break-word" }}>
             {message}
           </p>
         </div>

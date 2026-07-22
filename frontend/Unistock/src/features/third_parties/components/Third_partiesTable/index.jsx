@@ -104,7 +104,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
                   style={{
                     cursor: 'pointer',
                     background: isSelected
-                      ? 'linear-gradient(90deg,#fff0fb,#fce7f3)'
+                      ? 'linear-gradient(90deg,#FdF4ff)'
                       : 'transparent',
                     borderLeft: isSelected ? '3px solid #FF4FD6' : '3px solid transparent',
                     transition: 'all 0.12s',
