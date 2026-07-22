@@ -16,7 +16,7 @@ import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 
 const ProductsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const { products, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
+  const { products, loading, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -661,6 +661,77 @@ const ProductsPage = () => {
     zIndex: 1002,
     pointerEvents: 'auto'
   };
+
+  // ── Estado de carga inicial ────────────────────────────────────────────
+  // El skeleton replica el layout del header, buscador y barra de acciones
+  // para que no haya "salto" visual cuando los datos ya cargaron.
+  if (loading && products.length === 0) return (
+    <div style={{ padding: isMobile ? '16px 12px' : '24px 32px' }}>
+      <style>{`
+        @keyframes ploadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
+        @keyframes pskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
+
+      {/* HEADER: título + search */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '12px' : '0px',
+        marginBottom: '20px',
+      }}>
+        <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
+          Productos
+        </h1>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: '4px' }}>
+          <div style={{
+            width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
+            background: '#f3f4f6', border: '1px solid #e5e7eb',
+            animation: 'pskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+          <div style={{
+            width: 260, height: 11, borderRadius: 6, background: '#f3f4f6',
+            animation: 'pskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+        </div>
+      </div>
+
+      {/* BARRA BLANCA CON EXPORTAR + BOTÓN AGREGAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: isMobile ? 'flex-start' : 'space-between',
+        flexDirection: isMobile ? 'column' : 'row',
+        width: '100%',
+        backgroundColor: '#ffffff',
+        borderRadius: '10px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        padding: '12px 20px',
+        marginBottom: '20px',
+        gap: isMobile ? '10px' : '0px',
+      }}>
+        <div style={{
+          width: 84, height: 18, borderRadius: 6, background: '#f3f4f6',
+          animation: 'pskeleton-pulse 1.6s ease-in-out infinite',
+        }} />
+        <div style={{
+          width: 168, height: 38, borderRadius: 20,
+          background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
+          opacity: 0.4, animation: 'pskeleton-pulse 1.6s ease-in-out infinite',
+        }} />
+      </div>
+
+      {/* barra de progreso */}
+      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: 0, height: '100%', borderRadius: 99,
+          background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)',
+          animation: 'ploadbar 1.6s ease-in-out infinite',
+        }} />
+      </div>
+    </div>
+  );
 
   return (
     <div style={{
