@@ -128,7 +128,7 @@ const NavContent = ({ isMobile, isExpanded, visibleMenuItems, showBottomItem, ac
 export default function Sidebar() {
   const { canAccess, loading } = useAuthContext();
   const isMobile    = useIsMobile();
-  const [expanded,      setExpanded]      = useState(false);
+  const [expanded,      setExpanded]      = useState(true); // entra desplegado por defecto
   const [mobileOpen,    setMobileOpen]    = useState(false);
   const [activeMenu,    setActiveMenu]    = useState(null);
   const [openSubmenu,   setOpenSubmenu]   = useState(null);
