@@ -100,8 +100,16 @@ const ShoppingTable = ({
                       {/* Ver */}
                       <button onClick={() => onView(shopping)} title="Ver detalles"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#fdf4ff";
+                          e.currentTarget.style.color = "#FF4FD6";
+                          e.currentTarget.style.borderColor = "#FF4FD6";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#fff";
+                          e.currentTarget.style.color = "#555";
+                          e.currentTarget.style.borderColor = "#e5e7eb";
+                        }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
                           <line x1="12" y1="8" x2="12" y2="8.5" strokeWidth="2.5" />

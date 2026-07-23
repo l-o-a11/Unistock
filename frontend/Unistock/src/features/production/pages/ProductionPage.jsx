@@ -9,7 +9,6 @@ import Alert from '../../shared/components/Alert';
 import Button from '../../shared/components/Button';
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 import { useSedeScope } from '../../shared/hooks/useSedeScope';
-import { useSedes } from '../../sedes/hooks/useSedes';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
 
@@ -84,12 +83,32 @@ const ProductionsSkeleton = () => (
           <div style={{ width: 36, height: 34, borderRadius: 8, background: '#f3f4f6', border: '1.5px solid #e5e7eb', animation: 'uskeleton-pulse 1.6s ease-in-out infinite' }} />
         </div>
       </div>
- <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+
+      {/* Tarjeta de tabla — mismo contenedor blanco redondeado */}
+      <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', padding: '20px 24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} style={{
+              height: 42, borderRadius: 8, background: i % 2 === 0 ? '#f9fafb' : '#fdf6ff',
+              animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+              animationDelay: `${i * 0.07}s`,
+            }} />
+          ))}
+        </div>
+        <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
         </div>
-     
+      </div>
 
-      
+      {/* Paginación */}
+      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6 }}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} style={{
+            width: 30, height: 30, borderRadius: 6, background: '#f3f4f6', border: '1px solid #e5e7eb',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite', animationDelay: `${i * 0.05}s`,
+          }} />
+        ))}
+      </div>
     </div>
   </div>
 );
@@ -128,9 +147,7 @@ const ProductionsPage = () => {
   // asignada (sedeAsignaciones), es decir, lo que ya le llegó a su tienda.
   // Las órdenes que aún no han llegado a la etapa de Recepción no tienen
   // sede asignada todavía, así que no aparecen para el admin de sede.
-  const { isGerente, sedeId } = useSedeScope();
-  const { sedes } = useSedes();
-  const miSedeNombre = sedes.find((s) => String(s.id) === String(sedeId))?.nombre;
+  const { isGerente, isAdministrador, sedeId, user } = useSedeScope();
 
   const itemsPerPage = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
@@ -174,10 +191,20 @@ const ProductionsPage = () => {
       matchesDate = inRange(parseDate(prod?.deliveryDate)) || inRange(parseDate(prod?.statusDate));
     }
 
-    const hasSedeAssignments = Array.isArray(prod?.sedeAsignaciones) && prod.sedeAsignaciones.length > 0;
+    // 🔒 Alcance de visibilidad en 3 niveles:
+    //  - Gerente: ve todo.
+    //  - Administrador (de sede): ve las órdenes de SU sede desde que se
+    //    crean (prod.sedeId, elegida al crear la orden) — sin importar en
+    //    qué etapa vayan, porque necesita ver el proceso completo para
+    //    asignar a sus empleados en cada etapa.
+    //  - Cualquier otro rol (empleado, ej. "Corte", "Ficha Técnica"): solo
+    //    ve la orden si ÉL es el empleado asignado a la etapa ACTUAL
+    //    (empleadoAsignadoId). No ve el resto del flujo de producción.
     const matchesSede = isGerente
-      || !hasSedeAssignments
-      || prod.sedeAsignaciones.some((a) => a.option === miSedeNombre);
+      ? true
+      : isAdministrador
+        ? String(prod?.sedeId) === String(sedeId)
+        : String(prod?.empleadoAsignadoId) === String(user?.id);
 
     return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault && matchesSede;
   });

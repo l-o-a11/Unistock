@@ -177,6 +177,7 @@ export const useProductions = () => {
         fromDamaged: productionData.fromDamaged || false,
         originalOrderNumber: productionData.originalOrderNumber || null,
         originalOrderStatus: productionData.originalOrderStatus || null,
+        sedeId: productionData.sedeId || null,
       };
 
       const newOrder = await ProductionAPIClient.createOrder(backendData);
