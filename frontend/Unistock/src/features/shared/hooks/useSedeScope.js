@@ -19,3 +19,10 @@ export const useSedeScope = () => {
     const sedeId = user?.sedeId ?? null;
     return { isGerente, sedeId, user };
 };
+
+export const isVisibleBySede = (record, isGerente, sedeId) => {
+    if (isGerente) return true;
+    if (!record) return false;
+    const recordSedeId = record.sedeId ?? record.sede ?? null;
+    return !recordSedeId || String(recordSedeId) === String(sedeId);
+};

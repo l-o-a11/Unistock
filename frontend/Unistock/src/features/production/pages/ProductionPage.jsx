@@ -174,8 +174,10 @@ const ProductionsPage = () => {
       matchesDate = inRange(parseDate(prod?.deliveryDate)) || inRange(parseDate(prod?.statusDate));
     }
 
+    const hasSedeAssignments = Array.isArray(prod?.sedeAsignaciones) && prod.sedeAsignaciones.length > 0;
     const matchesSede = isGerente
-      || (prod?.sedeAsignaciones || []).some((a) => a.option === miSedeNombre);
+      || !hasSedeAssignments
+      || prod.sedeAsignaciones.some((a) => a.option === miSedeNombre);
 
     return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault && matchesSede;
   });

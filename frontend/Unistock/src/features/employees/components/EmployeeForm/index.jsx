@@ -15,11 +15,17 @@ const sectionTitle = (t) => (
     <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '18px 0 10px' }}>{t}</p>
 );
 
-const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
+const EmployeeForm = ({ employee, roles, sedes, currentSedeId, isGerente = false, onSubmit, onCancel }) => {
     const modalRef = useRef(null);
 
-    const [formData, setFormData] = useState(() => employee ?? {
-        documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '',
+    const [formData, setFormData] = useState(() => {
+        const initial = employee ?? {
+            documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '',
+        };
+        if (!employee && !isGerente && currentSedeId) {
+            return { ...initial, sede: currentSedeId };
+        }
+        return initial;
     });
     const [errors, setErrors] = useState({});
     const [sending, setSending] = useState(false);
@@ -209,15 +215,21 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
 
                                 <div>
                                     <label style={labelStyle}>Sede <span style={requiredStar}>*</span></label>
-                                    <select
+                                            <select
                                         name="sede" value={formData.sede} onChange={handleChange}
                                         onBlur={(e) => validateField('sede', e.target.value)}
+                                        disabled={!isGerente}
                                         style={getInputStyleBox(errors.sede)}
                                     >
                                         <option value="">Seleccionar sede...</option>
                                         {sedes?.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                                     </select>
                                     {errors.sede && <span style={errMsg}>⚠ {errors.sede}</span>}
+                                    {!isGerente && !employee && currentSedeId && (
+                                        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#6b7280' }}>
+                                            El empleado se creará en tu sede asignada.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 

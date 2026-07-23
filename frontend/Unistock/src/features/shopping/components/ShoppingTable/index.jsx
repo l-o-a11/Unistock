@@ -49,7 +49,7 @@ const ShoppingTable = ({
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["ID", "Fecha", "N° Factura", "Proveedor", "Observaciones", "Costo total", "Estado", "Acciones"].map((h) => (
+              {["Fecha", "N° Factura", "Proveedor", "Observaciones", "Costo total", "Estado", "Acciones"].map((h) => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
@@ -66,8 +66,6 @@ const ShoppingTable = ({
                 <tr key={shopping.id} style={{ transition: "background 0.15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
-
-                  <td style={tdStyle}>{shopping.consecutivo ?? shopping.id}</td>
 
                   <td style={tdStyle}>
                     {shopping.fecha ? new Date(shopping.fecha).toLocaleDateString("es-CO") : "—"}

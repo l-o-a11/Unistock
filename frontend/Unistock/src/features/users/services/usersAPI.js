@@ -10,11 +10,29 @@ const internal = {
     }
   },
 
-  // Igual que getUsers pero excluye Gerente y Administrador directamente en MongoDB
+  // Obtener empleados: devuelve los usuarios que no son Gerente/Administrador.
+  // La API puede no soportar el query param `excludeRoleNames`, así que usamos
+  // GET /users y filtramos en frontend para evitar 403 inesperados.
   getEmployees: async () => {
     try {
-      const res = await get("/users?excludeRoleNames=Gerente,Administrador");
-      return res?.data ?? res;
+      const res = await get("/users");
+      const users = res?.data ?? res;
+      if (!Array.isArray(users)) return [];
+
+      const excludedRoleNames = ["gerente", "administrador", "admin"];
+      const getRoleName = (user) => {
+        if (!user) return "";
+        if (typeof user.rolNombre === "string") return user.rolNombre;
+        if (typeof user.rol === "string") return user.rol;
+        if (typeof user.rol?.nombre === "string") return user.rol.nombre;
+        if (typeof user.rol?.name === "string") return user.rol.name;
+        return "";
+      };
+
+      return users.filter((user) => {
+        const roleName = getRoleName(user).toString().toLowerCase().trim();
+        return !excludedRoleNames.includes(roleName);
+      });
     } catch (err) {
       throw err?.data || err;
     }
