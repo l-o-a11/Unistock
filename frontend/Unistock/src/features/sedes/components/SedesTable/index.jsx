@@ -8,7 +8,7 @@ const SedeTable = ({
   onToggle,
 }) => {
   const thStyle = {
-    padding: "14px 20px",
+    padding: "14px 16px",
     textAlign: "left",
     fontSize: "13px",
     fontWeight: "500",
@@ -19,11 +19,13 @@ const SedeTable = ({
   };
 
   const tdStyle = {
-    padding: "16px 20px",
+    padding: "16px 16px",
     fontSize: "14px",
     color: "#333",
     borderBottom: "1px solid #f1f1f1",
     whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   };
 
   if (sedes.length === 0) {
@@ -38,11 +40,18 @@ const SedeTable = ({
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
           <thead>
             <tr>
-              {[ "Nombre", "Ciudad", "Barrio", "Dirección", "Teléfono", "Acciones"].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
+              {[ 
+                { label: "Nombre", width: "18%" },
+                { label: "Ciudad", width: "14%" },
+                { label: "Barrio", width: "14%" },
+                { label: "Dirección", width: "28%" },
+                { label: "Teléfono", width: "12%" },
+                { label: "Acciones", width: "14%" },
+              ].map((h) => (
+                <th key={h.label} style={{ ...thStyle, width: h.width }}>{h.label}</th>
               ))}
             </tr>
           </thead>
@@ -56,18 +65,18 @@ const SedeTable = ({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  <td style={tdStyle}>{sede.nombre}</td>
-                  <td style={tdStyle}>{sede.ciudad}</td>
-                  <td style={tdStyle}>{sede.barrio}</td>
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, width: "18%" }}>{sede.nombre}</td>
+                  <td style={{ ...tdStyle, width: "14%" }}>{sede.ciudad}</td>
+                  <td style={{ ...tdStyle, width: "14%" }}>{sede.barrio}</td>
+                  <td style={{ ...tdStyle, width: "28%" }}>
                     {sede.direccion?.length > 30
                       ? sede.direccion.slice(0, 30) + "..."
                       : sede.direccion}
                   </td>
-                  <td style={tdStyle}>{sede.telefono}</td>
+                  <td style={{ ...tdStyle, width: "12%" }}>{sede.telefono}</td>
 
                   {/* Acciones */}
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, width: "14%" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
 
                      

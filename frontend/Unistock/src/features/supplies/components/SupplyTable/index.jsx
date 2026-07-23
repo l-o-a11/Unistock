@@ -12,7 +12,7 @@ const SupplyTable = ({
   startIndex = 0,
 }) => {
   const thStyle = {
-    padding: "14px 20px",
+    padding: "14px 16px",
     textAlign: "left",
     fontSize: "13px",
     fontWeight: "500",
@@ -23,11 +23,13 @@ const SupplyTable = ({
   };
 
   const tdStyle = {
-    padding: "16px 20px",
+    padding: "16px 16px",
     fontSize: "14px",
     color: "#333",
     borderBottom: "1px solid #f1f1f1",
     whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   };
 
   if (supplies.length === 0) {
@@ -58,20 +60,20 @@ const SupplyTable = ({
       }}
     >
       <div style={{ overflowX: "visible" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
           <thead>
             <tr>
               {[
-                "Imagen",
-                "ID",
-                "Nombre del insumo",
-                "Categoría",
-                "Stock",
-                "Medida",
-                "Acciones",
+                { label: "Imagen", width: "7%" },
+                { label: "ID", width: "5%" },
+                { label: "Nombre del insumo", width: "24%" },
+                { label: "Categoría", width: "16%" },
+                { label: "Stock", width: "8%" },
+                { label: "Medida", width: "14%" },
+                { label: "Acciones", width: "16%" },
               ].map((h) => (
-                <th key={h} style={thStyle}>
-                  {h}
+                <th key={h.label} style={{ ...thStyle, width: h.width }}>
+                  {h.label}
                 </th>
               ))}
             </tr>
@@ -91,7 +93,7 @@ const SupplyTable = ({
                   }
                 >
                   {/* Imagen */}
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, width: "7%" }}>
                     <div className="relative group w-fit">
                       {/* Imagen pequeña */}
                       {supply.imagen ? (
@@ -146,22 +148,22 @@ const SupplyTable = ({
                     </div>
                   </td>
 
-                  <td style={tdStyle}>{startIndex + index + 1}</td>
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, width: "5%" }}>{startIndex + index + 1}</td>
+                  <td style={{ ...tdStyle, width: "24%" }}>
                     {supply.nombre?.length > 30
                       ? supply.nombre.slice(0, 30) + "..."
                       : supply.nombre}
                   </td>
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, width: "16%" }}>
                     {getCategoriaNombre(supply.categoriaId)}
                   </td>
-                  <td style={tdStyle}>{supply.stock}</td>
+                  <td style={{ ...tdStyle, width: "8%" }}>{supply.stock}</td>
                   <td
-                    style={tdStyle}
+                    style={{ ...tdStyle, width: "14%" }}
                   >{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
 
                   {/* Acciones */}
-                  <td style={tdStyle}>
+                  <td style={{ ...tdStyle, width: "16%" }}>
                     <div
                       style={{
                         display: "flex",

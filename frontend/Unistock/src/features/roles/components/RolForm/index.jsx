@@ -87,11 +87,13 @@ const onBlurField = (e) => {
 // RolForm
 // ─────────────────────────────────────────────────
 const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     nombre: rol?.nombre || '',
     descripcion: rol?.descripcion || '',
     modulos: rol?.modulos || [],
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const [errors, setErrors] = useState({});
   const [moduloSeleccionado, setModuloSeleccionado] = useState('');
@@ -232,7 +234,23 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   };
 
   const handleCancel = () => {
-    showAlert('confirm', '¿Cancelar?', '¿Seguro que deseas cancelar? Los cambios no guardados se perderán.', () => {
+    const hasChanges = Object.keys(initialFormData).some((key) => {
+      const currentValue = formData[key];
+      const initialValue = initialFormData[key];
+
+      if (Array.isArray(currentValue) || Array.isArray(initialValue)) {
+        return JSON.stringify(currentValue) !== JSON.stringify(initialValue);
+      }
+
+      return String(currentValue ?? '').trim() !== String(initialValue ?? '').trim();
+    });
+
+    if (!hasChanges) {
+      onCancel?.();
+      return;
+    }
+
+    showAlert('confirm', '¿Cancelar?', 'Los cambios realizados se perderán.', () => {
       closeAlert();
       onCancel?.();
     });

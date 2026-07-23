@@ -8,13 +8,15 @@ import DamagedProductsModal from '../components/DamagedProductsModal';
 import Alert from '../../shared/components/Alert';
 import Button from '../../shared/components/Button';
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
+import { useSedeScope } from '../../shared/hooks/useSedeScope';
+import { useSedes } from '../../sedes/hooks/useSedes';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
 
 /* ─── Paleta empresa UniStock ───────────────────────────────────────────── */
 const DARK1 = '#FF4FD6';
 const DARK3 = '#cab8ec';
-const PINK  = '#FF4FD6';
+const PINK = '#FF4FD6';
 
 /* ══════════════════════════════════════════════════════════════════════
  * SKELETON — reproduce EXACTAMENTE el layout ya cargado (header, tabs,
@@ -82,32 +84,12 @@ const ProductionsSkeleton = () => (
           <div style={{ width: 36, height: 34, borderRadius: 8, background: '#f3f4f6', border: '1.5px solid #e5e7eb', animation: 'uskeleton-pulse 1.6s ease-in-out infinite' }} />
         </div>
       </div>
-
-      {/* Tarjeta de tabla — mismo contenedor blanco redondeado */}
-      <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', padding: '20px 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-          {[...Array(6)].map((_, i) => (
-            <div key={i} style={{
-              height: 42, borderRadius: 8, background: i % 2 === 0 ? '#f9fafb' : '#fdf6ff',
-              animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
-              animationDelay: `${i * 0.07}s`,
-            }} />
-          ))}
-        </div>
-        <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+ <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
         </div>
-      </div>
+     
 
-      {/* Paginación */}
-      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6 }}>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} style={{
-            width: 30, height: 30, borderRadius: 6, background: '#f3f4f6', border: '1px solid #e5e7eb',
-            animation: 'uskeleton-pulse 1.6s ease-in-out infinite', animationDelay: `${i * 0.05}s`,
-          }} />
-        ))}
-      </div>
+      
     </div>
   </div>
 );
@@ -123,27 +105,36 @@ const ProductionsPage = () => {
     changeProductionStatus,
   } = useProductions();
 
-  const [activeTab,       setActiveTab]       = useState('producciones');
-  const [searchTerm,      setSearchTerm]      = useState('');
-  const [filterStatus,    setFilterStatus]    = useState('Todos');
-  const [filterClient,    setFilterClient]    = useState('Todos');
-  const [filterDateFrom,  setFilterDateFrom]  = useState('');
-  const [filterDateTo,    setFilterDateTo]    = useState('');
-  const [currentPage,     setCurrentPage]     = useState(1);
+  const [activeTab, setActiveTab] = useState('producciones');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Todos');
+  const [filterClient, setFilterClient] = useState('Todos');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const [cancelModal,     setCancelModal]     = useState({ open: false, id: null, motivo: '' });
-  const [motivoError,     setMotivoError]     = useState('');
-  const [damagedModal,    setDamagedModal]    = useState({ open: false, production: null });
-  const [damagedOrderForm,setDamagedOrderForm]= useState({ open: false, initialData: null, notice: null });
-  const [creatingNewOrder,setCreatingNewOrder]= useState(false);
-  const [showCreateForm,  setShowCreateForm]  = useState(false);
-  const [downloadModal,   setDownloadModal]   = useState(false);
-  const [cancelAlert,     setCancelAlert]     = useState({ open: false, type: 'success', title: '', message: '' });
-  const [isCancelling,   setIsCancelling]    = useState(false);
+  const [cancelModal, setCancelModal] = useState({ open: false, id: null, motivo: '' });
+  const [motivoError, setMotivoError] = useState('');
+  const [damagedModal, setDamagedModal] = useState({ open: false, production: null });
+  const [damagedOrderForm, setDamagedOrderForm] = useState({ open: false, initialData: null, notice: null });
+  const [creatingNewOrder, setCreatingNewOrder] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [downloadModal, setDownloadModal] = useState(false);
+  const [cancelAlert, setCancelAlert] = useState({ open: false, type: 'success', title: '', message: '' });
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  const itemsPerPage  = 7;
+  // 🔒 Alcance de sede: Gerente ve todas las órdenes; cualquier otro rol
+  // (ej. Administrador de sede) solo ve órdenes que YA tengan su sede
+  // asignada (sedeAsignaciones), es decir, lo que ya le llegó a su tienda.
+  // Las órdenes que aún no han llegado a la etapa de Recepción no tienen
+  // sede asignada todavía, así que no aparecen para el admin de sede.
+  const { isGerente, sedeId } = useSedeScope();
+  const { sedes } = useSedes();
+  const miSedeNombre = sedes.find((s) => String(s.id) === String(sedeId))?.nombre;
+
+  const itemsPerPage = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
-  const uniqueClients  = ['Todos', ...new Set((productions || []).map(p => p.client).filter(Boolean))];
+  const uniqueClients = ['Todos', ...new Set((productions || []).map(p => p.client).filter(Boolean))];
 
   const parseDate = (str) => {
     if (!str) return null;
@@ -162,35 +153,39 @@ const ProductionsPage = () => {
       String(prod?.orderNumber || ''), String(prod?.quantity || ''),
     ].some(v => (v || '').toLowerCase().includes(term))
       || (prod?.details || []).some(d =>
-          [d?.ref, d?.refCorte, d?.color, d?.status].some(v => (v || '').toLowerCase().includes(term)))
+        [d?.ref, d?.refCorte, d?.color, d?.status].some(v => (v || '').toLowerCase().includes(term)))
       || (prod?.history || []).some(h => (h?.motivo || '').toLowerCase().includes(term));
 
-    const matchesStatus      = filterStatus === 'Todos' || prod?.status === filterStatus;
-    const visibleByDefault   = filterStatus === 'Todos' ? !HIDDEN_STATUSES.includes(prod?.status) : true;
-    const matchesClient      = filterClient === 'Todos' || prod?.client === filterClient;
+    const matchesStatus = filterStatus === 'Todos' || prod?.status === filterStatus;
+    const visibleByDefault = filterStatus === 'Todos' ? !HIDDEN_STATUSES.includes(prod?.status) : true;
+    const matchesClient = filterClient === 'Todos' || prod?.client === filterClient;
 
     let matchesDate = true;
     if (filterDateFrom || filterDateTo) {
       const from = filterDateFrom ? new Date(filterDateFrom) : null;
-      const to   = filterDateTo   ? new Date(filterDateTo)   : null;
+      const to = filterDateTo ? new Date(filterDateTo) : null;
       const inRange = (d) => {
         if (!d) return false;
         if (from && to) return d >= from && d <= to;
         if (from) return d >= from;
-        if (to)   return d <= to;
+        if (to) return d <= to;
         return true;
       };
       matchesDate = inRange(parseDate(prod?.deliveryDate)) || inRange(parseDate(prod?.statusDate));
     }
-    return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault;
+
+    const matchesSede = isGerente
+      || (prod?.sedeAsignaciones || []).some((a) => a.option === miSedeNombre);
+
+    return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault && matchesSede;
   });
 
-  const totalPages          = Math.max(1, Math.ceil(filteredProductions.length / itemsPerPage));
-  const startIndex          = (currentPage - 1) * itemsPerPage;
+  const totalPages = Math.max(1, Math.ceil(filteredProductions.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProductions = filteredProductions.slice(startIndex, startIndex + itemsPerPage);
 
-  const openCancelModal  = (id) => { setCancelModal({ open: true, id, motivo: '' }); setMotivoError(''); };
-  const closeCancelModal = ()   => { setCancelModal({ open: false, id: null, motivo: '' }); setMotivoError(''); };
+  const openCancelModal = (id) => { setCancelModal({ open: true, id, motivo: '' }); setMotivoError(''); };
+  const closeCancelModal = () => { setCancelModal({ open: false, id: null, motivo: '' }); setMotivoError(''); };
 
   const confirmCancel = async () => {
     if (!cancelModal.motivo.trim()) { setMotivoError('El motivo es obligatorio'); return; }
@@ -220,17 +215,17 @@ const ProductionsPage = () => {
       open: true,
       initialData: {
         referencia: source?.referencia || '',
-        producto:   source?.producto   || '',
-        cantidad:   String(primary.quantity || ''),
-        color:      primary.color || '',
-        cliente:    source?.client || '',
+        producto: source?.producto || '',
+        cantidad: String(primary.quantity || ''),
+        color: primary.color || '',
+        cliente: source?.client || '',
         referencias: damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '', fecha: '' })),
       },
       notice: {
         originalOrderNumber: source?.orderNumber,
         originalOrderStatus: source?.status || 'producción',
-        damagedCount:        damagedDetails.length,
-        totalDamagedQty:     damagedDetails.reduce((s, d) => s + (Number(d.quantity) || 0), 0),
+        damagedCount: damagedDetails.length,
+        totalDamagedQty: damagedDetails.reduce((s, d) => s + (Number(d.quantity) || 0), 0),
       },
     });
   };
@@ -243,15 +238,15 @@ const ProductionsPage = () => {
     try {
       const primary = damagedDetails[0];
       const newOrder = await createProduction({
-        tipo:         'diseno',
-        referencia:   source.referencia || '',
-        producto:     source.producto   || '',
-        cantidad:     String(primary.quantity || ''),
-        color:        primary.color || '',
-        cliente:      source.client || '',
+        tipo: 'diseno',
+        referencia: source.referencia || '',
+        producto: source.producto || '',
+        cantidad: String(primary.quantity || ''),
+        color: primary.color || '',
+        cliente: source.client || '',
         fechaSolicitud: '',
-        referencias:  damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
-        fromDamaged:  true,
+        referencias: damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
+        fromDamaged: true,
       });
       if (newOrder?.id) navigate(`/layout/produccion/detalle/${newOrder.id}`, { state: { openTechSheet: true } });
     } catch (e) {
@@ -287,18 +282,18 @@ const ProductionsPage = () => {
       pageSetup: { orientation: 'landscape', fitToPage: true },
     });
 
-    const now   = new Date();
+    const now = new Date();
     const fecha = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
 
     /* ── Columnas ── */
     ws.columns = [
-      { key: 'orden',    width: 10 },
+      { key: 'orden', width: 10 },
       { key: 'producto', width: 30 },
-      { key: 'cliente',  width: 24 },
-      { key: 'estado',   width: 16 },
+      { key: 'cliente', width: 24 },
+      { key: 'estado', width: 16 },
       { key: 'cantidad', width: 12 },
-      { key: 'color',    width: 16 },
-      { key: 'entrega',  width: 16 },
+      { key: 'color', width: 16 },
+      { key: 'entrega', width: 16 },
     ];
 
     const ARGB = (hex) => 'FF' + hex.replace('#', '').toUpperCase();
@@ -331,7 +326,7 @@ const ProductionsPage = () => {
     titleCell.value = 'Órdenes de Producción — Sistema de Gestión UniStock';
     titleCell.font = { name: 'Arial', size: 15, bold: true, color: { argb: '000000' } };
     titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    ['A1','B1','C1','D1','E1','F1','G1'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#FFFFFF'); });
+    ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#FFFFFF'); });
 
     /* ── Fila 2: subtítulo ── */
     ws.mergeCells('B2:G2');
@@ -340,12 +335,12 @@ const ProductionsPage = () => {
     subCell.value = `Generado el ${fecha}  ·  ${filteredProductions.length} orden${filteredProductions.length !== 1 ? 'es' : ''}`;
     subCell.font = { name: 'Arial', size: 10, color: { argb: '#000000' } };
     subCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    ['A2','B2','C2','D2','E2','F2','G2'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#FFFFFF'); });
+    ['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#FFFFFF'); });
     ws.getCell('B2').border = { bottom: { style: 'thin', color: { argb: ARGB('#FF4FD6') } } };
 
     /* ── Fila 3: separadora ── */
     ws.getRow(3).height = 6;
-    ['A3','B3','C3','D3','E3','F3','G3'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#ffffff'); });
+    ['A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3'].forEach(ref => { ws.getCell(ref).fill = fillSolid('#ffffff'); });
 
     /* ── Fila 4: encabezados de columnas ──
        ✅ Fix: fondo blanco (antes magenta sólido #FF4FD6) — texto en
@@ -377,10 +372,10 @@ const ProductionsPage = () => {
       const values = [
         `#${p.orderNumber || ''}`,
         p.producto || p.referencia || '—',
-        p.client   || '—',
-        p.status   || '—',
+        p.client || '—',
+        p.status || '—',
         p.quantity ?? 0,
-        p.color    || '—',
+        p.color || '—',
         p.deliveryDate || '—',
       ];
 
@@ -400,7 +395,7 @@ const ProductionsPage = () => {
     });
 
     /* ── Fila de totales ── */
-    const totalRowIdx   = filteredProductions.length + 6;
+    const totalRowIdx = filteredProductions.length + 6;
     const totalUnidades = filteredProductions.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
     const totalRow = ws.getRow(totalRowIdx);
 
@@ -429,31 +424,31 @@ const ProductionsPage = () => {
     try {
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/octet-stream' });
-      const url  = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href     = url;
+      link.href = url;
       link.download = 'ordenes-produccion.xlsx';
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error('Error generando Excel:', e);
       const rows = [
-        ['Orden','Producto','Cliente','Estado','Cantidad','Color','F. Entrega'],
+        ['Orden', 'Producto', 'Cliente', 'Estado', 'Cantidad', 'Color', 'F. Entrega'],
         ...filteredProductions.map((p) => [
           `#${p.orderNumber || ''}`,
           p.producto || p.referencia || '',
-          p.client   || '',
-          p.status   || '',
+          p.client || '',
+          p.status || '',
           p.quantity ?? 0,
-          p.color    || '',
+          p.color || '',
           p.deliveryDate || '',
         ]),
       ];
-      const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url  = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href     = url;
+      link.href = url;
       link.download = 'ordenes-produccion.csv';
       link.click();
       URL.revokeObjectURL(url);
@@ -470,9 +465,9 @@ const ProductionsPage = () => {
   const handleDownloadPDF = () => {
     setDownloadModal(false);
 
-    const now   = new Date();
+    const now = new Date();
     const fecha = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
-    const hora  = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const hora = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
     const statusSummary = filteredProductions.reduce((acc, p) => {
       const s = p.status || 'Sin estado';
@@ -481,12 +476,12 @@ const ProductionsPage = () => {
     }, {});
     const totalUnidades = filteredProductions.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
 
-    const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     const statusBadge = () => ({
-      bg:    '#ffffff',
+      bg: '#ffffff',
       color: '#000000',
-      dot:   '#FF4FD6',
+      dot: '#FF4FD6',
     });
 
     const tableRows = filteredProductions.map((p, i) => {
@@ -519,11 +514,11 @@ const ProductionsPage = () => {
     ).join('');
 
     const filterInfo = [
-      filterStatus !== 'Todos' ? `Estado: <strong>${esc(filterStatus)}</strong>`       : '',
-      filterClient !== 'Todos' ? `Cliente: <strong>${esc(filterClient)}</strong>`      : '',
-      filterDateFrom           ? `Desde: <strong>${esc(filterDateFrom)}</strong>`      : '',
-      filterDateTo             ? `Hasta: <strong>${esc(filterDateTo)}</strong>`        : '',
-      searchTerm               ? `Búsqueda: <strong>"${esc(searchTerm)}"</strong>`    : '',
+      filterStatus !== 'Todos' ? `Estado: <strong>${esc(filterStatus)}</strong>` : '',
+      filterClient !== 'Todos' ? `Cliente: <strong>${esc(filterClient)}</strong>` : '',
+      filterDateFrom ? `Desde: <strong>${esc(filterDateFrom)}</strong>` : '',
+      filterDateTo ? `Hasta: <strong>${esc(filterDateTo)}</strong>` : '',
+      searchTerm ? `Búsqueda: <strong>"${esc(searchTerm)}"</strong>` : '',
     ].filter(Boolean).join(' &nbsp;·&nbsp; ');
 
     const html = `<!DOCTYPE html>
@@ -678,7 +673,7 @@ const ProductionsPage = () => {
         <div><strong>Fecha:</strong> ${fecha}</div>
         <div><strong>Hora:</strong> ${hora}</div>
         <div><strong>Total órdenes:</strong> ${filteredProductions.length}</div>
-        <div><span class="doc-id">OP-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}</span></div>
+        <div><span class="doc-id">OP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}</span></div>
       </div>
     </div>
   </div>
@@ -727,8 +722,8 @@ const ProductionsPage = () => {
     <div class="section-title">Tarjetas de reparto</div>
     <div class="reparto-grid">
       ${filteredProductions.map((p) => {
-        const sc = statusBadge();
-        return `
+      const sc = statusBadge();
+      return `
         <div class="reparto-card">
           <div class="reparto-card-header">
             <div>
@@ -755,7 +750,7 @@ const ProductionsPage = () => {
             Verificado por: ____________________________
           </div>
         </div>`;
-      }).join('')}
+    }).join('')}
     </div>
   </div>
 
@@ -793,7 +788,7 @@ const ProductionsPage = () => {
   };
 
   const hasDateFilter = filterDateFrom || filterDateTo;
-  const hasAnyFilter  = searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter;
+  const hasAnyFilter = searchTerm || filterStatus !== 'Todos' || filterClient !== 'Todos' || hasDateFilter;
 
   if (loading && (productions || []).length === 0) return <ProductionsSkeleton />;
 
@@ -877,46 +872,46 @@ const ProductionsPage = () => {
 
       {/* ── Modal descarga ── */}
       {downloadModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1200, padding:'0 16px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1200, padding: '0 16px' }}>
           <div className="download-modal">
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div>
-                <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:DARK1 }}>Descargar órdenes</h3>
-                <p style={{ margin:'3px 0 0', fontSize:12, color:'#888' }}>Elige el formato de exportación</p>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: DARK1 }}>Descargar órdenes</h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>Elige el formato de exportación</p>
               </div>
-              <button onClick={() => setDownloadModal(false)} style={{ border:'none', background:'none', cursor:'pointer', color:'#9ca3af', fontSize:20, lineHeight:1, padding:4 }}>×</button>
+              <button onClick={() => setDownloadModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {/* Excel */}
               <button className="download-opt-btn" onClick={handleDownloadExcel}>
-                <div className="download-opt-icon" style={{ background:'#ffffff' }}>
+                <div className="download-opt-icon" style={{ background: '#ffffff' }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={PINK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
-                    <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" />
+                    <line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
                   </svg>
                 </div>
                 <div>
-                  <p style={{ margin:0, fontSize:13, fontWeight:700, color:DARK1 }}>Excel (.xlsx)</p>
-                  <p style={{ margin:'2px 0 0', fontSize:11, color:'#6b7280' }}>Tabla estilada con colores de la empresa y logo</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: DARK1 }}>Excel (.xlsx)</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>Tabla estilada con colores de la empresa y logo</p>
                 </div>
               </button>
               {/* PDF */}
               <button className="download-opt-btn" onClick={handleDownloadPDF}>
-                <div className="download-opt-icon" style={{ background:'#ffffff' }}>
+                <div className="download-opt-icon" style={{ background: '#ffffff' }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={DARK1} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" />
                   </svg>
                 </div>
                 <div>
-                  <p style={{ margin:0, fontSize:13, fontWeight:700, color:DARK1 }}>PDF</p>
-                  <p style={{ margin:'2px 0 0', fontSize:11, color:'#6b7280' }}>Documento listo para imprimir o compartir, con logo</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: DARK1 }}>PDF</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>Documento listo para imprimir o compartir, con logo</p>
                 </div>
               </button>
             </div>
-            <p style={{ margin:'14px 0 0', fontSize:11, color:'#d1d5db', textAlign:'center' }}>
+            <p style={{ margin: '14px 0 0', fontSize: 11, color: '#d1d5db', textAlign: 'center' }}>
               {filteredProductions.length} orden{filteredProductions.length !== 1 ? 'es' : ''} se exportará{filteredProductions.length !== 1 ? 'n' : ''}
             </p>
           </div>
@@ -925,48 +920,48 @@ const ProductionsPage = () => {
 
       {/* ── Spinner creando orden ── */}
       {creatingNewOrder && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:1500, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'#fff', borderRadius:16, padding:32, display:'flex', flexDirection:'column', alignItems:'center', gap:14, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', margin:'0 16px' }}>
-            <div style={{ width:40, height:40, border:'3px solid #f3f4f6', borderTopColor:PINK, borderRadius:'50%', animation:'pSpin 0.7s linear infinite' }}/>
-            <p style={{ margin:0, fontSize:14, fontWeight:600, color:'#374151' }}>Creando orden de reposición...</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', margin: '0 16px' }}>
+            <div style={{ width: 40, height: 40, border: '3px solid #f3f4f6', borderTopColor: PINK, borderRadius: '50%', animation: 'pSpin 0.7s linear infinite' }} />
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#374151' }}>Creando orden de reposición...</p>
           </div>
         </div>
       )}
 
       {/* ── Modal anulación ── */}
       {cancelModal.open && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:1100, padding:'0 16px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '0 16px' }}>
           <div className="cancel-modal">
-            <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:16 }}>
-              <div style={{ width:42, height:42, borderRadius:'50%', background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="20" height="20" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                  <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
                 </svg>
               </div>
               <div>
-                <h3 style={{ margin:0, fontSize:15, fontWeight:700 }}>Anular orden de producción</h3>
-                <p style={{ margin:'3px 0 0', fontSize:12, color:'#888' }}>Esta acción quedará registrada en el historial.</p>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Anular orden de producción</h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>Esta acción quedará registrada en el historial.</p>
               </div>
             </div>
             {(() => {
               const prod = (productions || []).find(p => p.id === cancelModal.id);
               return prod && DAMAGED_TRIGGER_STEPS.includes(prod.status) ? (
-                <div style={{ padding:'8px 12px', borderRadius:8, background:'#fef3c7', border:'1px solid #fcd34d', marginBottom:14, fontSize:12, color:'#92400e', display:'flex', gap:7, alignItems:'flex-start' }}>
-                  <span style={{ flexShrink:0 }}>⚠️</span>
+                <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fef3c7', border: '1px solid #fcd34d', marginBottom: 14, fontSize: 12, color: '#92400e', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+                  <span style={{ flexShrink: 0 }}>⚠️</span>
                   <span>Esta orden está en <strong>{prod.status}</strong>. Al anularla podrás gestionar los artículos dañados y crear una reposición.</span>
                 </div>
               ) : null;
             })()}
-            <label style={{ fontSize:12, fontWeight:600, color:'#555', display:'block', marginBottom:6 }}>Motivo de anulación *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6 }}>Motivo de anulación *</label>
             <textarea
               value={cancelModal.motivo}
               onChange={(e) => { setCancelModal(p => ({ ...p, motivo: e.target.value })); setMotivoError(''); }}
               placeholder="Describe el motivo..."
               rows={3}
-              style={{ width:'100%', padding:'10px 12px', borderRadius:8, boxSizing:'border-box', border: motivoError ? `2px solid ${PINK}` : '1.5px solid #d1d5db', fontSize:13, resize:'vertical', outline:'none' }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box', border: motivoError ? `2px solid ${PINK}` : '1.5px solid #d1d5db', fontSize: 13, resize: 'vertical', outline: 'none' }}
             />
-            {motivoError && <p style={{ color:PINK, fontSize:11, marginTop:4, fontWeight:'bold' }}>{motivoError}</p>}
-            <div style={{ marginTop:16, display:'flex', justifyContent:'flex-end', gap:10 }}>
+            {motivoError && <p style={{ color: PINK, fontSize: 11, marginTop: 4, fontWeight: 'bold' }}>{motivoError}</p>}
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <Button type="button" variant="secondary" onClick={closeCancelModal} disabled={isCancelling}>Cancelar</Button>
               <Button type="button" variant="danger" onClick={confirmCancel} loading={isCancelling} loadingText="Anulando...">Confirmar anulación</Button>
             </div>
@@ -1001,16 +996,16 @@ const ProductionsPage = () => {
       <div className="prod-root">
         {/* Header */}
         <div className="prod-header">
-          <h1 style={{ fontSize:26, fontWeight:700, margin:0 }}>Orden de producción</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
           <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
         </div>
 
         {/* Tabs */}
-        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-          {['producciones','terceros'].map(tab => (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {['producciones', 'terceros'].map(tab => (
             <button key={tab}
               onClick={() => tab === 'terceros' ? navigate('/Layout/terceros') : setActiveTab(tab)}
-              style={{ padding:'7px 16px', borderRadius:8, border:'none', background: activeTab === tab ? PINK : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor:'pointer', fontWeight:500, fontSize:13, textTransform:'capitalize' }}>
+              style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeTab === tab ? PINK : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor: 'pointer', fontWeight: 500, fontSize: 13, textTransform: 'capitalize' }}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
@@ -1036,33 +1031,33 @@ const ProductionsPage = () => {
 
             <div className={`prod-date-block${hasDateFilter ? ' active' : ''}`}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke={hasDateFilter ? PINK : '#aaa'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink:0 }}>
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
+                stroke={hasDateFilter ? PINK : '#aaa'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
               <input className="prod-date-input" type="date" value={filterDateFrom}
-                onChange={(e) => { setFilterDateFrom(e.target.value); setCurrentPage(1); }} title="Fecha desde"/>
-              <span style={{ fontSize:11, color:'#bbb', fontWeight:500, flexShrink:0 }}>→</span>
+                onChange={(e) => { setFilterDateFrom(e.target.value); setCurrentPage(1); }} title="Fecha desde" />
+              <span style={{ fontSize: 11, color: '#bbb', fontWeight: 500, flexShrink: 0 }}>→</span>
               <input className="prod-date-input" type="date" value={filterDateTo}
-                onChange={(e) => { setFilterDateTo(e.target.value); setCurrentPage(1); }} title="Fecha hasta"/>
+                onChange={(e) => { setFilterDateTo(e.target.value); setCurrentPage(1); }} title="Fecha hasta" />
               {hasDateFilter && (
                 <button onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }}
-                  style={{ border:'none', background:'none', cursor:'pointer', color:PINK, fontSize:15, lineHeight:1, padding:0, marginLeft:2, flexShrink:0 }}>×</button>
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: PINK, fontSize: 15, lineHeight: 1, padding: 0, marginLeft: 2, flexShrink: 0 }}>×</button>
               )}
             </div>
 
             {hasAnyFilter && (
-              <span style={{ fontSize:11, color:PINK, fontWeight:700, whiteSpace:'nowrap' }}>
+              <span style={{ fontSize: 11, color: PINK, fontWeight: 700, whiteSpace: 'nowrap' }}>
                 {filteredProductions.length} resultado{filteredProductions.length !== 1 ? 's' : ''}
               </span>
             )}
             {hasAnyFilter && (
               <button
                 onClick={() => { setSearchTerm(''); setFilterStatus('Todos'); setFilterClient('Todos'); setFilterDateFrom(''); setFilterDateTo(''); setCurrentPage(1); }}
-                style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:7, border:'1.5px solid #fca5a5', background:'#fff5f5', color:'#ef4444', fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, border: '1.5px solid #fca5a5', background: '#fff5f5', color: '#ef4444', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
                 Limpiar
               </button>
@@ -1070,24 +1065,24 @@ const ProductionsPage = () => {
           </div>
 
           <div className="prod-filter-right">
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
               <button type="button" className="btn-agregar" onClick={() => setShowCreateForm(true)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
                 Agregar
               </button>
               <button type="button" className="btn-icon" onClick={() => setDownloadModal(true)} title="Descargar órdenes">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               </button>
               <button type="button" className="btn-icon" onClick={() => navigate('/layout/produccion/calendario')} title="Abrir calendario">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </button>
             </div>
@@ -1095,25 +1090,25 @@ const ProductionsPage = () => {
         </div>
 
         {filterStatus === 'Todos' && (
-          <div style={{ marginTop:-6, marginBottom:10 }}>
+          <div style={{ marginTop: -6, marginBottom: 10 }}>
             <span className="prod-filter-hint">Anuladas y entregadas ocultas</span>
           </div>
         )}
 
-        <div style={{ background:'#fff', borderRadius:10, boxShadow:'0 1px 4px rgba(0,0,0,0.07)', overflowX:'auto' }}>
-          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails}/>
+        <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
+          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} />
         </div>
 
         {/* Paginación */}
-        <div style={{ marginTop:16, display:'flex', justifyContent:'center', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="prod-page-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
           {getPageNumbers().map((p, i) =>
             p === '...'
-              ? <span key={i} style={{ padding:'6px 4px', fontSize:13 }}>…</span>
+              ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
               : <button key={p} className="prod-page-btn" onClick={() => setCurrentPage(p)}
-                  style={{ background: p === currentPage ? PINK : '#fff', color: p === currentPage ? '#fff' : '#333', border: p === currentPage ? `1px solid ${PINK}` : '1px solid #ddd' }}>
-                  {p}
-                </button>
+                style={{ background: p === currentPage ? PINK : '#fff', color: p === currentPage ? '#fff' : '#333', border: p === currentPage ? `1px solid ${PINK}` : '1px solid #ddd' }}>
+                {p}
+              </button>
           )}
           <button className="prod-page-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
         </div>

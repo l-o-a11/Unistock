@@ -8,6 +8,8 @@ import EmployeeForm from "../components/EmployeeForm/index.jsx";
 import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
 import SearchInput from "../../shared/components/SearchInput";
 import Alert from "../../shared/components/Alert";
+import TableSkeleton from "../../shared/components/TableSkeleton";
+import { useSedeScope } from "../../shared/hooks/useSedeScope";
 import { userAPI } from "../../users/services/usersAPI";
 
 const EmployeesPage = () => {
@@ -34,6 +36,17 @@ const EmployeesPage = () => {
   const sedesActivas = sedes.filter((s) => s.estado !== false);
 
   const { searchTerm, handleSearch } = useEmployeeSearch();
+  const { isGerente, sedeId } = useSedeScope();
+
+  // 🔒 Alcance de sede: Gerente ve todos los empleados; cualquier otro rol
+  // (ej. Administrador de sede) solo ve los empleados de su propia sede.
+  const employeesEnMiSede = useMemo(() => {
+    if (!employees) return [];
+    if (isGerente) return employees;
+    return employees.filter(
+      (e) => String(e.sedeId ?? e.sede) === String(sedeId)
+    );
+  }, [employees, isGerente, sedeId]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
@@ -52,11 +65,11 @@ const EmployeesPage = () => {
 
   // 🔎 Filtro
   const filteredEmployees = useMemo(() => {
-    if (!employees) return [];
+    const base = employeesEnMiSede;
     const term = searchTerm.toLowerCase().trim();
-    if (!term) return employees;
+    if (!term) return base;
 
-    return employees.filter((employee) => {
+    return base.filter((employee) => {
       // Filtro por estado con tecla rápida
       if (term === "activo") return employee.estado !== false;
       if (term === "inactivo") return employee.estado === false;
@@ -82,10 +95,10 @@ const EmployeesPage = () => {
 
       return camposBuscables.some((v) => v?.toString().toLowerCase().includes(term));
     });
-  }, [employees, searchTerm, roles, sedes]);
+  }, [employeesEnMiSede, searchTerm, roles, sedes]);
 
   // 📄 Paginación
-  const itemsPerPage = 5;
+  const itemsPerPage = 7;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredEmployees.length / itemsPerPage),
@@ -219,31 +232,7 @@ const EmployeesPage = () => {
   };
 
   // Si los catálogos fallan, mostrar error claro en lugar de selects vacíos silenciosos
-  if (loading) return (
-    <div style={{ padding: '24px 32px' }}>
-      <style>{`
-        @keyframes eloadbar {
-          0%   { left: -40%; width: 40%; }
-          50%  { left: 30%;  width: 50%; }
-          100% { left: 110%; width: 40%; }
-        }
-      `}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1f2937' }}>Empleados</p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ width: 220, height: 34, background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }} />
-          <div style={{ width: 110, height: 34, background: '#FF4FD6', borderRadius: 20, opacity: 0.15 }} />
-        </div>
-      </div>
-      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{
-          position: 'absolute', top: 0, height: '100%', borderRadius: 99,
-          background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)',
-          animation: 'eloadbar 1.6s ease-in-out infinite',
-        }} />
-      </div>
-    </div>
-  );
+  if (loading) return <TableSkeleton title="Empleados" />;
 
   if (errorRoles || errorSedes) {
     return (

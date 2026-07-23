@@ -132,9 +132,10 @@ const Third_partiePage = () => {
 
   // ── Estado de carga inicial ────────────────────────────────────────────
   // El skeleton replica el layout ya cargado: header (título + buscador +
-  // texto de ayuda), tabs de navegación, tarjeta de tabla con el botón
-  // "Agregar" arriba a la derecha, filas placeholder, y el sidebar de
-  // detalle en desktop — así no hay salto visual cuando termina de cargar.
+  // texto de ayuda), tabs de navegación, la barra del botón "Agregar" (ahora
+  // separada, arriba de la tarjeta de tabla), tarjeta de tabla con filas
+  // placeholder, y el sidebar de detalle en desktop — así no hay salto
+  // visual cuando termina de cargar.
   if (loading && Third_parties.length === 0) return (
     <div style={{ minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
       <style>{`
@@ -173,7 +174,7 @@ const Third_partiePage = () => {
         {/* TABS — mismas dimensiones que "Producciones" / "Terceros" */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
           <div style={{
-            width: 110, height: 32, borderRadius: 8, background: '#f3f4f6',
+            width: 110, height: 32, borderRadius: 8, background: '#eaeaea',
             animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
           }} />
           <div style={{
@@ -182,37 +183,24 @@ const Third_partiePage = () => {
           }} />
         </div>
 
-        <div className="tp-skel-layout">
-          {/* TARJETA DE TABLA — con el botón "Agregar" en la misma posición */}
+        {/* BARRA DEL BOTÓN "Agregar" — ahora separada, con su propio fondo blanco */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+          background: '#fff', borderRadius: 16, padding: '12px 16px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 14,
+        }}>
           <div style={{
-            background: '#fff', borderRadius: 16, padding: 20,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.06)', minWidth: 0, overflow: 'hidden',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-              <div style={{
-                width: 150, height: 38, borderRadius: 20,
-                background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
-                opacity: 0.4, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
-              }} />
-            </div>
+            width: 150, height: 38, borderRadius: 20,
+            background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
+            opacity: 0.4, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+        </div>
 
-            {/* filas placeholder de la tabla */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[...Array(5)].map((_, i) => (
-                <div key={i} style={{
-                  height: 44, borderRadius: 10, background: '#f9fafb',
-                  border: '1px solid #f3f4f6',
-                  animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
-                  animationDelay: `${i * 0.08}s`,
-                }} />
-              ))}
-            </div>
-
-            {/* barra de progreso */}
-            <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden', marginTop: 16 }}>
+        <div className="tp-skel-layout">
+          {/* barra de progreso */}
+            <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
             </div>
-          </div>
 
           {/* SIDEBAR DE DETALLE — solo visible en desktop, igual que el real */}
           <div className="tp-skel-sidebar" style={{
@@ -220,7 +208,7 @@ const Third_partiePage = () => {
             boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: 20,
           }}>
             <div style={{
-              width: '60%', height: 16, borderRadius: 6, background: '#f3f4f6',
+              width: '10%', height: 16, borderRadius: 6, background: '#f3f4f6',
               marginBottom: 14, animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
             }} />
             {[...Array(4)].map((_, i) => (
@@ -259,6 +247,19 @@ const Third_partiePage = () => {
         /* ── Search: full width en móvil ── */
         .tp-search-wrap { width: 100%; }
         @media (min-width: 640px) { .tp-search-wrap { width: 260px; } }
+
+        /* ── Barra del botón "Agregar" (separada de la tarjeta de la tabla) ── */
+        .tp-actions-bar {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          background: #fff;
+          border-radius: 16px;
+          padding: 12px 16px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+          margin-bottom: 14px;
+        }
+        @media (min-width: 640px) { .tp-actions-bar { padding: 14px 20px; } }
 
         /* ── Layout principal ──
            Móvil:   1 columna; el panel detalle aparece como drawer/overlay
@@ -452,45 +453,44 @@ const Third_partiePage = () => {
           </button>
         </div>
 
+        {/* ── Barra del botón "Agregar" — ahora FUERA de la tarjeta de tabla ── */}
+        <div className="tp-actions-bar">
+          <AddThird_partieButton onClick={handleAdd} />
+        </div>
+
         {/* ── Layout 2 col ── */}
         <div className="tp-layout">
 
-          {/* ── Tabla ── */}
+          {/* ── Tabla (la tarjeta ahora solo contiene tabla + paginación) ── */}
           <div className="tp-table-card">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-              <AddThird_partieButton onClick={handleAdd} />
-            </div>
+            <Third_partieTable
+              Third_parties={paginated}
+              selectedId={selectedThird_partie?.id}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggle={handleToggle}
+            />
 
-            <>
-              <Third_partieTable
-                Third_parties={paginated}
-                selectedId={selectedThird_partie?.id}
-                onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onToggle={handleToggle}
-              />
-
-              {filtered.length > 0 && (
-                <div className="tp-pagination">
-                  <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
-                  {getPages().map((p, i) =>
-                    p === '...'
-                      ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
-                      : <button key={p} className="tp-pg-btn"
-                        onClick={() => setCurrentPage(p)}
-                        style={{
-                          background: p === currentPage ? '#FF4FD6' : '#fff',
-                          color: p === currentPage ? '#fff' : '#374151',
-                          border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
-                        }}>
-                        {p}
-                      </button>
-                  )}
-                  <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
-                </div>
-              )}
-            </>
+            {filtered.length > 0 && (
+              <div className="tp-pagination">
+                <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+                {getPages().map((p, i) =>
+                  p === '...'
+                    ? <span key={i} style={{ padding: '6px 4px', fontSize: 13 }}>…</span>
+                    : <button key={p} className="tp-pg-btn"
+                      onClick={() => setCurrentPage(p)}
+                      style={{
+                        background: p === currentPage ? '#FF4FD6' : '#fff',
+                        color: p === currentPage ? '#fff' : '#374151',
+                        border: `1px solid ${p === currentPage ? '#FF4FD6' : '#e5e7eb'}`,
+                      }}>
+                      {p}
+                    </button>
+                )}
+                <button className="tp-pg-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</button>
+              </div>
+            )}
           </div>
 
           {/* ── Panel detalle DESKTOP (columna lateral) ── */}
