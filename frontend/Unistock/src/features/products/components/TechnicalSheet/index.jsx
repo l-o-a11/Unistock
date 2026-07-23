@@ -614,52 +614,6 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
                 </tr>
               )}
 
-              {/* ── Materiales / Insumos ── */}
-              <tr>
-                <td style={headerCellStyle} colSpan={7}>MATERIALES / INSUMOS</td>
-              </tr>
-              <tr>
-                <td style={headerCellStyle} colSpan={2}>Nombre</td>
-                <td style={headerCellStyle} colSpan={1}>Unidad</td>
-                <td style={headerCellStyle} colSpan={1}>Cantidad</td>
-                <td style={headerCellStyle} colSpan={3}>Observaciones</td>
-              </tr>
-              {(formData.materiales || []).map((material, mi) => (
-                <tr key={`material-${mi}`}>
-                  <td style={cellStyle} colSpan={2}>
-                    <Field isEditing={isEditing} value={material?.nombre} placeholder="Ej: Botón"
-                      onChangeFn={(v) => handleMaterialChange(mi, "nombre", v)} />
-                  </td>
-                  <td style={cellStyle} colSpan={1}>
-                    <Field isEditing={isEditing} value={material?.unidad} placeholder="Ej: Unidad"
-                      onChangeFn={(v) => handleMaterialChange(mi, "unidad", v)} />
-                  </td>
-                  <td style={cellStyle} colSpan={1}>
-                    <Field isEditing={isEditing} value={material?.cantidades} placeholder="Ej: 4"
-                      style={{ textAlign: "center" }}
-                      onChangeFn={(v) => handleMaterialChange(mi, "cantidades", v)} />
-                  </td>
-                  <td style={cellStyle} colSpan={isEditing ? 2 : 3}>
-                    <Field isEditing={isEditing} value={material?.observaciones} placeholder="Opcional"
-                      onChangeFn={(v) => handleMaterialChange(mi, "observaciones", v)} />
-                  </td>
-                  {isEditing && (
-                    <td style={{ ...cellStyle, width: 36, textAlign: "center" }} colSpan={1}>
-                      <button type="button" onClick={() => removeMaterial(mi)}
-                        style={{ border: "none", background: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
-                        title="Eliminar material">×</button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {isEditing && (
-                <tr>
-                  <td colSpan={7} style={{ padding: "4px 8px", border: "1px solid #e5e7eb" }}>
-                    <AddRowBtn onClick={addMaterial} />
-                  </td>
-                </tr>
-              )}
-
               {/* ── Observaciones y Elaboró ── */}
               <tr>
                 <td style={headerCellStyle} colSpan={2}>OBSERVACIONES:</td>

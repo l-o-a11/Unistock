@@ -61,7 +61,6 @@ const ProductsPage = () => {
 
   const [deleteAlert, setDeleteAlert] = useState({
     open: false,
-    step: "password",
     productId: null,
     key: 0
   });
@@ -199,7 +198,7 @@ const ProductsPage = () => {
     try {
       await AuthAPI.verifyPassword(password);
       await deleteProduct(deleteAlert.productId);
-      setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() });
+      setDeleteAlert({ open: false, productId: null, key: Date.now() });
       handleShowAlert({ type: "success", title: "¡Éxito!", message: "Producto eliminado correctamente" });
     } catch (error) {
       const isInvalidPassword = error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
@@ -210,7 +209,7 @@ const ProductsPage = () => {
           ? "La contraseña no coincide con tu usuario actual."
           : (error.message || "Error al eliminar producto")
       });
-      setDeleteAlert((prev) => ({ ...prev, open: isInvalidPassword, step: "password" }));
+      setDeleteAlert(prev => ({ ...prev, open: isInvalidPassword }));
     }
   };
 
@@ -226,7 +225,7 @@ const ProductsPage = () => {
       return;
     }
 
-    setDeleteAlert({ open: true, step: "password", productId: id, key: Date.now() });
+    setDeleteAlert({ open: true, productId: id, key: Date.now() });
   };
 
   const handleStockChange = async (id, delta) => {
@@ -246,21 +245,17 @@ const ProductsPage = () => {
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     DESCARGA EXCEL — ExcelJS con logo + estilos paleta empresa UniStock
-     Header magenta, filas rosas/blancas, total de stock al final
-  ══════════════════════════════════════════════════════════════════════ */
-    const handleDownloadExcel = async () => {
+   * DESCARGA EXCEL — estilos iguales a producción
+   * Se conserva la lógica de exportación y solo se ajusta el diseño visual.
+   * ══════════════════════════════════════════════════════════════════════ */
+  const handleDownloadExcel = async () => {
     const ExcelJS = (await import("exceljs")).default;
-
     const wb = new ExcelJS.Workbook();
     wb.creator = "UniStock";
     wb.created = new Date();
 
     const ws = wb.addWorksheet("Productos", {
-      pageSetup: {
-        orientation: "landscape",
-        fitToPage: true,
-      },
+      pageSetup: { orientation: "landscape", fitToPage: true },
     });
 
     const now = new Date();
@@ -280,67 +275,31 @@ const ProductsPage = () => {
     ];
 
     const ARGB = (hex) => "FF" + hex.replace("#", "").toUpperCase();
-
-    const fillSolid = (hex) => ({
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: ARGB(hex) },
-    });
-
-    const thinBorder = (hex = "#ffffff") => {
-      const c = {
-        style: "thin",
-        color: { argb: ARGB(hex) },
-      };
-      return {
-        top: c,
-        bottom: c,
-        left: c,
-        right: c,
-      };
+    const fillSolid = (hex) => ({ type: "pattern", pattern: "solid", fgColor: { argb: ARGB(hex) } });
+    const thinBorder = (hex = "#FF4FD6") => {
+      const c = { style: "thin", color: { argb: ARGB(hex) } };
+      return { top: c, bottom: c, left: c, right: c };
     };
-
-    /* ===================== LOGO ===================== */
 
     let logoLoaded = false;
 
     try {
       const logoRes = await fetch(putongasLogoUrl);
-
       if (logoRes.ok) {
         const blob = await logoRes.blob();
-
         const base64 = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result.split(",")[1]);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
-
-        const logoId = wb.addImage({
-          base64,
-          extension:
-            putongasLogoUrl.toLowerCase().endsWith(".jpg") ||
-            putongasLogoUrl.toLowerCase().endsWith(".jpeg")
-              ? "jpeg"
-              : "png",
-        });
-
-        ws.addImage(logoId, {
-          tl: { col: 0.02, row: 0.08 },
-          ext: {
-            width: 46,
-            height: 56,
-          },
-        });
-
+        const logoId = wb.addImage({ base64, extension: putongasLogoUrl.toLowerCase().endsWith(".jpg") || putongasLogoUrl.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png" });
+        ws.addImage(logoId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 46, height: 60 } });
         logoLoaded = true;
       }
     } catch (e) {
       console.warn("No se pudo cargar el logo:", e);
     }
-
-    /* ===================== HEADER ===================== */
 
     if (logoLoaded) {
       ws.mergeCells("B1:F1");
@@ -350,251 +309,95 @@ const ProductsPage = () => {
       ws.mergeCells("A2:F2");
     }
 
-    /* Altura de filas */
+    ws.getRow(1).height = 30;
+    ws.getRow(2).height = 18;
+    ws.getRow(3).height = 6;
 
-    ws.getRow(1).height = 24; // Título
-    ws.getRow(2).height = 18; // Generado el...
-    ws.getRow(3).height = 5;  // Separación antes del header
-
-    /* Fondo */
-
-    [
-      "A1","B1","C1","D1","E1","F1",
-      "A2","B2","C2","D2","E2","F2",
-      "A3","B3","C3","D3","E3","F3"
-    ].forEach(cell => {
-      ws.getCell(cell).fill = fillSolid("#FDF6FF");
+    ["A1", "B1", "C1", "D1", "E1", "F1", "A2", "B2", "C2", "D2", "E2", "F2", "A3", "B3", "C3", "D3", "E3", "F3"].forEach((ref) => {
+      ws.getCell(ref).fill = fillSolid("#FFFFFF");
     });
-
-    /* ---------- TÍTULO ---------- */
 
     const titleCell = ws.getCell(logoLoaded ? "B1" : "A1");
-
     titleCell.value = "Productos — Sistema de Gestión UniStock";
-
-    titleCell.font = {
-      name: "Arial",
-      size: 14,          // Antes 16
-      bold: true,
-      color: { argb: "FF000000" },
-    };
-
-    titleCell.alignment = {
-      horizontal: "left",
-      vertical: "middle",
-    };
-
-    /* ---------- SUBTÍTULO ---------- */
+    titleCell.font = { name: "Arial", size: 15, bold: true, color: { argb: "FF000000" } };
+    titleCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
 
     const subCell = ws.getCell(logoLoaded ? "B2" : "A2");
-
-    subCell.value =
-      `Generado el ${fecha} · ${filteredProducts.length} producto` +
-      `${filteredProducts.length !== 1 ? "s" : ""}`;
-
-    subCell.font = {
-      name: "Arial",
-      size: 10,
-      color: { argb: "FF6B7280" },
-    };
-
-    subCell.alignment = {
-      horizontal: "left",
-      vertical: "middle",
-    };
-    /* ===================== ENCABEZADOS ===================== */
+    subCell.value = `Generado el ${fecha} · ${filteredProducts.length} producto${filteredProducts.length !== 1 ? "s" : ""}`;
+    subCell.font = { name: "Arial", size: 10, color: { argb: "FF000000" } };
+    subCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    ws.getCell(logoLoaded ? "B2" : "A2").border = { bottom: { style: "thin", color: { argb: ARGB("#FF4FD6") } } };
 
     const headerRow = ws.getRow(4);
-
     headerRow.height = 26;
 
-    [
-      "Referencia",
-      "Nombre",
-      "Categoría",
-      "Precio",
-      "Stock",
-      "Estado",
-    ].forEach((h, i) => {
-
+    ["Referencia", "Nombre", "Categoría", "Precio", "Stock", "Estado"].forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
-
       cell.value = h;
-
-      cell.font = {
-        bold: true,
-        color: { argb: "FFFFFFFF" },
-      };
-
-      cell.fill = fillSolid("#FF4FD6");
-
-      cell.alignment = {
-        horizontal: i >= 3 ? "right" : "left",
-        vertical: "middle",
-        indent: i >= 3 ? 0 : 1,
-      };
-
-      cell.border = {
-        bottom: {
-          style: "medium",
-          color: {
-            argb: ARGB("#FF4FD6"),
-          },
-        },
-      };
+      cell.font = { name: "Arial", size: 11, bold: true, color: { argb: ARGB("#FF4FD6") } };
+      cell.fill = fillSolid("#FFFFFF");
+      cell.alignment = { horizontal: i >= 3 ? "right" : "left", vertical: "middle", indent: i >= 3 ? 0 : 1 };
+      const pinkThin = { style: "thin", color: { argb: ARGB("#FF4FD6") } };
+      cell.border = { top: pinkThin, left: pinkThin, right: pinkThin, bottom: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
     });
 
-    /* ===================== DATOS ===================== */
-
     filteredProducts.forEach((p, i) => {
-
-      const row = ws.getRow(i + 5);
-
-      const even = i % 2 === 0;
-
-      const fill = fillSolid(even ? "#FFFFFF" : "#FDF6FF");
-
-      [
+      const row = ws.getRow(5 + i);
+      row.height = 20;
+      const values = [
         p.reference || "—",
         p.name || "—",
         p.category || "—",
         p.price ?? 0,
         p.stock ?? 0,
         p.active !== false ? "Activo" : "Inactivo",
-      ].forEach((v, c) => {
+      ];
 
+      values.forEach((v, c) => {
         const cell = row.getCell(c + 1);
-
         cell.value = v;
-
-        cell.fill = fill;
-
+        cell.fill = fillSolid("#FFFFFF");
         cell.border = thinBorder();
-
-        cell.alignment = {
-          horizontal: c >= 3 ? "right" : "left",
-          vertical: "middle",
-          indent: c >= 3 ? 0 : 1,
-        };
-
-        cell.font = {
-          name: "Arial",
-          size: 10,
-          color: { argb: "FF374151" },
-        };
+        cell.alignment = { horizontal: c >= 3 ? "right" : "left", vertical: "middle", indent: c >= 3 ? 0 : 1 };
+        cell.font = { name: "Arial", size: 10, color: { argb: "FF374151" } };
       });
 
-      row.getCell(1).font = {
-        bold: true,
-        color: { argb: ARGB("#FF4FD6") },
-      };
-
-      row.getCell(5).font = {
-        bold: true,
-        color: { argb: ARGB("#a858d6") },
-      };
+      row.getCell(1).font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#FF4FD6") } };
+      row.getCell(5).font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#a858d6") } };
     });
 
-    /* ===================== TOTAL ===================== */
-
-    const totalRow = ws.getRow(filteredProducts.length + 6);
-
-    const totalStock = filteredProducts.reduce(
-      (s, p) => s + (Number(p.stock) || 0),
-      0
-    );
-
-    totalRow.height = 22;
-
-    [1,3,4,6].forEach(col=>{
-
-      const c=totalRow.getCell(col);
-
-      c.value="";
-
-      c.fill=fillSolid("#FDF6FF");
-
-      c.border={
-        top:{
-          style:"medium",
-          color:{argb:ARGB("#FF4FD6")}
-        }
-      };
-    });
+    const totalRowIdx = filteredProducts.length + 6;
+    const totalStock = filteredProducts.reduce((s, p) => s + (Number(p.stock) || 0), 0);
+    const totalRow = ws.getRow(totalRowIdx);
 
     const totalLabelCell = totalRow.getCell(2);
-
     totalLabelCell.value = "Total stock";
-
-    totalLabelCell.font = {
-      bold: true,
-      color: {
-        argb: ARGB("#a858d6"),
-      },
-    };
-
-    totalLabelCell.fill = fillSolid("#FDF6FF");
-
-    totalLabelCell.alignment = {
-      horizontal: "left",
-      vertical: "middle",
-      indent: 1,
-    };
-
-    totalLabelCell.border = {
-      top: {
-        style: "medium",
-        color: {
-          argb: ARGB("#FF4FD6"),
-        },
-      },
-    };
+    totalLabelCell.font = { name: "Arial", size: 10, bold: true, color: { argb: ARGB("#363636") } };
+    totalLabelCell.fill = fillSolid("#FFFFFF");
+    totalLabelCell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    totalLabelCell.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
 
     const totalValueCell = totalRow.getCell(5);
-
     totalValueCell.value = totalStock;
+    totalValueCell.font = { name: "Arial", size: 11, bold: true, color: { argb: ARGB("#a858d6") } };
+    totalValueCell.fill = fillSolid("#FFFFFF");
+    totalValueCell.alignment = { horizontal: "right", vertical: "middle" };
+    totalValueCell.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
 
-    totalValueCell.font = {
-      bold: true,
-      color: {
-        argb: ARGB("#FF4FD6"),
-      },
-    };
-
-    totalValueCell.fill = fillSolid("#FDF6FF");
-
-    totalValueCell.alignment = {
-      horizontal: "right",
-      vertical: "middle",
-    };
-
-    totalValueCell.border = {
-      top: {
-        style: "medium",
-        color: {
-          argb: ARGB("#FF4FD6"),
-        },
-      },
-    };
+    [1, 3, 4, 6].forEach((col) => {
+      const c = totalRow.getCell(col);
+      c.fill = fillSolid("#FFFFFF");
+      c.border = { top: { style: "medium", color: { argb: ARGB("#FF4FD6") } } };
+    });
 
     try {
-
       const buffer = await wb.xlsx.writeBuffer();
-
-      const blob = new Blob([buffer], {
-        type: "application/octet-stream",
-      });
-
+      const blob = new Blob([buffer], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
-
       link.href = url;
-
       link.download = "productos.xlsx";
-
       link.click();
-
       URL.revokeObjectURL(url);
 
       handleShowAlert({
@@ -602,11 +405,8 @@ const ProductsPage = () => {
         title: "¡Éxito!",
         message: "Archivo exportado correctamente",
       });
-
     } catch (e) {
-
       console.error(e);
-
     }
   };
 
@@ -950,14 +750,14 @@ const ProductsPage = () => {
 
         <Alert
           key={`delete-password-${deleteAlert.key}`}
-          isOpen={deleteAlert.open && deleteAlert.step === "password"}
+          isOpen={deleteAlert.open}
           type="password"
           title="Confirmar eliminación"
-          message="Ingresa la contraseña de administrador"
+          message="Ingresa la contraseña de administrador para eliminar este producto"
           confirmText="Eliminar"
           cancelText="Cancelar"
           onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteAlert({ open: false, step: "password", productId: null, key: Date.now() })}
+          onCancel={() => setDeleteAlert({ open: false, productId: null, key: Date.now() })}
         />
       </div>
     </div>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import TechnicalSheet from "../TechnicalSheet";
 import { productCategoryAPI } from "../../../productCategories/services/productCategoryAPI";
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
 import ImageModal from "../ProductForm/ImageModal";
+import { clientAPI } from "../../../shared/services/clientAPI";
 const normalizeText = (text) =>
   String(text || "")
     .normalize("NFD")
@@ -120,8 +121,109 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
   );
 };
 
+// ✅ Mismo diseño/estilo que CategoryDropdown, adaptado para clientes
+const ClientDropdown = ({ value, onChange, clients = [], onCreateClient }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (client) => {
+    onChange(client);
+    setOpen(false);
+  };
+
+  return (
+    <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          minHeight: "42px",
+          boxSizing: "border-box",
+          padding: "10px 14px",
+          borderBottom: "1.5px solid #e5e7eb",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: value ? "#1f2937" : "#9ca3af",
+          userSelect: "none",
+          backgroundColor: open ? "#fff0fb" : "transparent",
+          borderRadius: open ? "10px 10px 0 0" : "10px",
+          transition: "background-color 0.15s",
+        }}
+      >
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {value || "Seleccionar cliente"}
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
+            <div
+              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "600", cursor: "pointer" }}
+              onClick={() => handleSelect(null)}
+            >
+              Seleccionar cliente
+            </div>
+            {clients.length > 0 ? (
+              clients.map((client) => {
+                const clientKey = client.id ?? client._id ?? client.documento;
+                const isSelected = normalizeText(value) === normalizeText(client.nombre);
+                return (
+                  <div
+                    key={clientKey}
+                    onClick={() => handleSelect(client)}
+                    style={{
+                      padding: "10px 14px",
+                      fontSize: "14px",
+                      color: "#1f2937",
+                      cursor: "pointer",
+                      backgroundColor: isSelected ? "#fdf4ff" : "#fff",
+                      borderTop: "1px solid #f3f4f6",
+                      transition: "background-color 0.1s"
+                    }}
+                  >
+                    <div>{client.nombre}</div>
+                    <div style={{ fontSize: "11px", color: "#9ca3af" }}>{client.documento || "Sin documento"}</div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
+                Sin clientes disponibles
+              </div>
+            )}
+            <div
+              onClick={() => {
+                setOpen(false);
+                onCreateClient?.();
+              }}
+              style={{
+                padding: "12px 14px",
+                fontSize: "14px",
+                color: "#ff4fd6",
+                cursor: "pointer",
+                borderTop: "1px solid #f3f4f6",
+                backgroundColor: "#fff",
+                fontWeight: "700"
+              }}
+            >
+              + Crear nuevo cliente
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, existingProducts = [] }) => {
-  const initialData = {
+  // ✅ initialData es el "punto cero" contra el que comparamos para saber si hubo cambios reales
+  const [initialData] = useState({
     reference: product?.reference || "",
     name: product?.name || "",
     category: product?.category || "",
@@ -130,7 +232,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     stock: product?.stock || "",
     image: product?.image || null,
     allImages: product?.allImages || [],
-  };
+  });
 
   const [formData, setFormData] = useState(initialData);
   const [categories, setCategories] = useState([]);
@@ -144,6 +246,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   });
 
   const [touched, setTouched] = useState({});
+  const [clientOptions, setClientOptions] = useState([]);
+  const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [editingClientId, setEditingClientId] = useState(null);
+  const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
+  const [clientFormError, setClientFormError] = useState('');
   const [technicalSheet, setTechnicalSheet] = useState(() => {
     if (!product?.technicalSheet) return null;
     return {
@@ -167,6 +274,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       version:       product.technicalSheet.version,
     };
   });
+
+  // ✅ Guarda el estado inicial de la ficha técnica una sola vez, para comparar cambios reales
+  const initialTechnicalSheetRef = useRef(technicalSheet);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [imagePreview, setImagePreview] = useState(product?.image || null);
@@ -201,11 +311,31 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     return () => { cancelled = true; };
   }, []);
 
+  const loadClients = useCallback(async () => {
+    try {
+      const clients = await clientAPI.list();
+      setClientOptions(Array.isArray(clients) ? clients : []);
+    } catch (err) {
+      console.error('Error cargando clientes', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
+
   const getSelectedCategoryDescription = () => {
     const selected = categories.find(cat => 
       (cat.name ?? cat.nombre) === formData.category
     );
     return selected?.description ?? selected?.descripcion ?? "";
+  };
+
+  // ✅ Cliente actualmente seleccionado en la ficha técnica (o null si no hay match)
+  const getSelectedClientObject = () => {
+    const clientName = technicalSheet?.client;
+    if (!clientName) return null;
+    return clientOptions.find((c) => normalizeText(c.nombre) === normalizeText(clientName)) || null;
   };
 
   const handleCreateCategory = async (categoryData) => {
@@ -223,22 +353,78 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     });
   };
 
+  const openCreateClientModal = () => {
+    setEditingClientId(null);
+    setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+    setClientFormError('');
+    setClientFormOpen(true);
+  };
+
+  const openEditClientModal = () => {
+    const client = getSelectedClientObject();
+    if (!client) return;
+    setEditingClientId(client.id || client._id || null);
+    setClientDraft({
+      nombre: client.nombre || '',
+      documento: client.documento || '',
+      telefono: client.telefono || '',
+      correo: client.correo || '',
+    });
+    setClientFormError('');
+    setClientFormOpen(true);
+  };
+
+  const closeClientModal = () => {
+    setClientFormOpen(false);
+    setClientFormError('');
+    setEditingClientId(null);
+  };
+
+  const handleClientCreate = async (e) => {
+    e.preventDefault();
+    if (!clientDraft.nombre.trim() || !clientDraft.documento.trim()) {
+      setClientFormError('Nombre y documento son obligatorios');
+      return;
+    }
+
+    try {
+      const payload = {
+        nombre: clientDraft.nombre.trim(),
+        documento: clientDraft.documento.trim(),
+        telefono: clientDraft.telefono.trim(),
+        correo: clientDraft.correo.trim(),
+      };
+      const saved = editingClientId
+        ? await clientAPI.update(editingClientId, payload)
+        : await clientAPI.create(payload);
+      const nextClient = saved?.nombre || clientDraft.nombre.trim();
+      setTechnicalSheet((prev) => ({ ...(prev || {}), client: nextClient }));
+      await loadClients();
+      setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setEditingClientId(null);
+      setClientFormError('');
+      setClientFormOpen(false);
+      onShowAlert?.({ type: 'success', title: 'Cliente guardado', message: 'El cliente fue guardado correctamente.' });
+    } catch (err) {
+      setClientFormError(err?.message || 'No se pudo guardar el cliente');
+    }
+  };
+
+  // ✅ Comparamos siempre contra el estado inicial capturado (vacío al crear, datos del producto al editar)
   const hasProductChanges = () => {
-    if (!product) return true;
     return (
-      formData.reference !== product.reference ||
-      formData.name !== product.name ||
-      formData.category !== product.category ||
-      formData.price !== product.price ||
-      formData.stock !== product.stock ||
-      imagePreview !== product.image ||
-      JSON.stringify(formData.allImages) !== JSON.stringify(product.allImages || [])
+      formData.reference !== initialData.reference ||
+      formData.name !== initialData.name ||
+      formData.category !== initialData.category ||
+      formData.price !== initialData.price ||
+      formData.stock !== initialData.stock ||
+      imagePreview !== initialData.image ||
+      JSON.stringify(formData.allImages) !== JSON.stringify(initialData.allImages || [])
     );
   };
 
   const hasTechnicalSheetChanges = () => {
-    if (!product) return !!technicalSheet;
-    return technicalSheet !== product.technicalSheet;
+    return JSON.stringify(technicalSheet) !== JSON.stringify(initialTechnicalSheetRef.current);
   };
 
   const validateReference = (value) => {
@@ -602,6 +788,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   };
 
   const handleCancelClick = useCallback(() => {
+    const hasChanges = hasProductChanges() || hasTechnicalSheetChanges();
+    if (!hasChanges) {
+      onCancel();
+      return;
+    }
     onShowConfirm({
       type: "confirm",
       title: "¿Seguro que deseas cancelar?",
@@ -610,7 +801,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       cancelText: "Cancelar",
       onConfirm: onCancel
     });
-  }, [onCancel, onShowConfirm]);
+  }, [onCancel, onShowConfirm, formData, imagePreview, technicalSheet, product]);
 
   useEffect(() => {
     const handleEsc = (e) => e.key === "Escape" && handleCancelClick();
@@ -698,6 +889,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const hasInvalidFields = () => {
     return errors.reference || errors.name || errors.category || errors.price || errors.stock;
   };
+
+  const selectedClient = getSelectedClientObject();
 
   return (
     <div style={{ padding: "36px 40px" }}>
@@ -877,6 +1070,43 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                   </tr>
 
                   <tr>
+                    <td style={headerCellStyle}>Cliente:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
+                        <ClientDropdown
+                          value={technicalSheet?.client || ''}
+                          clients={clientOptions}
+                          onChange={(client) => {
+                            const clientName = client ? (client.nombre || '') : '';
+                            setTechnicalSheet((prev) => ({ ...(prev || {}), client: clientName }));
+                          }}
+                          onCreateClient={openCreateClientModal}
+                        />
+                        <button
+                          type="button"
+                          disabled={!selectedClient}
+                          onClick={openEditClientModal}
+                          style={{
+                            border: "1.5px solid #ff4fd6",
+                            background: selectedClient ? "#fff0fb" : "#f9fafb",
+                            color: selectedClient ? "#ff4fd6" : "#e5b8dc",
+                            borderRadius: 10,
+                            padding: "0 16px",
+                            minHeight: "42px",
+                            fontWeight: 700,
+                            cursor: selectedClient ? "pointer" : "not-allowed",
+                            opacity: selectedClient ? 1 : 0.7,
+                            whiteSpace: "nowrap",
+                            transition: "0.15s"
+                          }}
+                        >
+                          Editar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
                     <td style={headerCellStyle}>Precio:</td>
                     <td style={cellStyle}>
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -925,7 +1155,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
               <div style={{
                 border: (formData.allImages && formData.allImages.length > 0) ? "1.5px solid #f9a8d4" : "2px dashed #f9a8d4",
                 borderRadius: "12px",
-                padding: "16px",
+                padding: "33px",
                 backgroundColor: (formData.allImages && formData.allImages.length > 0) ? "#fff0fb" : "#fafafa",
                 minHeight: "250px",
                 display: "flex",
@@ -1254,6 +1484,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         </>
       )}
 
+      {/* ✅ Modal de categoría - overlay ocupa exactamente el viewport (sin minHeight/padding/scroll propio) */}
       {showCategoryForm && (
         <div style={{
           position: "fixed",
@@ -1261,13 +1492,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
           backgroundColor: "rgba(0, 0, 0, 0.5)",
           zIndex: 1200,
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "center",
-          minHeight: "100vh",
-          boxSizing: "border-box",
-          padding: "32px 20px",
-          overflowY: "auto",
-          overscrollBehavior: "contain"
         }}>
           <div
             style={{ position: "absolute", inset: 0 }}
@@ -1277,6 +1503,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             position: "relative",
             width: "90%",
             maxWidth: "600px",
+            maxHeight: "85vh",
+            overflowY: "auto",
             backgroundColor: "#fff",
             borderRadius: "16px",
             boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
@@ -1288,6 +1516,155 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
               onShowAlert={onShowAlert}
               onShowConfirm={onShowConfirm}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Modal de cliente (crear/editar) - mismo patrón visual y centrado que el modal de categoría,
+          header con ícono + divisores, overlay sin scroll propio */}
+      {clientFormOpen && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          zIndex: 1200,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          <div
+            style={{ position: "absolute", inset: 0 }}
+            onClick={closeClientModal}
+          />
+          <div style={{
+            position: "relative",
+            width: "90%",
+            maxWidth: "480px",
+            maxHeight: "85vh",
+            overflowY: "auto",
+            backgroundColor: "#fff",
+            borderRadius: "16px",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
+            zIndex: 1201,
+            padding: "28px 32px",
+            boxSizing: "border-box"
+          }}>
+            {/* Header con ícono, igual patrón que el header principal del ProductForm */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 22,
+                paddingBottom: 16,
+                borderBottom: "1px solid #f3f4f6",
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "#ff4fd6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 17,
+                    fontWeight: 800,
+                    color: "#1f2937",
+                  }}
+                >
+                  {editingClientId ? "Editar cliente" : "Crear nuevo cliente"}
+                </h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    color: "#9ca3af",
+                  }}
+                >
+                  {editingClientId
+                    ? "Actualiza los datos del cliente"
+                    : "Completa los datos del cliente"}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleClientCreate}>
+              <div style={{ display: "grid", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre</label>
+                  <input
+                    value={clientDraft.nombre}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))}
+                    placeholder="Nombre completo"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento</label>
+                  <input
+                    value={clientDraft.documento}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))}
+                    placeholder="Número de documento"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Teléfono</label>
+                  <input
+                    value={clientDraft.telefono}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, telefono: e.target.value }))}
+                    placeholder="Teléfono"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo</label>
+                  <input
+                    value={clientDraft.correo}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))}
+                    placeholder="Correo electrónico"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                {clientFormError && (
+                  <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700 }}>⚠ {clientFormError}</span>
+                )}
+
+                {/* Línea divisoria antes de los botones, igual que el footer del form principal */}
+                <div
+                  style={{
+                    marginTop: 6,
+                    paddingTop: 14,
+                    borderTop: "1px solid #f3f4f6",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 10,
+                  }}
+                >
+                  <button type="button" onClick={closeClientModal} style={btnSecondary}>
+                    Cancelar
+                  </button>
+                  <button type="submit" style={btnPrimary}>
+                    {editingClientId ? "Actualizar cliente" : "Guardar cliente"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

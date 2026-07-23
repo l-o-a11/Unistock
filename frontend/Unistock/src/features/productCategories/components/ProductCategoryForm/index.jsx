@@ -14,9 +14,10 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
   const [touched, setTouched] = useState({});
 
   const hasChanges = () => {
-    if (!productCategory) return true;
-    return formData.nombre !== (productCategory.nombre ?? productCategory.name)
-      || formData.descripcion !== (productCategory.descripcion ?? productCategory.description);
+    const initialNombre = productCategory?.nombre ?? productCategory?.name ?? '';
+    const initialDescripcion = productCategory?.descripcion ?? productCategory?.description ?? '';
+
+    return formData.nombre !== initialNombre || formData.descripcion !== initialDescripcion;
   };
 
   const validateNombre = (value) => {
@@ -102,6 +103,11 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
   };
 
   const handleCancelClick = () => {
+    if (!hasChanges()) {
+      onCancel();
+      return;
+    }
+
     onShowConfirm({
       title: "¿Seguro que deseas cancelar?",
       message: "Los cambios no guardados se perderán.",
