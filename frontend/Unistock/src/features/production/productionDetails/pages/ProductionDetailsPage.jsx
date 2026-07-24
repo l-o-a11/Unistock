@@ -364,10 +364,32 @@ const ProductionDetailsPage = () => {
 
   const totalUnidades = (production.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
 
+  // ✅ Etapas que requieren asignar un empleado responsable al entrar en ellas
+  const EMPLOYEE_REQUIRED_STEPS = ["Corte", "Compras", "Recepción"];
+
   const getAlertType = (from, to) => {
     if (from === "Compras" && to === "Producción") return "third";
+    // Producción → Recepción sigue pidiendo sede; el empleado responsable
+    // se pide encadenado justo después (ver handleProductionAlertConfirm).
     if (from === "Producción" && to === "Recepción") return "assignSede";
+    if (EMPLOYEE_REQUIRED_STEPS.includes(to)) return "assignEmployee";
     return "advance";
+  };
+
+  // Persiste el empleado responsable de una etapa y avanza la orden
+  const asignarEmpleadoYAvanzar = async (targetStep, empleado) => {
+    const { id_empleado, nombre_empleado } = empleado || {};
+    if (!id_empleado) {
+      setGlobalAlert({ open: true, type: "error", title: "Empleado requerido", message: "Debes seleccionar un empleado responsable para continuar." });
+      return;
+    }
+    const empleadoAsignaciones = {
+      ...(production.rawData?.empleadoAsignaciones || production.empleadoAsignaciones || {}),
+      [targetStep]: { id_empleado, nombre_empleado, fecha: new Date().toISOString() },
+    };
+    await ProductionAPIClient.updateOrder(production.id, { empleadoAsignaciones });
+    setProduction((prev) => ({ ...prev, empleadoAsignaciones }));
+    await applyStepChange(targetStep);
   };
 
   const openProductionAlert = (overrides) =>
@@ -559,6 +581,18 @@ const ProductionDetailsPage = () => {
       return;
     }
 
+    if (type === "assignEmployee") {
+      try {
+        await asignarEmpleadoYAvanzar(targetStep, motivo);
+        const nombre = motivo?.nombre_empleado || "El empleado";
+        setGlobalAlert({ open: true, type: "success", title: "Empleado asignado", message: `${nombre} fue asignado como responsable de "${targetStep}" y la orden avanzó correctamente.` });
+      } catch (err) {
+        console.error('[Empleado] Error al asignar:', err?.message || err);
+        setGlobalAlert({ open: true, type: "error", title: "Error al asignar empleado", message: "No se pudo asignar el empleado responsable. Intenta de nuevo." });
+      }
+      return;
+    }
+
     if (type === "assignSede") {
       try {
         const assignmentsList = Array.isArray(motivo) ? motivo : [];
@@ -596,9 +630,27 @@ const ProductionDetailsPage = () => {
         } catch(e) {}
 
         setProduction(prev => ({ ...prev, sedeAsignaciones }));
-        await applyStepChange(targetStep);
-        setGlobalAlert({ open: true, type: "success", title: "Sede asignada", message: `La sede fue asignada y la orden avanzó a "${targetStep}".` });
-        setTimeout(() => setPendingFinishedImg("request"), 800);
+
+        // ✅ La sede quedó asignada; ahora se pide el empleado responsable
+        // de la etapa "Recepción" antes de avanzar realmente el estado.
+        setTimeout(() => {
+          openProductionAlert({
+            type: "assignEmployee",
+            targetStep,
+            customTitle: `Asignar empleado responsable de "${targetStep}"`,
+            customMessage: `La sede quedó asignada. Ahora selecciona el empleado responsable de "${targetStep}".`,
+            onConfirmOverride: async (empleado) => {
+              try {
+                await asignarEmpleadoYAvanzar(targetStep, empleado);
+                setGlobalAlert({ open: true, type: "success", title: "Sede y empleado asignados", message: `La sede y el empleado responsable fueron asignados y la orden avanzó a "${targetStep}".` });
+                setTimeout(() => setPendingFinishedImg("request"), 800);
+              } catch (err) {
+                console.error('[Empleado] Error al asignar tras sede:', err?.message || err);
+                setGlobalAlert({ open: true, type: "error", title: "Error al asignar empleado", message: "No se pudo asignar el empleado responsable. Intenta de nuevo." });
+              }
+            },
+          });
+        }, 300);
       } catch (err) {
         console.error('[Sede] Error al asignar:', err?.message || err);
         setGlobalAlert({ open: true, type: "error", title: "Error al asignar sede", message: "No se pudo asignar la sede. Intenta de nuevo." });
