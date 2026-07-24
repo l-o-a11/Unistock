@@ -16,6 +16,7 @@ import { validators } from '../../../shared/utils/validators';
 import { blockInput } from '../../../shared/utils/blockInput';
 import TechnicalSheet from '../../../products/components/TechnicalSheet';
 import ThirdPartiesSection from './ThirdPartiesSection';
+import { clientAPI } from '../../../shared/services/clientAPI';
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -138,6 +139,12 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [loadingSheet,  setLoadingSheet] = useState(false);
    const [savedColors,   setSavedColors]  = useState([]);
    const [savedClients,  setSavedClients] = useState([]);
+   const [clientCatalog, setClientCatalog] = useState([]);
+   const [clientAccordionOpen, setClientAccordionOpen] = useState(false);
+   const [clientFormOpen, setClientFormOpen] = useState(false);
+   const [editingClientId, setEditingClientId] = useState(null);
+   const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
+   const [clientFormError, setClientFormError] = useState('');
    const [designImages,  setDesignImages] = useState([]);
    const [terceros,      setTerceros]     = useState([]);
 
@@ -157,12 +164,33 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
      const savedClients = localStorage.getItem('productionClients');
      if (savedClients) {
        try {
-         setSavedClients(JSON.parse(savedClients));
+         const parsed = JSON.parse(savedClients);
+         setSavedClients(Array.isArray(parsed) ? parsed : []);
        } catch (e) {
          console.error('Error parsing saved clients', e);
        }
      }
    }, []);
+
+   const loadClients = useCallback(async () => {
+     try {
+       const clients = await clientAPI.list();
+       const clientList = Array.isArray(clients) ? clients : [];
+       setClientCatalog(clientList);
+       const names = clientList.map((c) => c.nombre).filter(Boolean);
+       setSavedClients((prev) => {
+         const merged = Array.from(new Set([...(names || []), ...prev]));
+         localStorage.setItem('productionClients', JSON.stringify(merged));
+         return merged;
+       });
+     } catch (err) {
+       console.error('Error cargando clientes', err);
+     }
+   }, []);
+
+   useEffect(() => {
+     loadClients();
+   }, [loadClients]);
 
   // ── Nueva referencia (solo tipo diseño) ───────────────────────────────────
   const [nuevaRefOpen, setNuevaRefOpen] = useState(false);
@@ -304,6 +332,60 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const saveColor  = (c) => { if (c && !savedColors.includes(c))  { const u = [c, ...savedColors].slice(0,10);  setSavedColors(u);  localStorage.setItem('productionColors',  JSON.stringify(u)); } };
   const saveClient = (c) => { if (c && !savedClients.includes(c)) { const u = [c, ...savedClients].slice(0,10); setSavedClients(u); localStorage.setItem('productionClients', JSON.stringify(u)); } };
+
+  const handleClientEditRequest = async () => {
+    const documento = window.prompt('Ingresa el número de documento del cliente');
+    if (!documento) return;
+    try {
+      const clients = await clientAPI.list({ documento: documento.trim() });
+      const client = Array.isArray(clients) ? clients[0] : null;
+      if (!client) {
+        window.alert('No se encontró un cliente con ese documento');
+        return;
+      }
+      setEditingClientId(client.id || client._id || null);
+      setClientDraft({
+        nombre: client.nombre || '',
+        documento: client.documento || '',
+        telefono: client.telefono || '',
+        correo: client.correo || '',
+      });
+      setClientFormOpen(true);
+      setClientAccordionOpen(false);
+      setClientFormError('');
+    } catch (err) {
+      window.alert(err?.message || 'No se pudo cargar el cliente');
+    }
+  };
+
+  const handleClientCreate = async (e) => {
+    e.preventDefault();
+    if (!clientDraft.nombre.trim() || !clientDraft.documento.trim()) {
+      setClientFormError('Nombre y documento son obligatorios');
+      return;
+    }
+    try {
+      const payload = {
+        nombre: clientDraft.nombre.trim(),
+        documento: clientDraft.documento.trim(),
+        telefono: clientDraft.telefono.trim(),
+        correo: clientDraft.correo.trim(),
+      };
+      const saved = editingClientId
+        ? await clientAPI.update(editingClientId, payload)
+        : await clientAPI.create(payload);
+      const clientName = saved?.nombre || clientDraft.nombre.trim();
+      saveClient(clientName);
+      setFormData(prev => ({ ...prev, cliente: clientName }));
+      await loadClients();
+      setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setEditingClientId(null);
+      setClientFormError('');
+      setClientFormOpen(false);
+    } catch (err) {
+      setClientFormError(err?.message || 'No se pudo guardar el cliente');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -798,12 +880,50 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </div>
                 <div>
                   <label style={labelStyle}>Cliente <span style={requiredStar}>*</span></label>
-                  <input
-                    list="clientList" name="cliente" value={formData.cliente}
-                    onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); }}
-                    style={getInputStyle(errors.cliente)} placeholder="Ej: Juan Pérez"
-                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      list="clientList" name="cliente" value={formData.cliente}
+                      onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); }}
+                      style={{ ...getInputStyle(errors.cliente), flex: 1 }} placeholder="Ej: Juan Pérez"
+                    />
+                    <button type="button" onClick={() => { setEditingClientId(null); setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' }); setClientFormError(''); setClientFormOpen((v) => !v); }} style={{ border: '1px solid #ff4fd6', background: '#fff0fb', color: '#ff4fd6', borderRadius: 10, padding: '0 12px', cursor: 'pointer', fontWeight: 700 }}>
+                      +
+                    </button>
+                    <button type="button" onClick={handleClientEditRequest} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#374151', borderRadius: 10, padding: '0 12px', cursor: 'pointer', fontWeight: 600 }}>
+                      Editar
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 8, border: '1px solid #f3f4f6', borderRadius: 10, overflow: 'hidden', background: '#fafafa' }}>
+                    <button type="button" onClick={() => setClientAccordionOpen(v => !v)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700, color: '#374151' }}>
+                      {clientAccordionOpen ? 'Ocultar clientes guardados' : 'Ver clientes guardados'}
+                    </button>
+                    {clientAccordionOpen && (
+                      <div style={{ padding: '0 12px 12px', display: 'grid', gap: 8 }}>
+                        {clientCatalog.length > 0 ? clientCatalog.map((client) => (
+                          <button key={client.id || client.documento} type="button" onClick={() => { setFormData(prev => ({ ...prev, cliente: client.nombre })); if (errors.cliente) setErrors(prev => { const next = { ...prev }; delete next.cliente; return next; }); }} style={{ textAlign: 'left', padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>
+                            <div style={{ fontWeight: 700, color: '#1f2937' }}>{client.nombre}</div>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>Documento: {client.documento || '—'}</div>
+                          </button>
+                        )) : <span style={{ color: '#6b7280', fontSize: 12 }}>Aún no hay clientes guardados</span>}
+                      </div>
+                    )}
+                  </div>
                   <datalist id="clientList">{savedClients.map((c, i) => <option key={i} value={c} />)}</datalist>
+                  {clientFormOpen && (
+                    <form onSubmit={handleClientCreate} style={{ marginTop: 8, padding: 10, border: '1px solid #f5d0fe', borderRadius: 10, background: '#fffafc' }}>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        <input value={clientDraft.nombre} onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))} placeholder="Nombre" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
+                        <input value={clientDraft.documento} onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))} placeholder="Documento" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
+                        <input value={clientDraft.telefono} onChange={(e) => setClientDraft(prev => ({ ...prev, telefono: e.target.value }))} placeholder="Teléfono" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
+                        <input value={clientDraft.correo} onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))} placeholder="Correo" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
+                        {clientFormError && <span style={{ color: '#ff4fd6', fontSize: 11, fontWeight: 700 }}>{clientFormError}</span>}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="submit" style={{ border: 'none', background: '#ff4fd6', color: '#fff', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontWeight: 700 }}>{editingClientId ? 'Actualizar cliente' : 'Guardar cliente'}</button>
+                          <button type="button" onClick={() => { setClientFormOpen(false); setClientFormError(''); setEditingClientId(null); }} style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>Cancelar</button>
+                        </div>
+                      </div>
+                    </form>
+                  )}
                   {errors.cliente && <span style={errMsg}>⚠ {errors.cliente}</span>}
                 </div>
               </div>
