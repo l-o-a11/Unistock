@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../../shared/components/LoadingState';
+import { useSedeScope } from '../../../shared/hooks/useSedeScope';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const IconEye = () => (
@@ -73,10 +74,14 @@ const StatusBadge = ({ status, small }) => {
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
-const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
+const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
   const navigate = useNavigate();
+  const { isGerente, isAdministrador } = useSedeScope();
+  // Empleado: su única función en Producción es confirmar que terminó su
+  // parte — nunca entra al detalle, ni anula, ni ve el acordeón de ítems.
+  const esEmpleado = !isGerente && !isAdministrador;
 
   if (!productions || productions.length === 0) {
     return (
@@ -220,96 +225,117 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                   <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
 
-                      {/* Ver detalle */}
-                      <button
-                        title="Ver detalle"
-                        onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          padding: '5px 10px', borderRadius: 7,
-                          border: '1px solid #e5e7eb', background: '#fff',
-                          color: '#6b7280', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                          transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
-                      >
-                        <IconEye />
-                      </button>
+                      {esEmpleado ? (
+                        // Empleado: única acción posible — confirmar que terminó su etapa
+                        <button
+                          onClick={() => onConfirmar?.(prod)}
+                          disabled={isAnulada}
+                          style={{
+                            padding: '6px 14px', borderRadius: 7, border: 'none',
+                            background: isAnulada ? '#f3f4f6' : '#FF4FD6',
+                            color: isAnulada ? '#9ca3af' : '#fff',
+                            cursor: isAnulada ? 'not-allowed' : 'pointer',
+                            fontSize: 11, fontWeight: 700,
+                          }}
+                        >
+                          Confirmar
+                        </button>
+                      ) : (
+                        <>
+                          {/* Ver detalle — Gerente y Administrador (observador) */}
+                          <button
+                            title="Ver detalle"
+                            onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '5px 10px', borderRadius: 7,
+                              border: '1px solid #e5e7eb', background: '#fff',
+                              color: '#6b7280', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                          >
+                            <IconEye />
+                          </button>
 
-                      {/* Anular */}
-                      <button
-                        title={isAnulada ? 'Ya anulada' : 'Anular orden'}
-                        disabled={isAnulada}
-                        onClick={() => !isAnulada && onCancel?.(prod.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center',
-                          padding: '5px 8px', borderRadius: 7,
-                          border: '1px solid #e5e7eb',
-                          background: isAnulada ? '#f9fafb' : '#fff',
-                          color: isAnulada ? '#d1d5db' : '#262747',
-                          cursor: isAnulada ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; } }}
-                        onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
-                      >
-                        <IconBan />
-                      </button>
-
-                      {/* Acordeón toggle */}
-                      <button
-                        title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
-                        disabled={loadingDetailId === prod.id}
-                        onClick={async () => {
-                          const next = isOpen ? null : prod.id;
-                          setExpandedRow(next);
-                          if (next && typeof onExpandRow === 'function') {
-                            setLoadingDetailId(prod.id);
-                            try {
-                              await Promise.resolve(onExpandRow(prod.id));
-                            } catch (err) {
-                              console.error('[ProductionTable] Error cargando detalles:', err);
-                            } finally {
-                              setLoadingDetailId(null);
-                            }
-                          }
-                        }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          padding: '5px 8px', borderRadius: 7,
-                          border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
-                          background: isOpen ? '#fffff4' : '#fff',
-                          color: isOpen ? '#FF4FD6' : '#6b7280',
-                          cursor: loadingDetailId === prod.id ? 'wait' : 'pointer', fontSize: 10, fontWeight: 700,
-                          transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
-                        onMouseLeave={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
-                      >
-                        {loadingDetailId === prod.id ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
-                          </span>
-                        ) : (
-                          <>
-                            <IconChevron open={isOpen} />
-                            {(prod.details || []).length > 0 && (
-                              <span style={{
-                                minWidth: 16, height: 16, borderRadius: 8,
-                                background: isOpen ? '#FF4FD6' : '#e5e7eb',
-                                color: isOpen ? '#fff' : '#6b7280',
-                                fontSize: 9, fontWeight: 700,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          {/* Anular — exclusivo de Gerente, el Administrador solo observa */}
+                          {isGerente && (
+                            <button
+                              title={isAnulada ? 'Ya anulada' : 'Anular orden'}
+                              disabled={isAnulada}
+                              onClick={() => !isAnulada && onCancel?.(prod.id)}
+                              style={{
+                                display: 'flex', alignItems: 'center',
+                                padding: '5px 8px', borderRadius: 7,
+                                border: '1px solid #e5e7eb',
+                                background: isAnulada ? '#f9fafb' : '#fff',
+                                color: isAnulada ? '#d1d5db' : '#262747',
+                                cursor: isAnulada ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.15s',
-                              }}>
-                                {(prod.details || []).length}
+                              }}
+                              onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; } }}
+                              onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                            >
+                              <IconBan />
+                            </button>
+                          )}
+
+                          {/* Acordeón toggle */}
+                          <button
+                            title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
+                            disabled={loadingDetailId === prod.id}
+                            onClick={async () => {
+                              const next = isOpen ? null : prod.id;
+                              setExpandedRow(next);
+                              if (next && typeof onExpandRow === 'function') {
+                                setLoadingDetailId(prod.id);
+                                try {
+                                  await Promise.resolve(onExpandRow(prod.id));
+                                } catch (err) {
+                                  console.error('[ProductionTable] Error cargando detalles:', err);
+                                } finally {
+                                  setLoadingDetailId(null);
+                                }
+                              }
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '5px 8px', borderRadius: 7,
+                              border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
+                              background: isOpen ? '#fffff4' : '#fff',
+                              color: isOpen ? '#FF4FD6' : '#6b7280',
+                              cursor: loadingDetailId === prod.id ? 'wait' : 'pointer', fontSize: 10, fontWeight: 700,
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
+                            onMouseLeave={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                          >
+                            {loadingDetailId === prod.id ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
                               </span>
+                            ) : (
+                              <>
+                                <IconChevron open={isOpen} />
+                                {(prod.details || []).length > 0 && (
+                                  <span style={{
+                                    minWidth: 16, height: 16, borderRadius: 8,
+                                    background: isOpen ? '#FF4FD6' : '#e5e7eb',
+                                    color: isOpen ? '#fff' : '#6b7280',
+                                    fontSize: 9, fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s',
+                                  }}>
+                                    {(prod.details || []).length}
+                                  </span>
+                                )}
+                              </>
                             )}
-                          </>
-                        )}
-                      </button>
+                          </button>
+                        </>
+                      )}
 
                     </div>
                   </td>
@@ -371,7 +397,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                {['#', 'Ref_corte', 'Referencia', 'Estado',  'Cantidad', 'Color'].map(h => (
+                                {['#', 'Ref_corte', 'Referencia', 'Estado', 'Cantidad', 'Color'].map(h => (
                                   <th key={h} style={{
                                     padding: '7px 10px', textAlign: 'left',
                                     fontSize: 10, fontWeight: 700, color: '#a78bfa',
@@ -397,7 +423,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow }) => {
                                   <td style={{ padding: '7px 10px' }}>
                                     <StatusBadge status={d.status} small />
                                   </td>
-                                  
+
                                   <td style={{ padding: '7px 10px' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
                                       {(d.quantity || 0).toLocaleString('es-CO')}

@@ -34,6 +34,7 @@ export const useEmployees = () => {
       correo: formData.email,
       rolId: formData.role,
       sedeId: formData.sede,
+      cargos: Array.isArray(formData.cargos) ? formData.cargos : [],
     });
     // Refetch para que el nuevo empleado aparezca con todos sus datos resueltos
     await fetchEmployees();
@@ -48,6 +49,7 @@ export const useEmployees = () => {
       correo: formData.email,
       rolId: formData.role,
       sedeId: formData.sede,
+      cargos: Array.isArray(formData.cargos) ? formData.cargos : [],
     });
     await fetchEmployees();
     return updated;
