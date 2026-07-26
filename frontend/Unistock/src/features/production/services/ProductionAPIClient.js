@@ -67,6 +67,13 @@ const toBackendFormat = (frontendData) => {
   // ✅ Persistir asignaciones de sede/tercero en la BD (antes solo localStorage)
   if (hasAny('sedeAsignaciones')) backendData.sedeAsignaciones = Array.isArray(frontendData.sedeAsignaciones) ? frontendData.sedeAsignaciones : [];
   if (hasAny('terceroAsignaciones')) backendData.terceroAsignaciones = Array.isArray(frontendData.terceroAsignaciones) ? frontendData.terceroAsignaciones : [];
+  // 🐛 FIX: esta línea faltaba por completo. `empleadoAsignaciones` (objeto
+  // { [etapa]: { id_empleado, nombre_empleado, fecha } }) se construía bien
+  // en el frontend pero nunca viajaba al backend porque toBackendFormat no
+  // lo reconocía como campo válido — el PUT se enviaba sin él y la
+  // asignación se perdía en silencio. Por eso el empleado nunca veía su
+  // orden asignada: en la BD el campo quedaba siempre vacío.
+  if (hasAny('empleadoAsignaciones')) backendData.empleadoAsignaciones = frontendData.empleadoAsignaciones || {};
   // ✅ Sede dueña de la producción (elegida al crear la orden)
   if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
 
@@ -117,8 +124,20 @@ const toFrontendFormat = (backendData) => {
     terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
     historial: backendData.historial || [],
     history: backendData.historial || [],
-    // ✅ Empleado responsable de la etapa actual
-    empleadoAsignadoId: backendData.empleadoAsignadoId || null,
+    // 🐛 FIX: El backend REAL (Api_Unistock, puerto 3000) guarda la asignación
+    // como un campo plano `empleadoAsignadoId` (ObjectId directo), NO como el
+    // objeto `empleadoAsignaciones`. La derivación desde `empleadoAsignaciones`
+    // siempre devolvía null porque ese objeto no existe en la BD real, lo que
+    // impedía que el filtro "¿esta orden es mía?" en la vista de Producción del
+    // empleado nunca coincidiera con nadie.
+    // Ahora se lee `empleadoAsignadoId` directamente como fuente principal, y
+    // se conserva `empleadoAsignaciones` solo como compatibilidad con el otro
+    // backend (back_unictock, puerto 3020).
+    empleadoAsignaciones: backendData.empleadoAsignaciones || {},
+    etapaConfirmada: backendData.etapaConfirmada ?? false,
+    empleadoAsignadoId: backendData.empleadoAsignadoId
+      || backendData.empleadoAsignaciones?.[backendData.estado]?.id_empleado
+      || null,
     // ✅ Sede dueña de la producción
     sedeId: backendData.sedeId || null,
     rawData: backendData,
@@ -186,6 +205,19 @@ export const ProductionAPIClient = {
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
+  },
+
+  /**
+   * Confirma la etapa actual por parte del empleado asignado.
+   * Marca `etapaConfirmada: true` en la orden (NO cambia el estado).
+   * Solo el empleado asignado a la etapa actual puede ejecutar esta acción.
+   */
+  confirmarEtapa: async (id) => {
+    const res = await httpRequest(`/produccion/ordenes/${id}/confirmar-etapa`, {
+      method: "PATCH",
+    });
+    const data = res?.data || res;
+    return toFrontendFormat(data);
   },
 
   // ✅ Asigna un empleado a la etapa ACTUAL de la orden — valida en el

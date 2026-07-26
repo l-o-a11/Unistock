@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../../shared/components/LoadingState';
 import { useSedeScope } from '../../../shared/hooks/useSedeScope';
+import { ProductionAPIClient } from '../../services/ProductionAPIClient';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const IconEye = () => (
@@ -77,11 +78,11 @@ const StatusBadge = ({ status, small }) => {
 const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const navigate = useNavigate();
-  const { isGerente, isAdministrador } = useSedeScope();
-  // Empleado: su única función en Producción es confirmar que terminó su
-  // parte — nunca entra al detalle, ni anula, ni ve el acordeón de ítems.
-  const esEmpleado = !isGerente && !isAdministrador;
+  const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
+  const esEmpleado = isEmpleado;
 
   if (!productions || productions.length === 0) {
     return (
@@ -103,6 +104,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
   );
 
   return (
+    <>
     <div style={{ width: '100%', overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
         <thead>
@@ -226,20 +228,97 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
 
                       {esEmpleado ? (
-                        // Empleado: única acción posible — confirmar que terminó su etapa
-                        <button
-                          onClick={() => onConfirmar?.(prod)}
-                          disabled={isAnulada}
-                          style={{
-                            padding: '6px 14px', borderRadius: 7, border: 'none',
-                            background: isAnulada ? '#f3f4f6' : '#FF4FD6',
-                            color: isAnulada ? '#9ca3af' : '#fff',
-                            cursor: isAnulada ? 'not-allowed' : 'pointer',
-                            fontSize: 11, fontWeight: 700,
-                          }}
-                        >
-                          Confirmar
-                        </button>
+                        <>
+                          {/* Empleado: botón de acordeón para ver artículos */}
+                          <button
+                            title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
+                            disabled={loadingDetailId === prod.id}
+                            onClick={async () => {
+                              const next = isOpen ? null : prod.id;
+                              setExpandedRow(next);
+                              if (next && typeof onExpandRow === 'function') {
+                                setLoadingDetailId(prod.id);
+                                try {
+                                  await Promise.resolve(onExpandRow(prod.id));
+                                } catch (err) {
+                                  console.error('[ProductionTable] Error cargando detalles:', err);
+                                } finally {
+                                  setLoadingDetailId(null);
+                                }
+                              }
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '5px 8px', borderRadius: 7,
+                              border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
+                              background: isOpen ? '#fffff4' : '#fff',
+                              color: isOpen ? '#FF4FD6' : '#6b7280',
+                              cursor: loadingDetailId === prod.id ? 'wait' : 'pointer',
+                              fontSize: 10, fontWeight: 700,
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {loadingDetailId === prod.id ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
+                              </span>
+                            ) : (
+                              <>
+                                <IconChevron open={isOpen} />
+                                {(prod.details || []).length > 0 && (
+                                  <span style={{
+                                    minWidth: 16, height: 16, borderRadius: 8,
+                                    background: isOpen ? '#FF4FD6' : '#e5e7eb',
+                                    color: isOpen ? '#fff' : '#6b7280',
+                                    fontSize: 9, fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s',
+                                  }}>
+                                    {(prod.details || []).length}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </button>
+
+                          {/* Empleado: botón de detalle */}
+                          <button
+                            title="Ver detalle"
+                            disabled={isAnulada}
+                            onClick={() => !isAnulada && navigate(`/layout/produccion/detalle/${prod.id}`)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '5px 10px', borderRadius: 7,
+                              border: '1px solid #e5e7eb', background: isAnulada ? '#f9fafb' : '#fff',
+                              color: isAnulada ? '#d1d5db' : '#6b7280',
+                              cursor: isAnulada ? 'not-allowed' : 'pointer',
+                              fontSize: 11, fontWeight: 600,
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; } }}
+                            onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                          >
+                            <IconEye />
+                          </button>
+
+                          {/* Empleado: botón confirmar avance de etapa */}
+                          <button
+                            title="Confirmar finalización de etapa"
+                            disabled={isAnulada}
+                            onClick={() => !isAnulada && setConfirmModal({ open: true, prod })}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 5,
+                              padding: '6px 14px', borderRadius: 7, border: 'none',
+                              background: isAnulada ? '#f3f4f6' : '#FF4FD6',
+                              color: isAnulada ? '#9ca3af' : '#fff',
+                              cursor: isAnulada ? 'not-allowed' : 'pointer',
+                              fontSize: 11, fontWeight: 700,
+                            }}
+                          >
+                            Confirmar
+                          </button>
+                        </>
                       ) : (
                         <>
                           {/* Ver detalle — Gerente y Administrador (observador) */}
@@ -488,6 +567,48 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
         </tbody>
       </table>
     </div>
+
+      {/* ── Modal de confirmación para el empleado ── */}
+      {confirmModal.open && confirmModal.prod && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => !confirmLoading && setConfirmModal({ open: false, prod: null })}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}
+            onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
+              Confirmar finalización
+            </h3>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
+¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
+              Se avisará al gerente y la orden pasará a la siguiente etapa.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmModal({ open: false, prod: null })} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: "pointer", color: "#555" }}>
+                Cancelar
+              </button>
+              <button onClick={async () => {
+                setConfirmLoading(true);
+                try {
+                  await ProductionAPIClient.confirmarEtapa(confirmModal.prod.id);
+                  setConfirmModal({ open: false, prod: null });
+                  // Recargar la lista para reflejar el cambio
+                  if (typeof onExpandRow === 'function') {
+                    await onExpandRow(confirmModal.prod.id);
+                  }
+                } catch (err) {
+                  alert(err?.message || "No se pudo confirmar la finalización de la etapa");
+                } finally {
+                  setConfirmLoading(false);
+                }
+              }} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: confirmLoading ? "not-allowed" : "pointer", opacity: confirmLoading ? 0.6 : 1 }}>
+                {confirmLoading ? "Confirmando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

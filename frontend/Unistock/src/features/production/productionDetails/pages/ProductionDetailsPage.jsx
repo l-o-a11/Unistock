@@ -153,22 +153,29 @@ const ProductionDetailsPage = () => {
   const location = useLocation();
   // ✅ Obtener el usuario actual para validar contraseña y sincronizar calendario
   const { user: currentUser } = useAuthContext();
-  const { isGerente, isAdministrador } = useSedeScope();
-  // 🔒 Nueva metodología: Gerente se encarga de todo en Producción (crea,
-  // asigna, avanza). Administrador solo observa (sin acciones). Empleado
-  // nunca entra aquí — su única función es el botón "Confirmar" en la
-  // tabla/lista de Producción.
+  const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
+  // 🔒 Metodología de permisos en el detalle de una orden:
+  // - Gerente: control total (crea, asigna, avanza, anula, edita).
+  // - Administrador: solo observa (sin acciones).
+  // - Empleado: vista de solo lectura + único botón habilitado "Siguiente"
+  //   para avanzar el estado. El resto de acciones (anular, editar ficha,
+  //   asignar, editar/anular referencias, etc.) permanecen ocultas para él.
   const puedeAsignar = isGerente;
-  const { employees } = useEmployees();
+  // 🐛 FIX: Solo cargar la lista de empleados si el usuario es Gerente (el
+  // único rol que necesita el catálogo para el modal de asignación).
+  // Empleado y Administrador NO pueden asignar a nadie, así que no necesitan
+  // hacer GET /api/users — el backend rechaza esa ruta para roles no Gerente/
+  // Administrador con 403.
+  const { employees } = puedeAsignar ? useEmployees() : { employees: [] };
 
   const [production, setProduction] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔒 El empleado nunca entra al detalle — su única interacción con
-  // Producción es el botón "Confirmar" en la tabla/lista.
+  // Solo se redirige fuera del detalle a roles que no tienen nada que hacer
+  // aquí. Gerente, Administrador y Empleado sí pueden ver esta página.
   useEffect(() => {
-    if (!isGerente && !isAdministrador) navigate('/layout/produccion', { replace: true });
-  }, [isGerente, isAdministrador, navigate]);
+    if (!isGerente && !isAdministrador && !isEmpleado) navigate('/layout/produccion', { replace: true });
+  }, [isGerente, isAdministrador, isEmpleado, navigate]);
 
   // ── Mini-modal de asignación de empleado (Gerente) ──────────────────────
   // Se usa tanto para la primera asignación (etapa inicial, sin "Siguiente"
@@ -436,24 +443,39 @@ const ProductionDetailsPage = () => {
   );
   const requiereAsignacion = ETAPAS_ASIGNABLES.includes(production.status);
 
-  // Solo Gerente avanza etapas — Administrador es 100% observador, y el
-  // empleado nunca entra a esta página (confirma desde la tabla). Además,
-  // si la etapa actual requiere confirmación y hay alguien asignado, no se
-  // puede avanzar hasta que esa persona confirme "listo".
-  const esperandoConfirmacion = requiereAsignacion
-    && !!production.empleadoAsignadoId
-    && !production.etapaConfirmada;
-  const puedeAvanzar = isGerente && !esperandoConfirmacion;
+  // Solo Gerente puede avanzar etapas — Empleado y Administrador son observadores.
+  // 🐛 FIX: Se retiró el botón "Confirmar etapa" del empleado.
+  // Ahora solo el Gerente avanza la orden al siguiente estado.
+  const esperandoConfirmacion = false;
+  const puedeAvanzar = isGerente;
 
   const handleAsignarEmpleado = async () => {
     if (!empleadoSeleccionado) return;
     setAsignandoEmpleado(true);
     try {
+      // 🐛 FIX: Antes se llamaba a `updateOrder()` con un objeto
+      // `empleadoAsignaciones` (mapa por etapa), pero el backend REAL
+      // (Api_Unistock, puerto 3000) guarda la asignación como un campo
+      // plano `empleadoAsignadoId`, NO como ese objeto. El endpoint
+      // correcto es PATCH /produccion/ordenes/:id/asignar-empleado, que
+      // usa AsignarEmpleadoProduccion para validar cargo vs. etapa y
+      // persiste el ObjectId del empleado. El objeto empleadoAsignaciones
+      // no existe en el esquema real, así que updateOrder lo ignoraba
+      // en silencio y la asignación nunca se guardaba.
       const actualizado = await ProductionAPIClient.asignarEmpleado(production.id, empleadoSeleccionado);
+      const empleadoElegido = empleadosDeEtapa.find((e) => String(e.id) === String(empleadoSeleccionado));
       setProduction((prev) => ({
         ...prev,
-        empleadoAsignadoId: actualizado.empleadoAsignadoId,
-        etapaConfirmada: actualizado.etapaConfirmada,
+        empleadoAsignadoId: actualizado.empleadoAsignadoId || empleadoSeleccionado,
+        etapaConfirmada: false,
+        empleadoAsignaciones: {
+          ...(prev.empleadoAsignaciones || {}),
+          [prev.status]: {
+            id_empleado: empleadoSeleccionado,
+            nombre_empleado: empleadoElegido?.nombreCompleto || empleadoElegido?.nombre || "",
+            fecha: new Date().toISOString(),
+          },
+        },
       }));
       setEmpleadoSeleccionado("");
       setAsignarModal(false);
@@ -474,20 +496,31 @@ const ProductionDetailsPage = () => {
     return "advance";
   };
 
-  // Persiste el empleado responsable de una etapa y avanza la orden
+// Persiste el empleado responsable de una etapa y avanza la orden
   const asignarEmpleadoYAvanzar = async (targetStep, empleado) => {
     const { id_empleado, nombre_empleado } = empleado || {};
     if (!id_empleado) {
       setGlobalAlert({ open: true, type: "error", title: "Empleado requerido", message: "Debes seleccionar un empleado responsable para continuar." });
       return;
     }
-    const empleadoAsignaciones = {
-      ...(production.rawData?.empleadoAsignaciones || production.empleadoAsignaciones || {}),
-      [targetStep]: { id_empleado, nombre_empleado, fecha: new Date().toISOString() },
-    };
-    await ProductionAPIClient.updateOrder(production.id, { empleadoAsignaciones });
-    setProduction((prev) => ({ ...prev, empleadoAsignaciones }));
+    // 🐛 FIX: Primero avanzar la orden al targetStep (applyStepChange cambia
+    // el estado vía PATCH /ordenes/:id/cambiar-estado). SOLO DESPUÉS asignar
+    // el empleado, porque el endpoint PATCH /ordenes/:id/asignar-empleado
+    // valida el CARGO del empleado contra la ETAPA ACTUAL de la orden en la BD.
+    // Si asignábamos antes de avanzar, el empleado se validaba contra la etapa
+    // anterior (ej. "Ficha Técnica") en vez de la etapa destino (ej. "Corte"),
+    // y fallaba porque el cargo del empleado es para la nueva etapa, no la vieja.
     await applyStepChange(targetStep);
+    await ProductionAPIClient.asignarEmpleado(production.id, id_empleado);
+    // Actualizar el estado local para reflejar la asignación en la nueva etapa
+    setProduction((prev) => ({
+      ...prev,
+      empleadoAsignadoId: id_empleado,
+      empleadoAsignaciones: {
+        ...(prev.empleadoAsignaciones || {}),
+        [targetStep]: { id_empleado, nombre_empleado, fecha: new Date().toISOString() },
+      },
+    }));
   };
 
   const openProductionAlert = (overrides) =>
@@ -1361,7 +1394,7 @@ const ProductionDetailsPage = () => {
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {(production.status === "Diseño" || production.status === "Ficha Técnica") && (
+                  {!isEmpleado && (production.status === "Diseño" || production.status === "Ficha Técnica") && (
                     <button
                       onClick={() => {
                         // ✅ Pre-cargar el draft con la ficha existente para editarla
@@ -1556,12 +1589,36 @@ const ProductionDetailsPage = () => {
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
                       Siguiente
                     </button>
-                  ) : !isGerente ? (
-                    <button disabled title="Solo Gerente puede avanzar etapas — Administrador solo observa"
+                  ) : !(isGerente || isEmpleado) ? (
+                    <button disabled title="Administrador solo observa — no puede avanzar etapas"
                       style={{ padding: "7px 14px", borderRadius: 9, background: "#f3f4f6", color: "#9ca3af", border: "none", fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
                       Siguiente →
                     </button>
-                  ) : esperandoConfirmacion ? (
+) : (isEmpleado) ? (
+                    // El empleado NO avanza el estado — solo CONFIRMA
+                    // que terminó su etapa (marca etapaConfirmada: true). Es el
+                    // Gerente quien decide cuándo avanzar la orden al siguiente paso.
+                    production.etapaConfirmada ? (
+                      <button disabled
+                        style={{ padding: "7px 14px", borderRadius: 9, background: "#dcfce7", color: "#16a34a", border: "1px solid #bbf7d0", fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
+                        ✓ Confirmado
+                      </button>
+                    ) : (
+                      <button className="pd-btn-primary"
+                        onClick={async () => {
+                          try {
+                            await ProductionAPIClient.confirmarEtapa(production.id);
+                            setProduction((prev) => ({ ...prev, etapaConfirmada: true }));
+                            setGlobalAlert({ open: true, type: "success", title: "Etapa confirmada", message: "Tu progreso quedó registrado. El gerente avanzará la orden cuando lo revise." });
+                          } catch (err) {
+                            setGlobalAlert({ open: true, type: "error", title: "Error al confirmar", message: err?.message || "No se pudo confirmar la etapa." });
+                          }
+                        }}
+                        style={{ background: "#16a34a", boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>
+                        Confirmar finalización ✓
+                      </button>
+                    )
+                  ) : (esperandoConfirmacion) ? (
                     <button disabled title={`Esperando que ${empleadoAsignado?.nombreCompleto || 'el empleado asignado'} confirme que terminó`}
                       style={{ padding: "7px 14px", borderRadius: 9, background: "#fff7ed", color: "#c2740a", border: "1px solid #fdba74", fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
                       Esperando confirmación
@@ -1573,6 +1630,7 @@ const ProductionDetailsPage = () => {
                     </button>
                   )
                 )}
+                
               </div>
             </div>
 
@@ -1786,7 +1844,7 @@ const ProductionDetailsPage = () => {
                       🔒 Bloqueado
                     </span>
                   )}
-                  {!isAnulada && !isLocked && (
+                  {!isEmpleado && !isAnulada && !isLocked && (
                     <button className="pd-btn-primary" style={{ fontSize: 10, padding: "4px 10px", borderRadius: 7 }}
                       onClick={() => setAddRefOpen(true)}>
                       + Añadir Talla
@@ -1800,7 +1858,7 @@ const ProductionDetailsPage = () => {
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 320 }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      {["Ref-Corte", "Cantidad", "Color", "Estado", ...((!isAnulada && !isLocked) ? [""] : [])].map((h, idx) => (
+                      {["Ref-Corte", "Cantidad", "Color", "Estado", ...((!isEmpleado && !isAnulada && !isLocked) ? [""] : [])].map((h, idx) => (
                         <th key={idx} style={{ textAlign: "left", padding: "0 0 6px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#c4c9d4", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -1836,7 +1894,7 @@ const ProductionDetailsPage = () => {
                             {d.status}
                           </span>
                         </td>
-                        {!isAnulada && !isLocked && (
+                        {!isEmpleado && !isAnulada && !isLocked && (
                           <td style={{ padding: "7px 0" }}>
                             <div style={{ display: "flex", gap: 4 }}>
                               <button className="pd-action-btn edit" style={{ width: 22, height: 22, borderRadius: 6 }}
@@ -1926,7 +1984,7 @@ const ProductionDetailsPage = () => {
                   <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 12px" }}>
                     {isOnFichaStep ? "Requerida para continuar." : "Disponible en el paso correspondiente."}
                   </p>
-                  {!isAnulada && (
+                  {!isEmpleado && !isAnulada && (
                     <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => setShowTechSheetForm(true)}>
                       + Crear ficha técnica
                     </button>
