@@ -198,8 +198,8 @@ const ProductionAlerts = ({
 
     (async () => {
       try {
-        const { userAPI } = await import("../../../users/services/usersAPI");
-        const data = await userAPI.getEmployeeWorkload();
+        const { ProductionAPIClient } = await import("../../services/ProductionAPIClient");
+        const data = await ProductionAPIClient.getEmployeeWorkload(targetStep);
         const options = (Array.isArray(data) ? data : [])
           .map((e) => ({
             id: e.id || e._id,
@@ -217,7 +217,7 @@ const ProductionAlerts = ({
     })();
 
     return () => { cancelled = true; };
-  }, [isOpen, type]);
+  }, [isOpen, type, targetStep]);
 
   if (!isOpen) return null;
 

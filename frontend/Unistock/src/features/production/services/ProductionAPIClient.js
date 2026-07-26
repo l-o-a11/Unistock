@@ -67,6 +67,8 @@ const toBackendFormat = (frontendData) => {
   // ✅ Persistir asignaciones de sede/tercero en la BD (antes solo localStorage)
   if (hasAny('sedeAsignaciones')) backendData.sedeAsignaciones = Array.isArray(frontendData.sedeAsignaciones) ? frontendData.sedeAsignaciones : [];
   if (hasAny('terceroAsignaciones')) backendData.terceroAsignaciones = Array.isArray(frontendData.terceroAsignaciones) ? frontendData.terceroAsignaciones : [];
+  // ✅ Sede dueña de la producción (elegida al crear la orden)
+  if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
 
   if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
 
@@ -115,6 +117,10 @@ const toFrontendFormat = (backendData) => {
     terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
     historial: backendData.historial || [],
     history: backendData.historial || [],
+    // ✅ Empleado responsable de la etapa actual
+    empleadoAsignadoId: backendData.empleadoAsignadoId || null,
+    // ✅ Sede dueña de la producción
+    sedeId: backendData.sedeId || null,
     rawData: backendData,
     // ✅ Fix defensivo: también se exponen en el formato enriquecido que usa
     // la vista de detalle ("details"/"history" con sus campos ya mapeados),
@@ -177,6 +183,18 @@ export const ProductionAPIClient = {
     const res = await httpRequest(`/produccion/ordenes/${id}/estado`, {
       method: "PATCH",
       body,
+    });
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
+  },
+
+  // ✅ Asigna un empleado a la etapa ACTUAL de la orden — valida en el
+  // backend que el rol del empleado coincida con el nombre de la etapa,
+  // y dispara el correo de aviso al empleado.
+  asignarEmpleado: async (id, empleadoId) => {
+    const res = await httpRequest(`/produccion/ordenes/${id}/asignar-empleado`, {
+      method: "PATCH",
+      body: { empleadoId },
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -255,6 +273,18 @@ export const ProductionAPIClient = {
   getAlertas: async () => {
     const res = await httpRequest("/produccion/alertas", { method: "GET" });
     return res?.data || res;
+  },
+
+  /**
+   * Lista empleados activos para una etapa de producción junto con su carga
+   * actual. El cargo coincide con el nombre de la etapa (Corte, Compras,
+   * Recepción, etc.).
+   */
+  getEmployeeWorkload: async (cargo) => {
+    const query = cargo ? `?cargo=${encodeURIComponent(cargo)}` : "";
+    const res = await httpRequest(`/produccion/empleados/carga${query}`, { method: "GET" });
+    const data = res?.data || res;
+    return Array.isArray(data) ? data : [];
   },
 
   // ── Asignaciones de Terceros ───────────────────────────────────────────────

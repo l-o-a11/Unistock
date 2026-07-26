@@ -27,7 +27,7 @@ const ddStyle = {
   boxShadow: '0 8px 24px rgba(0,0,0,0.10)', zIndex: 100, maxHeight: 160, overflowY: 'auto', marginTop: 2,
 };
 
-const ShoppingForm = ({ onSubmit, onCancel }) => {
+const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   const { suppliers, createSupplier } = useSuppliers();
   const { supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
   const { sedes } = useSedes();
@@ -49,7 +49,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [detalleActual, setDetalleActual] = useState({
     supplyId: '', nombre: '', medida: '', cantidad: '',
-    costo: '', costoUnitario: '', descripcionAdicional: '',
+    valorUnitario: '', valorTotal: '', descripcionAdicional: '',
   });
   const [insumoSearch, setInsumoSearch] = useState('');
   const [showInsumoDD, setShowInsumoDD] = useState(false);
@@ -67,26 +67,34 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
     setAlertConfig({ open: true, type, title, message, onConfirm });
 
   const totalDetalles = useMemo(
-    () => formData.detalles.reduce((a, d) => a + (d.costo || 0), 0),
+    () => formData.detalles.reduce((a, d) => a + (Number(d.valorTotal) || 0), 0),
     [formData.detalles]
   );
   useEffect(() => {
-    if (formData.detalles.length > 0) {
-      setFormData((p) => ({ ...p, costoTotal: totalDetalles.toFixed(2) }));
-      setErrors((p) => ({ ...p, costoTotal: '' }));
-    }
-  }, [totalDetalles, formData.detalles.length]);
+    setFormData((p) => ({ ...p, costoTotal: totalDetalles.toFixed(2) }));
+    setErrors((p) => ({ ...p, costoTotal: '' }));
+  }, [totalDetalles]);
 
   const vReq = (v) => (!v && v !== 0 ? 'Este campo es obligatorio' : '');
   const vPos = (v) => (isNaN(v) || Number(v) <= 0 ? 'Debe ser mayor a 0' : '');
+  const vInvoice = (v) => (!/^[0-9]{4}$/.test(String(v).trim()) ? 'El número de factura debe tener 4 dígitos' : '');
 
   const validateField = (name, value) => {
     let e = '';
-    if (name === 'numeroFactura') e = vReq(value);
+    if (name === 'numeroFactura') {
+      e = vReq(value) || vInvoice(value);
+      if (!e && existingFacturas.some((factura) => String(factura) === String(value).trim())) {
+        e = 'Este número de factura ya está registrado';
+      }
+    }
     if (name === 'proveedorId') e = vReq(value);
-    if (name === 'fecha') e = vReq(value);
+    if (name === 'fecha') {
+      e = vReq(value);
+      if (!e && new Date(value) > new Date()) {
+        e = 'La fecha no puede ser mayor al día de hoy';
+      }
+    }
     if (name === 'sedeId') e = isGerente ? vReq(value) : '';
-    if (name === 'costoTotal') e = vReq(value) || vPos(value);
     setErrors((p) => ({ ...p, [name]: e }));
     return e;
   };
@@ -125,30 +133,31 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
   const handleDetalleChange = (e) => {
     const { name, value } = e.target;
     setDetalleActual((p) => {
-      const u = { ...p, [name]: value };
-      if (name === 'costo' || name === 'cantidad') {
-        const c = parseFloat(name === 'costo' ? value : p.costo) || 0;
-        const q = parseFloat(name === 'cantidad' ? value : p.cantidad) || 0;
-        u.costoUnitario = q > 0 ? (c / q).toFixed(2) : '';
+      const updated = { ...p, [name]: value };
+      const qty = parseFloat(name === 'cantidad' ? value : p.cantidad) || 0;
+      const total = parseFloat(name === 'valorTotal' ? value : p.valorTotal) || 0;
+
+      if (name === 'cantidad' || name === 'valorTotal') {
+        updated.valorUnitario = qty > 0 && total > 0 ? (total / qty).toFixed(2) : '';
       }
-      return u;
+      return updated;
     });
   };
 
   const handleAgregarDetalle = () => {
     if (!detalleActual.nombre.trim()) { showAlert('warning', 'Campo requerido', 'Selecciona un producto o insumo.'); return; }
     if (!detalleActual.cantidad || Number(detalleActual.cantidad) <= 0) { showAlert('warning', 'Campo requerido', 'Ingresa una cantidad válida.'); return; }
-    if (!detalleActual.costo || Number(detalleActual.costo) <= 0) { showAlert('warning', 'Campo requerido', 'Ingresa un costo válido.'); return; }
+    if (!detalleActual.valorUnitario || Number(detalleActual.valorUnitario) <= 0) { showAlert('warning', 'Campo requerido', 'Ingresa un valor unitario válido.'); return; }
+    if (!detalleActual.valorTotal || Number(detalleActual.valorTotal) <= 0) { showAlert('warning', 'Campo requerido', 'El valor total debe ser mayor a 0.'); return; }
     setFormData((p) => ({
       ...p, detalles: [...p.detalles, {
         id: Date.now(), supplyId: detalleActual.supplyId || null,
         nombre: detalleActual.nombre.trim(), medida: detalleActual.medida || null,
-        cantidad: parseFloat(detalleActual.cantidad), costo: parseFloat(detalleActual.costo),
-        costoUnitario: parseFloat(detalleActual.costoUnitario) || 0,
-        descripcionAdicional: detalleActual.descripcionAdicional.trim(),
+        cantidad: parseFloat(detalleActual.cantidad), valorUnitario: parseFloat(detalleActual.valorUnitario),
+        valorTotal: parseFloat(detalleActual.valorTotal), descripcionAdicional: detalleActual.descripcionAdicional.trim(),
       }],
     }));
-    setDetalleActual({ supplyId: '', nombre: '', medida: '', cantidad: '', costo: '', costoUnitario: '', descripcionAdicional: '' });
+    setDetalleActual({ supplyId: '', nombre: '', medida: '', cantidad: '', valorUnitario: '', valorTotal: '', descripcionAdicional: '' });
     setInsumoSearch('');
   };
 
@@ -199,7 +208,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
   };
 
   const handleSubmit = async () => {
-    const fields = ['numeroFactura', 'proveedorId', 'fecha', 'costoTotal', 'sedeId'];
+    const fields = ['numeroFactura', 'proveedorId', 'fecha', 'sedeId'];
     const newErrors = {};
     fields.forEach((f) => { const e = validateField(f, formData[f]); if (e) newErrors[f] = e; });
     setErrors(newErrors);
@@ -214,7 +223,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
   const isFormBlank = () => {
     const mainEmpty = !formData.numeroFactura && !formData.proveedorId && !formData.fecha
       && !formData.observaciones && formData.detalles.length === 0;
-    const detalleEmpty = !detalleActual.nombre && !detalleActual.costo && !detalleActual.cantidad;
+    const detalleEmpty = !detalleActual.nombre && !detalleActual.valorUnitario && !detalleActual.cantidad;
     return mainEmpty && detalleEmpty;
   };
 
@@ -276,7 +285,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label style={labelStyle}>Número de factura <span style={requiredStar}>*</span></label>
-                <input type="number" name="numeroFactura" value={formData.numeroFactura}
+                <input type="text" inputMode="numeric" pattern="[0-9]*" name="numeroFactura" value={formData.numeroFactura}
                   onChange={handleChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
                   placeholder="Ej: 0231" style={inp(errors.numeroFactura)} />
                 {errors.numeroFactura && <span style={errMsg}>⚠ {errors.numeroFactura}</span>}
@@ -328,26 +337,12 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
               {errors.proveedorId && <span style={errMsg}>⚠ {errors.proveedorId}</span>}
             </div>
 
-            {/* Observaciones + Costo total */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-              <div>
-                <label style={labelStyle}>Observaciones <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
-                <input name="observaciones" value={formData.observaciones}
-                  onChange={handleChange} placeholder="Ej. Compra urgente..."
-                  style={inp(false)} />
-              </div>
-              <div>
-                <label style={labelStyle}>
-                  Costo total
-                  <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 10 }}>auto</span>
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#ff4fd6', fontWeight: 600 }}>$</span>
-                  <input type="number" name="costoTotal" value={formData.costoTotal}
-                    readOnly placeholder="0.00"
-                    style={{ ...inp(false), paddingLeft: 24, background: '#fdf4ff', color: '#ff4fd6', fontWeight: 700, cursor: 'default' }} />
-                </div>
-              </div>
+            {/* Observaciones */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Observaciones <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
+              <textarea name="observaciones" value={formData.observaciones}
+                onChange={handleChange} placeholder="Ej. Compra urgente..."
+                rows={3} style={{ ...inp(false), minHeight: 90, resize: 'vertical' }} />
             </div>
 
             {/* FIX 4: Foto de factura */}
@@ -412,14 +407,19 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
               <div>
-                <label style={labelStyle}>Costo <span style={requiredStar}>*</span></label>
-                <input type="number" name="costo" value={detalleActual.costo}
-                  onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
-              </div>
-              <div>
                 <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
                 <input type="number" name="cantidad" value={detalleActual.cantidad}
                   onChange={handleDetalleChange} style={inp(false)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Valor total <span style={requiredStar}>*</span></label>
+                <input type="number" name="valorTotal" value={detalleActual.valorTotal}
+                  onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Valor unitario <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
+                <input type="number" name="valorUnitario" value={detalleActual.valorUnitario}
+                  readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
               </div>
               <div>
                 <label style={labelStyle}>Medida</label>
@@ -428,19 +428,6 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                   {medidas.map((m) => <option key={m.valor} value={m.valor}>{m.label}</option>)}
                 </select>
               </div>
-              <div>
-                <label style={labelStyle}>Unitario <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
-                <input type="number" name="costoUnitario" value={detalleActual.costoUnitario}
-                  readOnly placeholder="—"
-                  style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Descripción adicional <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
-              <input name="descripcionAdicional" value={detalleActual.descripcionAdicional}
-                onChange={handleDetalleChange} placeholder="Ej. Cajas de 12, presentación 500ml..."
-                style={inp(false)} />
             </div>
 
             {/* FIX 3: botón de agregar detalle claramente diferenciado del de "crear nuevo" */}
@@ -479,7 +466,7 @@ const ShoppingForm = ({ onSubmit, onCancel }) => {
                           </td>
                           <td style={{ padding: '10px 6px', color: '#6b7280' }}>{medidaLabel}</td>
                           <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>{d.cantidad}</td>
-                          <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>${Number(d.costoUnitario).toFixed(2)}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>${Number(d.valorUnitario).toFixed(2)}</td>
                           <td style={{ padding: '10px 6px', textAlign: 'center' }}>
                             <button type="button" onClick={() => handleEliminarDetalle(d.id)}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16 }}

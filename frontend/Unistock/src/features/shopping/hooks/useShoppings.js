@@ -84,8 +84,8 @@ export const useShoppings = () => {
         nombre: d.nombre ?? null,
         medida: d.medida ?? null,
         cantidad: d.cantidad,
-        precioUnitario: d.costoUnitario ?? 0,
-        subtotal: d.costo ?? 0,
+        precioUnitario: d.valorUnitario ?? 0,
+        subtotal: d.valorTotal ?? 0,
       })),
     };
 

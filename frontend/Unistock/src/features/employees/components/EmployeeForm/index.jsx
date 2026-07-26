@@ -15,17 +15,28 @@ const sectionTitle = (t) => (
     <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '18px 0 10px' }}>{t}</p>
 );
 
+// Cargos disponibles para el rol "Empleado" — un empleado puede tener varios.
+// Datos quemados a propósito: solo hay 3 roles en el sistema (Empleado,
+// Administrador, Gerente), así que esto no depende del módulo de Roles.
+const CARGOS_DISPONIBLES = ['Corte', 'Compras', 'Recepción', 'Vendedor', 'Bodega'];
+
 const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
     const modalRef = useRef(null);
 
     const [formData, setFormData] = useState(() => employee ?? {
-        documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '',
+        documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '', cargos: [],
     });
     const [errors, setErrors] = useState({});
     const [sending, setSending] = useState(false);
     const [alertConfig, setAlertConfig] = useState({ open: false, type: 'success', title: '', message: '', onConfirm: null });
 
     const closeAlert = useCallback(() => setAlertConfig((p) => ({ ...p, open: false })), []);
+
+    // El selector de Cargos solo aplica cuando el rol elegido es "Empleado".
+    const esRolEmpleado = (roleId) => {
+        const nombre = (roles || []).find((r) => String(r.id) === String(roleId))?.nombre ?? '';
+        return nombre.trim().toLowerCase() === 'empleado';
+    };
 
     const handleCancelClick = useCallback(() => {
         const blank = !formData.documentType && !formData.documentNumber && !formData.name && !formData.email && !formData.role && !formData.sede;
@@ -62,6 +73,11 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
             case 'email': error = validators.required(value) || validators.email(value); break;
             case 'role': error = validators.required(value); break;
             case 'sede': error = validators.required(value); break;
+            case 'cargos':
+                if (esRolEmpleado(formData.role) && (!Array.isArray(value) || value.length === 0)) {
+                    error = 'Selecciona al menos un cargo';
+                }
+                break;
         }
         setErrors((p) => ({ ...p, [name]: error }));
         return error;
@@ -76,8 +92,21 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((p) => ({ ...p, [name]: value }));
+        setFormData((p) => {
+            const next = { ...p, [name]: value };
+            if (name === 'role' && !esRolEmpleado(value)) next.cargos = [];
+            return next;
+        });
         if (errors[name] !== undefined) validateField(name, value);
+    };
+
+    const handleToggleCargo = (cargo) => {
+        setFormData((p) => {
+            const actuales = Array.isArray(p.cargos) ? p.cargos : [];
+            const next = actuales.includes(cargo) ? actuales.filter((c) => c !== cargo) : [...actuales, cargo];
+            if (errors.cargos !== undefined) validateField('cargos', next);
+            return { ...p, cargos: next };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -219,6 +248,31 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
                                     </select>
                                     {errors.sede && <span style={errMsg}>⚠ {errors.sede}</span>}
                                 </div>
+
+                                {esRolEmpleado(formData.role) && (
+                                    <div style={{ gridColumn: '1 / -1' }}>
+                                        <label style={labelStyle}>Cargos <span style={requiredStar}>*</span>
+                                            <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10, marginLeft: 6 }}>puede elegir varios</span>
+                                        </label>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                                            {CARGOS_DISPONIBLES.map((c) => {
+                                                const activo = (formData.cargos || []).includes(c);
+                                                return (
+                                                    <button key={c} type="button" onClick={() => handleToggleCargo(c)}
+                                                        style={{
+                                                            padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                                            border: activo ? '1.5px solid #FF4FD6' : '1.5px solid #e5e7eb',
+                                                            background: activo ? '#fdf4ff' : '#fff',
+                                                            color: activo ? '#FF4FD6' : '#6b7280',
+                                                        }}>
+                                                        {activo ? '✓ ' : ''}{c}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {errors.cargos && <span style={errMsg}>⚠ {errors.cargos}</span>}
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4, borderTop: '1px solid #f3f4f6', marginTop: 8 }}>
