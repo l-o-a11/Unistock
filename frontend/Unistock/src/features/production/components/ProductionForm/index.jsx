@@ -35,6 +35,115 @@ const typeBox = (active) => ({
   background: active ? '#fff0fb' : '#fafafa', transition: 'all 0.15s',
 });
 
+const normalizeText = (text) =>
+  String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUB-COMPONENTE: DROPDOWN DE CLIENTE (mismo diseño/estilo que ProductForm)
+// ─────────────────────────────────────────────────────────────────────────────
+const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, touched, error }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (client) => {
+    onChange(client);
+    setOpen(false);
+  };
+
+  return (
+    <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          minHeight: "42px",
+          boxSizing: "border-box",
+          padding: "10px 14px",
+          borderBottom: touched && error ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: value ? "#1f2937" : "#9ca3af",
+          userSelect: "none",
+          backgroundColor: touched && error ? "#fff0fb" : (open ? "#fff0fb" : "transparent"),
+          borderRadius: open ? "10px 10px 0 0" : "10px",
+          transition: "background-color 0.15s",
+        }}
+      >
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {value || "Seleccionar cliente"}
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
+            <div
+              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "600", cursor: "pointer" }}
+              onClick={() => handleSelect(null)}
+            >
+              Seleccionar cliente
+            </div>
+            {clients.length > 0 ? (
+              clients.map((client) => {
+                const clientKey = client.id ?? client._id ?? client.documento;
+                const isSelected = normalizeText(value) === normalizeText(client.nombre);
+                return (
+                  <div
+                    key={clientKey}
+                    onClick={() => handleSelect(client)}
+                    style={{
+                      padding: "10px 14px",
+                      fontSize: "14px",
+                      color: "#1f2937",
+                      cursor: "pointer",
+                      backgroundColor: isSelected ? "#fdf4ff" : "#fff",
+                      borderTop: "1px solid #f3f4f6",
+                      transition: "background-color 0.1s"
+                    }}
+                  >
+                    <div>{client.nombre}</div>
+                    <div style={{ fontSize: "11px", color: "#9ca3af" }}>{client.documento || "Sin documento"}</div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
+                Sin clientes disponibles
+              </div>
+            )}
+            <div
+              onClick={() => {
+                setOpen(false);
+                onCreateClient?.();
+              }}
+              style={{
+                padding: "12px 14px",
+                fontSize: "14px",
+                color: "#ff4fd6",
+                cursor: "pointer",
+                borderTop: "1px solid #f3f4f6",
+                backgroundColor: "#fff",
+                fontWeight: "700"
+              }}
+            >
+              + Crear nuevo cliente
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENTE: FILA DE ARTÍCULO EXTRA
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,9 +247,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [techSheetPreview, setTechSheetPreview] = useState(null);
   const [loadingSheet,  setLoadingSheet] = useState(false);
    const [savedColors,   setSavedColors]  = useState([]);
-   const [savedClients,  setSavedClients] = useState([]);
    const [clientCatalog, setClientCatalog] = useState([]);
-   const [clientAccordionOpen, setClientAccordionOpen] = useState(false);
    const [clientFormOpen, setClientFormOpen] = useState(false);
    const [editingClientId, setEditingClientId] = useState(null);
    const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
@@ -148,7 +255,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
    const [designImages,  setDesignImages] = useState([]);
    const [terceros,      setTerceros]     = useState([]);
 
-   // Load saved colors and clients from localStorage
+   // Load saved colors from localStorage
    useEffect(() => {
      const savedColors = localStorage.getItem('productionColors');
      if (savedColors) {
@@ -160,29 +267,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
      }
    }, []);
 
-   useEffect(() => {
-     const savedClients = localStorage.getItem('productionClients');
-     if (savedClients) {
-       try {
-         const parsed = JSON.parse(savedClients);
-         setSavedClients(Array.isArray(parsed) ? parsed : []);
-       } catch (e) {
-         console.error('Error parsing saved clients', e);
-       }
-     }
-   }, []);
-
    const loadClients = useCallback(async () => {
      try {
        const clients = await clientAPI.list();
-       const clientList = Array.isArray(clients) ? clients : [];
-       setClientCatalog(clientList);
-       const names = clientList.map((c) => c.nombre).filter(Boolean);
-       setSavedClients((prev) => {
-         const merged = Array.from(new Set([...(names || []), ...prev]));
-         localStorage.setItem('productionClients', JSON.stringify(merged));
-         return merged;
-       });
+       setClientCatalog(Array.isArray(clients) ? clients : []);
      } catch (err) {
        console.error('Error cargando clientes', err);
      }
@@ -260,28 +348,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   useEffect(() => {
     (async () => {
-      try {
-        const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
-        const cats = await productCategoryAPI.getAll();
-        console.log('[ProductionForm] Categorías cargadas:', cats?.length || 0, 'items'); // DEBUG
-        
-        const categoryNames = (cats || []).map(c => c.name);
-        if (categoryNames.length === 0) {
-          console.warn('[ProductionForm] ⚠️ No hay categorías, usando fallback');
-          setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
-        } else {
-          console.log('[ProductionForm] ✓ Categorías cargadas:', categoryNames);
-          setCategories(categoryNames);
-        }
-      } catch (err) {
-        console.error('[ProductionForm] ❌ Error cargando categorías:', err?.message || err);
-        setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
       if (type !== 'produccion' || !formData.referencia) { return; }
       
       setLoadingSheet(true);
@@ -331,31 +397,39 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   };
 
   const saveColor  = (c) => { if (c && !savedColors.includes(c))  { const u = [c, ...savedColors].slice(0,10);  setSavedColors(u);  localStorage.setItem('productionColors',  JSON.stringify(u)); } };
-  const saveClient = (c) => { if (c && !savedClients.includes(c)) { const u = [c, ...savedClients].slice(0,10); setSavedClients(u); localStorage.setItem('productionClients', JSON.stringify(u)); } };
 
-  const handleClientEditRequest = async () => {
-    const documento = window.prompt('Ingresa el número de documento del cliente');
-    if (!documento) return;
-    try {
-      const clients = await clientAPI.list({ documento: documento.trim() });
-      const client = Array.isArray(clients) ? clients[0] : null;
-      if (!client) {
-        window.alert('No se encontró un cliente con ese documento');
-        return;
-      }
-      setEditingClientId(client.id || client._id || null);
-      setClientDraft({
-        nombre: client.nombre || '',
-        documento: client.documento || '',
-        telefono: client.telefono || '',
-        correo: client.correo || '',
-      });
-      setClientFormOpen(true);
-      setClientAccordionOpen(false);
-      setClientFormError('');
-    } catch (err) {
-      window.alert(err?.message || 'No se pudo cargar el cliente');
-    }
+  // ✅ Cliente actualmente seleccionado (o null si no hay match) — mismo patrón que ProductForm
+  const getSelectedClientObject = () => {
+    const clientName = formData.cliente;
+    if (!clientName) return null;
+    return clientCatalog.find((c) => normalizeText(c.nombre) === normalizeText(clientName)) || null;
+  };
+
+  const openCreateClientModal = () => {
+    setEditingClientId(null);
+    setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+    setClientFormError('');
+    setClientFormOpen(true);
+  };
+
+  const openEditClientModal = () => {
+    const client = getSelectedClientObject();
+    if (!client) return;
+    setEditingClientId(client.id || client._id || null);
+    setClientDraft({
+      nombre: client.nombre || '',
+      documento: client.documento || '',
+      telefono: client.telefono || '',
+      correo: client.correo || '',
+    });
+    setClientFormError('');
+    setClientFormOpen(true);
+  };
+
+  const closeClientModal = () => {
+    setClientFormOpen(false);
+    setClientFormError('');
+    setEditingClientId(null);
   };
 
   const handleClientCreate = async (e) => {
@@ -374,9 +448,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       const saved = editingClientId
         ? await clientAPI.update(editingClientId, payload)
         : await clientAPI.create(payload);
-      const clientName = saved?.nombre || clientDraft.nombre.trim();
-      saveClient(clientName);
-      setFormData(prev => ({ ...prev, cliente: clientName }));
+      const nextClient = saved?.nombre || clientDraft.nombre.trim();
+      setFormData(prev => ({ ...prev, cliente: nextClient }));
+      if (errors.cliente) setErrors(prev => { const n = { ...prev }; delete n.cliente; return n; });
       await loadClients();
       setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
       setEditingClientId(null);
@@ -432,8 +506,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (cantErr) { newErrors.cantidad = cantErr; missing.push('Cantidad'); }
     const colorErr = validators.required(formData.color) || validators.onlyLetters(formData.color);
     if (colorErr) { newErrors.color = colorErr; missing.push('Color'); }
-    const clientErr = validators.required(formData.cliente) || validators.onlyLetters(formData.cliente);
-    if (clientErr) { newErrors.cliente = clientErr; missing.push('Cliente'); }
+    if (!formData.cliente) { newErrors.cliente = 'Selecciona un cliente'; missing.push('Cliente'); }
     if (!formData.fechaSolicitud) {
       newErrors.fechaSolicitud = 'Selecciona una fecha'; missing.push('Fecha de entrega');
     } else {
@@ -488,7 +561,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const handleConfirm = async () => {
     setIsCreating(true);
     try {
-    saveColor(formData.color); saveClient(formData.cliente);
+    saveColor(formData.color);
     // ✅ Fix: el color de los artículos adicionales nunca se guardaba en
     // localStorage — solo se guardaba el del artículo principal.
     extraRefs.forEach((r) => { if (r.color) saveColor(r.color); });
@@ -548,6 +621,28 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const sectionTitle = (t) => (
     <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '18px 0 10px' }}>{t}</p>
   );
+
+  const btnSecondary = {
+    padding: '10px 24px',
+    borderRadius: 10,
+    border: '1.5px solid #e5e7eb',
+    background: '#f3f4f6',
+    color: '#374151',
+    fontWeight: 600,
+    cursor: 'pointer',
+  };
+
+  const btnPrimary = {
+    padding: '11px 24px',
+    borderRadius: 10,
+    border: 'none',
+    background: '#ff4fd6',
+    color: '#fff',
+    fontWeight: 700,
+    cursor: 'pointer',
+  };
+
+  const selectedClient = getSelectedClientObject();
 
   return (
     <>
@@ -878,52 +973,44 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   </div>
                   {errors.color && <span style={errMsg}>⚠ {errors.color}</span>}
                 </div>
+
+                {/* ✅ Campo Cliente — mismo diseño/estilo que ProductForm (ClientDropdown + botón Editar) */}
                 <div>
                   <label style={labelStyle}>Cliente <span style={requiredStar}>*</span></label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      list="clientList" name="cliente" value={formData.cliente}
-                      onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); }}
-                      style={{ ...getInputStyle(errors.cliente), flex: 1 }} placeholder="Ej: Juan Pérez"
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) auto', alignItems: 'center', gap: 8 }}>
+                    <ClientDropdown
+                      value={formData.cliente}
+                      clients={clientCatalog}
+                      onChange={(client) => {
+                        const clientName = client ? (client.nombre || '') : '';
+                        setFormData(prev => ({ ...prev, cliente: clientName }));
+                        if (errors.cliente) setErrors(prev => { const n = { ...prev }; delete n.cliente; return n; });
+                      }}
+                      onCreateClient={openCreateClientModal}
+                      touched={!!errors.cliente}
+                      error={errors.cliente}
                     />
-                    <button type="button" onClick={() => { setEditingClientId(null); setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' }); setClientFormError(''); setClientFormOpen((v) => !v); }} style={{ border: '1px solid #ff4fd6', background: '#fff0fb', color: '#ff4fd6', borderRadius: 10, padding: '0 12px', cursor: 'pointer', fontWeight: 700 }}>
-                      +
-                    </button>
-                    <button type="button" onClick={handleClientEditRequest} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#374151', borderRadius: 10, padding: '0 12px', cursor: 'pointer', fontWeight: 600 }}>
+                    <button
+                      type="button"
+                      disabled={!selectedClient}
+                      onClick={openEditClientModal}
+                      style={{
+                        border: '1.5px solid #ff4fd6',
+                        background: selectedClient ? '#fff0fb' : '#f9fafb',
+                        color: selectedClient ? '#ff4fd6' : '#e5b8dc',
+                        borderRadius: 10,
+                        padding: '0 16px',
+                        minHeight: '42px',
+                        fontWeight: 700,
+                        cursor: selectedClient ? 'pointer' : 'not-allowed',
+                        opacity: selectedClient ? 1 : 0.7,
+                        whiteSpace: 'nowrap',
+                        transition: '0.15s'
+                      }}
+                    >
                       Editar
                     </button>
                   </div>
-                  <div style={{ marginTop: 8, border: '1px solid #f3f4f6', borderRadius: 10, overflow: 'hidden', background: '#fafafa' }}>
-                    <button type="button" onClick={() => setClientAccordionOpen(v => !v)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700, color: '#374151' }}>
-                      {clientAccordionOpen ? 'Ocultar clientes guardados' : 'Ver clientes guardados'}
-                    </button>
-                    {clientAccordionOpen && (
-                      <div style={{ padding: '0 12px 12px', display: 'grid', gap: 8 }}>
-                        {clientCatalog.length > 0 ? clientCatalog.map((client) => (
-                          <button key={client.id || client.documento} type="button" onClick={() => { setFormData(prev => ({ ...prev, cliente: client.nombre })); if (errors.cliente) setErrors(prev => { const next = { ...prev }; delete next.cliente; return next; }); }} style={{ textAlign: 'left', padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>
-                            <div style={{ fontWeight: 700, color: '#1f2937' }}>{client.nombre}</div>
-                            <div style={{ fontSize: 12, color: '#6b7280' }}>Documento: {client.documento || '—'}</div>
-                          </button>
-                        )) : <span style={{ color: '#6b7280', fontSize: 12 }}>Aún no hay clientes guardados</span>}
-                      </div>
-                    )}
-                  </div>
-                  <datalist id="clientList">{savedClients.map((c, i) => <option key={i} value={c} />)}</datalist>
-                  {clientFormOpen && (
-                    <form onSubmit={handleClientCreate} style={{ marginTop: 8, padding: 10, border: '1px solid #f5d0fe', borderRadius: 10, background: '#fffafc' }}>
-                      <div style={{ display: 'grid', gap: 8 }}>
-                        <input value={clientDraft.nombre} onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))} placeholder="Nombre" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
-                        <input value={clientDraft.documento} onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))} placeholder="Documento" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
-                        <input value={clientDraft.telefono} onChange={(e) => setClientDraft(prev => ({ ...prev, telefono: e.target.value }))} placeholder="Teléfono" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
-                        <input value={clientDraft.correo} onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))} placeholder="Correo" style={{ border: '1px solid #e5e7eb', padding: '8px 10px', borderRadius: 8 }} />
-                        {clientFormError && <span style={{ color: '#ff4fd6', fontSize: 11, fontWeight: 700 }}>{clientFormError}</span>}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button type="submit" style={{ border: 'none', background: '#ff4fd6', color: '#fff', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontWeight: 700 }}>{editingClientId ? 'Actualizar cliente' : 'Guardar cliente'}</button>
-                          <button type="button" onClick={() => { setClientFormOpen(false); setClientFormError(''); setEditingClientId(null); }} style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>Cancelar</button>
-                        </div>
-                      </div>
-                    </form>
-                  )}
                   {errors.cliente && <span style={errMsg}>⚠ {errors.cliente}</span>}
                 </div>
               </div>
@@ -1138,6 +1225,152 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               isEditing={type === 'diseno'}
               onChange={(data) => { if (type === 'diseno') setTechSheetData(data); }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Modal de cliente (crear/editar) — mismo patrón visual que ProductForm */}
+      {clientFormOpen && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          zIndex: 1200,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          <div
+            style={{ position: "absolute", inset: 0 }}
+            onClick={closeClientModal}
+          />
+          <div style={{
+            position: "relative",
+            width: "90%",
+            maxWidth: "480px",
+            maxHeight: "85vh",
+            overflowY: "auto",
+            backgroundColor: "#fff",
+            borderRadius: "16px",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
+            zIndex: 1201,
+            padding: "28px 32px",
+            boxSizing: "border-box"
+          }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 22,
+                paddingBottom: 16,
+                borderBottom: "1px solid #f3f4f6",
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "#ff4fd6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 17,
+                    fontWeight: 800,
+                    color: "#1f2937",
+                  }}
+                >
+                  {editingClientId ? "Editar cliente" : "Crear nuevo cliente"}
+                </h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    color: "#9ca3af",
+                  }}
+                >
+                  {editingClientId
+                    ? "Actualiza los datos del cliente"
+                    : "Completa los datos del cliente"}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleClientCreate}>
+              <div style={{ display: "grid", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre</label>
+                  <input
+                    value={clientDraft.nombre}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))}
+                    placeholder="Nombre completo"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento</label>
+                  <input
+                    value={clientDraft.documento}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))}
+                    placeholder="Número de documento"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Teléfono</label>
+                  <input
+                    value={clientDraft.telefono}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, telefono: e.target.value }))}
+                    placeholder="Teléfono"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo</label>
+                  <input
+                    value={clientDraft.correo}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))}
+                    placeholder="Correo electrónico"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                </div>
+                {clientFormError && (
+                  <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700 }}>⚠ {clientFormError}</span>
+                )}
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    paddingTop: 14,
+                    borderTop: "1px solid #f3f4f6",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 10,
+                  }}
+                >
+                  <button type="button" onClick={closeClientModal} style={btnSecondary}>
+                    Cancelar
+                  </button>
+                  <button type="submit" style={btnPrimary}>
+                    {editingClientId ? "Actualizar cliente" : "Guardar cliente"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
