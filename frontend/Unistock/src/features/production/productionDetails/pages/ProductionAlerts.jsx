@@ -525,8 +525,8 @@ const ProductionAlerts = ({
                     emp.producciones === 0
                       ? { background: "#d1fae5", color: "#065f46" }
                       : emp.producciones <= 2
-                      ? { background: "#fef3c7", color: "#92400e" }
-                      : { background: "#fee2e2", color: "#991b1b" };
+                        ? { background: "#fef3c7", color: "#92400e" }
+                        : { background: "#fee2e2", color: "#991b1b" };
                   return (
                     <button
                       key={emp.id}
