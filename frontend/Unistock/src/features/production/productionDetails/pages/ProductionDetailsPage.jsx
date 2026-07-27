@@ -1499,29 +1499,9 @@ const ProductionDetailsPage = () => {
             {!isAnulada && requiereAsignacion && (isGerente || empleadoAsignado) && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 12, flexWrap: "wrap" }}>
                 <span style={{ color: "#9ca3af" }}>Responsable de "{production.status}":</span>
-                {empleadoAsignado ? (
-                  <>
-                    <span style={{ fontWeight: 700, color: "#FF4FD6" }}>{empleadoAsignado.nombreCompleto}</span>
-                    {production.etapaConfirmada ? (
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#16a34a", background: "#dcfce7", padding: "2px 8px", borderRadius: 20 }}>✓ Confirmado</span>
-                    ) : (
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#c2740a", background: "#fff7ed", padding: "2px 8px", borderRadius: 20 }}>Pendiente de confirmar</span>
-                    )}
-                  </>
-                ) : (
-                  <span style={{ color: "#9ca3af" }}>Sin asignar</span>
-                )}
-                {isGerente && (
-                  <button onClick={() => openProductionAlert({
-                    type: "assignEmployee",
-                    targetStep: production.status,
-                    customTitle: `${empleadoAsignado ? "Reasignar" : "Asignar"} responsable de "${production.status}"`,
-                    customMessage: `Elige quién trabajará esta etapa. Se le avisará por correo y la orden quedará esperando su confirmación antes de poder avanzar.`,
-                  })}
-                    style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "1px solid #FF4FD6", background: "#fff", color: "#FF4FD6", cursor: "pointer" }}>
-                    {empleadoAsignado ? "Reasignar" : "Asignar"}
-                  </button>
-                )}
+                <span style={{ fontWeight: 700, color: empleadoAsignado ? "#FF4FD6" : "#9ca3af" }}>
+                  {empleadoAsignado ? empleadoAsignado.nombreCompleto : "Sin asignar"}
+                </span>
               </div>
             )}
 
