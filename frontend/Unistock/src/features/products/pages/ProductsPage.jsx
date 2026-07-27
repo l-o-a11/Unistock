@@ -536,7 +536,6 @@ const ProductsPage = () => {
   return (
     <div style={{
       position: 'relative',
-      minHeight: '100vh',
       backgroundColor: '#f5f5f5',
       display: 'flex',
       flexDirection: 'column',
