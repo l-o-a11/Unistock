@@ -55,13 +55,13 @@ const ProductCategoryTable = ({ productCategories = [], onEdit, onDelete }) => {
       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
     }}>
       <div style={{
-        overflowX: isMobile ? 'auto' : 'visible',
+        overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
       }}>
         <table style={{
           width: '100%',
           borderCollapse: 'collapse',
-          minWidth: isMobile ? '800px' : undefined,
+          minWidth: '700px',
         }}>
           
           <thead>
