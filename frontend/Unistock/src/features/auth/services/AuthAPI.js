@@ -123,7 +123,13 @@ export const authService = {
   sendRecoveryCode: async (correo) => {
     try {
       const res = await post("/auth/forgot-password", { correo }, { skipAuth: true });
-      return res?.data ?? res;
+      const data = res?.data ?? res;
+      if (data && (data.success === false || data.error === true)) {
+        const error = new Error(data.message || "No se pudo enviar el código.");
+        error.status = data.status || 400;
+        throw error;
+      }
+      return data;
     } catch (err) {
       throw err?.data || err;
     }

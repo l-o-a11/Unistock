@@ -74,6 +74,7 @@ const UsersPage = () => {
       email: user.correo,
       role: user.rolId ?? '',
       sede: user.sedeId ?? '',
+      cargos: Array.isArray(user.cargo) ? user.cargo : (user.cargo ? [user.cargo] : []),
     });
   };
 

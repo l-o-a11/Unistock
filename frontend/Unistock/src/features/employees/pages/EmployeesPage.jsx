@@ -9,13 +9,14 @@ import AddEmployeeButton from "../components/AddEmployeeButton.jsx";
 import SearchInput from "../../shared/components/SearchInput";
 import Alert from "../../shared/components/Alert";
 import TableSkeleton from "../../shared/components/TableSkeleton";
-import { useSedeScope } from "../../shared/hooks/useSedeScope";
+import { useSedeScope, isVisibleBySede } from "../../shared/hooks/useSedeScope";
 import { userAPI } from "../../users/services/usersAPI";
 
 const EmployeesPage = () => {
   const {
     employees,
     loading,
+    error: errorEmployees,
     createEmployee,
     updateEmployee,
     deleteEmployee,
@@ -34,18 +35,20 @@ const EmployeesPage = () => {
   );
 
   const sedesActivas = sedes.filter((s) => s.estado !== false);
+  const { isGerente, sedeId } = useSedeScope();
+  const sedesPermitidas = isGerente
+    ? sedesActivas
+    : sedesActivas.filter((s) => String(s.id) === String(sedeId));
 
   const { searchTerm, handleSearch } = useEmployeeSearch();
-  const { isGerente, sedeId } = useSedeScope();
 
   // 🔒 Alcance de sede: Gerente ve todos los empleados; cualquier otro rol
-  // (ej. Administrador de sede) solo ve los empleados de su propia sede.
+  // (ej. Administrador de sede) ve empleados de su sede y también
+  // aquellos que aún no tienen sede asignada.
   const employeesEnMiSede = useMemo(() => {
     if (!employees) return [];
     if (isGerente) return employees;
-    return employees.filter(
-      (e) => String(e.sedeId ?? e.sede) === String(sedeId)
-    );
+    return employees.filter((e) => isVisibleBySede(e, isGerente, sedeId));
   }, [employees, isGerente, sedeId]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,6 +124,7 @@ const EmployeesPage = () => {
       email: employee.correo,
       role: employee.rolId ?? employee.rol,
       sede: employee.sedeId ?? employee.sede,
+      cargos: Array.isArray(employee.cargo) ? employee.cargo : (employee.cargo ? [employee.cargo] : []),
     });
   };
 
@@ -234,13 +238,13 @@ const EmployeesPage = () => {
   // Si los catálogos fallan, mostrar error claro en lugar de selects vacíos silenciosos
   if (loading) return <TableSkeleton title="Empleados" />;
 
-  if (errorRoles || errorSedes) {
+  if (errorRoles || errorSedes || errorEmployees) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', flexDirection: 'column', gap: 12 }}>
         <p style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>
-          ⚠ No se pudieron cargar los catálogos de roles o sedes
+          ⚠ No se pudieron cargar los datos de empleados
         </p>
-        <p style={{ fontSize: 12, color: '#9ca3af' }}>{errorRoles || errorSedes}</p>
+        <p style={{ fontSize: 12, color: '#9ca3af' }}>{errorEmployees || errorRoles || errorSedes}</p>
         <button onClick={() => window.location.reload()}
           style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#ff4fd6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Reintentar
@@ -324,7 +328,9 @@ const EmployeesPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
           <EmployeeForm
             roles={rolesDisponibles}
-            sedes={sedesActivas}
+            sedes={sedesPermitidas}
+            currentSedeId={sedeId}
+            isGerente={isGerente}
             onSubmit={handleCreateSubmit}
             onCancel={() => setShowCreate(false)}
           />
@@ -337,7 +343,9 @@ const EmployeesPage = () => {
           <EmployeeForm
             employee={editEmployee}
             roles={rolesDisponibles}
-            sedes={sedesActivas}
+            sedes={sedesPermitidas}
+            currentSedeId={sedeId}
+            isGerente={isGerente}
             onSubmit={handleEditSubmit}
             onCancel={() => setEditEmployee(null)}
           />

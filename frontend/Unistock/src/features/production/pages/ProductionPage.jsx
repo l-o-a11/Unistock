@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProductions } from '../hooks/useProduction';
+import { ProductionAPIClient } from '../services/ProductionAPIClient';
 import ProductionTable from '../components/ProductionTable';
 import ProductionSearch from '../components/ProductionSearch';
 import ProductionForm from '../components/ProductionForm';
@@ -9,7 +10,6 @@ import Alert from '../../shared/components/Alert';
 import Button from '../../shared/components/Button';
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 import { useSedeScope } from '../../shared/hooks/useSedeScope';
-import { useSedes } from '../../sedes/hooks/useSedes';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción'];
 
@@ -84,12 +84,32 @@ const ProductionsSkeleton = () => (
           <div style={{ width: 36, height: 34, borderRadius: 8, background: '#f3f4f6', border: '1.5px solid #e5e7eb', animation: 'uskeleton-pulse 1.6s ease-in-out infinite' }} />
         </div>
       </div>
- <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+
+      {/* Tarjeta de tabla — mismo contenedor blanco redondeado */}
+      <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', padding: '20px 24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} style={{
+              height: 42, borderRadius: 8, background: i % 2 === 0 ? '#f9fafb' : '#fdf6ff',
+              animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+              animationDelay: `${i * 0.07}s`,
+            }} />
+          ))}
+        </div>
+        <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)', animation: 'uloadbar 1.6s ease-in-out infinite' }} />
         </div>
-     
+      </div>
 
-      
+      {/* Paginación */}
+      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6 }}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} style={{
+            width: 30, height: 30, borderRadius: 6, background: '#f3f4f6', border: '1px solid #e5e7eb',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite', animationDelay: `${i * 0.05}s`,
+          }} />
+        ))}
+      </div>
     </div>
   </div>
 );
@@ -122,15 +142,32 @@ const ProductionsPage = () => {
   const [downloadModal, setDownloadModal] = useState(false);
   const [cancelAlert, setCancelAlert] = useState({ open: false, type: 'success', title: '', message: '' });
   const [isCancelling, setIsCancelling] = useState(false);
+  // Mini-modal de confirmación cuando el empleado asignado marca su etapa
+  // como terminada — su única función en Producción es esta confirmación,
+  // nunca entra a la página de detalle. Esto NO avanza la orden — solo
+  // marca "listo"; el Gerente es quien avanza después.
+  const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  // 🔒 Alcance de sede: Gerente ve todas las órdenes; cualquier otro rol
-  // (ej. Administrador de sede) solo ve órdenes que YA tengan su sede
-  // asignada (sedeAsignaciones), es decir, lo que ya le llegó a su tienda.
-  // Las órdenes que aún no han llegado a la etapa de Recepción no tienen
-  // sede asignada todavía, así que no aparecen para el admin de sede.
-  const { isGerente, sedeId } = useSedeScope();
-  const { sedes } = useSedes();
-  const miSedeNombre = sedes.find((s) => String(s.id) === String(sedeId))?.nombre;
+  // 🔒 Alcance: Gerente y Administrador ven todo (Administrador sin
+  // acciones); cualquier otro rol (empleado) solo ve su orden asignada.
+  const { isGerente, isAdministrador, user } = useSedeScope();
+
+  const handleAbrirConfirmar = (prod) => setConfirmModal({ open: true, prod });
+
+  const handleConfirmarEtapa = async () => {
+    const prod = confirmModal.prod;
+    if (!prod) return;
+    setConfirmLoading(true);
+    try {
+      await ProductionAPIClient.confirmarEtapa(prod.id);
+      setConfirmModal({ open: false, prod: null });
+    } catch (err) {
+      alert(err?.message || "No se pudo confirmar");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
 
   const itemsPerPage = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
@@ -174,8 +211,17 @@ const ProductionsPage = () => {
       matchesDate = inRange(parseDate(prod?.deliveryDate)) || inRange(parseDate(prod?.statusDate));
     }
 
+    // 🔒 Alcance de visibilidad:
+    //  - Gerente y Administrador ven TODAS las órdenes (Administrador es
+    //    100% observador, sin botones de acción, pero ve todo — ya no hay
+    //    concepto de sede en Producción, se quitó del formulario de crear).
+    //  - Cualquier otro rol (empleado, ej. cargo "Corte"): solo ve la orden
+    //    si ÉL es el empleado asignado a la etapa ACTUAL (empleadoAsignadoId).
     const matchesSede = isGerente
-      || (prod?.sedeAsignaciones || []).some((a) => a.option === miSedeNombre);
+      ? true
+      : isAdministrador
+        ? true
+        : String(prod?.empleadoAsignadoId) === String(user?.id);
 
     return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault && matchesSede;
   });
@@ -993,6 +1039,33 @@ const ProductionsPage = () => {
         />
       )}
 
+      {/* Mini-modal de confirmación — única acción del empleado asignado */}
+      {confirmModal.open && confirmModal.prod && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => !confirmLoading && setConfirmModal({ open: false, prod: null })}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}
+            onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
+              Confirmar finalización
+            </h3>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
+              ¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
+              Se avisará al admin de tu sede.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmModal({ open: false, prod: null })} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: "pointer", color: "#555" }}>
+                Cancelar
+              </button>
+              <button onClick={handleConfirmarEtapa} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: confirmLoading ? "not-allowed" : "pointer", opacity: confirmLoading ? 0.6 : 1 }}>
+                {confirmLoading ? "Confirmando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="prod-root">
         {/* Header */}
         <div className="prod-header">
@@ -1066,12 +1139,14 @@ const ProductionsPage = () => {
 
           <div className="prod-filter-right">
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <button type="button" className="btn-agregar" onClick={() => setShowCreateForm(true)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
-                </svg>
-                Agregar
-              </button>
+              {isGerente && (
+                <button type="button" className="btn-agregar" onClick={() => setShowCreateForm(true)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                  Agregar
+                </button>
+              )}
               <button type="button" className="btn-icon" onClick={() => setDownloadModal(true)} title="Descargar órdenes">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1096,7 +1171,7 @@ const ProductionsPage = () => {
         )}
 
         <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
-          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} />
+          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} onConfirmar={handleAbrirConfirmar} />
         </div>
 
         {/* Paginación */}
