@@ -20,8 +20,9 @@ export const useSedeScope = () => {
     const rolNombre = (user?.rolNombre ?? '').toString().toLowerCase();
     const isGerente = rolNombre === 'gerente';
     const isAdministrador = rolNombre === 'administrador';
+    const isEmpleado = rolNombre === 'empleado';
     const sedeId = user?.sedeId ?? null;
-    return { isGerente, isAdministrador, rolNombre, sedeId, user };
+    return { isGerente, isAdministrador, isEmpleado, rolNombre, sedeId, user };
 };
 
 /**
