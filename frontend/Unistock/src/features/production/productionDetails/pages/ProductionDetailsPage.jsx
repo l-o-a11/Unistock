@@ -3,7 +3,7 @@
  * @description Página de detalle de una orden de producción — Diseño renovado (Orden #3005 style)
  * CAMBIOS: Fix responsive para móvil — tabla historial, stepper, sidebar, botones nav
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DamagedProductsModal from "../../components/DamagedProductsModal";
 import { ProductionAPI } from "../../services/ProductionAPI";
@@ -24,7 +24,7 @@ const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción
 // Etapas que requieren un empleado asignado (con su correspondiente cargo)
 // y su confirmación de "listo" antes de que el Gerente pueda avanzar.
 // "Producción" se tercializa (no se asigna nadie ahí).
-const ETAPAS_ASIGNABLES = ["Corte", "Compras", "Recepción"];
+const ETAPAS_ASIGNABLES = ["Corte", "Compras", "Recepción", "Producción"];
 const EMPLOYEE_REQUIRED_STEPS = ETAPAS_ASIGNABLES;
 
 const normalizarTexto = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -219,6 +219,10 @@ const ProductionDetailsPage = () => {
     tercero: "", sede: "",
     customTitle: undefined, customMessage: undefined, onConfirmOverride: null,
   });
+
+  const handleAlertClose = useCallback(() => {
+    setGlobalAlert(prev => ({ ...prev, open: false }));
+  }, []);
 
   const [showTechSheet, setShowTechSheet] = useState(false);
   const [showTechSheetForm, setShowTechSheetForm] = useState(false);
@@ -1183,12 +1187,13 @@ const ProductionDetailsPage = () => {
           onCancel={() => setEditAlert({ isOpen: false, detail: null })}
         />
         <Alert
+          key={globalAlert.open ? 'open-' + Date.now() : 'closed'}
           isOpen={globalAlert.open}
           type={globalAlert.type}
           title={globalAlert.title}
           message={globalAlert.message}
-          onConfirm={() => setGlobalAlert(prev => ({ ...prev, open: false }))}
-          onCancel={() => setGlobalAlert(prev => ({ ...prev, open: false }))}
+          onConfirm={handleAlertClose}
+          onCancel={handleAlertClose}
         />
 
         {/* ── Add Article Modal ── */}

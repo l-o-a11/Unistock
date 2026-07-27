@@ -17,6 +17,22 @@ const getCurrentUserName = () => {
   return 'Admin';
 };
 
+/**
+ * Obtiene el ID del usuario actual desde session_user en localStorage.
+ * Retorna el MongoDB ObjectId (u.id) necesario para comparar contra
+ * campos como empleadoAsignadoId en el backend.
+ */
+const getCurrentUserId = () => {
+  try {
+    const raw = localStorage.getItem('session_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      return u.id || null;
+    }
+  } catch { }
+  return null;
+};
+
 // ─── Mapeo Frontend → Backend ──────────────────────────────────────────────────
 const toBackendFormat = (frontendData) => {
   if (!frontendData) return {};
@@ -207,7 +223,7 @@ export const ProductionAPIClient = {
     return toFrontendFormat(resData);
   },
 
-  /**
+/**
    * Confirma la etapa actual por parte del empleado asignado.
    * Marca `etapaConfirmada: true` en la orden (NO cambia el estado).
    * Solo el empleado asignado a la etapa actual puede ejecutar esta acción.
@@ -215,6 +231,7 @@ export const ProductionAPIClient = {
   confirmarEtapa: async (id) => {
     const res = await httpRequest(`/produccion/ordenes/${id}/confirmar-etapa`, {
       method: "PATCH",
+      body: { id_usuario: getCurrentUserId() },
     });
     const data = res?.data || res;
     return toFrontendFormat(data);
