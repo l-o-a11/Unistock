@@ -60,6 +60,15 @@ const mapOrder = (order) => {
       user: h.id_usuario || 'Sistema',
       motivo: h.motivo,
     })),
+    // 🐛 FIX: faltaban por completo — mapOrder() arma un objeto nuevo campo
+    // por campo (no hace spread de `order`), así que cualquier campo no
+    // listado explícitamente aquí se perdía. empleadoAsignadoId es el que
+    // usa ProductionPage.jsx para decidir "¿esta orden es del empleado que
+    // tiene la sesión abierta?" — sin esto, la lista del empleado siempre
+    // salía vacía aunque el backend ya tuviera la asignación guardada.
+    empleadoAsignadoId: order.empleadoAsignadoId ?? null,
+    etapaConfirmada: order.etapaConfirmada ?? false,
+    empleadoAsignaciones: order.empleadoAsignaciones || {},
     // Campos de artículo — si `detalles` vienen en la respuesta, se usan aquí
     referencia: order.referencia || '',
     producto: order.producto || order.referencia || '',

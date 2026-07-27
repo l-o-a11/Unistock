@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../../shared/components/LoadingState';
 import { useSedeScope } from '../../../shared/hooks/useSedeScope';
+import { ProductionAPIClient } from '../../services/ProductionAPIClient';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const IconEye = () => (
@@ -77,11 +78,11 @@ const StatusBadge = ({ status, small }) => {
 const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const navigate = useNavigate();
-  const { isGerente, isAdministrador } = useSedeScope();
-  // Empleado: su única función en Producción es confirmar que terminó su
-  // parte — nunca entra al detalle, ni anula, ni ve el acordeón de ítems.
-  const esEmpleado = !isGerente && !isAdministrador;
+  const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
+  const esEmpleado = isEmpleado;
 
   if (!productions || productions.length === 0) {
     return (
@@ -93,16 +94,18 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
     );
   }
 
-  const TH = ({ children, center }) => (
+  const TH = ({ children, center, minWidth }) => (
     <th style={{
       padding: '11px 14px', textAlign: center ? 'center' : 'left',
       fontSize: 11, fontWeight: 700, color: '#9ca3af',
       background: '#f9fafb', borderBottom: '1px solid #f0f0f0',
       textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+      minWidth: minWidth || undefined,
     }}>{children}</th>
   );
 
   return (
+    <>
     <div style={{ width: '100%', overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
         <thead>
@@ -114,7 +117,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
             <TH>Entrega</TH>
             <TH>Estado</TH>
             <TH>Cliente</TH>
-            <TH center>Acciones</TH>
+            <TH center minWidth={180}>Acciones</TH>
           </tr>
         </thead>
         <tbody>
@@ -222,24 +225,105 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Acciones */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
+                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center', flexWrap: 'nowrap' }}>
 
                       {esEmpleado ? (
-                        // Empleado: única acción posible — confirmar que terminó su etapa
-                        <button
-                          onClick={() => onConfirmar?.(prod)}
-                          disabled={isAnulada}
-                          style={{
-                            padding: '8px 14px', borderRadius: 7, border: 'none',
-                            background: isAnulada ? '#f3f4f6' : '#FF4FD6',
-                            color: isAnulada ? '#9ca3af' : '#fff',
-                            cursor: isAnulada ? 'not-allowed' : 'pointer',
-                            fontSize: 11, fontWeight: 700,
-                          }}
-                        >
-                          Confirmar
-                        </button>
+                        <>
+                          {/* Empleado: botón de acordeón para ver artículos */}
+                          <button
+                            title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
+                            disabled={loadingDetailId === prod.id}
+                            onClick={async () => {
+                              const next = isOpen ? null : prod.id;
+                              setExpandedRow(next);
+                              if (next && typeof onExpandRow === 'function') {
+                                setLoadingDetailId(prod.id);
+                                try {
+                                  await Promise.resolve(onExpandRow(prod.id));
+                                } catch (err) {
+                                  console.error('[ProductionTable] Error cargando detalles:', err);
+                                } finally {
+                                  setLoadingDetailId(null);
+                                }
+                              }
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '5px 8px', borderRadius: 7,
+                              border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
+                              background: isOpen ? '#fffff4' : '#fff',
+                              color: isOpen ? '#FF4FD6' : '#6b7280',
+                              cursor: loadingDetailId === prod.id ? 'wait' : 'pointer',
+                              fontSize: 10, fontWeight: 700,
+                              transition: 'all 0.15s',
+                              whiteSpace: 'nowrap', flexShrink: 0,
+                            }}
+                          >
+                            {loadingDetailId === prod.id ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                                <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
+                              </span>
+                            ) : (
+                              <>
+                                <IconChevron open={isOpen} />
+                                {(prod.details || []).length > 0 && (
+                                  <span style={{
+                                    minWidth: 16, height: 16, borderRadius: 8,
+                                    background: isOpen ? '#FF4FD6' : '#e5e7eb',
+                                    color: isOpen ? '#fff' : '#6b7280',
+                                    fontSize: 9, fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s', flexShrink: 0,
+                                  }}>
+                                    {(prod.details || []).length}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </button>
+
+                          {/* Empleado: botón de detalle */}
+                          <button
+                            title="Ver detalle"
+                            disabled={isAnulada}
+                            onClick={() => !isAnulada && navigate(`/layout/produccion/detalle/${prod.id}`)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '5px 10px', borderRadius: 7,
+                              border: '1px solid #e5e7eb', background: isAnulada ? '#f9fafb' : '#fff',
+                              color: isAnulada ? '#d1d5db' : '#6b7280',
+                              cursor: isAnulada ? 'not-allowed' : 'pointer',
+                              fontSize: 11, fontWeight: 600,
+                              transition: 'all 0.15s',
+                              whiteSpace: 'nowrap', flexShrink: 0,
+                            }}
+                            onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; } }}
+                            onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                          >
+                            <IconEye />
+                          </button>
+
+                          {/* Empleado: botón confirmar avance de etapa (cambiar estado) */}
+                          <button
+                            title="Confirmar finalización de etapa"
+                            disabled={isAnulada}
+                            onClick={() => !isAnulada && setConfirmModal({ open: true, prod })}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                              padding: '6px 14px', borderRadius: 7, border: 'none',
+                              background: isAnulada ? '#f3f4f6' : '#FF4FD6',
+                              color: isAnulada ? '#9ca3af' : '#fff',
+                              cursor: isAnulada ? 'not-allowed' : 'pointer',
+                              fontSize: 11, fontWeight: 700,
+                              whiteSpace: 'nowrap', flexShrink: 0,
+                            }}
+                          >
+                            Confirmar
+                          </button>
+                        </>
+
                       ) : (
                         <>
                           {/* Ver detalle — Gerente y Administrador (observador) */}
@@ -252,6 +336,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                               border: '1px solid #e5e7eb', background: '#fff',
                               color: '#6b7280', cursor: 'pointer', fontSize: 11, fontWeight: 600,
                               transition: 'all 0.15s',
+                              whiteSpace: 'nowrap', flexShrink: 0,
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
@@ -273,6 +358,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                                 color: isAnulada ? '#d1d5db' : '#262747',
                                 cursor: isAnulada ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.15s',
+                                flexShrink: 0,
                               }}
                               onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; } }}
                               onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
@@ -307,12 +393,13 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                               color: isOpen ? '#FF4FD6' : '#6b7280',
                               cursor: loadingDetailId === prod.id ? 'wait' : 'pointer', fontSize: 10, fontWeight: 700,
                               transition: 'all 0.15s',
+                              whiteSpace: 'nowrap', flexShrink: 0,
                             }}
                             onMouseEnter={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
                             onMouseLeave={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
                           >
                             {loadingDetailId === prod.id ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                                 <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
                                 <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
                               </span>
@@ -326,7 +413,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                                     color: isOpen ? '#fff' : '#6b7280',
                                     fontSize: 9, fontWeight: 700,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'all 0.15s',
+                                    transition: 'all 0.15s', flexShrink: 0,
                                   }}>
                                     {(prod.details || []).length}
                                   </span>
@@ -393,8 +480,8 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                           Sin artículos registrados
                         </div>
                       ) : (
-                        <div style={{ padding: '8px 18px 14px' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div style={{ padding: '8px 18px 14px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
                             <thead>
                               <tr>
                                 {['#', 'Ref_corte', 'Referencia', 'Estado', 'Cantidad', 'Color'].map(h => (
@@ -403,6 +490,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                                     fontSize: 10, fontWeight: 700, color: '#a78bfa',
                                     letterSpacing: '0.05em', textTransform: 'uppercase',
                                     borderBottom: '1px solid #eeeaf3',
+                                    whiteSpace: 'nowrap',
                                   }}>{h}</th>
                                 ))}
                               </tr>
@@ -446,10 +534,10 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                             {/* Pie de tabla — totales */}
                             <tfoot>
                               <tr>
-                                <td colSpan="5" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>
+                                <td colSpan="5" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   Total artículos: {(prod.details || []).length}
                                 </td>
-                                <td colSpan="2" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, fontWeight: 700, color: '#6b21a8', textAlign: 'left' }}>
+                                <td colSpan="2" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, fontWeight: 700, color: '#6b21a8', textAlign: 'left', whiteSpace: 'nowrap' }}>
                                   {(prod.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0).toLocaleString('es-CO')} uds total
                                 </td>
                               </tr>
@@ -488,6 +576,48 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
         </tbody>
       </table>
     </div>
+
+      {/* ── Modal de confirmación para el empleado ── */}
+      {confirmModal.open && confirmModal.prod && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => !confirmLoading && setConfirmModal({ open: false, prod: null })}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}
+            onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
+              Confirmar finalización
+            </h3>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
+¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
+              Se avisará al gerente y la orden pasará a la siguiente etapa.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmModal({ open: false, prod: null })} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: "pointer", color: "#555" }}>
+                Cancelar
+              </button>
+              <button onClick={async () => {
+                setConfirmLoading(true);
+                try {
+                  await ProductionAPIClient.confirmarEtapa(confirmModal.prod.id);
+                  setConfirmModal({ open: false, prod: null });
+                  // Recargar la lista para reflejar el cambio
+                  if (typeof onExpandRow === 'function') {
+                    await onExpandRow(confirmModal.prod.id);
+                  }
+                } catch (err) {
+                  alert(err?.message || "No se pudo confirmar la finalización de la etapa");
+                } finally {
+                  setConfirmLoading(false);
+                }
+              }} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: confirmLoading ? "not-allowed" : "pointer", opacity: confirmLoading ? 0.6 : 1 }}>
+                {confirmLoading ? "Confirmando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -49,7 +49,14 @@ const Alert = ({
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
   const timerRef = useRef(null);
+  const onCancelRef = useRef(onCancel);
+  const onConfirmRef = useRef(onConfirm);
+  const prevIsOpenRef = useRef(false);
   const isAlertOpen = typeof isOpen === "boolean" ? isOpen : Boolean(open);
+
+  // Mantener referencias actualizadas sin disparar efectos
+  onCancelRef.current = onCancel;
+  onConfirmRef.current = onConfirm;
 
   // Los tipos toast se cierran solos; los modales requieren acción del usuario
   const isToast = type === "success" || type === "error" || type === "warning";
@@ -76,23 +83,29 @@ const Alert = ({
 
   // Reset password/error cada vez que se abre
   useEffect(() => {
-    if (isAlertOpen) {
+    // Detectar transición cerrado → abierto solo si hubo cambio real
+    const justOpened = isAlertOpen && !prevIsOpenRef.current;
+    prevIsOpenRef.current = isAlertOpen;
+
+    if (justOpened) {
       setPassword("");
       setEmail("");
       setError("");
       setConfirming(false);
-      // Auto-cierre para toasts
+      // Auto-cierre para toasts — usar ref para evitar depender de onCancel
       if (isToast) {
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
-          onCancel && onCancel();
+          onCancelRef.current && onCancelRef.current();
         }, duration);
       }
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isAlertOpen, type, isToast, duration, onCancel]);
+    // Solo reaccionar a cambios de isAlertOpen y type — los callbacks
+    // se mantienen frescos via useRef para no reiniciar el timer.
+  }, [isAlertOpen, type, isToast, duration]);
 
   // No renderiza nada cuando está cerrado
   if (!isAlertOpen) return null;

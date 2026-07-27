@@ -90,14 +90,15 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}>
         <div style={{
-          overflowX: isMobile ? "auto" : "visible",
+          overflowX: "auto",
+          overflowY: "hidden",
           WebkitOverflowScrolling: "touch",
         }}>
           <table
             style={{
               width: "100%",
               borderCollapse: "collapse",
-              minWidth: isMobile ? "920px" : undefined,
+              minWidth: "920px",
               tableLayout: isMobile ? "auto" : "fixed",
             }}
           >
@@ -109,7 +110,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                 <th style={{ ...thStyle, width: "16%" }}>Categoría</th>
                 <th style={{ ...thStyle, width: "14%" }}>Precio</th>
                 <th style={{ ...thStyle, width: "10%" }}>Stock</th>
-                <th style={{ ...thStyle, width: "150px", overflow: "visible" }}>Acciónes</th>
+                <th style={{ ...thStyle, width: "170px", overflow: "visible" }}>Acciónes</th>
               </tr>
             </thead>
             <tbody>
@@ -147,15 +148,13 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                             src={product.image}
                             alt={product.name}
                             className="
+                              hidden group-hover:block
                               absolute left-12 top-0
                               max-w-60 max-h-60
                               w-auto h-auto
                               object-contain
                               bg-white p-2
                               rounded-lg border border-gray-200 shadow-lg
-                              opacity-0 scale-95
-                              group-hover:opacity-100 group-hover:scale-100
-                              transition-all duration-200
                               pointer-events-none z-50
                             "
                           />
@@ -165,14 +164,12 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                         {!product.image && (
                           <div
                             className="
+                              hidden group-hover:flex
                               absolute left-12 top-0
                               w-40 h-20
-                              flex items-center justify-center
+                              items-center justify-center
                               bg-white border border-gray-200 rounded-lg shadow-lg
                               text-gray-500 text-sm
-                              opacity-0 scale-95
-                              group-hover:opacity-100 group-hover:scale-100
-                              transition-all duration-200
                               pointer-events-none z-50
                             "
                           >
@@ -310,11 +307,11 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
 
                     {/* ACCIONES */}
                     <td style={tdActionsStyle}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
 
                         {/* ⓘ info - VER FICHA TÉCNICA */}
                         <button onClick={() => onView(product)} title="Ver ficha técnica"
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         >
@@ -327,7 +324,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
 
                         {/* ✏️ edit - EDITAR PRODUCTO */}
                         <button onClick={() => onEdit(product)} title="Editar producto"
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         >
@@ -339,7 +336,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
 
                         {/* 🗑️ delete - ELIMINAR PRODUCTO */}
                         <button onClick={() => onDelete(product.id)} title="Eliminar producto"
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         >
@@ -367,6 +364,8 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                             border: "none",
                             backgroundColor: isActive ? "#22c55e" : "#d1d5db",
                             cursor: "pointer",
+                            flexShrink: 0,
+                            padding: 0,
                           }}
                         >
                           <span
