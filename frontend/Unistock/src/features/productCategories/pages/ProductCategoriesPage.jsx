@@ -202,7 +202,7 @@ const ProductCategoriesPage = () => {
 
   return (
     <div style={{
-      position: 'relative', minHeight: '100vh', backgroundColor: '#f5f5f5',
+      position: 'relative',  backgroundColor: '#f5f5f5',
       display: 'flex', flexDirection: 'column',
       padding: isMobile ? '16px 12px' : '24px 32px',
     }}>
