@@ -57,7 +57,47 @@ export const invalidateRolesCache = () => {
 const normalizeRole = (role) => {
   if (!role) return role;
   // Ya normalizado
-  if (Array.isArray(role.modulos)) return role;
+  const normalizeModuloKey = (valor) => {
+    const raw =
+      typeof valor === "object"
+        ? (valor?.nombre ?? valor?.name ?? "")
+        : String(valor ?? "");
+    return raw
+      .toLowerCase()
+      .trim()
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ");
+  };
+
+  const normalizeModuloItem = (item) => {
+    if (item == null) return null;
+
+    const moduloIdCandidate =
+      typeof item === "object"
+        ? item.moduloId
+        : Number(item);
+
+    if (moduloIdCandidate !== undefined && moduloIdCandidate !== null && !Number.isNaN(Number(moduloIdCandidate))) {
+      return { moduloId: Number(moduloIdCandidate), privilegios: item.privilegios ?? [] };
+    }
+
+    const moduloName =
+      typeof item === "string"
+        ? item
+        : item.modulo ?? item.nombre ?? item.name ?? item;
+    const mappedId = ROUTE_MODULE_MAP[normalizeModuloKey(moduloName)];
+    if (mappedId === undefined) return null;
+    return { moduloId: mappedId, privilegios: item.privilegios ?? [] };
+  };
+
+  const normalizeModulosArray = (items = []) =>
+    (Array.isArray(items) ? items : [])
+      .map(normalizeModuloItem)
+      .filter(Boolean);
+
+  if (Array.isArray(role.modulos)) {
+    return { ...role, modulos: normalizeModulosArray(role.modulos) };
+  }
 
   if (Array.isArray(role.permisos)) {
     const permisosArray = role.permisos;
@@ -65,12 +105,14 @@ const normalizeRole = (role) => {
     const first = permisosArray[0];
 
     // Formato API real: [{ modulo: "usuarios", privilegios: ["leer"] }]
+    // También soporta modulo: { nombre: "insumos" }
     if (typeof first === "object" && first !== null && "modulo" in first) {
       return {
         ...role,
         modulos: permisosArray
           .map((p) => {
-            const moduloId = ROUTE_MODULE_MAP[p.modulo?.toLowerCase()];
+            const moduloName = normalizeModuloKey(p.modulo);
+            const moduloId = ROUTE_MODULE_MAP[moduloName];
             if (moduloId === undefined) return null;
             return { moduloId, privilegios: p.privilegios ?? [] };
           })
@@ -188,6 +230,7 @@ export const AuthProvider = ({ children }) => {
   const login = (session) => {
     setLoading(true);
     setUser(session);
+    invalidateRolesCache();
     cargarPermisos(session);
   };
 
@@ -200,7 +243,14 @@ export const AuthProvider = ({ children }) => {
   const canAccess = (rutaSegmento) => {
     if (!user) return false;
     const rolNombre = (user.rolNombre ?? "").toLowerCase();
-    if (rolNombre === "gerente" || rolNombre === "administrador") return true;
+    // Solo "Gerente" tiene acceso total sin mirar permisos. Antes "administrador"
+    // también hacía bypass completo, lo que dejaba ver Usuarios sin importar los
+    // permisos asignados al rol — ahora un admin de sede pasa por la validación
+    // normal de permisos como cualquier otro rol.
+    if (rolNombre === "gerente") return true;
+    // Usuarios es exclusivo de Gerente, sin excepción (aunque el rol tenga
+    // el módulo marcado por error al crearlo).
+    if (rutaSegmento === "usuarios") return false;
     const moduloId = ROUTE_MODULE_MAP[rutaSegmento];
     if (moduloId === undefined) return true;
     return permisos.includes(moduloId);
@@ -214,7 +264,7 @@ export const AuthProvider = ({ children }) => {
   const getFirstAccessibleRoute = (u = user) => {
     if (!u) return "/";
     const rolNombre = (u.rolNombre ?? "").toLowerCase();
-    if (rolNombre === "gerente" || rolNombre === "administrador") return "/layout/dashboard";
+    if (rolNombre === "gerente") return "/layout/dashboard";
     const ORDER = [
       "dashboard", "usuarios", "roles", "sedes", "insumos",
       "categorias de insumos", "proveedores", "compras",

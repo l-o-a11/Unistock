@@ -102,8 +102,12 @@ export const useAuth = () => {
       setActiveModal(AUTH_MODALS.VERIFY_CODE);
       showAlert("success", "Código enviado", `Revisa tu correo: ${email}`);
     } catch (err) {
-      setError(err.message);
-      showAlert("error", "Error", err.message);
+      const notFound = err?.status === 404 || /no.*encontrado|not found|no existe/i.test(err?.message || "");
+      const message = notFound
+        ? "El correo no existe o no se encuentra registrado en la aplicación."
+        : err.message || "No se pudo enviar el código. Intenta nuevamente.";
+      setError(message);
+      showAlert("error", "Error", message);
     } finally {
       setLoading(false);
     }

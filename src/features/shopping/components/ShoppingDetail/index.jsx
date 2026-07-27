@@ -97,7 +97,7 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
 
         {/* Info general */}
         <div style={{ padding: "20px 24px", borderBottom: "1px solid #f0f0f0" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "20px", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", alignItems: "start" }}>
             <div>
               <span style={labelStyle}>N° FACTURA</span>
               <span style={valueStyle}>{shopping.numeroFactura || "—"}</span>
@@ -112,12 +112,6 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
                 {shopping.fecha
                   ? new Date(shopping.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
                   : "—"}
-              </span>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <span style={labelStyle}>TOTAL</span>
-              <span style={{ fontSize: "20px", fontWeight: 700, color: "#FF4FD6" }}>
-                ${Number(shopping.costoTotal || 0).toLocaleString("es-CO", { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -148,7 +142,6 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
                     <th style={thStyle}>PRODUCTO / INSUMO</th>
                     <th style={{ ...thStyle, textAlign: "right" }}>CANT.</th>
                     <th style={{ ...thStyle, textAlign: "right" }}>UNITARIO</th>
-                    <th style={{ ...thStyle, textAlign: "right" }}>SUBTOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -192,19 +185,6 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
 
                       <td style={{ ...tdStyle, textAlign: "right", color: "#555" }}>
                         ${Number(d.costoUnitario || 0).toLocaleString("es-CO", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </td>
-
-                      <td
-                        style={{
-                          ...tdStyle,
-                          textAlign: "right",
-                          fontWeight: 600,
-                          color: "#333",
-                        }}
-                      >
-                        ${Number(d.costo || 0).toLocaleString("es-CO", {
                           minimumFractionDigits: 2,
                         })}
                       </td>

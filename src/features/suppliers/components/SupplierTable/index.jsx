@@ -37,7 +37,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
           <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th style={{ ...thStyle, width: "16%" }}>NIT</th>
+                <th style={{ ...thStyle, width: "16%" }}>Documento</th>
                 <th style={{ ...thStyle, width: "24%" }}>Nombre de empresa</th>
                 <th style={{ ...thStyle, width: "20%" }}>Nombre de contacto</th>
                 <th style={{ ...thStyle, width: "22%" }}>Dirección</th>

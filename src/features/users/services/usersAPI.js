@@ -1,22 +1,83 @@
 import { get, post, put, deleteRequest } from "../../shared/utils/httpClient";
 
+// Compatibilidad con formularios previos que enviaban `cargos` en plural.
+// La API persiste el campo canónico `cargo` como arreglo.
+// Solo se incluye `cargo` si el payload original contenía `cargo` o `cargos`.
+// Si no viene ninguno, se omite para no sobrescribir datos existentes en BD.
+const normalizeUserPayload = (data = {}) => {
+  const { cargos, cargo, ...rest } = data;
+  // Si explícitamente se envió cargos o cargo, normalizar y agregar.
+  // Si no se mencionó ninguno, no tocar el campo en BD.
+  if (cargo !== undefined || cargos !== undefined) {
+    return {
+      ...rest,
+      cargo: cargo ?? cargos ?? [],
+    };
+  }
+  return rest;
+};
+
+/**
+ * Extrae un mensaje legible desde el error de la API.
+ * El backend responde con { success: false, message: "..." }.
+ * err puede ser un Error (de red) o un objeto { message } (respuesta API).
+ */
+const extractError = (err) => {
+  // Si err ya es un Error y no tiene data, devolverlo tal cual
+  if (err instanceof Error && !err.data) return err;
+  // Si err tiene .data con .message, usarlo
+  if (err?.data?.message) {
+    const e = new Error(err.data.message);
+    e.status = err.status;
+    e.data = err.data;
+    return e;
+  }
+  // Si err mismo es un objeto con .message (ej: err?.data devuelve { message })
+  if (err?.message) {
+    const e = new Error(err.message);
+    e.status = err.status;
+    e.data = err.data;
+    return e;
+  }
+  // Fallback genérico
+  return new Error("Error desconocido en la solicitud");
+};
+
 const internal = {
   getUsers: async () => {
     try {
       const res = await get("/users");
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 
-  // Igual que getUsers pero excluye Gerente y Administrador directamente en MongoDB
+  // Obtener empleados: devuelve los usuarios que no son Gerente/Administrador.
+  // La API puede no soportar el query param `excludeRoleNames`, así que usamos
+  // GET /users y filtramos en frontend para evitar 403 inesperados.
   getEmployees: async () => {
     try {
-      const res = await get("/users?excludeRoleNames=Gerente,Administrador");
-      return res?.data ?? res;
+      const res = await get("/users");
+      const users = res?.data ?? res;
+      if (!Array.isArray(users)) return [];
+
+      const excludedRoleNames = ["gerente", "administrador", "admin"];
+      const getRoleName = (user) => {
+        if (!user) return "";
+        if (typeof user.rolNombre === "string") return user.rolNombre;
+        if (typeof user.rol === "string") return user.rol;
+        if (typeof user.rol?.nombre === "string") return user.rol.nombre;
+        if (typeof user.rol?.name === "string") return user.rol.name;
+        return "";
+      };
+
+      return users.filter((user) => {
+        const roleName = getRoleName(user).toString().toLowerCase().trim();
+        return !excludedRoleNames.includes(roleName);
+      });
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 
@@ -25,25 +86,25 @@ const internal = {
       const res = await get(`/users/${id}`);
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 
   createUser: async (data) => {
     try {
-      const res = await post("/users", data);
+      const res = await post("/users", normalizeUserPayload(data));
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 
   updateUser: async (id, data) => {
     try {
-      const res = await put(`/users/${id}`, data);
+      const res = await put(`/users/${id}`, normalizeUserPayload(data));
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 
@@ -52,7 +113,7 @@ const internal = {
       const res = await deleteRequest(`/users/${id}`);
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 };
@@ -72,7 +133,7 @@ export const userAPI = {
       const res = await patch(`/users/${id}/status`);
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
   // Catálogos usados por useCatalogs / AuthContext
@@ -83,7 +144,7 @@ export const userAPI = {
       const payload = res?.data ?? res;
       return Array.isArray(payload) ? payload : (payload?.data ?? []);
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
   // FIX: la API monta las sedes en /sites, no en /sedes
@@ -94,7 +155,7 @@ export const userAPI = {
       const payload = res?.data ?? res;
       return Array.isArray(payload) ? payload : (payload?.data ?? []);
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 
@@ -118,7 +179,7 @@ export const userAPI = {
       const res = await post("/auth/verify-password", { password }, { suppressAutoLogout: true });
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      throw extractError(err);
     }
   },
 };

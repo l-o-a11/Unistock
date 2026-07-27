@@ -9,7 +9,9 @@ import AddShoppingButton from "../components/AddShoppingButton";
 import ShoppingForm from "../components/ShoppingForm";
 import ShoppingDetail from "../components/ShoppingDetail";
 import Alert from "../../shared/components/Alert";
+import TableSkeleton from "../../shared/components/TableSkeleton";
 import { useSuppliers } from "../../suppliers/hooks/mockSuppliers";
+import { useSedeScope, isVisibleBySede } from "../../shared/hooks/useSedeScope";
 
 const ShoppingsPage = () => {
   const { suppliers } = useSuppliers();
@@ -20,6 +22,7 @@ const ShoppingsPage = () => {
       ?.nombreEmpresa ?? "—";
 
   const { shoppings, loading, createShopping, anularShopping } = useShoppings();
+  const { isGerente, sedeId: miSedeId } = useSedeScope();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedShopping, setSelectedShopping] = useState(null);
@@ -62,28 +65,11 @@ const ShoppingsPage = () => {
 
   if (loading && shoppings.length === 0) {
     return (
-      <div style={{ padding: "24px 32px" }}>
-        <style>{`
-          @keyframes eloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
-          @keyframes eskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        `}</style>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Compras</h1>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <div style={{ width: 400, maxWidth: "100%", height: 38, borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
-            <div style={{ width: 260, height: 11, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
-          </div>
-        </div>
-
-        <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.07)", padding: "12px 20px", marginBottom: 16, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-          <div style={{ width: 168, height: 38, borderRadius: 20, background: "linear-gradient(90deg, #ff8fe0, #FF4FD6)", opacity: 0.4, animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
-        </div>
-
-        <div style={{ position: "relative", height: 3, background: "#fce7f3", borderRadius: 99, overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)", animation: "eloadbar 1.6s ease-in-out infinite" }} />
-        </div>
-      </div>
+      <TableSkeleton
+        title="Compras"
+        toolbarLeftButtons={[{ width: 90 }]}
+        toolbarButtons={[{ width: 110, primary: true }]}
+      />
     );
   }
 
@@ -109,7 +95,11 @@ const ShoppingsPage = () => {
       (estadoFiltro === "activos" && !p.anulada) ||
       (estadoFiltro === "inactivos" && p.anulada);
 
-    return coincideBusqueda && coincideEstado;
+    // 🔒 Alcance de sede: Gerente ve todas las compras;
+    // cualquier otro rol ve las compras de su sede y los registros sin sede.
+    const coincideSede = isVisibleBySede(p, isGerente, miSedeId);
+
+    return coincideBusqueda && coincideEstado && coincideSede;
   });
 
   const itemsPerPage = 7;
@@ -548,39 +538,38 @@ const ShoppingsPage = () => {
   body { font-family:'Segoe UI',Arial,sans-serif; color:#2d1b4e; font-size:11px; }
   .page { width:210mm; min-height:297mm; margin:0 auto; }
 
-  .header { background:#ff4fd67e; padding:24px 32px 22px; position:relative; overflow:hidden; }
-  .header::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(255,79,214,0.18); }
-  .header::after  { content:''; position:absolute; bottom:-20px; right:60px; width:80px; height:80px; border-radius:50%; background:rgba(255,79,214,0.10); }
+  .header { background:#ffffff; border-bottom:3px solid #FF4FD6; padding:24px 32px 22px; position:relative; overflow:hidden; }
+  .header::before, .header::after { display:none; }
   .header-top  { display:flex; justify-content:space-between; align-items:flex-start; }
   .brand       { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .brand-logo  { width:32px; height:auto; display:block; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
-  .brand-name  { font-size:11px; font-weight:600; color:rgba(255,255,255,0.6); letter-spacing:0.12em; text-transform:uppercase; }
-  .doc-title   { font-size:22px; font-weight:700; color:#fff; letter-spacing:-0.02em; line-height:1.2; }
-  .doc-subtitle{ font-size:12px; color:rgba(255,255,255,0.65); margin-top:4px; }
-  .header-meta        { text-align:right; font-size:11px; color:#ffffff; line-height:2; }
-  .header-meta strong { color:#ffffff; font-weight:700; font-size:12px; letter-spacing:0.02em; }
-  .doc-id { display:inline-block; background:rgba(255,79,214,0.25); color:#ffffff; font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; border:1px solid rgba(255,79,214,0.4); margin-top:6px; letter-spacing:0.06em; }
+  .brand-name  { font-size:11px; font-weight:600; color:#9ca3af; letter-spacing:0.12em; text-transform:uppercase; }
+  .doc-title   { font-size:22px; font-weight:700; color:#2d1b4e; letter-spacing:-0.02em; line-height:1.2; }
+  .doc-subtitle{ font-size:12px; color:#6b7280; margin-top:4px; }
+  .header-meta        { text-align:right; font-size:11px; color:#2d1b4e; line-height:2; }
+  .header-meta strong { color:#2d1b4e; font-weight:700; font-size:12px; letter-spacing:0.02em; }
+  .doc-id { display:inline-block; background:#ffffff; color:#FF4FD6; font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; border:1px solid #FF4FD6; margin-top:6px; letter-spacing:0.06em; }
 
   .body { padding:22px 32px 28px; }
 
   .totals-row { display:flex; gap:12px; margin-bottom:22px; }
-  .total-card { flex:1; border-radius:10px; padding:14px 18px; }
-  .tc-a { background:#ffffff; border:1.5px solid #d8b4f8; }
-  .tc-b { background:#fce7f9; border:1.5px solid #f9a8d4; }
-  .tc-c { background:#ede9fe; border:1.5px solid #c4b5fd; }
-  .tc-d { background:#fee2e2; border:1.5px solid #fca5a5; }
+  .total-card { flex:1; border-radius:10px; padding:14px 18px; background:#ffffff; border:1.5px solid #FF4FD6; }
+  .tc-a { background:#ffffff; }
+  .tc-b { background:#ffffff; }
+  .tc-c { background:#ffffff; }
+  .tc-d { background:#ffffff; }
   .total-val   { font-size:22px; font-weight:800; line-height:1; letter-spacing:-0.03em; color:#FF4FD6; }
   .total-label { font-size:10px; color:#636264; margin-top:3px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
 
   .section-title { font-size:10px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px; display:flex; align-items:center; gap:7px; }
-  .section-title::after { content:''; flex:1; height:1px; background:#e8d5f5; }
+  .section-title::after { content:''; flex:1; height:1px; background:#FF4FD6; }
 
   table      { width:100%; border-collapse:collapse; font-size:10.5px; }
-  thead tr   { background:#FF4FD6; }
-  thead th   { padding:9px 10px; text-align:left; color:#fff; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+  thead tr   { background:#ffffff; border-bottom:2px solid #FF4FD6; }
+  thead th   { padding:9px 10px; text-align:left; color:#FF4FD6; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
   thead th:first-child { border-radius:6px 0 0 0; }
   thead th:last-child  { border-radius:0 6px 0 0; }
-  .row-even  { background:#fff; }
+  .row-even  { background:#ffffff; }
   .row-odd   { background:#fdf6ff; }
   tbody tr   { border-bottom:1px solid #f6f6f8; }
   td         { padding:9px 10px; vertical-align:middle; }
@@ -589,11 +578,11 @@ const ShoppingsPage = () => {
   .status-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:20px; font-size:9.5px; font-weight:700; white-space:nowrap; }
   .status-dot   { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 
-  .divider { border:none; border-top:2px dashed #e8d5f5; margin:22px 0; }
+  .divider { border:none; border-top:2px dashed #FF4FD6; margin:22px 0; }
 
   .reparto-grid  { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-  .reparto-card  { border:1.5px solid #e8d5f5; border-radius:8px; padding:12px 14px; background:#fdf6ff; page-break-inside:avoid; }
-  .reparto-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #e8d5f5; }
+  .reparto-card  { border:1.5px solid #FF4FD6; border-radius:8px; padding:12px 14px; background:#ffffff; page-break-inside:avoid; }
+  .reparto-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #FF4FD6; }
   .reparto-order        { font-size:14px; font-weight:800; color:#FF4FD6; }
   .reparto-status-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:20px; font-size:8.5px; font-weight:700; }
   .reparto-field { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; font-size:10px; }
@@ -867,6 +856,7 @@ const ShoppingsPage = () => {
           <ShoppingForm
             onSubmit={handleCreateSubmit}
             onCancel={() => setShowCreateForm(false)}
+            existingFacturas={shoppings.map((p) => String(p.numeroFactura).trim()).filter(Boolean)}
           />
         </div>
       )}

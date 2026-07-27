@@ -198,6 +198,9 @@ const mappedSuppliers = (list || []).map((supplier) => {
 // y los normaliza internamente a snake_case.
 const mapFrontendToBackend = (supplierData) => ({
   nit: supplierData.nit,
+  tipoDocumento: supplierData.tipoDocumento || '',
+  tipoDocumentoContacto: supplierData.tipoDocumentoContacto || '',
+  telefonoContacto: supplierData.telefonoContacto || '',
   nombreEmpresa:
     supplierData.nombreEmpresa ||
     supplierData.nombre_de_empresa ||

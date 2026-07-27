@@ -16,7 +16,7 @@
  *   nit            — juridica: 8-12 dígitos, opcional guión (ej: 900123456-7)
  *                     natural : 6-10 dígitos (cédula), sin guión
  *   direccion      — texto libre, obligatorio
- *   correoEmpresa  — formato email, obligatorio
+ *   correoEmpresa  — formato email, obligatorio (juridica y natural)
  *   sitioWeb       — texto libre, opcional (solo juridica)
  *   nombreContacto — texto libre, obligatorio (solo juridica)
  *   telefono       — solo dígitos, exactamente 10, obligatorio
@@ -136,22 +136,26 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
       return {
         nombreEmpresa:  s.nombreEmpresa  || "",
         nit:            s.nit            || "",
+        tipoDocumento:  s.tipoDocumento  || (s.tipoProveedor === "natural" ? "Cédula de ciudadanía" : "NIT"),
         direccion:      s.direccion      || "",
         correoEmpresa:  s.correoEmpresa  || s.email || "",
         sitioWeb:       s.sitioWeb       || s.sitioweb || "",
         nombreContacto: s.nombreContacto || "",
         telefono:       s.telefono != null ? String(s.telefono) : "",
+        telefonoContacto:   s.telefonoContacto   || "",
         correoContacto: s.correoContacto || "",
       };
     }
     return {
       nombreEmpresa:  "",
       nit:            "",
+      tipoDocumento:  "NIT",
       direccion:      "",
       correoEmpresa:  "",
       sitioWeb:       "",
       nombreContacto: "",
       telefono:       "",
+      telefonoContacto:   "",
       correoContacto: "",
     };
   };
@@ -191,16 +195,17 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     setTipoProveedor(nuevoTipo);
     setErrors({});
     if (nuevoTipo === "natural") {
-      // Persona natural: no aplica razón social/contacto separado ni sitio web
       setFormData((prev) => ({
         ...prev,
         nit: "",
+        tipoDocumento: "",
         sitioWeb: "",
         nombreContacto: "",
+        telefonoContacto: "",
         correoContacto: "",
       }));
     } else {
-      setFormData((prev) => ({ ...prev, nit: "" }));
+      setFormData((prev) => ({ ...prev, nit: "", tipoDocumento: "NIT" }));
     }
   }, [tipoProveedor]);
 
@@ -272,10 +277,14 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         if (!error && isDuplicate("nit", value))
           error = "El proveedor ya se encuentra registrado";
         break;
+      case "tipoDocumento":
+        error = validators.required(value);
+        break;
       case "direccion":
         error = validators.required(value);
         break;
       case "correoEmpresa":
+        // Obligatorio tanto para persona jurídica como para persona natural.
         error = validators.required(value) || validators.email(value);
         if (!error && isDuplicate("correoEmpresa", value))
           error = "El proveedor ya se encuentra registrado";
@@ -289,6 +298,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         break;
       case "nombreContacto":
         if (esJuridica) error = validators.required(value);
+        break;
+      case "telefonoContacto":
+        if (esJuridica && value) error = validators.telefono(value);
         break;
       case "correoContacto":
         error = value ? validators.email(value) : "";
@@ -318,8 +330,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   // ── Validación completa ───────────────────────────────────────────────────
   const validateAll = useCallback(() => {
     const required = esJuridica
-      ? ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono", "nombreContacto"]
-      : ["nombreEmpresa", "nit", "direccion", "correoEmpresa", "telefono"];
+      ? ["tipoDocumento", "nit", "nombreEmpresa", "direccion", "correoEmpresa", "telefono", "nombreContacto"]
+      : ["tipoDocumento", "nit", "nombreEmpresa", "direccion", "correoEmpresa", "telefono"];
 
     let newErrors = {};
     required.forEach((key) => {
@@ -343,17 +355,20 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
 
     const LABELS = esJuridica
       ? {
-          nombreEmpresa:  "Nombre de empresa",
+          tipoDocumento:  "Tipo de documento",
           nit:            "NIT",
+          nombreEmpresa:  "Nombre de empresa",
           direccion:      "Dirección",
           correoEmpresa:  "Correo empresa",
           telefono:       "Teléfono",
           nombreContacto: "Nombre de contacto",
+          telefonoContacto: "Teléfono del contacto",
           correoContacto: "Correo de contacto",
         }
       : {
-          nombreEmpresa:  "Nombre completo",
+          tipoDocumento:  "Tipo de documento",
           nit:            "Cédula",
+          nombreEmpresa:  "Nombre completo",
           direccion:      "Dirección",
           correoEmpresa:  "Correo",
           telefono:       "Teléfono",
@@ -388,6 +403,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         tipoProveedor,
         nombreContacto: esJuridica ? formData.nombreContacto : formData.nombreEmpresa,
         correoContacto: esJuridica ? formData.correoContacto : formData.correoEmpresa,
+        telefonoContacto: esJuridica ? formData.telefonoContacto : formData.telefono,
       };
       await onSubmit(payload);
       setPendingClose(true);
@@ -537,12 +553,86 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
               ══════════════════════════════════════════════════ */}
               {sectionTitle(esJuridica ? "Datos de la empresa" : "Datos de la persona")}
 
-              {/* Fila 1: Nombre/Razón social + NIT/Cédula */}
+              {/* Fila 1: Tipo de documento + NIT/Cédula + Nombre/Razón social */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: 14, marginBottom: 14,
               }}>
+                {/* Tipo de documento + NIT/Cédula */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={labelStyle}>Tipo de documento</label>
+                    <select
+                      name="tipoDocumento"
+                      value={formData.tipoDocumento}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={esJuridica}
+                      style={{
+                        ...getInputStyle(errors.tipoDocumento),
+                        padding: "9px 10px",
+                        borderRadius: 10,
+                        border: "1px solid #e5e7eb",
+                        background: esJuridica ? "#f3f4f6" : "#fff",
+                        fontSize: 13,
+                        color: "#1f2937",
+                        width: "100%",
+                        cursor: esJuridica ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <option value="NIT">NIT</option>
+                      <option value="Cédula de ciudadanía">Cédula de ciudadanía</option>
+                      <option value="Cédula de extranjería">Cédula de extranjería</option>
+                      <option value="Pasaporte">Pasaporte</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                    {esJuridica && (
+                      <p style={{ margin: "4px 0 0", fontSize: 10, color: "#9ca3af" }}>
+                        Para empresas, el tipo de documento es NIT.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* NIT/Cédula — tiene lógica especial de bloqueo */}
+                  <div>
+                    <label style={labelStyle}>
+                      {esJuridica ? "NIT" : "Cédula de ciudadanía"} <span style={requiredStar}>*</span>
+                      {nitBloqueado && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: "#d97706",
+                          background: "#fef3c7", padding: "2px 7px",
+                          borderRadius: 8, marginLeft: 6,
+                        }}>
+                          🔒 Bloqueado
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="text" name="nit"
+                      value={formData.nit}
+                      onChange={nitBloqueado ? undefined : handleChange}
+                      onBlur={nitBloqueado ? undefined : handleBlur}
+                      disabled={nitBloqueado}
+                      placeholder={esJuridica ? "Ej: 900123456-7" : "Ej: 1035421789"}
+                      autoComplete="off"
+                      style={{
+                        ...getInputStyle(errors.nit),
+                        ...(nitBloqueado
+                          ? { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }
+                          : {}),
+                      }}
+                    />
+                    {errors.nit && <span style={errMsg}>⚠ {errors.nit}</span>}
+                    {nitBloqueado && (
+                      <p style={{ margin: "4px 0 0", fontSize: 10, color: "#d97706" }}>
+                        No editable: este proveedor ya tiene compras asociadas.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nombre/Razón social */}
                 <Field
                   label={esJuridica ? "Nombre de empresa" : "Nombre completo"}
                   name="nombreEmpresa"
@@ -553,43 +643,6 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                   onBlur={handleBlur}
                   error={errors.nombreEmpresa}
                 />
-
-                {/* NIT/Cédula — tiene lógica especial de bloqueo */}
-                <div>
-                  <label style={labelStyle}>
-                    {esJuridica ? "NIT" : "Cédula de ciudadanía"} <span style={requiredStar}>*</span>
-                    {nitBloqueado && (
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: "#d97706",
-                        background: "#fef3c7", padding: "2px 7px",
-                        borderRadius: 8, marginLeft: 6,
-                      }}>
-                        🔒 Bloqueado
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="text" name="nit"
-                    value={formData.nit}
-                    onChange={nitBloqueado ? undefined : handleChange}
-                    onBlur={nitBloqueado ? undefined : handleBlur}
-                    disabled={nitBloqueado}
-                    placeholder={esJuridica ? "Ej: 900123456-7" : "Ej: 1035421789"}
-                    autoComplete="off"
-                    style={{
-                      ...getInputStyle(errors.nit),
-                      ...(nitBloqueado
-                        ? { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }
-                        : {}),
-                    }}
-                  />
-                  {errors.nit && <span style={errMsg}>⚠ {errors.nit}</span>}
-                  {nitBloqueado && (
-                    <p style={{ margin: "4px 0 0", fontSize: 10, color: "#d97706" }}>
-                      No editable: este proveedor ya tiene compras asociadas.
-                    </p>
-                  )}
-                </div>
               </div>
 
               {/* Fila 2: Correo + Teléfono */}
@@ -601,7 +654,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                 <Field
                   label={esJuridica ? "Correo empresa" : "Correo"}
                   name="correoEmpresa"
-                  type="email" required
+                  type="email"
+                  required
                   placeholder={esJuridica ? "Ej: ventas@empresa.com" : "Ej: maria.gomez@correo.com"}
                   value={formData.correoEmpresa}
                   onChange={handleChange}
@@ -655,7 +709,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                   <div style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                    gap: 14, marginBottom: 20,
+                    gap: 14, marginBottom: 14,
                   }}>
                     <Field
                       label="Nombre del contacto" name="nombreContacto"
@@ -664,6 +718,15 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       error={errors.nombreContacto}
+                    />
+                    <Field
+                      label="Teléfono del contacto" name="telefonoContacto"
+                      placeholder="Ej: 3001234567"
+                      hint="Solo números"
+                      value={formData.telefonoContacto}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={errors.telefonoContacto}
                     />
                     <Field
                       label="Correo del contacto" name="correoContacto"

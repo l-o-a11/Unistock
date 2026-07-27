@@ -8,6 +8,10 @@
  *                Valida que la suma de cantidades ≤ totalUnidades
  *   assignSede — selección de sede(s) + cantidad antes de avanzar
  *                Valida que la suma de cantidades ≤ totalUnidades
+ *   assignEmployee — selección de UN empleado responsable antes de avanzar.
+ *                Lista empleados activos con cuántas producciones tienen
+ *                asignadas actualmente (para repartir la carga). Se usa al
+ *                entrar a Corte, Compras y Recepción.
  *   confirm    — confirmación de acción destructiva (anular artículo)
  *   anular     — anulación de orden con campo de motivo obligatorio
  */
@@ -116,6 +120,10 @@ const ProductionAlerts = ({
   const [sedesOptions, setSedesOptions] = useState([]);
   const [loadingSedes, setLoadingSedes] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // ── Empleado responsable (Corte / Compras / Recepción) ──
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   // Resetear assignments cada vez que se abre el modal
   useEffect(() => {
@@ -123,6 +131,7 @@ const ProductionAlerts = ({
       setAssignments([{ option: "", cantidad: "" }]);
       setMotivo("");
       setConfirming(false);
+      setSelectedEmployee(null);
     }
   }, [isOpen, type]);
 
@@ -179,6 +188,36 @@ const ProductionAlerts = ({
 
     return () => { cancelled = true; };
   }, [isOpen, type]);
+
+  useEffect(() => {
+    if (!isOpen || type !== "assignEmployee") return;
+
+    let cancelled = false;
+    setLoadingEmployees(true);
+    setEmployeeOptions([]);
+
+    (async () => {
+      try {
+        const { ProductionAPIClient } = await import("../../services/ProductionAPIClient");
+        const data = await ProductionAPIClient.getEmployeeWorkload(targetStep);
+        const options = (Array.isArray(data) ? data : [])
+          .map((e) => ({
+            id: e.id || e._id,
+            nombre: e.nombreCompleto || e.nombre || e.correo || "Sin nombre",
+            producciones: Number(e.produccionesAsignadas ?? e.totalAsignadas ?? 0),
+          }))
+          .filter((e) => e.id);
+        if (!cancelled) setEmployeeOptions(options);
+      } catch (err) {
+        console.error("Error cargando empleados:", err);
+        if (!cancelled) setEmployeeOptions([]);
+      } finally {
+        if (!cancelled) setLoadingEmployees(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen, type, targetStep]);
 
   if (!isOpen) return null;
 
@@ -243,6 +282,11 @@ const ProductionAlerts = ({
       message: customMessage || `Asigna una o más sedes y la cantidad de unidades para el estado "${targetStep}".`,
       icon: <IconPin />, iconBg: "#fdf0fa",
     },
+    assignEmployee: {
+      title: customTitle || "Asignar empleado responsable",
+      message: customMessage || `Selecciona el empleado responsable de la etapa "${targetStep}". Se muestra cuántas producciones tiene asignadas actualmente.`,
+      icon: <IconPerson />, iconBg: "#fdf0fa",
+    },
     confirm: {
       title: customTitle || "Confirmar acción",
       message: customMessage || "¿Deseas continuar con esta acción?",
@@ -272,6 +316,7 @@ const ProductionAlerts = ({
 
   const canConfirm =
     (isAssign && assignmentsValid) ||
+    (type === "assignEmployee" && !!selectedEmployee) ||
     (type === "anular" && motivo.trim() !== "") ||
     (type === "password" && motivo.trim() !== "") ||
     type === "advance" ||
@@ -288,6 +333,11 @@ const ProductionAlerts = ({
     try {
       setConfirming(true);
       if (type === "anular" || type === "password") { await onAccept(motivo.trim()); setMotivo(""); return; }
+      if (type === "assignEmployee") {
+        const emp = employeeOptions.find((e) => e.id === selectedEmployee);
+        await onAccept({ id_empleado: selectedEmployee, nombre_empleado: emp?.nombre || "" });
+        return;
+      }
       if (isAssign) {
         // Retorna el array de asignaciones al padre
         await onAccept(assignments.map((assignment) => {
@@ -447,6 +497,74 @@ const ProductionAlerts = ({
                 <IconPlus /> Agregar {type === "third" ? "tercero" : "sede"}
               </button>
             )}
+          </div>
+        )}
+
+        {/* ── Selección de empleado responsable ── */}
+        {type === "assignEmployee" && (
+          <div style={{ marginBottom: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
+              Empleados disponibles
+            </div>
+
+            {loadingEmployees && (
+              <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>Cargando empleados...</p>
+            )}
+            {!loadingEmployees && employeeOptions.length === 0 && (
+              <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4, fontWeight: 600 }}>
+                No hay empleados activos disponibles.
+              </p>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 260, overflowY: "auto" }}>
+              {[...employeeOptions]
+                .sort((a, b) => a.producciones - b.producciones)
+                .map((emp) => {
+                  const isSelected = selectedEmployee === emp.id;
+                  const badgeStyle =
+                    emp.producciones === 0
+                      ? { background: "#d1fae5", color: "#065f46" }
+                      : emp.producciones <= 2
+                      ? { background: "#fef3c7", color: "#92400e" }
+                      : { background: "#fee2e2", color: "#991b1b" };
+                  return (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      onClick={() => setSelectedEmployee(emp.id)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "10px 12px", borderRadius: 12, cursor: "pointer", textAlign: "left",
+                        border: isSelected ? `1.5px solid ${BRAND}` : "1.5px solid #e5e7eb",
+                        background: isSelected ? "#fdf0fa" : "#fff",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        <span
+                          style={{
+                            width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                            border: isSelected ? `5px solid ${BRAND}` : "1.5px solid #d1d5db",
+                            background: "#fff",
+                          }}
+                        />
+                        <span style={{
+                          fontSize: 13, fontWeight: 600, color: "#374151",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {emp.nombre}
+                        </span>
+                      </span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
+                        whiteSpace: "nowrap", flexShrink: 0, ...badgeStyle,
+                      }}>
+                        {emp.producciones} {emp.producciones === 1 ? "producción" : "producciones"}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         )}
 

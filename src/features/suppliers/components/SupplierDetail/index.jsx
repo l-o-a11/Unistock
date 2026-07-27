@@ -143,12 +143,24 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 4 }}>
             <div style={fieldBox}>
+              <span style={labelStyle}>Tipo de documento</span>
+              <p style={valueStyle}>{supplier.tipoDocumento || "—"}</p>
+            </div>
+            <div style={fieldBox}>
+              <span style={labelStyle}>NIT</span>
+              <p style={valueStyle}>{supplier.nit || "—"}</p>
+            </div>
+            <div style={fieldBox}>
               <span style={labelStyle}>Dirección</span>
               <p style={valueStyle}>{supplier.direccion || "—"}</p>
             </div>
             <div style={fieldBox}>
               <span style={labelStyle}>Correo empresa</span>
               <p style={valueStyle}>{supplier.correoEmpresa || supplier.email || "—"}</p>
+            </div>
+            <div style={fieldBox}>
+              <span style={labelStyle}>Teléfono</span>
+              <p style={valueStyle}>{supplier.telefono || "—"}</p>
             </div>
             <div style={fieldBox}>
               <span style={labelStyle}>Sitio web</span>
@@ -184,8 +196,8 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
               <p style={valueStyle}>{supplier.nombreContacto || "—"}</p>
             </div>
             <div style={fieldBox}>
-              <span style={labelStyle}>Teléfono</span>
-              <p style={valueStyle}>{supplier.telefono || "—"}</p>
+              <span style={labelStyle}>Teléfono del contacto</span>
+              <p style={valueStyle}>{supplier.telefonoContacto || "—"}</p>
             </div>
             <div style={fieldBox}>
               <span style={labelStyle}>Correo contacto</span>

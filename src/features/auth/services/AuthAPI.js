@@ -104,7 +104,7 @@ export const authService = {
   // La API maneja el envío del correo directamente en CreateUser (use-case),
   // por lo que este método es un no-op seguro para no romper el flujo del form.
   // Si en el futuro la API expone un endpoint dedicado, reemplazar aquí.
-  sendWelcomeEmail: async ({ email, nombreCompleto, password }) => {
+  sendWelcomeEmail: async () => {
     // El backend ya envía el correo en POST /users (CreateUser use-case).
     // No se necesita un segundo llamado — retornamos éxito silenciosamente.
     return { sent: true };
@@ -123,7 +123,13 @@ export const authService = {
   sendRecoveryCode: async (correo) => {
     try {
       const res = await post("/auth/forgot-password", { correo }, { skipAuth: true });
-      return res?.data ?? res;
+      const data = res?.data ?? res;
+      if (data && (data.success === false || data.error === true)) {
+        const error = new Error(data.message || "No se pudo enviar el código.");
+        error.status = data.status || 400;
+        throw error;
+      }
+      return data;
     } catch (err) {
       throw err?.data || err;
     }
@@ -157,10 +163,12 @@ export const authService = {
   // Valida la contraseña del usuario autenticado para acciones sensibles.
   verifyPassword: async (password) => {
     try {
-      const res = await post("/auth/verify-password", { password });
+      const res = await post("/auth/verify-password", { password }, { suppressAutoLogout: true });
       return res?.data ?? res;
     } catch (err) {
-      throw err?.data || err;
+      const error = err?.data || err;
+      if (err?.status && !error.status) error.status = err.status;
+      throw error;
     }
   },
 };
