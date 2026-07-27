@@ -823,7 +823,7 @@ const ProductionsPage = () => {
    * RENDER — idéntico al original
    * ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: '#f6f6f8', fontFamily: 'sans-serif' }}>
+    <div style={{  background: '#f6f6f8', fontFamily: 'sans-serif' }}>
 
       <style>{`
         @keyframes pSpin  { to { transform: rotate(360deg); } }
@@ -831,7 +831,7 @@ const ProductionsPage = () => {
 
         .prod-root { padding: 14px; }
         @media (min-width:640px)  { .prod-root { padding: 20px 24px; } }
-        @media (min-width:1024px) { .prod-root { padding: 24px 32px; } }
+        @media (min-width:1024px) { .prod-root { padding: 24px 32px 0px 32px; } }
 
         .prod-header { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
         @media (min-width:640px) { .prod-header { flex-direction:row; justify-content:space-between; align-items:center; } }

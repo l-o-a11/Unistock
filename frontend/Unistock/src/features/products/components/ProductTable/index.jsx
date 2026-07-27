@@ -33,7 +33,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
   };
 
   const tdStyle = {
-    padding: isMobile ? "10px 12px" : "14px 20px",
+    padding: isMobile ? "10px 12px" : "8px 20px",
     fontSize: isMobile ? "13px" : "14px",
     color: "#333",
     borderBottom: "1px solid #f5f5f5",

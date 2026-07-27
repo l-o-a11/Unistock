@@ -135,7 +135,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = rowBg; }}
                 >
                   {/* # Orden */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: 44, height: 26, borderRadius: 7,
@@ -146,7 +146,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Producto */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <div style={{ width: 28, height: 28, borderRadius: 7, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <IconPackage />
@@ -163,7 +163,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Cantidad */}
-                  <td style={{ padding: '12px 14px', textAlign: 'center', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '8px 14px', textAlign: 'center', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
                       {(prod.quantity || 0).toLocaleString('es-CO')}
                     </span>
@@ -171,7 +171,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Color — todos los colores de la orden */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     {(() => {
                       const allColors = [
                         ...(prod.color ? [prod.color] : []),
@@ -192,7 +192,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Fecha entrega */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#6b7280' }}>
                       <IconCalendar />
                       <span style={{ fontSize: 12 }}>{prod.deliveryDate || '—'}</span>
@@ -200,7 +200,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Estado */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                     <StatusBadge status={prod.status} />
                     {prod.statusDate && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
@@ -213,7 +213,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                   </td>
 
                   {/* Cliente */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', maxWidth: 130 }}>
+                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', maxWidth: 130 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <IconUser />
@@ -323,6 +323,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                             Confirmar
                           </button>
                         </>
+
                       ) : (
                         <>
                           {/* Ver detalle — Gerente y Administrador (observador) */}

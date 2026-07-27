@@ -737,7 +737,7 @@ const ShoppingsPage = () => {
 
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
+      style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px" }}
     >
       <style>{`
         @keyframes shFadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
