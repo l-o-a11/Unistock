@@ -75,6 +75,10 @@ const SupplyForm = ({
   const validators = {
     required:       (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) => isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
+    cannotDecreaseStock: (v) =>
+      isEdit && supply?.stock !== undefined && Number(v) < Number(supply.stock)
+        ? "No puedes disminuir el stock al editar el insumo"
+        : "",
     nombreValido:   (v) => v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v) ? "El nombre contiene caracteres no permitidos" : "",
     minLength:      (v) => v && v.trim().length < 3 ? "Mínimo 3 caracteres" : "",
     maxLength:      (v) => v && v.trim().length > 100 ? "Máximo 100 caracteres" : "",
@@ -93,6 +97,9 @@ const SupplyForm = ({
       case "stock":
       case "valorMedida":
         error = validators.required(value) || validators.positiveNumber(value);
+        if (name === "stock") {
+          error = error || validators.cannotDecreaseStock(value);
+        }
         break;
       default: break;
     }
@@ -253,11 +260,11 @@ const SupplyForm = ({
         width: "100%",
         maxWidth: 800,
         maxHeight: "90vh",
-        overflowY: "auto",
+        overflow: "hidden",
         boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
         position: "relative",
       }}>
-        <div style={{ padding: "28px 30px" }}>
+        <div className="roles-modal-scroll" style={{ padding: "28px 30px", overflowY: "auto", maxHeight: "90vh", boxSizing: "border-box", WebkitOverflowScrolling: "touch" }}>
 
           {/* ── Header con ícono — patrón ProductionForm ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
@@ -361,6 +368,8 @@ const SupplyForm = ({
                 </label>
                 <input
                   type="number" name="stock"
+                  min={isEdit ? supply?.stock : 1}
+                  step="1"
                   value={formData.stock}
                   onChange={handleChange}
                   onBlur={handleBlur}

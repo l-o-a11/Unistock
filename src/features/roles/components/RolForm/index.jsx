@@ -320,7 +320,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         </div>
 
         {/* DESCRIPCIÓN */}
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 5 }}>
           <label htmlFor="descripcion" style={labelStyle}>
             Descripción
             <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
@@ -353,7 +353,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         {formData.modulos.length > 0 && (
           <>
             {sectionTitle(`Módulos asignados (${formData.modulos.length})`)}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 5 }}>
               {formData.modulos.map((modulo, index) => (
                 <div
                   key={index}
@@ -441,14 +441,14 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         {/* AGREGAR MÓDULO */}
         {sectionTitle('Agregar módulo')}
         <div style={{
-          marginBottom: 24,
+          marginBottom: 10,
           background: '#fafafa',
           border: `1.5px dashed ${PINK_BORDER}`,
           borderRadius: 12,
           padding: 16,
         }}>
 
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 10 }}>
             <label style={labelStyle}>Módulo{req}</label>
             <select
               value={moduloSeleccionado}
@@ -466,7 +466,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
             </select>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 10 }}>
             <label style={labelStyle}>Privilegios{req}</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
               {PRIVILEGIOS_PREDETERMINADOS.map((priv) => {

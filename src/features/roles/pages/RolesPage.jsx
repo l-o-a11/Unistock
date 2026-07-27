@@ -423,30 +423,33 @@ const RolesPage = () => {
             onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: "#fff",
-              padding: "24px",
-              borderRadius: "8px",
-              width: "50%",
-              maxHeight: "80vh",
-              overflowY: "auto",
-              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              borderRadius: 16,
+              width: "100%",
+              maxWidth: 800,
+              maxHeight: "90vh",
+              overflow: "hidden",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+              position: "relative",
             }}
           >
-            {modalType === "create" && (
-              <CreateRolPage
-                createRol={handleCreateRol}
-                onClose={() => setModalType(null)}
-              />
-            )}
-            {modalType === "edit" && (
-              <EditRolPage
-                rol={editingRol}
-                updateRol={handleUpdateRol}
-                onClose={() => {
-                  setModalType(null);
-                  setEditingRol(null);
-                }}
-              />
-            )}
+            <div className="roles-modal-scroll" style={{ padding: "28px 30px", overflowY: "auto", maxHeight: "90vh", boxSizing: "border-box", WebkitOverflowScrolling: "touch" }}>
+              {modalType === "create" && (
+                <CreateRolPage
+                  createRol={handleCreateRol}
+                  onClose={() => setModalType(null)}
+                />
+              )}
+              {modalType === "edit" && (
+                <EditRolPage
+                  rol={editingRol}
+                  updateRol={handleUpdateRol}
+                  onClose={() => {
+                    setModalType(null);
+                    setEditingRol(null);
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
