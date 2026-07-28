@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import { useProducts } from '../hooks/useProducts';
 import { useProductSearch } from '../hooks/useProductSearch';
@@ -10,6 +10,8 @@ import AddProductButton from '../components/AddProductButton';
 import ProductForm from '../components/ProductForm';
 import TechnicalSheetModal from '../components/TechnicalSheetModal';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
+import { useSedes } from '../../sedes/hooks/useSedes';
+import { useSedeScope, isVisibleBySede } from '../../shared/hooks/useSedeScope';
 
 // 🔥 Importa aquí la URL de tu logo (ajusta la ruta según tu proyecto)
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
@@ -19,6 +21,24 @@ const ProductsPage = () => {
   const { products, loading, createProduct, updateProduct, deleteProduct, toggleProduct, refreshProducts } = useProducts();
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
+
+  // 🔒 Alcance de sede: Gerente ve todos los productos; Administrador solo
+  // ve los de su propia sede (y los que aún no tienen sede asignada, para
+  // no ocultar productos creados antes de este cambio). Mismo criterio que
+  // Empleados y Producción — ver useSedeScope.
+  const { sedes } = useSedes();
+  const { isGerente, sedeId } = useSedeScope();
+  const sedesActivas = sedes.filter((s) => s.estado !== false);
+  const sedesPermitidas = isGerente
+    ? sedesActivas
+    : sedesActivas.filter((s) => String(s.id) === String(sedeId));
+
+  const productsEnMiSede = useMemo(() => {
+    if (!products) return [];
+    if (isGerente) return products;
+    return products.filter((p) => isVisibleBySede(p, isGerente, sedeId));
+  }, [products, isGerente, sedeId]);
+
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -66,7 +86,7 @@ const ProductsPage = () => {
   });
 
   // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = productsEnMiSede.filter(product => {
     const searchLower = searchTerm.toLowerCase().trim();
 
     if (!searchLower) return true;
@@ -214,7 +234,7 @@ const ProductsPage = () => {
   };
 
   const handleDeleteClick = (id) => {
-    const product = products.find(p => p.id === id);
+    const product = productsEnMiSede.find(p => p.id === id);
 
     if (product?.technicalSheet) {
       handleShowAlert({
@@ -229,7 +249,7 @@ const ProductsPage = () => {
   };
 
   const handleStockChange = async (id, delta) => {
-    const product = products.find(p => p.id === id);
+    const product = productsEnMiSede.find(p => p.id === id);
     if (!product) return;
 
     const currentStock = Number(product.stock) || 0;
@@ -622,6 +642,7 @@ const ProductsPage = () => {
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
               existingProducts={products}
+              sedes={sedesPermitidas}
             />
           </div>
         </div>
@@ -637,6 +658,7 @@ const ProductsPage = () => {
               onCancel={handleCloseForm}
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
+              sedes={sedesPermitidas}
             />
           </div>
         </div>

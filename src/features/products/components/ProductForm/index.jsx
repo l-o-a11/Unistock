@@ -16,7 +16,7 @@ const BACKEND_URL = import.meta.env.VITE_BACK_URL || 'http://localhost:3020';
 
 const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory }) => {
   const [open, setOpen] = useState(false);
-  
+
   const filteredCategories = categories.filter((cat) => {
     return Boolean(
       cat?.id ??
@@ -26,7 +26,7 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
       cat?.id_categoria
     );
   });
-  
+
   const handleSelect = (category) => {
     onChange(category);
     setOpen(false);
@@ -34,21 +34,21 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
 
   return (
     <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
-      <div 
-        onClick={() => setOpen((o) => !o)} 
-        style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "space-between", 
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           width: "100%",
           minHeight: "42px",
           boxSizing: "border-box",
-          padding: "10px 14px", 
+          padding: "10px 14px",
           borderBottom: touched && error ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb",
-          cursor: "pointer", 
-          fontSize: "14px", 
-          color: value ? "#1f2937" : "#9ca3af", 
-          userSelect: "none", 
+          cursor: "pointer",
+          fontSize: "14px",
+          color: value ? "#1f2937" : "#9ca3af",
+          userSelect: "none",
           backgroundColor: touched && error ? "#fff0fb" : (open ? "#fff0fb" : "transparent"),
           borderRadius: open ? "10px 10px 0 0" : "10px",
           transition: "background-color 0.15s",
@@ -63,25 +63,25 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
           <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
-            <div 
-              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "600", cursor: "pointer" }} 
+            <div
+              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "600", cursor: "pointer" }}
               onClick={() => handleSelect("")}
             >
               Seleccionar categoria
             </div>
             {filteredCategories.length > 0 ? (
               filteredCategories.map((cat) => (
-                <div 
-                  key={cat.id ?? cat._id} 
+                <div
+                  key={cat.id ?? cat._id}
                   onClick={() => handleSelect(cat)}
-                  style={{ 
-                    padding: "10px 14px", 
-                    fontSize: "14px", 
-                    color: "#1f2937", 
-                    cursor: "pointer", 
-                    backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf4ff" : "#fff", 
-                    borderTop: "1px solid #f3f4f6", 
-                    transition: "background-color 0.1s" 
+                  style={{
+                    padding: "10px 14px",
+                    fontSize: "14px",
+                    color: "#1f2937",
+                    cursor: "pointer",
+                    backgroundColor: normalizeText(value) === normalizeText(cat.name ?? cat.nombre) ? "#fdf4ff" : "#fff",
+                    borderTop: "1px solid #f3f4f6",
+                    transition: "background-color 0.1s"
                   }}
                 >
                   {cat.icon} {cat.name ?? cat.nombre}
@@ -221,13 +221,16 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient }) => {
   );
 };
 
-const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, existingProducts = [] }) => {
+const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, existingProducts = [], sedes = [] }) => {
   // ✅ initialData es el "punto cero" contra el que comparamos para saber si hubo cambios reales
+  // Si solo hay una sede permitida (ej. Administrador restringido a la suya),
+  // se preselecciona automáticamente para no obligar a un clic de más.
   const [initialData] = useState({
     reference: product?.reference || "",
     name: product?.name || "",
     category: product?.category || "",
     categoryId: product?.categoryId || null,
+    sedeId: product?.sedeId ?? (sedes.length === 1 ? sedes[0].id : ""),
     price: product?.price || "",
     stock: product?.stock || "",
     image: product?.image || null,
@@ -241,6 +244,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     reference: "",
     name: "",
     category: "",
+    sedeId: "",
     price: "",
     stock: "",
   });
@@ -254,24 +258,24 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [technicalSheet, setTechnicalSheet] = useState(() => {
     if (!product?.technicalSheet) return null;
     return {
-      client:        product.technicalSheet.client        ?? "",
-      ref:           product.technicalSheet.ref           ?? "",
-      type:          product.technicalSheet.type          ?? "",
-      description:   product.technicalSheet.description   ?? "",
+      client: product.technicalSheet.client ?? "",
+      ref: product.technicalSheet.ref ?? "",
+      type: product.technicalSheet.type ?? "",
+      description: product.technicalSheet.description ?? "",
       descripciones: product.technicalSheet.descripciones ?? "",
-      observations:  product.technicalSheet.observations  ?? "",
-      createdBy:     product.technicalSheet.createdBy     ?? "",
-      responsable:   product.technicalSheet.responsable   ?? "",
-      image:         product.technicalSheet.image         ?? null,
-      allImages:     product.technicalSheet.allImages     ?? [],
-      date:          product.technicalSheet.date          ?? "",
-      fabrics:       product.technicalSheet.fabrics       ?? [],
-      cups:          product.technicalSheet.cups          ?? [],
-      closures:      product.technicalSheet.closures      ?? [],
-      accessories:   product.technicalSheet.accessories   ?? [],
-      measurements:  product.technicalSheet.measurements  ?? [],
-      id:            product.technicalSheet.id,
-      version:       product.technicalSheet.version,
+      observations: product.technicalSheet.observations ?? "",
+      createdBy: product.technicalSheet.createdBy ?? "",
+      responsable: product.technicalSheet.responsable ?? "",
+      image: product.technicalSheet.image ?? null,
+      allImages: product.technicalSheet.allImages ?? [],
+      date: product.technicalSheet.date ?? "",
+      fabrics: product.technicalSheet.fabrics ?? [],
+      cups: product.technicalSheet.cups ?? [],
+      closures: product.technicalSheet.closures ?? [],
+      accessories: product.technicalSheet.accessories ?? [],
+      measurements: product.technicalSheet.measurements ?? [],
+      id: product.technicalSheet.id,
+      version: product.technicalSheet.version,
     };
   });
 
@@ -283,7 +287,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
-  
+
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -325,7 +329,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   }, [loadClients]);
 
   const getSelectedCategoryDescription = () => {
-    const selected = categories.find(cat => 
+    const selected = categories.find(cat =>
       (cat.name ?? cat.nombre) === formData.category
     );
     return selected?.description ?? selected?.descripcion ?? "";
@@ -416,6 +420,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       formData.reference !== initialData.reference ||
       formData.name !== initialData.name ||
       formData.category !== initialData.category ||
+      String(formData.sedeId || "") !== String(initialData.sedeId || "") ||
       formData.price !== initialData.price ||
       formData.stock !== initialData.stock ||
       imagePreview !== initialData.image ||
@@ -450,6 +455,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     return "";
   };
 
+  const validateSede = (value) => {
+    if (!value) return "Selecciona una sede";
+    return "";
+  };
+
   const validatePrice = (value) => {
     if (!value) return "El precio es obligatorio";
     if (isNaN(value) || Number(value) <= 0) return "El precio debe ser un número positivo";
@@ -467,6 +477,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     if (name === 'reference') error = validateReference(value);
     if (name === 'name') error = validateName(value);
     if (name === 'category') error = validateCategory(value);
+    if (name === 'sedeId') error = validateSede(value);
     if (name === 'price') error = validatePrice(value);
     if (name === 'stock') error = validateStock(value);
     setErrors(prev => ({ ...prev, [name]: error }));
@@ -488,13 +499,15 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     const referenceError = validateReference(formData.reference);
     const nameError = validateName(formData.name);
     const categoryError = validateCategory(formData.category);
+    const sedeError = validateSede(formData.sedeId);
     const priceError = validatePrice(formData.price);
     const stockError = validateStock(formData.stock);
-    
+
     setErrors({
       reference: referenceError,
       name: nameError,
       category: categoryError,
+      sedeId: sedeError,
       price: priceError,
       stock: stockError,
     });
@@ -503,20 +516,22 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       reference: true,
       name: true,
       category: true,
+      sedeId: true,
       price: true,
       stock: true
     });
 
-    const hasErrors = referenceError || nameError || categoryError || priceError || stockError;
-    
+    const hasErrors = referenceError || nameError || categoryError || sedeError || priceError || stockError;
+
     if (hasErrors) {
       const errorMessages = [];
       if (referenceError) errorMessages.push(referenceError);
       if (nameError) errorMessages.push(nameError);
       if (categoryError) errorMessages.push(categoryError);
+      if (sedeError) errorMessages.push(sedeError);
       if (priceError) errorMessages.push(priceError);
       if (stockError) errorMessages.push(stockError);
-      
+
       onShowAlert({
         type: "warning",
         title: "Campos inválidos",
@@ -524,7 +539,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       });
       return false;
     }
-    
+
     return true;
   };
 
@@ -554,13 +569,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
-    
+
     if (currentStep === 1) {
       if (!validateForm()) return;
       setCurrentStep(2);
       return;
     }
-    
+
     if (!technicalSheet) {
       onShowAlert({
         type: "warning",
@@ -569,7 +584,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       });
       return;
     }
-    
+
     if (!hasTechnicalSheetContent(technicalSheet)) {
       onShowAlert({
         type: "warning",
@@ -591,7 +606,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     if (product) {
       const hasProductChanges_ = hasProductChanges();
       const hasTechnicalSheetChanges_ = hasTechnicalSheetChanges();
-      
+
       if (!hasProductChanges_ && !hasTechnicalSheetChanges_) {
         onShowAlert({
           type: "warning",
@@ -601,17 +616,17 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         return;
       }
     }
-    
+
     // ✅ SINCRONIZACIÓN: Las imágenes del producto van a la ficha técnica
     const finalTechnicalSheet = {
       ...technicalSheet,
       allImages: formData.allImages,
       image: imagePreview
     };
-    
-    onSubmit({ 
-      ...formData, 
-      technicalSheet: finalTechnicalSheet 
+
+    onSubmit({
+      ...formData,
+      technicalSheet: finalTechnicalSheet
     });
   };
 
@@ -658,7 +673,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     setUploading(true);
     try {
       const formDataUpload = new FormData();
-      
+
       for (let i = 0; i < files.length; i++) {
         formDataUpload.append('files', files[i]);
       }
@@ -666,7 +681,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       // ✅ URL CORREGIDA: /api/upload/upload-multiple (endpoint real del backend)
       const uploadUrl = `${BACKEND_URL}/api/upload/upload-multiple`;
       console.log('🔼 Subiendo a:', uploadUrl);
-      
+
       const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formDataUpload
@@ -678,18 +693,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
       const data = await response.json();
       console.log('✅ Respuesta del backend:', data);
-      
+
       const allImages = [...(formData.allImages || []), ...data.images];
-      
+
       // ✅ Actualizar formData con las nuevas imágenes
       setFormData((prev) => ({
         ...prev,
         allImages: allImages,
         image: allImages[0]?.src || prev.image
       }));
-      
+
       setImagePreview(allImages[0]?.src);
-      
+
       // ✅ SINCRONIZACIÓN: Actualizar automáticamente la ficha técnica con las imágenes
       setTechnicalSheet((prev) => {
         if (!prev) return prev;
@@ -714,7 +729,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const handleDeleteImage = (index) => {
     const imageToDelete = formData.allImages[index];
-    
+
     // ✅ Eliminar de Cloudinary si tiene public_id
     if (imageToDelete?.public_id) {
       // ✅ URL CORREGIDA: /api/upload/upload/ (endpoint real del backend)
@@ -731,7 +746,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       image: newImages[0]?.src || null
     }));
     setImagePreview(newImages[0]?.src || null);
-    
+
     // ✅ SINCRONIZACIÓN: Actualizar la ficha técnica
     setTechnicalSheet((prev) => {
       if (!prev) return prev;
@@ -741,7 +756,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         image: newImages[0]?.src || null
       };
     });
-    
+
     if (newImages.length === 0) {
       setShowImageModal(false);
     } else if (index >= newImages.length) {
@@ -763,7 +778,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
     setImagePreview(null);
     setFormData((prev) => ({ ...prev, image: null, allImages: [] }));
-    
+
     // ✅ SINCRONIZACIÓN: Limpiar las imágenes de la ficha técnica
     setTechnicalSheet((prev) => {
       if (!prev) return prev;
@@ -773,7 +788,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         allImages: []
       };
     });
-    
+
     setShowImageModal(false);
   };
 
@@ -843,20 +858,20 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     fontWeight: "700",
   };
 
-  const cellStyle = { 
-    border: "1px solid #e5e7eb", 
-    padding: "8px 12px", 
-    fontSize: "13px", 
+  const cellStyle = {
+    border: "1px solid #e5e7eb",
+    padding: "8px 12px",
+    fontSize: "13px",
     color: "#1f2937",
     verticalAlign: "top"
   };
-  
-  const headerCellStyle = { 
-    ...cellStyle, 
-    backgroundColor: "#fafafa", 
-    fontWeight: "700", 
-    fontSize: "12px", 
-    color: "#1f2937", 
+
+  const headerCellStyle = {
+    ...cellStyle,
+    backgroundColor: "#fafafa",
+    fontWeight: "700",
+    fontSize: "12px",
+    color: "#1f2937",
     whiteSpace: "nowrap",
     width: "100px"
   };
@@ -917,9 +932,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
           </svg>
         </div>
 
@@ -984,12 +999,12 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                     <td style={headerCellStyle}>Referencia:</td>
                     <td style={cellStyle} colSpan={5}>
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <input 
+                        <input
                           style={getInputStyle("reference")}
-                          value={formData.reference} 
-                          onChange={handleChange} 
-                          name="reference" 
-                          placeholder="Ej. 3 4 5" 
+                          value={formData.reference}
+                          onChange={handleChange}
+                          name="reference"
+                          placeholder="Ej. 3 4 5"
                           onBlur={() => handleBlur("reference")}
                           autoFocus
                         />
@@ -1005,12 +1020,12 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                     <td style={headerCellStyle}>Nombre:</td>
                     <td style={cellStyle} colSpan={5}>
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <input 
+                        <input
                           style={getInputStyle("name")}
-                          value={formData.name} 
-                          onChange={handleChange} 
-                          name="name" 
-                          placeholder="Ej. Crop Top Morado" 
+                          value={formData.name}
+                          onChange={handleChange}
+                          name="name"
+                          placeholder="Ej. Crop Top Morado"
                           onBlur={() => handleBlur("name")}
                         />
                         {requiredStar}
@@ -1025,8 +1040,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                     <td style={headerCellStyle}>Categoria:</td>
                     <td style={cellStyle} colSpan={5}>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
-                        <CategoryDropdown 
-                          value={formData.category} 
+                        <CategoryDropdown
+                          value={formData.category}
                           onChange={(category) => {
                             const categoryName =
                               category.name ??
@@ -1065,6 +1080,30 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                       </div>
                       {(touched.category || formData.category) && errors.category && (
                         <span style={errorStyle}>⚠ {errors.category}</span>
+                      )}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style={headerCellStyle}>Sede:</td>
+                    <td style={cellStyle} colSpan={5}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <select
+                          style={getInputStyle("sedeId")}
+                          value={formData.sedeId || ""}
+                          onChange={handleChange}
+                          name="sedeId"
+                          onBlur={() => handleBlur("sedeId")}
+                        >
+                          <option value="">Seleccionar sede...</option>
+                          {sedes.map((s) => (
+                            <option key={s.id} value={s.id}>{s.nombre}</option>
+                          ))}
+                        </select>
+                        {requiredStar}
+                      </div>
+                      {(touched.sedeId || formData.sedeId) && errors.sedeId && (
+                        <span style={errorStyle}>⚠ {errors.sedeId}</span>
                       )}
                     </td>
                   </tr>
@@ -1110,13 +1149,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                     <td style={headerCellStyle}>Precio:</td>
                     <td style={cellStyle}>
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <input 
+                        <input
                           style={getInputStyle("price")}
-                          type="number" 
-                          value={formData.price} 
-                          onChange={handleChange} 
-                          name="price" 
-                          placeholder="Ej. 40000" 
+                          type="number"
+                          value={formData.price}
+                          onChange={handleChange}
+                          name="price"
+                          placeholder="Ej. 40000"
                           onBlur={() => handleBlur("price")}
                           min="0"
                         />
@@ -1129,13 +1168,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                     <td style={headerCellStyle}>Stock:</td>
                     <td style={cellStyle} colSpan={3}>
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <input 
+                        <input
                           style={getInputStyle("stock")}
-                          type="number" 
-                          value={formData.stock} 
-                          onChange={handleChange} 
-                          name="stock" 
-                          placeholder="Ej. 10" 
+                          type="number"
+                          value={formData.stock}
+                          onChange={handleChange}
+                          name="stock"
+                          placeholder="Ej. 10"
                           onBlur={() => handleBlur("stock")}
                           min="0"
                         />
@@ -1150,8 +1189,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
               </table>
             </div>
 
-          {/* GALERÍA CON CLOUDINARY */}
-          <div style={{ flex: 1 }}>
+            {/* GALERÍA CON CLOUDINARY */}
+            <div style={{ flex: 1 }}>
               <div style={{
                 border: (formData.allImages && formData.allImages.length > 0) ? "1.5px solid #f9a8d4" : "2px dashed #f9a8d4",
                 borderRadius: "12px",
@@ -1290,9 +1329,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                           >
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
                               stroke="#ff4fd6" strokeWidth="1.5" strokeLinecap="round">
-                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                              <polyline points="17 8 12 3 7 8"/>
-                              <line x1="12" y1="3" x2="12" y2="15"/>
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                              <polyline points="17 8 12 3 7 8" />
+                              <line x1="12" y1="3" x2="12" y2="15" />
                             </svg>
                           </div>
                           <p style={{ margin: "10px 0 0 0", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
@@ -1351,8 +1390,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
               <button type="button" style={btnSecondary} onClick={handleCancelClick}>
                 Cancelar
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 style={{
                   ...btnPrimary,
                   opacity: hasInvalidFields() ? 0.7 : 1,
@@ -1393,19 +1432,19 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
                         const isCurrent = versionNum === (product?.technicalSheetVersions || 1);
                         const isSelected = versionNum === selectedVersion;
                         return (
-                          <div 
-                            key={versionNum} 
-                            onClick={() => handleVersionSelect(versionNum)} 
-                            style={{ 
-                              padding: '12px 16px', 
-                              cursor: 'pointer', 
-                              backgroundColor: isSelected ? '#fdf4ff' : 'transparent', 
-                              color: isSelected ? '#ff4fd6' : '#1f2937', 
-                              borderBottom: '1px solid #f3f4f6', 
-                              fontSize: '14px', 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              alignItems: 'center' 
+                          <div
+                            key={versionNum}
+                            onClick={() => handleVersionSelect(versionNum)}
+                            style={{
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#fdf4ff' : 'transparent',
+                              color: isSelected ? '#ff4fd6' : '#1f2937',
+                              borderBottom: '1px solid #f3f4f6',
+                              fontSize: '14px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
                             }}
                           >
                             <span>Versión {versionNum} {isCurrent && '(Actual)'}</span>
@@ -1424,8 +1463,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
             <div style={{ backgroundColor: '#fff0fb', border: '1px solid #ff4fd6', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '13px', color: '#1f2937' }}>
                 Estás viendo una versión anterior. No se pueden realizar cambios.
-                <button 
-                  onClick={() => handleVersionSelect(product?.technicalSheetVersions || 1)} 
+                <button
+                  onClick={() => handleVersionSelect(product?.technicalSheetVersions || 1)}
                   style={{ background: 'none', border: 'none', color: '#ff4fd6', fontWeight: '700', cursor: 'pointer', marginLeft: '8px', textDecoration: 'underline' }}
                 >
                   Volver a la versión actual
