@@ -202,7 +202,7 @@ const SuppliersPage = () => {
   // "salto" visual (título mismo tamaño, buscador mismo ancho/posición,
   // botón dentro de su propia barra blanca).
   if (loading && suppliers.length === 0) return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: '24px 32px ' }}>
       <style>{`
         @keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
         @keyframes uskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -247,7 +247,7 @@ const SuppliersPage = () => {
   );
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "24px 32px" }}>
+    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px" }}>
       <style>{`
         .sup-root { padding: 14px; }
         @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }

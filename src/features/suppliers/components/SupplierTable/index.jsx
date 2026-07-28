@@ -94,7 +94,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
                         <button onClick={(e) => { e.stopPropagation(); onView?.(supplier); }} title="Ver detalle"
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -103,7 +103,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         </button>
 
                         <button onClick={(e) => { e.stopPropagation(); onEdit?.(supplier); }} title="Editar proveedor"
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -113,7 +113,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         </button>
 
                         <button onClick={(e) => { e.stopPropagation(); onDelete?.(supplier.id); }} title="Eliminar proveedor"
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -126,8 +126,33 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         <button
                           onClick={(e) => { e.stopPropagation(); onToggle?.(supplier.id, !isActive); }}
                           title={isActive ? "Inactivar proveedor" : "Activar proveedor"}
-                          style={{ position: "relative", width: "44px", height: "24px", borderRadius: "20px", border: "none", backgroundColor: isActive ? "#22c55e" : "#d1d5db", cursor: "pointer" }}>
-                          <span style={{ position: "absolute", top: "2px", left: isActive ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: "#fff", transition: "0.2s" }} />
+                          style={{
+                            position: "relative",
+                            width: "44px",
+                            minWidth: "44px",
+                            height: "24px",
+                            minHeight: "24px",
+                            flexShrink: 0,
+                            boxSizing: "border-box",
+                            borderRadius: "20px",
+                            border: "none",
+                            backgroundColor: isActive ? "#22c55e" : "#d1d5db",
+                            cursor: "pointer",
+                            padding: 0,
+                          }}>
+                          <span style={{
+                            position: "absolute",
+                            top: "2px",
+                            left: isActive ? "22px" : "2px",
+                            width: "20px",
+                            height: "20px",
+                            minWidth: "20px",
+                            minHeight: "20px",
+                            borderRadius: "50%",
+                            backgroundColor: "#fff",
+                            transition: "0.2s",
+                            boxSizing: "border-box",
+                          }} />
                         </button>
 
                       </div>

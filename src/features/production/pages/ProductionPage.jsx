@@ -142,32 +142,10 @@ const ProductionsPage = () => {
   const [downloadModal, setDownloadModal] = useState(false);
   const [cancelAlert, setCancelAlert] = useState({ open: false, type: 'success', title: '', message: '' });
   const [isCancelling, setIsCancelling] = useState(false);
-  // Mini-modal de confirmación cuando el empleado asignado marca su etapa
-  // como terminada — su única función en Producción es esta confirmación,
-  // nunca entra a la página de detalle. Esto NO avanza la orden — solo
-  // marca "listo"; el Gerente es quien avanza después.
-  const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
-  const [confirmLoading, setConfirmLoading] = useState(false);
 
   // 🔒 Alcance: Gerente y Administrador ven todo (Administrador sin
   // acciones); cualquier otro rol (empleado) solo ve su orden asignada.
-  const { isGerente, isAdministrador, user } = useSedeScope();
-
-  const handleAbrirConfirmar = (prod) => setConfirmModal({ open: true, prod });
-
-  const handleConfirmarEtapa = async () => {
-    const prod = confirmModal.prod;
-    if (!prod) return;
-    setConfirmLoading(true);
-    try {
-      await ProductionAPIClient.confirmarEtapa(prod.id);
-      setConfirmModal({ open: false, prod: null });
-    } catch (err) {
-      alert(err?.message || "No se pudo confirmar");
-    } finally {
-      setConfirmLoading(false);
-    }
-  };
+  const { isGerente, isAdministrador, isEmpleado, user } = useSedeScope();
 
   const itemsPerPage = 7;
   const uniqueStatuses = ['Todos', ...new Set((productions || []).map(p => p.status).filter(Boolean))];
@@ -216,12 +194,15 @@ const ProductionsPage = () => {
     //    100% observador, sin botones de acción, pero ve todo — ya no hay
     //    concepto de sede en Producción, se quitó del formulario de crear).
     //  - Cualquier otro rol (empleado, ej. cargo "Corte"): solo ve la orden
-    //    si ÉL es el empleado asignado a la etapa ACTUAL (empleadoAsignadoId).
+    //    si ÉL es el empleado asignado a la etapa ACTUAL (empleadoAsignadoId)
+    //    Y la etapa NO ha sido confirmada aún (etapaConfirmada). Una vez que
+    //    el empleado confirma su finalización, la orden desaparece de su
+    //    lista porque ya no necesita acción de su parte.
     const matchesSede = isGerente
       ? true
       : isAdministrador
         ? true
-        : String(prod?.empleadoAsignadoId) === String(user?.id);
+        : String(prod?.empleadoAsignadoId) === String(user?.id) && !prod?.etapaConfirmada;
 
     return matchesSearch && matchesStatus && matchesClient && matchesDate && visibleByDefault && matchesSede;
   });
@@ -842,7 +823,7 @@ const ProductionsPage = () => {
    * RENDER — idéntico al original
    * ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: '#f6f6f8', fontFamily: 'sans-serif' }}>
+    <div style={{  background: '#f6f6f8', fontFamily: 'sans-serif' }}>
 
       <style>{`
         @keyframes pSpin  { to { transform: rotate(360deg); } }
@@ -850,7 +831,7 @@ const ProductionsPage = () => {
 
         .prod-root { padding: 14px; }
         @media (min-width:640px)  { .prod-root { padding: 20px 24px; } }
-        @media (min-width:1024px) { .prod-root { padding: 24px 32px; } }
+        @media (min-width:1024px) { .prod-root { padding: 24px 32px 0px 32px; } }
 
         .prod-header { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
         @media (min-width:640px) { .prod-header { flex-direction:row; justify-content:space-between; align-items:center; } }
@@ -1039,33 +1020,6 @@ const ProductionsPage = () => {
         />
       )}
 
-      {/* Mini-modal de confirmación — única acción del empleado asignado */}
-      {confirmModal.open && confirmModal.prod && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-          onClick={() => !confirmLoading && setConfirmModal({ open: false, prod: null })}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}
-            onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
-              Confirmar finalización
-            </h3>
-            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-              ¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
-              Se avisará al admin de tu sede.
-            </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmModal({ open: false, prod: null })} disabled={confirmLoading}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: "pointer", color: "#555" }}>
-                Cancelar
-              </button>
-              <button onClick={handleConfirmarEtapa} disabled={confirmLoading}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: confirmLoading ? "not-allowed" : "pointer", opacity: confirmLoading ? 0.6 : 1 }}>
-                {confirmLoading ? "Confirmando..." : "Confirmar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="prod-root">
         {/* Header */}
         <div className="prod-header">
@@ -1075,7 +1029,7 @@ const ProductionsPage = () => {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          {['producciones', 'terceros'].map(tab => (
+          {(isEmpleado ? ['producciones'] : ['producciones', 'terceros']).map(tab => (
             <button key={tab}
               onClick={() => tab === 'terceros' ? navigate('/Layout/terceros') : setActiveTab(tab)}
               style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeTab === tab ? PINK : '#eaeaea', color: activeTab === tab ? '#fff' : '#444', cursor: 'pointer', fontWeight: 500, fontSize: 13, textTransform: 'capitalize' }}>
@@ -1147,12 +1101,14 @@ const ProductionsPage = () => {
                   Agregar
                 </button>
               )}
-              <button type="button" className="btn-icon" onClick={() => setDownloadModal(true)} title="Descargar órdenes">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              </button>
+              {!isEmpleado && (
+                <button type="button" className="btn-icon" onClick={() => setDownloadModal(true)} title="Descargar órdenes">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </button>
+              )}
               <button type="button" className="btn-icon" onClick={() => navigate('/layout/produccion/calendario')} title="Abrir calendario">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -1171,7 +1127,7 @@ const ProductionsPage = () => {
         )}
 
         <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
-          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} onConfirmar={handleAbrirConfirmar} />
+          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} />
         </div>
 
         {/* Paginación */}

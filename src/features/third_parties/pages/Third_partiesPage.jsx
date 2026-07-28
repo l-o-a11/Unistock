@@ -225,7 +225,7 @@ const Third_partiePage = () => {
   );
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
+    <div style={{  fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
