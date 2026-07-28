@@ -52,13 +52,29 @@ const SupplyDetail = ({
           borderRadius: "16px",
           width: "90%",
           maxWidth: "900px",
-          maxHeight: "90vh",
-          overflow: "auto",
+          minHeight: "550px",
+          maxHeight: "550px",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          position: "relative",
           boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)",
           animation: "slideIn 0.3s ease-out",
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <style>{`
+          .supply-detail-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .supply-detail-scroll::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
         {/* Header con gradiente */}
         <div
           style={{
@@ -89,37 +105,31 @@ const SupplyDetail = ({
               {supply.createdAt && ` • Creado: ${formatDate(supply.createdAt)}`}
             </p>
           </div>
+          {/* Close X (small) */}
           <button
             onClick={onClose}
+            aria-label="Cerrar"
             style={{
-              background: "rgba(255, 255, 255, 0.2)",
+              position: "absolute",
+              top: 12,
+              right: 12,
+              background: "transparent",
               border: "none",
-              width: "40px",
-              height: "40px",
-              borderRadius: "20px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               cursor: "pointer",
-              color: "#fff",
-              fontSize: "24px",
-              fontWeight: "500",
-              transition: "background 0.2s",
-              backdropFilter: "blur(4px)",
+              color: "#666",
+              fontSize: 20,
+              padding: 6,
+              lineHeight: 1,
             }}
-            onMouseEnter={(e) =>
-              (e.target.style.background = "rgba(255, 255, 255, 0.3)")
-            }
-            onMouseLeave={(e) =>
-              (e.target.style.background = "rgba(255, 255, 255, 0.2)")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#111")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
           >
             ×
           </button>
         </div>
 
         {/* Contenido principal */}
-        <div style={{ padding: "32px" }}>
+        <div className="supply-detail-scroll" style={{ padding: "32px" }}>
           <div style={{ display: "flex", gap: "32px" }}>
             {/* Columna izquierda - Imagen */}
             <div style={{ flex: "0 0 280px" }}>
@@ -243,7 +253,7 @@ const SupplyDetail = ({
               {/* Nombre del insumo */}
               <div
                 style={{
-                  padding: "10px",
+                  padding: "5px",
                   backgroundColor: "#f8f9fa",
                   borderRadius: "12px",
                   marginBottom: "24px",
@@ -260,7 +270,7 @@ const SupplyDetail = ({
                 </div>
                 <div
                   style={{
-                    fontSize: "28px",
+                    fontSize: "20px",
                     fontWeight: "600",
                     color: "#1a1a1a",
                     lineHeight: 1.2,
@@ -274,15 +284,15 @@ const SupplyDetail = ({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "16px",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "10px",
                   marginBottom: "24px",
                 }}
               >
                 {/* Categoría */}
                 <div
                   style={{
-                    padding: "16px",
+                    padding: "10px",
                     backgroundColor: "#fff",
                     border: "1px solid #e5e7eb",
                     borderRadius: "8px",
@@ -327,7 +337,7 @@ const SupplyDetail = ({
                 {/* Medida */}
                 <div
                   style={{
-                    padding: "16px",
+                    padding: "10px",
                     backgroundColor: "#fff",
                     border: "1px solid #e5e7eb",
                     borderRadius: "8px",
@@ -370,7 +380,7 @@ const SupplyDetail = ({
                 {/* Valor medida */}
                 <div
                   style={{
-                    padding: "16px",
+                    padding: "10px",
                     backgroundColor: "#fff",
                     border: "1px solid #e5e7eb",
                     borderRadius: "8px",
@@ -413,47 +423,6 @@ const SupplyDetail = ({
                   </div>
                 </div>
 
-                {/* ID */}
-                <div
-                  style={{
-                    padding: "16px",
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#ff4fd6"
-                      strokeWidth="2"
-                    >
-                      <circle cx="12" cy="8" r="4" />
-                      <path d="M5.5 20v-2a6.5 6.5 0 0 1 13 0v2" />
-                    </svg>
-                    <span style={{ fontSize: "13px", color: "#666" }}>ID</span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "400",
-                      color: "#666",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    #{supply.displayId || supply.id || "N/A"}
-                  </div>
-                </div>
               </div>
 
               {/* Propiedades */}
@@ -627,43 +596,6 @@ const SupplyDetail = ({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            padding: "24px 32px",
-            borderTop: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "12px",
-            backgroundColor: "#fafafa",
-          }}
-        >
-          <button
-            onClick={onClose}
-            style={{
-              padding: "10px 24px",
-              backgroundColor: "#fff",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#555",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#f3f4f6";
-              e.target.style.borderColor = "#9ca3af";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#fff";
-              e.target.style.borderColor = "#d1d5db";
-            }}
-          >
-            Cerrar
-          </button>
         </div>
       </div>
 

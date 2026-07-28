@@ -9,7 +9,9 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       workbox: {
         navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,jsx,css,html,png,svg,jpeg}']
+        globPatterns: ['**/*.{js,jsx,css,html,png,svg,jpeg}'],
+        clientsClaim: true,
+        skipWaiting: true
       },
       manifest: {
         name: 'Aplicativo PWA ',

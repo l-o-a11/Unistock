@@ -64,13 +64,12 @@ const SupplyTable = ({
           <thead>
             <tr>
               {[
-                { label: "Imagen", width: "7%" },
-                { label: "ID", width: "5%" },
-                { label: "Nombre del insumo", width: "24%" },
-                { label: "Categoría", width: "16%" },
-                { label: "Stock", width: "8%" },
-                { label: "Medida", width: "14%" },
-                { label: "Acciones", width: "16%" },
+                { label: "Imagen", width: "10%" },
+                { label: "Nombre del insumo", width: "25%" },
+                { label: "Categoría", width: "20%" },
+                { label: "Stock", width: "15%" },
+                { label: "Medida", width: "15%" },
+                { label: "Acciones", width: "15%" },
               ].map((h) => (
                 <th key={h.label} style={{ ...thStyle, width: h.width }}>
                   {h.label}
@@ -93,8 +92,8 @@ const SupplyTable = ({
                   }
                 >
                   {/* Imagen */}
-                  <td style={{ ...tdStyle, width: "7%" }}>
-                    <div className="relative group w-fit">
+                  <td style={{ ...tdStyle, width: "7%", overflow: "visible" }}>
+                    <div className="relative group inline-flex">
                       {/* Imagen pequeña */}
                       {supply.imagen ? (
                         <img
@@ -113,7 +112,7 @@ const SupplyTable = ({
                         <img
                           src={supply.imagen}
                           className="
-          absolute left-12 top-0
+          absolute left-12 -top-2
          max-w-60 max-h-60
           w-auto h-auto
           object-contain
@@ -148,22 +147,21 @@ const SupplyTable = ({
                     </div>
                   </td>
 
-                  <td style={{ ...tdStyle, width: "5%" }}>{startIndex + index + 1}</td>
-                  <td style={{ ...tdStyle, width: "24%" }}>
+                  <td style={{ ...tdStyle, width: "35%" }}>
                     {supply.nombre?.length > 30
                       ? supply.nombre.slice(0, 30) + "..."
                       : supply.nombre}
                   </td>
-                  <td style={{ ...tdStyle, width: "16%" }}>
+                  <td style={{ ...tdStyle, width: "20%" }}>
                     {getCategoriaNombre(supply.categoriaId)}
                   </td>
-                  <td style={{ ...tdStyle, width: "8%" }}>{supply.stock}</td>
+                  <td style={{ ...tdStyle, width: "10%" }}>{supply.stock}</td>
                   <td
-                    style={{ ...tdStyle, width: "14%" }}
+                    style={{ ...tdStyle, width: "12%" }}
                   >{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
 
                   {/* Acciones */}
-                  <td style={{ ...tdStyle, width: "16%" }}>
+                  <td style={{ ...tdStyle, width: "15%" }}>
                     <div
                       style={{
                         display: "flex",
@@ -172,7 +170,7 @@ const SupplyTable = ({
                       }}
                     >
                       <button
-                        onClick={() => onView?.(supply, startIndex + index + 1)}
+                        onClick={() => onView?.(supply)}
                         title="Ver detalles"
                         style={{
                           background: "none",
