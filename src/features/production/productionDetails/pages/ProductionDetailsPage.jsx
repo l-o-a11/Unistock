@@ -1078,7 +1078,11 @@ const ProductionDetailsPage = () => {
           .pd-order-header { flex-wrap: wrap; gap: 8px !important; }
         }
 
-        .pd-side-scroll {  flex-direction: column; gap: 14px; max-height: 620px; overflow-y: auto; padding-right: 2px; padding-bottom: 4px; }
+        .pd-side-scroll {  flex-direction: column; gap: 14px; max-height: 620px; overflow-y: auto; padding-right: 2px; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: rgba(156,163,175,0.55) transparent; }
+        .pd-side-scroll::-webkit-scrollbar { width: 8px; }
+        .pd-side-scroll::-webkit-scrollbar-track { background: transparent; }
+        .pd-side-scroll::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.45); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+        .pd-side-scroll::-webkit-scrollbar-thumb:hover { background: rgba(156,163,175,0.75); }
         @media (max-width: 900px) {
           .pd-side-scroll { max-height: none; overflow-y: visible; padding-right: 0; }
         }

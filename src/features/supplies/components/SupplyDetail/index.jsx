@@ -52,8 +52,8 @@ const SupplyDetail = ({
           borderRadius: "16px",
           width: "90%",
           maxWidth: "900px",
-          minHeight: "550px",
-          maxHeight: "550px",
+          minHeight: "560px",
+          maxHeight: "560px",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -68,11 +68,24 @@ const SupplyDetail = ({
             flex: 1 1 auto;
             min-height: 0;
             overflow-y: auto;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            -ms-overflow-style: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156,163,175,0.55) transparent;
           }
           .supply-detail-scroll::-webkit-scrollbar {
-            display: none;
+            width: 8px;
+          }
+          .supply-detail-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .supply-detail-scroll::-webkit-scrollbar-thumb {
+            background: rgba(156,163,175,0.45);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+          }
+          .supply-detail-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(156,163,175,0.75);
           }
         `}</style>
         {/* Header con gradiente */}

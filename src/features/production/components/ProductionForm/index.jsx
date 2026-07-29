@@ -676,7 +676,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       />
 
       <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
-        <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
+        <div ref={modalRef} className="roles-modal-scroll" style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
 
           {damageNotice && (
             <div style={{ background: 'linear-gradient(135deg, #fef3c7, #fffbeb)', borderBottom: '3px solid #f59e0b', padding: '14px 20px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -1215,7 +1215,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
       {showTechSheet && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, width: '95%', maxWidth: 1100, maxHeight: '92vh', overflowY: 'auto', padding: 'clamp(14px, 3vw, 28px)', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
+          <div className="roles-modal-scroll" style={{ background: '#fff', borderRadius: 14, width: '95%', maxWidth: 1100, maxHeight: '92vh', overflowY: 'auto', padding: 'clamp(14px, 3vw, 28px)', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 14 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1f2937' }}>📋 Ficha Técnica</h3>

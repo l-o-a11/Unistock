@@ -135,7 +135,7 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
         }} onClick={isEditingMode ? undefined : onClose} />
 
         {/* Contenedor del modal */}
-        <div style={{
+        <div className="roles-modal-scroll" style={{
           position: 'absolute',
           top: '50%',
           left: '50%',

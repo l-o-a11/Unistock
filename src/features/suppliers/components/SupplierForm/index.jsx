@@ -466,6 +466,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
             boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
             position: "relative",
           }}
+          className="roles-modal-scroll"
         >
           <div style={{ padding: "28px 30px" }}>
 

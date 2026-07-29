@@ -70,6 +70,7 @@ const SupplierDetail = ({ supplier, onClose, onEdit }) => {
           boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
           scrollbarGutter: "stable",
         }}
+        className="roles-modal-scroll"
       >
         {/* ── Header — patrón ShoppingDetail ── */}
         <div style={{
