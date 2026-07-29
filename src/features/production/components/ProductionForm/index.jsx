@@ -17,8 +17,6 @@ import { blockInput } from '../../../shared/utils/blockInput';
 import TechnicalSheet from '../../../products/components/TechnicalSheet';
 import ThirdPartiesSection from './ThirdPartiesSection';
 import { clientAPI } from '../../../shared/services/clientAPI';
-import { useSedes } from '../../../sedes/hooks/useSedes';
-import { useSedeScope } from '../../../shared/hooks/useSedeScope';
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -247,40 +245,40 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [showTechSheet, setShowTechSheet] = useState(false);
   const [techSheetData, setTechSheetData] = useState(null);
   const [techSheetPreview, setTechSheetPreview] = useState(null);
-  const [loadingSheet,  setLoadingSheet] = useState(false);
-   const [savedColors,   setSavedColors]  = useState([]);
-   const [clientCatalog, setClientCatalog] = useState([]);
-   const [clientFormOpen, setClientFormOpen] = useState(false);
-   const [editingClientId, setEditingClientId] = useState(null);
-   const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
-   const [clientFormError, setClientFormError] = useState('');
-   const [designImages,  setDesignImages] = useState([]);
-   const [terceros,      setTerceros]     = useState([]);
+  const [loadingSheet, setLoadingSheet] = useState(false);
+  const [savedColors, setSavedColors] = useState([]);
+  const [clientCatalog, setClientCatalog] = useState([]);
+  const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [editingClientId, setEditingClientId] = useState(null);
+  const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
+  const [clientFormError, setClientFormError] = useState('');
+  const [designImages, setDesignImages] = useState([]);
+  const [terceros, setTerceros] = useState([]);
 
-   // Load saved colors from localStorage
-   useEffect(() => {
-     const savedColors = localStorage.getItem('productionColors');
-     if (savedColors) {
-       try {
-         setSavedColors(JSON.parse(savedColors));
-       } catch (e) {
-         console.error('Error parsing saved colors', e);
-       }
-     }
-   }, []);
+  // Load saved colors from localStorage
+  useEffect(() => {
+    const savedColors = localStorage.getItem('productionColors');
+    if (savedColors) {
+      try {
+        setSavedColors(JSON.parse(savedColors));
+      } catch (e) {
+        console.error('Error parsing saved colors', e);
+      }
+    }
+  }, []);
 
-   const loadClients = useCallback(async () => {
-     try {
-       const clients = await clientAPI.list();
-       setClientCatalog(Array.isArray(clients) ? clients : []);
-     } catch (err) {
-       console.error('Error cargando clientes', err);
-     }
-   }, []);
+  const loadClients = useCallback(async () => {
+    try {
+      const clients = await clientAPI.list();
+      setClientCatalog(Array.isArray(clients) ? clients : []);
+    } catch (err) {
+      console.error('Error cargando clientes', err);
+    }
+  }, []);
 
-   useEffect(() => {
-     loadClients();
-   }, [loadClients]);
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   // ── Nueva referencia (solo tipo diseño) ───────────────────────────────────
   const [nuevaRefOpen, setNuevaRefOpen] = useState(false);
@@ -290,9 +288,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [nuevaRefErrors, setNuevaRefErrors] = useState({});
   const [categories, setCategories] = useState([]);
 
-  const { sedes } = useSedes();
-  const { isGerente, sedeId: miSedeId } = useSedeScope();
-
   const [formData, setFormData] = useState({
     referencia: initialData?.referencia || '',
     producto: initialData?.producto || '',
@@ -300,17 +295,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     color: initialData?.color || '',
     cliente: initialData?.cliente || '',
     fechaSolicitud: '',
-    sedeId: '',
   });
-
-  // Un admin de sede solo crea producciones para su propia sede: se
-  // precarga y no se deja editar. Gerente sí elige a qué sede pertenece.
-  useEffect(() => {
-    if (!isGerente && miSedeId && !formData.sedeId) {
-      setFormData((p) => ({ ...p, sedeId: miSedeId }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGerente, miSedeId]);
 
   const [errors, setErrors] = useState({});
   const [alertConfig, setAlertConfig] = useState({ open: false, type: 'warning', title: '', message: '', onConfirm: null });
@@ -433,7 +418,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
   };
 
-  const saveColor  = (c) => { if (c && !savedColors.includes(c))  { const u = [c, ...savedColors].slice(0,10);  setSavedColors(u);  localStorage.setItem('productionColors',  JSON.stringify(u)); } };
+  const saveColor = (c) => { if (c && !savedColors.includes(c)) { const u = [c, ...savedColors].slice(0, 10); setSavedColors(u); localStorage.setItem('productionColors', JSON.stringify(u)); } };
 
   // ✅ Cliente actualmente seleccionado (o null si no hay match) — mismo patrón que ProductForm
   const getSelectedClientObject = () => {
@@ -565,9 +550,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       if (coe) { newExtraErr[i].color = coe; missing.push(`Artículo #${i + 2} — Color`); }
 
     });
-    if (isGerente && !formData.sedeId) {
-      newErrors.sedeId = 'Selecciona una sede'; missing.push('Sede');
-    }
     setErrors(newErrors); setExtraErrors(newExtraErr);
     if (nuevaRefOpen) validateNuevaRef();
     if (missing.length > 0) {
@@ -601,14 +583,14 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const handleConfirm = async () => {
     setIsCreating(true);
     try {
-    saveColor(formData.color);
-    // ✅ Fix: el color de los artículos adicionales nunca se guardaba en
-    // localStorage — solo se guardaba el del artículo principal.
-    extraRefs.forEach((r) => { if (r.color) saveColor(r.color); });
-    let referenciaFinal = formData.referencia;
-    let productoFinal   = formData.producto;
-    const shouldCreateReference = type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim();
-    const canCreateProduct = shouldCreateReference && hasTechnicalSheetMaterials(techSheetData);
+      saveColor(formData.color);
+      // ✅ Fix: el color de los artículos adicionales nunca se guardaba en
+      // localStorage — solo se guardaba el del artículo principal.
+      extraRefs.forEach((r) => { if (r.color) saveColor(r.color); });
+      let referenciaFinal = formData.referencia;
+      let productoFinal = formData.producto;
+      const shouldCreateReference = type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim();
+      const canCreateProduct = shouldCreateReference && hasTechnicalSheetMaterials(techSheetData);
 
       if (shouldCreateReference && canCreateProduct) {
         try {
@@ -1055,42 +1037,26 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                <div>
-                  <label style={labelStyle}>Fecha de entrega <span style={requiredStar}>*</span>
-                    <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>(mínimo 1 mes)</span>
-                  </label>
-                  <input
-                    type="date" name="fechaSolicitud" value={formData.fechaSolicitud}
-                    min={(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })()}
-                    onChange={e => {
-                      const minDate = new Date(); minDate.setMonth(minDate.getMonth() + 1);
-                      const sel = new Date(e.target.value);
-                      if (sel < minDate) {
-                        setErrors(prev => ({ ...prev, fechaSolicitud: 'La fecha debe ser al menos 1 mes desde hoy' }));
-                      } else {
-                        setErrors(prev => { const n = { ...prev }; delete n.fechaSolicitud; return n; });
-                      }
-                      handleChange(e);
-                    }}
-                    style={getInputStyle(errors.fechaSolicitud)}
-                  />
-                  {errors.fechaSolicitud && <span style={errMsg}>⚠ {errors.fechaSolicitud}</span>}
-                </div>
-
-                <div>
-                  <label style={labelStyle}>Sede {isGerente && <span style={requiredStar}>*</span>}</label>
-                  {isGerente ? (
-                    <select name="sedeId" value={formData.sedeId} onChange={handleChange} style={getInputStyle(errors.sedeId)}>
-                      <option value="">Seleccionar...</option>
-                      {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                    </select>
-                  ) : (
-                    <input value={sedes.find((s) => String(s.id) === String(formData.sedeId))?.nombre || '—'}
-                      readOnly style={{ ...getInputStyle(false), background: '#f9fafb', color: '#6b7280', cursor: 'default' }} />
-                  )}
-                  {errors.sedeId && <span style={errMsg}>⚠ {errors.sedeId}</span>}
-                </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Fecha de entrega <span style={requiredStar}>*</span>
+                  <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>(mínimo 1 mes)</span>
+                </label>
+                <input
+                  type="date" name="fechaSolicitud" value={formData.fechaSolicitud}
+                  min={(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })()}
+                  onChange={e => {
+                    const minDate = new Date(); minDate.setMonth(minDate.getMonth() + 1);
+                    const sel = new Date(e.target.value);
+                    if (sel < minDate) {
+                      setErrors(prev => ({ ...prev, fechaSolicitud: 'La fecha debe ser al menos 1 mes desde hoy' }));
+                    } else {
+                      setErrors(prev => { const n = { ...prev }; delete n.fechaSolicitud; return n; });
+                    }
+                    handleChange(e);
+                  }}
+                  style={{ ...getInputStyle(errors.fechaSolicitud), maxWidth: 260 }}
+                />
+                {errors.fechaSolicitud && <span style={errMsg}>⚠ {errors.fechaSolicitud}</span>}
               </div>
 
               {type === 'produccion' && formData.referencia && techSheetPreview && (

@@ -500,7 +500,7 @@ const ProductionDetailsPage = () => {
     return "advance";
   };
 
-// Persiste el empleado responsable de una etapa y avanza la orden
+  // Persiste el empleado responsable de una etapa y avanza la orden
   const asignarEmpleadoYAvanzar = async (targetStep, empleado) => {
     const { id_empleado, nombre_empleado } = empleado || {};
     if (!id_empleado) {
@@ -1599,7 +1599,7 @@ const ProductionDetailsPage = () => {
                       style={{ padding: "7px 14px", borderRadius: 9, background: "#f3f4f6", color: "#9ca3af", border: "none", fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
                       Siguiente →
                     </button>
-) : (isEmpleado) ? (
+                  ) : (isEmpleado) ? (
                     // El empleado NO avanza el estado — solo CONFIRMA
                     // que terminó su etapa (marca etapaConfirmada: true). Es el
                     // Gerente quien decide cuándo avanzar la orden al siguiente paso.
@@ -1635,7 +1635,7 @@ const ProductionDetailsPage = () => {
                     </button>
                   )
                 )}
-                
+
               </div>
             </div>
 

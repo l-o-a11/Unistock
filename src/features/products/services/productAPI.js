@@ -123,13 +123,13 @@ const categoryNameFromId = (categoryId, categories = []) => {
 const toUiProduct = (raw, categories = []) => {
   if (!raw) return raw;
   const categoryId =
-  raw.id_categorias ??
-  raw.id_categoria ??
-  raw.idCategoria ??
-  raw.categoryId ??
-  raw.category_id ??
-  raw.categoria_id ??
-  raw.idCategory;
+    raw.id_categorias ??
+    raw.id_categoria ??
+    raw.idCategoria ??
+    raw.categoryId ??
+    raw.category_id ??
+    raw.categoria_id ??
+    raw.idCategory;
   const image = raw.image ?? raw.imagenes_Url?.[0] ?? raw.imagenesUrl?.[0] ?? null;
 
   return {
@@ -138,15 +138,16 @@ const toUiProduct = (raw, categories = []) => {
     id_categorias: categoryId,
     id_categoria: categoryId,
     categoryId,
+    sedeId: raw.sedeId ?? raw.sede ?? raw.id_sede ?? null,
     image,
     reference: raw.reference ?? raw.referencia ?? "",
     name: raw.name ?? raw.nombre ?? "",
     category:
-  raw.category?.name ??
-  raw.category?.nombre ??
-  raw.category ??
-  raw.nombreCategoria ??
-  categoryNameFromId(categoryId, categories),
+      raw.category?.name ??
+      raw.category?.nombre ??
+      raw.category ??
+      raw.nombreCategoria ??
+      categoryNameFromId(categoryId, categories),
     price: raw.price ?? raw.precio ?? 0,
     stock: raw.stock ?? 0,
     active: raw.active ?? raw.estado ?? raw.activo ?? true,
@@ -197,29 +198,29 @@ const toUiSheet = (raw) => {
   if (!raw) return raw;
   const responsable = raw.responsable ?? raw.createdBy ?? raw.client ?? "Sin responsable";
   return {
-    id:            raw.id          ?? raw._id,
-    productId:     raw.productId   ?? raw.id_producto ?? raw.id_productos,
-    version:       raw.version     ?? raw.versiones   ?? 1,
+    id: raw.id ?? raw._id,
+    productId: raw.productId ?? raw.id_producto ?? raw.id_productos,
+    version: raw.version ?? raw.versiones ?? 1,
     // ✅ Fix: priorizar createdAt (timestamp real e inmutable de Mongo por
     // documento) sobre fecha_inicio. fecha_inicio podía heredar la fecha de
     // una versión anterior por un bug ya corregido en la creación, pero eso
     // dejó datos viejos ya guardados con la fecha equivocada — createdAt
     // siempre fue correcto por documento, sin importar ese bug.
-    date:          toDateString(raw.createdAt ?? raw.date ?? raw.fecha_inicio) ?? new Date().toISOString().split("T")[0],
+    date: toDateString(raw.createdAt ?? raw.date ?? raw.fecha_inicio) ?? new Date().toISOString().split("T")[0],
     responsable,
-    client:        raw.client      ?? responsable,
-    ref:           raw.ref         ?? raw.reference   ?? "",
-    type:          raw.type        ?? "",
-    description:   raw.description ?? raw.descripcion ?? raw.descripciones ?? "",
+    client: raw.client ?? responsable,
+    ref: raw.ref ?? raw.reference ?? "",
+    type: raw.type ?? "",
+    description: raw.description ?? raw.descripcion ?? raw.descripciones ?? "",
     descripciones: raw.descripciones ?? raw.description ?? raw.descripcion ?? "",
-    observations:  raw.observations ?? raw.observaciones ?? "",
-    createdBy:     raw.createdBy   ?? responsable,
-    image:         raw.image       ?? raw.imagen      ?? null,
-    fabrics:       raw.fabrics     ?? [],
-    cups:          raw.cups        ?? [],
-    closures:      raw.closures    ?? [],
-    accessories:   raw.accessories ?? [],
-    measurements:  raw.measurements ?? [],
+    observations: raw.observations ?? raw.observaciones ?? "",
+    createdBy: raw.createdBy ?? responsable,
+    image: raw.image ?? raw.imagen ?? null,
+    fabrics: raw.fabrics ?? [],
+    cups: raw.cups ?? [],
+    closures: raw.closures ?? [],
+    accessories: raw.accessories ?? [],
+    measurements: raw.measurements ?? [],
   };
 };
 
@@ -253,7 +254,7 @@ const resolveCategoryId = async (productData) => {
       name &&
       productData.category &&
       name.toLowerCase().trim() ===
-        productData.category.toLowerCase().trim()
+      productData.category.toLowerCase().trim()
     );
   });
 
@@ -275,10 +276,12 @@ const buildProductPayloads = async (productData) => {
   const name = productData.name ?? productData.nombre;
   const price = Number(productData.price ?? productData.precio);
   const stock = Number(productData.stock);
+  const sedeId = productData.sedeId ?? productData.sede ?? null;
 
   return [
     {
       id_categorias: categoryId,
+      sedeId,
       imagenes_Url: image,
       referencia: reference,
       nombre: name,
@@ -287,6 +290,7 @@ const buildProductPayloads = async (productData) => {
     },
     {
       id_categoria: categoryId,
+      sedeId,
       imagenes_Url: image,
       referencia: reference,
       nombre: name,
@@ -295,6 +299,7 @@ const buildProductPayloads = async (productData) => {
     },
     {
       categoryId,
+      sedeId,
       image: productData.image ?? null,
       reference,
       name,
