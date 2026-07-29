@@ -635,7 +635,7 @@ const ProductsPage = () => {
       {showCreateForm && (
         <div style={modalOverlayStyle}>
           <div style={modalBackgroundStyle} onClick={handleCloseForm} />
-          <div style={modalContentStyle}>
+          <div className="roles-modal-scroll" style={modalContentStyle}>
             <ProductForm
               onSubmit={handleCreateSubmit}
               onCancel={handleCloseForm}
@@ -651,7 +651,7 @@ const ProductsPage = () => {
       {showEditForm && editingProduct && (
         <div style={modalOverlayStyle}>
           <div style={modalBackgroundStyle} onClick={handleCloseForm} />
-          <div style={modalContentStyle}>
+          <div className="roles-modal-scroll" style={modalContentStyle}>
             <ProductForm
               product={editingProduct}
               onSubmit={handleEditSubmit}

@@ -260,7 +260,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16 }}>
-        <div style={{ display: 'flex', backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', maxHeight: '95vh' }}>
+        <div style={{ display: 'flex', backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, height: '85vh', maxHeight: '95vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
           {/* ── COLUMNA IZQUIERDA ── */}
           <div style={{ flex: '0 0 520px', padding: '24px 26px' }}>
@@ -438,19 +438,20 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
           </div>
 
           {/* ── COLUMNA DERECHA ── */}
-          <div style={{ flex: 1, background: '#fafafa', borderLeft: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, padding: '28px 20px', overflowY: 'auto' }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#fafafa', borderLeft: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, padding: '28px 20px', display: 'flex', flexDirection: 'column' }}>
               <p style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#333' }}>
                 Resumen de compra
                 <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', marginLeft: 8 }}>IVA incluido</span>
               </p>
 
               {formData.detalles.length > 0 ? (
+                <div className="roles-modal-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                       {['#', 'Producto', 'Medida', 'Cant.', 'Unitario', ''].map((h, i) => (
-                        <th key={i} style={{ padding: '8px 6px', textAlign: i >= 3 ? 'right' : 'left', color: '#9ca3af', fontWeight: 600, fontSize: 11 }}>{h}</th>
+                        <th key={i} style={{ position: 'sticky', top: 0, zIndex: 1, padding: '8px 6px', textAlign: i >= 3 ? 'right' : 'left', color: '#9ca3af', fontWeight: 600, fontSize: 11, background: '#fafafa' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -478,8 +479,9 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                     })}
                   </tbody>
                 </table>
+                </div>
               ) : (
-                <div style={{ padding: '40px 20px', textAlign: 'center', color: '#d1d5db', fontSize: 13 }}>
+                <div style={{ flex: 1, padding: '40px 20px', textAlign: 'center', color: '#d1d5db', fontSize: 13 }}>
                   <div style={{ fontSize: 32, marginBottom: 10 }}>🧾</div>
                   Los productos agregados aparecerán aquí
                 </div>

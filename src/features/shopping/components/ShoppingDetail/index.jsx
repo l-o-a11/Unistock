@@ -44,6 +44,7 @@ const ShoppingDetail = ({ shopping, getProveedorNombre, onClose }) => {
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div
+        className="roles-modal-scroll"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff", borderRadius: "14px",

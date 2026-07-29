@@ -125,10 +125,12 @@ const RolDetail = ({ rol, onClose, onDelete }) => {
 
         {/* BODY (SCROLL AQUÍ) */}
         <div
+          className="roles-modal-scroll"
           style={{
             padding: "20px 24px",
             overflowY: "auto",
             flex: 1,
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {/* Descripción */}

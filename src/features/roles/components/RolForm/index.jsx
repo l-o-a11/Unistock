@@ -301,7 +301,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         {sectionTitle('Información del rol')}
 
         {/* NOMBRE */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 10 }}>
           <label htmlFor="nombre" style={labelStyle}>
             Nombre del rol{req}
           </label>
@@ -320,10 +320,10 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         </div>
 
         {/* DESCRIPCIÓN */}
-        <div style={{ marginBottom: 5 }}>
+        <div style={{ marginBottom: 10 }}>
           <label htmlFor="descripcion" style={labelStyle}>
             Descripción
-            <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
+            <span style={{ color: '#9ca3af', fontWeight: 100, marginLeft: 6, fontSize: 11 }}>
               (opcional · máx. 200 caracteres)
             </span>
           </label>
@@ -353,7 +353,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         {formData.modulos.length > 0 && (
           <>
             {sectionTitle(`Módulos asignados (${formData.modulos.length})`)}
-            <div style={{ marginBottom: 5 }}>
+            <div style={{ marginBottom: 10 }}>
               {formData.modulos.map((modulo, index) => (
                 <div
                   key={index}
