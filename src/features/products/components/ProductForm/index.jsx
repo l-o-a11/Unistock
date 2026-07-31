@@ -469,6 +469,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const validateStock = (value) => {
     if (!value) return "El stock es obligatorio";
     if (isNaN(value) || Number(value) < 0) return "El stock debe ser un número válido";
+    if (Number(value) < 5) return "El stock mínimo es 5 unidades";
+    if (Number(value) > 100) return "El stock máximo es 100 unidades";
     return "";
   };
 

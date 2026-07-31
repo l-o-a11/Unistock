@@ -191,7 +191,7 @@ const ProductCategoriesPage = () => {
     return pages;
   };
 
-  const paginationBtn = {
+const paginationBtn = {
     padding: "6px 12px",
     borderRadius: "6px",
     border: "1px solid #ddd",
@@ -199,6 +199,65 @@ const ProductCategoriesPage = () => {
     cursor: "pointer",
     fontSize: "14px",
   };
+
+  // ── Estado de carga inicial ────────────────────────────────────────────
+  // Skeleton que replica el layout del header, buscador y barra de acciones
+  // para evitar el "salto" visual cuando los datos ya cargaron.
+  if (loading && productCategories.length === 0) return (
+    <div style={{ padding: isMobile ? '16px 12px' : '24px 32px' }}>
+      <style>{`
+        @keyframes ploadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
+        @keyframes pskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
+
+      {/* HEADER: título + search */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '12px' : '0px',
+        marginBottom: '20px',
+      }}>
+        <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
+          Categorías de productos
+        </h1>
+        <div style={{
+          width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
+          background: '#f3f4f6', border: '1px solid #e5e7eb',
+          animation: 'pskeleton-pulse 1.6s ease-in-out infinite',
+        }} />
+      </div>
+
+      {/* BARRA BLANCA CON BOTÓN AGREGAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        width: '100%',
+        backgroundColor: '#ffffff',
+        borderRadius: '10px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        padding: '12px 20px',
+        marginBottom: '20px',
+      }}>
+        <div style={{
+          width: 168, height: 38, borderRadius: 20,
+          background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
+          opacity: 0.4, animation: 'pskeleton-pulse 1.6s ease-in-out infinite',
+        }} />
+      </div>
+
+      {/* barra de progreso */}
+      <div style={{ position: 'relative', height: 3, background: '#fce7f3', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: 0, height: '100%', borderRadius: 99,
+          background: 'linear-gradient(90deg, #f9a8d4, #FF4FD6, #c026d3)',
+          animation: 'ploadbar 1.6s ease-in-out infinite',
+        }} />
+      </div>
+    </div>
+  );
 
   return (
     <div style={{
