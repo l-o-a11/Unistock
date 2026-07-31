@@ -257,8 +257,33 @@ const ProductsPage = () => {
 
     if (newStock === currentStock) return;
 
+    // ⚠️ Validar stock máximo antes de actualizar
+    if (delta > 0 && currentStock >= 100) {
+      handleShowAlert({
+        type: "warning",
+        title: "Stock máximo alcanzado",
+        message: `El producto "${product.name}" ya tiene el stock máximo (100 unidades). No se pueden agregar más unidades.`
+      });
+      return;
+    }
+
     try {
       await updateProduct(id, { ...product, stock: newStock });
+
+      // ✅ Mostrar alerta según el nuevo stock
+      if (newStock === 5) {
+        handleShowAlert({
+          type: "warning",
+          title: "Stock mínimo alcanzado",
+          message: `El producto "${product.name}" ha llegado al stock mínimo (5 unidades).`
+        });
+      } else if (newStock === 100) {
+        handleShowAlert({
+          type: "success",
+          title: "Stock máximo alcanzado",
+          message: `El producto "${product.name}" ha llegado al stock máximo (100 unidades).`
+        });
+      }
     } catch (error) {
       handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar el stock" });
     }
