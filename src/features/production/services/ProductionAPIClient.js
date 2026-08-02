@@ -27,7 +27,7 @@ const getCurrentUserId = () => {
     const raw = localStorage.getItem('session_user');
     if (raw) {
       const u = JSON.parse(raw);
-      return u.id || null;
+      return u._id || u.id || null;
     }
   } catch { }
   return null;
@@ -64,15 +64,16 @@ const toBackendFormat = (frontendData) => {
 
   const backendData = {};
 
-  if (hasAny('cliente', 'client')) backendData.cliente = firstValue('cliente', 'client');
+  if (hasAny('cliente', 'client')) backendData.cliente = String(firstValue('cliente', 'client') || '').trim();
   if (hasAny('fecha_entrega', 'deliveryDate', 'fechaSolicitud')) {
-    backendData.fecha_entrega = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
+    const parsedDate = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
+    backendData.fecha_entrega = parsedDate || new Date().toISOString();
   }
   if (hasAny('id_usuario', 'userId')) backendData.id_usuario = firstValue('id_usuario', 'userId');
   if (hasAny('asignaciones', 'terceros')) backendData.asignaciones = firstValue('asignaciones', 'terceros');
   if (hasAny('tipo', 'type')) backendData.tipo = firstValue('tipo', 'type');
-  if (hasAny('referencia', 'reference')) backendData.referencia = firstValue('referencia', 'reference');
-  if (hasAny('producto', 'product')) backendData.producto = firstValue('producto', 'product');
+  if (hasAny('referencia', 'reference')) backendData.referencia = String(firstValue('referencia', 'reference') || '').trim();
+  if (hasAny('producto', 'product')) backendData.producto = String(firstValue('producto', 'product') || '').trim();
   if (hasAny('techSpecification', 'techSheet')) backendData.techSpecification = firstValue('techSpecification', 'techSheet');
   if (hasAny('designImages')) backendData.designImages = Array.isArray(frontendData.designImages) ? frontendData.designImages : [];
   if (hasAny('finishedImages')) backendData.finishedImages = Array.isArray(frontendData.finishedImages) ? frontendData.finishedImages : [];
@@ -94,6 +95,8 @@ const toBackendFormat = (frontendData) => {
   if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
 
   if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
+  if (!backendData.cliente) backendData.cliente = 'Cliente sin nombre';
+  if (!backendData.fecha_entrega) backendData.fecha_entrega = new Date().toISOString();
 
   return backendData;
 };
@@ -149,11 +152,22 @@ const toFrontendFormat = (backendData) => {
     // Ahora se lee `empleadoAsignadoId` directamente como fuente principal, y
     // se conserva `empleadoAsignaciones` solo como compatibilidad con el otro
     // backend (back_unictock, puerto 3020).
+    //
+    // 🐛 FIX adicional: Los ObjectId de MongoDB pueden venir como objetos
+    // (ej. { _id: "..." }) si no se serializan correctamente. Se fuerza la
+    // conversión a string para que la comparación en ProductionPage.jsx
+    // (String(prod?.empleadoAsignadoId) === String(user?.id)) funcione bien.
     empleadoAsignaciones: backendData.empleadoAsignaciones || {},
     etapaConfirmada: backendData.etapaConfirmada ?? false,
-    empleadoAsignadoId: backendData.empleadoAsignadoId
-      || backendData.empleadoAsignaciones?.[backendData.estado]?.id_empleado
-      || null,
+    empleadoAsignadoId: (() => {
+      const raw = backendData.empleadoAsignadoId
+        || backendData.empleadoAsignaciones?.[backendData.estado]?.id_empleado
+        || null;
+      if (!raw) return null;
+      // Si es un objeto con _id (ObjectId sin serializar), extraer el string
+      if (typeof raw === 'object' && raw._id) return String(raw._id);
+      return String(raw);
+    })(),
     // ✅ Sede dueña de la producción
     sedeId: backendData.sedeId || null,
     rawData: backendData,
@@ -189,7 +203,12 @@ export const ProductionAPIClient = {
     const endpoint = `/produccion/ordenes${q.toString() ? "?" + q : ""}`;
     const res = await httpRequest(endpoint, { method: "GET" });
     const data = res?.data || res;
-    return Array.isArray(data) ? data.map(toFrontendFormat) : data;
+    // 🐛 FIX: el backend devuelve { success: true, data: { data: [...], total, page, ... } }
+    // (formato paginado). Si data es un objeto con propiedad "data" que es un array,
+    // hay que extraer ese array interno. Si data ya es un array directamente, se usa tal cual.
+    // Esto mantiene compatibilidad con ambos formatos de respuesta.
+    const rawOrders = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+    return rawOrders.map(toFrontendFormat);
   },
 
   getOrderById: async (id) => {
@@ -272,6 +291,15 @@ export const ProductionAPIClient = {
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
+  },
+
+  agregarHistorial: async (id, motivo, estado) => {
+    const res = await httpRequest(`/produccion/ordenes/${id}/historial`, {
+      method: "POST",
+      body: { motivo, estado, user: getCurrentUserName(), id_usuario: getCurrentUserName() },
+    });
+    const data = res?.data || res;
+    return toFrontendFormat(data);
   },
 
   getEstados: async () => {

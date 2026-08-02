@@ -26,6 +26,10 @@ const stepsReal = ["Diseño", "Ficha Técnica", "Corte", "Compras", "Producción
 // "Producción" se tercializa (no se asigna nadie ahí).
 const ETAPAS_ASIGNABLES = ["Corte", "Compras", "Recepción", "Producción"];
 const EMPLOYEE_REQUIRED_STEPS = ETAPAS_ASIGNABLES;
+// Pasos en los que la orden ya tiene artículos físicos avanzando (cortados /
+// en producción / recibidos), así que al anular hay que preguntar qué se
+// dañó ANTES de tocar el estado de la orden — igual que en ProductionPage.jsx.
+const DAMAGED_TRIGGER_STEPS = ["Corte", "Producción", "Recepción"];
 
 const normalizarTexto = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -177,15 +181,6 @@ const ProductionDetailsPage = () => {
     if (!isGerente && !isAdministrador && !isEmpleado) navigate('/layout/produccion', { replace: true });
   }, [isGerente, isAdministrador, isEmpleado, navigate]);
 
-  // ── Mini-modal de asignación de empleado (Gerente) ──────────────────────
-  // Se usa tanto para la primera asignación (etapa inicial, sin "Siguiente"
-  // de por medio) como para reasignar en cualquier etapa asignable.
-  const [asignarModal, setAsignarModal] = useState(false);
-  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState("");
-  const [asignandoEmpleado, setAsignandoEmpleado] = useState(false);
-  // Conteo de órdenes activas por empleado — para no sobrecargar a nadie.
-  const [cargaPorEmpleado, setCargaPorEmpleado] = useState({});
-
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [newRef, setNewRef] = useState({ cantidad: "", color: "" });
   const [isSavingRef, setIsSavingRef] = useState(false);
@@ -218,6 +213,12 @@ const ProductionDetailsPage = () => {
     isOpen: false, type: "advance", targetStep: null,
     tercero: "", sede: "",
     customTitle: undefined, customMessage: undefined, onConfirmOverride: null,
+    // 🐛 FIX (Issue 1): `alertKey` se captura UNA VEZ al abrir el modal y se usa
+    // como `key` de <ProductionAlerts>. Antes se usaba `Date.now()` inline en el
+    // render, que cambia en CADA re-render del padre mientras el modal está
+    // abierto → React remontaba el modal constantemente y se perdía lo que el
+    // usuario escribía (motivo, empleado seleccionado, cantidades).
+    alertKey: 0,
   });
 
   const handleAlertClose = useCallback(() => {
@@ -230,18 +231,28 @@ const ProductionDetailsPage = () => {
 
   const [globalAlert, setGlobalAlert] = useState({ open: false, type: "success", title: "", message: "" });
   const [damagedModal, setDamagedModal] = useState({ open: false, production: null });
+  // Motivo capturado en el diálogo "Anular orden" para órdenes con artículos
+  // físicos ya en proceso (Corte/Producción/Recepción). Se guarda aquí en vez
+  // de anular de inmediato, porque la anulación real depende de cuántas
+  // unidades terminen marcadas como dañadas en el modal siguiente.
+  const [pendingCancelMotivo, setPendingCancelMotivo] = useState('');
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [pendingFinishedImg, setPendingFinishedImg] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [data, asignacionesRaw] = await Promise.all([
-          ProductionAPIClient.getOrderById(id),
-          ProductionAPIClient.getAssignments(id).catch(() => []),
-        ]);
+  // 🐛 FIX: el flujo de dañados llamaba a `loadProduction()` (en
+  // updateOriginalOrderWithRemaining) pero esa función no existía — solo
+  // había un `load` inline dentro del useEffect. Eso lanzaba un
+  // `ReferenceError: loadProduction is not defined` cada vez que se usaba
+  // el flujo de reposición desde esta página. Se extrae el loader a un
+  // useCallback reutilizable.
+  const loadProduction = useCallback(async () => {
+    try {
+      const [data, asignacionesRaw] = await Promise.all([
+        ProductionAPIClient.getOrderById(id),
+        ProductionAPIClient.getAssignments(id).catch(() => []),
+      ]);
 
         let terceroMap = {};
         try {
@@ -373,38 +384,23 @@ const ProductionDetailsPage = () => {
       } finally {
         setLoading(false);
       }
-    };
-    load();
   }, [id]);
 
   useEffect(() => {
-    if (location.state?.openTechSheet) {
+    loadProduction();
+  }, [loadProduction]);
+
+  useEffect(() => {
+    // 🐛 FIX: este efecto abría la ventana de "crear/editar ficha técnica"
+    // sin verificar el rol — si por cualquier motivo (historial del
+    // navegador, enlace compartido, etc.) un Empleado llegaba a esta página
+    // con `openTechSheet` en el estado de navegación, igual se le mostraba
+    // la ventana. Ahora se exige explícitamente que NO sea un empleado.
+    if (location.state?.openTechSheet && !isEmpleado) {
       const t = setTimeout(() => setShowTechSheetForm(true), 600);
       return () => clearTimeout(t);
     }
-  }, [location.state?.openTechSheet]);
-
-  // ── Carga (workload) por empleado: cuántas órdenes activas tiene cada uno
-  // asignadas ahora mismo, para no sobrecargar al elegir en el mini-modal.
-  useEffect(() => {
-    const loadCarga = async () => {
-      try {
-        const list = await ProductionAPIClient.getOrders({ page: 1, limit: 500 });
-        const arr = Array.isArray(list) ? list : [];
-        const counts = {};
-        arr.forEach((o) => {
-          const empId = o.empleadoAsignadoId;
-          const estado = o.estado;
-          if (!empId || estado === 'Anulada' || estado === 'Enviado') return;
-          counts[empId] = (counts[empId] || 0) + 1;
-        });
-        setCargaPorEmpleado(counts);
-      } catch (err) {
-        console.warn('[Producción] No se pudo calcular la carga por empleado:', err?.message || err);
-      }
-    };
-    if (puedeAsignar) loadCarga();
-  }, [puedeAsignar, production?.status, production?.empleadoAsignadoId]);
+  }, [location.state?.openTechSheet, isEmpleado]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -432,16 +428,102 @@ const ProductionDetailsPage = () => {
   const fichaBloquea = isOnFichaStep && !hasTechSheet;
 
   const totalUnidades = (production.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0);
+  // `updateOrderDetail`/`deleteOrderDetail` en el backend ya registran una
+  // entrada genérica en el historial ("Detalle actualizado...", "Artículo
+  // ... eliminado") por cada artículo tocado. `skipHistory` no desactiva eso
+  // (es automático del backend) — se deja aquí como marcador de intención
+  // para que `registerDamageHistory` agregue, además, UNA entrada legible que
+  // resuma el porqué (daño) y hacia dónde se resolvió (orden de reemplazo).
+  const updateOriginalOrderWithRemaining = async (source, damagedDetails, { skipHistory = false } = {}) => {
+    if (!source?.details?.length) return [];
+    const updates = await Promise.all((source.details || []).map(async (detail, index) => {
+      const damageEntry = damagedDetails.find((item) => Number(item.sourceIndex ?? -1) === index) || damagedDetails[index];
+      const damagedQty = Number(damageEntry?.quantity || 0);
+      const remainingQty = Math.max(0, Number(detail.quantity || 0) - damagedQty);
+      const detailId = detail.id || detail._id;
+      if (!detailId) return null;
+      if (remainingQty > 0) {
+        return ProductionAPIClient.updateOrderDetail(detailId, {
+          cantidad: remainingQty,
+          color: detail.color || '',
+          id_producto: detail.ref || detail.refCorte || detail.id_producto || source.referencia || '',
+        });
+      }
+      return ProductionAPIClient.deleteOrderDetail(detailId);
+    }));
+    await loadProduction();
+    return updates;
+  };
 
-  // ── Asignación de empleado a la etapa actual (exclusivo Gerente) ────────
-  // Empleados candidatos: rol "Empleado", su lista de CARGOS debe incluir
-  // el nombre de la etapa actual, y estar activos. Se muestra además
-  // cuántas órdenes activas tiene cada uno (carga de trabajo).
-  const empleadosDeEtapa = (employees || []).filter(
-    (e) => e.estado !== false
-      && normalizarTexto(e.rolNombre) === "empleado"
-      && (e.cargos || []).some((c) => normalizarTexto(c) === normalizarTexto(production.status))
-  );
+  // 🐛 FIX: cuando TODAS las unidades de la orden resultan dañadas
+  // (remaining = 0), la orden original debe quedar Anulada de verdad. Con
+  // daño PARCIAL, la orden NUNCA se anula: solo se descuenta la cantidad
+  // dañada (vía updateOriginalOrderWithRemaining) y se deja en el mismo paso
+  // del proceso en el que iba — el botón "Anular orden" ya NO anula de
+  // inmediato para estas órdenes; espera a saber cuánto se dañó primero.
+  const resolveOriginalOrder = async (source, damagedDetails, motivo) => {
+    const originalTotal = (source.details || []).reduce((sum, d) => sum + (Number(d.quantity) || 0), 0);
+    const damagedTotal = damagedDetails.reduce((sum, d) => sum + (Number(d.quantity) || 0), 0);
+    if (originalTotal > 0 && damagedTotal >= originalTotal) {
+      await ProductionAPIClient.cancelOrder(source.id, motivo || 'Todos los artículos resultaron dañados');
+      const freshCancelled = await ProductionAPIClient.getOrderById(source.id);
+      const cancelDate = freshCancelled.updatedAt
+        ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      setProduction((prev) => ({
+        ...prev,
+        status: 'Anulada', estado: 'Anulada', statusDate: cancelDate,
+        history: (freshCancelled.historial || []).map((h) => ({
+          status: h.estado,
+          date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+          user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo,
+        })),
+        rawData: freshCancelled,
+      }));
+      return { cancelled: true, remaining: 0 };
+    }
+    await updateOriginalOrderWithRemaining(source, damagedDetails, { skipHistory: true });
+    return { cancelled: false, remaining: Math.max(0, originalTotal - damagedTotal) };
+  };
+
+  // 🆕 Registra en el historial de la orden ORIGINAL (la que se anuló) el
+  // motivo por el que se retiró cierta cantidad (productos dañados) y, si ya
+  // se conoce, el número de la orden de reemplazo creada para solucionarlo.
+  // Se llama DESPUÉS de crear la orden de reemplazo (si aplica) para poder
+  // incluir su número; si aún no existe (ruta "Nueva producción", que abre
+  // el formulario en vez de crear directo), se registra solo el motivo y el
+  // número queda pendiente hasta que el formulario cree la orden.
+  const registerDamageHistory = async (source, damagedDetails, replacementOrderNumber) => {
+    if (!source?.id || !damagedDetails?.length) return;
+    const resumen = damagedDetails
+      .map((d) => `${d.ref || d.referencia || source.referencia || 'artículo'} (${d.color || 'sin color'}): ${Number(d.quantity) || 0} uds`)
+      .join('; ');
+    const motivo = replacementOrderNumber
+      ? `Se retiraron unidades dañadas — ${resumen}. Reposición creada en la orden #${replacementOrderNumber}.`
+      : `Se retiraron unidades dañadas — ${resumen}. Pendiente de crear la orden de reposición.`;
+    try {
+      await ProductionAPIClient.agregarHistorial(source.id, motivo, source.status || source.estado);
+    } catch (e) {
+      console.warn('No se pudo registrar el historial de productos dañados:', e?.message);
+    }
+  };
+  const buildRemainingDetails = (source, damagedDetails) => {
+    if (!source?.details?.length) return [];
+    return (source.details || [])
+      .map((detail, index) => {
+        const damageEntry = damagedDetails.find((item) => Number(item.sourceIndex ?? -1) === index) || damagedDetails[index];
+        const damagedQty = Number(damageEntry?.quantity || 0);
+        const remainingQty = Math.max(0, Number(detail.quantity || 0) - damagedQty);
+        if (remainingQty <= 0) return null;
+        return { ...detail, quantity: remainingQty, sourceIndex: index };
+      })
+      .filter(Boolean);
+  };
+
+  // ── Asignación de empleado a la etapa actual ─────────────────────────────
+  // El empleado asignado a la orden se sigue mostrando (informativo) y se
+  // sigue asignando desde el flujo de "Avanzar etapa" (asignarEmpleadoYAvanzar
+  // más abajo), que sí valida cargo vs. etapa correctamente contra el backend.
   const empleadoAsignado = (employees || []).find(
     (e) => String(e.id) === String(production.empleadoAsignadoId)
   );
@@ -452,44 +534,6 @@ const ProductionDetailsPage = () => {
   // Ahora solo el Gerente avanza la orden al siguiente estado.
   const esperandoConfirmacion = false;
   const puedeAvanzar = isGerente;
-
-  const handleAsignarEmpleado = async () => {
-    if (!empleadoSeleccionado) return;
-    setAsignandoEmpleado(true);
-    try {
-      // 🐛 FIX: Antes se llamaba a `updateOrder()` con un objeto
-      // `empleadoAsignaciones` (mapa por etapa), pero el backend REAL
-      // (Api_Unistock, puerto 3000) guarda la asignación como un campo
-      // plano `empleadoAsignadoId`, NO como ese objeto. El endpoint
-      // correcto es PATCH /produccion/ordenes/:id/asignar-empleado, que
-      // usa AsignarEmpleadoProduccion para validar cargo vs. etapa y
-      // persiste el ObjectId del empleado. El objeto empleadoAsignaciones
-      // no existe en el esquema real, así que updateOrder lo ignoraba
-      // en silencio y la asignación nunca se guardaba.
-      const actualizado = await ProductionAPIClient.asignarEmpleado(production.id, empleadoSeleccionado);
-      const empleadoElegido = empleadosDeEtapa.find((e) => String(e.id) === String(empleadoSeleccionado));
-      setProduction((prev) => ({
-        ...prev,
-        empleadoAsignadoId: actualizado.empleadoAsignadoId || empleadoSeleccionado,
-        etapaConfirmada: false,
-        empleadoAsignaciones: {
-          ...(prev.empleadoAsignaciones || {}),
-          [prev.status]: {
-            id_empleado: empleadoSeleccionado,
-            nombre_empleado: empleadoElegido?.nombreCompleto || empleadoElegido?.nombre || "",
-            fecha: new Date().toISOString(),
-          },
-        },
-      }));
-      setEmpleadoSeleccionado("");
-      setAsignarModal(false);
-      setGlobalAlert({ open: true, type: "success", title: "Empleado asignado", message: "Se le avisó por correo. La orden queda a la espera de su confirmación." });
-    } catch (err) {
-      setGlobalAlert({ open: true, type: "error", title: "No se pudo asignar", message: err?.message || "Intenta de nuevo." });
-    } finally {
-      setAsignandoEmpleado(false);
-    }
-  };
 
   const getAlertType = (from, to) => {
     if (from === "Compras" && to === "Producción") return "third";
@@ -528,7 +572,16 @@ const ProductionDetailsPage = () => {
   };
 
   const openProductionAlert = (overrides) =>
-    setProductionAlert({ isOpen: true, type: "advance", targetStep: null, tercero: "", sede: "", customTitle: undefined, customMessage: undefined, onConfirmOverride: null, ...overrides });
+    setProductionAlert({
+      isOpen: true, type: "advance", targetStep: null, tercero: "", sede: "",
+      customTitle: undefined, customMessage: undefined, onConfirmOverride: null,
+      // 🐛 FIX (Issue 1): `alertKey` se captura UNA VEZ aquí al abrir el modal
+      // (en vez de `Date.now()` inline en el render) para que el `key` del
+      // <ProductionAlerts> sea estable mientras el modal está abierto y no se
+      // remonte en cada re-render perdiendo lo que escribe el usuario.
+      alertKey: Date.now(),
+      ...overrides,
+    });
 
   const closeProductionAlert = () => setProductionAlert((p) => ({ ...p, isOpen: false }));
 
@@ -667,7 +720,22 @@ const ProductionDetailsPage = () => {
       return;
     }
 
-    if (onConfirmOverride) { onConfirmOverride(motivo); return; }
+    // 🐛 FIX: se agregó `await` al onConfirmOverride. Antes la acción se
+    // lanzaba "fire-and-forget" (sin esperar), de modo que los flujos de
+    // anular artículo/agregar artículo no esperaban a que la promesa de la
+    // acción terminara: la eliminación/creación SÍ se ejecutaba en el
+    // backend pero el toast de éxito/error (setGlobalAlert interno) podía
+    // perderse o llegar fuera de orden. Ahora se espera la acción y se
+    // muestra feedback del error si algo falla.
+    if (onConfirmOverride) {
+      try {
+        await onConfirmOverride(motivo);
+      } catch (err) {
+        console.error('[Producción] Error en acción confirmada:', err?.message || err);
+        setGlobalAlert({ open: true, type: "error", title: "Error", message: "No se pudo completar la acción. Intenta de nuevo." });
+      }
+      return;
+    }
 
     if (type === "third") {
       try {
@@ -1102,6 +1170,7 @@ const ProductionDetailsPage = () => {
       <div className="pd-root">
         {/* ── Modals ── */}
         <ProductionAlerts
+          key={productionAlert.isOpen ? `prod-alert-${productionAlert.alertKey}` : 'prod-alert-closed'}
           isOpen={productionAlert.isOpen}
           type={productionAlert.type}
           targetStep={productionAlert.targetStep}
@@ -1116,71 +1185,172 @@ const ProductionDetailsPage = () => {
           totalUnidades={totalUnidades}
         />
 
-        {/* ── Mini-modal: Gerente asigna empleado a la etapa actual ── */}
-        {asignarModal && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-            onClick={() => !asignandoEmpleado && setAsignarModal(false)}>
-            <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}
-              onClick={(e) => e.stopPropagation()}>
-              <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
-                Asignar empleado — {production.status}
-              </h3>
-              <p style={{ margin: "0 0 16px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-                Elige quién trabajará esta etapa. Se le avisará por correo y la orden quedará
-                esperando su confirmación antes de poder avanzar.
-              </p>
-              <select value={empleadoSeleccionado} onChange={(e) => setEmpleadoSeleccionado(e.target.value)}
-                style={{ width: "100%", fontSize: 13, padding: "9px 10px", borderRadius: 8, border: "1px solid #e5e7eb", marginBottom: 18 }}>
-                <option value="">
-                  {empleadosDeEtapa.length === 0 ? `Sin empleados con cargo "${production.status}"` : "Seleccionar empleado..."}
-                </option>
-                {empleadosDeEtapa.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.nombreCompleto} {cargaPorEmpleado[e.id] ? `— ${cargaPorEmpleado[e.id]} activa${cargaPorEmpleado[e.id] !== 1 ? 's' : ''}` : ''}
-                  </option>
-                ))}
-              </select>
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={() => setAsignarModal(false)} disabled={asignandoEmpleado}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: "pointer", color: "#555" }}>
-                  Cancelar
-                </button>
-                <button onClick={handleAsignarEmpleado} disabled={!empleadoSeleccionado || asignandoEmpleado}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: (!empleadoSeleccionado || asignandoEmpleado) ? "not-allowed" : "pointer", opacity: (!empleadoSeleccionado || asignandoEmpleado) ? 0.5 : 1 }}>
-                  {asignandoEmpleado ? "Asignando..." : (empleadoAsignado ? "Reasignar" : "Asignar")}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <DamagedProductsModal
-          isOpen={damagedModal.open}
+          isOpen={damagedModal.open && isGerente}
           production={damagedModal.production}
           onClose={() => setDamagedModal({ open: false, production: null })}
-          onNewOrder={(damagedDetails) => {
+          onNewOrder={async (damagedDetails) => {
             const source = damagedModal.production;
+            const motivo = pendingCancelMotivo;
             setDamagedModal({ open: false, production: null });
-            navigate('/layout/produccion', { state: { openNewOrderFromDamaged: true, source, damagedDetails } });
+            setPendingCancelMotivo('');
+            if (!damagedDetails.length || !source) return;
+            const damagedTotal = damagedDetails.reduce((sum, detail) => sum + (Number(detail.quantity) || 0), 0);
+            if (damagedTotal <= 0) {
+              // Nada quedó marcado como dañado: se respeta la intención
+              // original de anular la orden completa, sin crear reposición.
+              await ProductionAPIClient.cancelOrder(source.id, motivo || 'Sin motivo');
+              const freshCancelled = await ProductionAPIClient.getOrderById(source.id);
+              setProduction((prev) => ({
+                ...prev, status: 'Anulada', estado: 'Anulada',
+                statusDate: freshCancelled.updatedAt ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : prev.statusDate,
+                history: (freshCancelled.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo })),
+                rawData: freshCancelled,
+              }));
+              setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${source?.orderNumber || ''} fue anulada correctamente.` });
+              return;
+            }
+            // 🐛 FIX: antes SIEMPRE se llamaba a updateOriginalOrderWithRemaining,
+            // lo que vaciaba los detalles pero nunca marcaba la orden como
+            // Anulada cuando el 100% resultaba dañado. Ahora resolveOriginalOrder
+            // decide: si TODO se dañó, anula de verdad; si es parcial, la orden
+            // se queda activa con las unidades buenas en su mismo paso.
+            await resolveOriginalOrder(source, damagedDetails, motivo);
+            setGlobalAlert({
+              open: true,
+              type: 'success',
+              title: 'Reposición lista',
+              message: 'Se abrió el formulario para crear una nueva producción de reposición.',
+            });
+            navigate('/layout/produccion', { state: { openNewOrderFromDamaged: true, source, damagedDetails, formTipo: 'produccion' } });
           }}
           onNewTechSheet={async (damagedDetails) => {
             const source = damagedModal.production;
+            const motivo = pendingCancelMotivo;
             setDamagedModal({ open: false, production: null });
+            setPendingCancelMotivo('');
             if (!damagedDetails.length || !source) return;
+            const damagedTotal = damagedDetails.reduce((sum, detail) => sum + (Number(detail.quantity) || 0), 0);
+            if (damagedTotal <= 0) {
+              await ProductionAPIClient.cancelOrder(source.id, motivo || 'Sin motivo');
+              const freshCancelled = await ProductionAPIClient.getOrderById(source.id);
+              setProduction((prev) => ({
+                ...prev, status: 'Anulada', estado: 'Anulada',
+                statusDate: freshCancelled.updatedAt ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : prev.statusDate,
+                history: (freshCancelled.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo })),
+                rawData: freshCancelled,
+              }));
+              setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${source?.orderNumber || ''} fue anulada correctamente.` });
+              return;
+            }
             try {
-              const { ProductionAPI: ProdAPI } = await import('../../services/ProductionAPI');
+              // 🐛 FIX: "Crear producción y abrir ficha" crea DOS cosas por
+              // separado:
+              //   1) Una orden de REPOSICIÓN con los MISMOS datos de la
+              //      producción que NO se dañó, avanzada directo a "Corte"
+              //      (ya tiene ficha técnica conocida — esto sigue siendo
+              //      automático).
+              //   2) La ficha técnica NUEVA (tipo 'diseno') para los
+              //      dañados — esta YA NO se crea sola en segundo plano. Se
+              //      navega a abrir el formulario de tipo "diseño" que ya
+              //      existe, prellenado con cliente y cantidad (la dañada),
+              //      para que el usuario lo revise/complete antes de crearla.
+              const { cancelled } = await resolveOriginalOrder(source, damagedDetails, motivo);
               const primary = damagedDetails[0];
-              const newOrder = await ProdAPI.create({
-                tipo: 'diseno', referencia: source.referencia || '', producto: source.producto || '',
-                cantidad: String(primary.quantity || ''), color: primary.color || '',
-                cliente: source.client || '', fechaSolicitud: '',
+              const clienteFinal = source.client || source.cliente || source.rawData?.cliente || '';
+
+              const replacementOrder = await ProductionAPIClient.createOrder({
+                cliente: clienteFinal,
+                fecha_entrega: '',
+                tipo: 'produccion',
+                referencia: source.referencia || '',
+                producto: source.producto || '',
+                cantidad: String(primary.quantity || ''),
+                color: primary.color || '',
                 referencias: damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
-                fromDamaged: true, originalOrderId: source.id, originalOrderNumber: source.orderNumber,
+                fromDamaged: true,
+                originalOrderNumber: source.orderNumber,
+                originalOrderStatus: source.status || 'producción',
               });
-              navigate(`/layout/produccion/detalle/${newOrder.id}`, {
-                state: { openTechSheet: true, fromDamaged: true, originalOrderNumber: source.orderNumber, from: 'produccion' }
+              const replacementId = replacementOrder?.id || replacementOrder?._id;
+              if (replacementId) {
+                const replacementDetails = [
+                  ...(primary.quantity > 0 ? [{ id_orden: replacementId, id_producto: source.referencia || '', cantidad: Number(primary.quantity) || 0, color: primary.color || '' }] : []),
+                  ...damagedDetails.slice(1).map((detail) => ({ id_orden: replacementId, id_producto: detail.ref || detail.referencia || source.referencia || '', cantidad: Number(detail.quantity) || 0, color: detail.color || '' })),
+                ].filter((item) => Number(item.cantidad) > 0);
+                await Promise.all(replacementDetails.map((detail) => ProductionAPIClient.createOrderDetail(detail)));
+                // La orden de reposición nace en "Ficha Técnica" (hereda la
+                // ficha del producto). Como es la MISMA referencia ya
+                // conocida, se avanza directo a "Corte" — con el estado de
+                // corte pedido, sin pasar de nuevo por el editor de ficha.
+                try {
+                  await ProductionAPIClient.changeOrderStatus(replacementId, 'Corte');
+                } catch (stepErr) {
+                  console.warn('No se pudo avanzar la reposición a Corte automáticamente:', stepErr?.message);
+                }
+              }
+
+              setGlobalAlert({
+                open: true,
+                type: 'success',
+                title: 'Reposición creada',
+                message: cancelled
+                  ? `Todos los artículos resultaron dañados: la orden #${source.orderNumber || ''} quedó anulada. Se creó la reposición #${replacementOrder?.orderNumber || replacementOrder?.numero_orden || ''} en Corte. Ahora completa la ficha técnica para los dañados.`
+                  : `Se creó la reposición #${replacementOrder?.orderNumber || replacementOrder?.numero_orden || ''} en Corte. La orden #${source.orderNumber || ''} sigue activa con el resto de las unidades. Ahora completa la ficha técnica para los dañados.`,
               });
-            } catch (e) { console.error('Error creating recovery order:', e); }
+
+              // Abre el formulario de tipo "diseño" (ya existente) en la vista
+              // de lista, para que el usuario elija cliente, cantidad (la
+              // dañada) y complete la ficha técnica — en vez de crearla sola.
+              navigate('/layout/produccion', {
+                state: {
+                  openNewOrderFromDamaged: true,
+                  source,
+                  damagedDetails,
+                  formTipo: 'diseno',
+                  replacementOrderNumber: replacementOrder?.orderNumber || replacementOrder?.numero_orden || null,
+                }
+              });
+            } catch (e) {
+              console.error('Error creating recovery order:', e);
+              setGlobalAlert({ open: true, type: 'error', title: 'Error al crear reposición', message: 'No se pudo crear la orden de reemplazo. Intenta de nuevo.' });
+            }
+          }}
+          onNewTechSheetOnly={async (damagedDetails) => {
+            const source = damagedModal.production;
+            const motivo = pendingCancelMotivo;
+            setDamagedModal({ open: false, production: null });
+            setPendingCancelMotivo('');
+            if (!damagedDetails.length || !source) return;
+            const damagedTotal = damagedDetails.reduce((sum, detail) => sum + (Number(detail.quantity) || 0), 0);
+            if (damagedTotal <= 0) {
+              await ProductionAPIClient.cancelOrder(source.id, motivo || 'Sin motivo');
+              const freshCancelled = await ProductionAPIClient.getOrderById(source.id);
+              setProduction((prev) => ({
+                ...prev, status: 'Anulada', estado: 'Anulada',
+                statusDate: freshCancelled.updatedAt ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : prev.statusDate,
+                history: (freshCancelled.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo })),
+                rawData: freshCancelled,
+              }));
+              setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${source?.orderNumber || ''} fue anulada correctamente.` });
+              return;
+            }
+            // 🐛 FIX: "Solo crear ficha técnica" debe crear ÚNICAMENTE la
+            // ficha (tipo 'diseno') para documentar los dañados — y ya NO se
+            // crea sola en segundo plano. Se navega a abrir el formulario de
+            // tipo "diseño" que ya existe, prellenado con cliente y cantidad
+            // (la dañada), para que el usuario lo revise antes de crearla. No
+            // se crea ninguna orden de reposición aquí.
+            await resolveOriginalOrder(source, damagedDetails, motivo);
+            setGlobalAlert({
+              open: true,
+              type: 'success',
+              title: 'Ficha técnica lista',
+              message: 'Se abrió el formulario para crear la ficha técnica de los productos dañados.',
+            });
+            navigate('/layout/produccion', {
+              state: { openNewOrderFromDamaged: true, source, damagedDetails, formTipo: 'diseno' }
+            });
           }}
         />
 
@@ -1525,13 +1695,31 @@ const ProductionDetailsPage = () => {
                 type: "anular", customTitle: "Anular orden",
                 customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
                 onConfirmOverride: async (motivo) => {
+                  // 🐛 FIX: antes se llamaba a `cancelOrder` de inmediato, sin
+                  // importar cuántos artículos seguían en buen estado — la
+                  // orden quedaba "Anulada" aunque, por ejemplo, 15 de 23
+                  // unidades no tuvieran ningún daño. Ahora, para órdenes con
+                  // artículos físicos ya en proceso (Corte/Producción/
+                  // Recepción), NO se anula todavía: se abre el modal de
+                  // productos dañados primero, y la anulación real solo
+                  // ocurre si TODAS las unidades terminan dañadas (ver
+                  // resolveOriginalOrder). Si hay daño parcial, la orden se
+                  // queda activa con las unidades buenas, en el mismo paso.
+                  if (DAMAGED_TRIGGER_STEPS.includes(production.status)) {
+                    setPendingCancelMotivo(motivo || 'Sin motivo');
+                    setDamagedModal({ open: true, production });
+                    return;
+                  }
+                  // Órdenes que aún no tienen artículos físicos en proceso
+                  // (Diseño / Ficha Técnica, etc.) se anulan directo, sin
+                  // pasar por el flujo de productos dañados.
                   await ProductionAPIClient.cancelOrder(production.id, motivo || "Sin motivo");
                   const freshCancelled = await ProductionAPIClient.getOrderById(production.id);
                   const cancelDate = freshCancelled.updatedAt
                     ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
                     : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const cancelledMapped = {
-                    ...production,
+                  setProduction((prev) => ({
+                    ...prev,
                     status: 'Anulada', estado: 'Anulada', statusDate: cancelDate,
                     history: (freshCancelled.historial || []).map((h) => ({
                       status: h.estado,
@@ -1539,11 +1727,8 @@ const ProductionDetailsPage = () => {
                       user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo,
                     })),
                     rawData: freshCancelled,
-                  };
-                  setProduction(cancelledMapped);
-                  if (["Corte", "Producción"].includes(production.status)) {
-                    setTimeout(() => setDamagedModal({ open: true, production: cancelledMapped }), 400);
-                  }
+                  }));
+                  setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${production.orderNumber || ''} fue anulada correctamente.` });
                 }
               })}>
               Anular orden
@@ -1658,12 +1843,6 @@ const ProductionDetailsPage = () => {
                   </>
                 ) : (
                   <span style={{ color: "#9ca3af" }}>Sin asignar</span>
-                )}
-                {isGerente && (
-                  <button onClick={() => setAsignarModal(true)}
-                    style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "1px solid #FF4FD6", background: "#fff", color: "#FF4FD6", cursor: "pointer" }}>
-                    {empleadoAsignado ? "Reasignar" : "Asignar"}
-                  </button>
                 )}
               </div>
             )}
@@ -1788,6 +1967,27 @@ const ProductionDetailsPage = () => {
                           </div>
                         ))}
                       </div>
+                    )}
+                    {/* 🐛 FIX: el modal "Foto del producto terminado" (más abajo,
+                        pendingFinishedImg === "request") existía en el código pero
+                        no tenía ningún botón que lo activara — pendingFinishedImg
+                        nunca se seteaba a "request" en ningún lado, así que era
+                        imposible subir la imagen. Se agrega este botón, habilitado
+                        solo desde la etapa "Recepción" en adelante (después de que
+                        el producto ya fue recibido/terminado). */}
+                    {!isAnulada && (isGerente || isEmpleado) && safeStepIndex >= stepsReal.indexOf("Recepción") && (
+                      <button
+                        onClick={() => setPendingFinishedImg("request")}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                          fontSize: 11, fontWeight: 700, padding: "5px 8px", borderRadius: 8,
+                          border: "1px solid #FF4FD6", background: "#fff", color: "#FF4FD6", cursor: "pointer",
+                        }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        {allImages.length > 0 ? "Agregar foto" : "Subir foto"}
+                      </button>
                     )}
                   </div>
                 );
