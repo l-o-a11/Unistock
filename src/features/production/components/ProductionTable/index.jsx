@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../../shared/components/LoadingState';
+import Alert from '../../../shared/components/Alert';
 import { useSedeScope } from '../../../shared/hooks/useSedeScope';
 import { ProductionAPIClient } from '../../services/ProductionAPIClient';
 
@@ -80,6 +81,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
   const [loadingDetailId, setLoadingDetailId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ open: false, type: 'success', title: '', message: '' });
   const navigate = useNavigate();
   const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
   const esEmpleado = isEmpleado;
@@ -106,476 +108,476 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
 
   return (
     <>
-    <div style={{ width: '100%', overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
-        <thead>
-          <tr>
-            <TH>Orden</TH>
-            <TH>Producto / Artículo</TH>
-            <TH center>Cant.</TH>
-            <TH>Color</TH>
-            <TH>Entrega</TH>
-            <TH>Estado</TH>
-            <TH>Cliente</TH>
-            <TH center minWidth={180}>Acciones</TH>
-          </tr>
-        </thead>
-        <tbody>
-          {productions.map((prod, idx) => {
-            const isOpen = expandedRow === prod.id;
-            const isAnulada = prod.status === 'Anulada';
-            const rowBg = isOpen ? '#fdf4ff' : (idx % 2 === 0 ? '#fff' : '#fdfcff');
+      <div style={{ width: '100%', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
+          <thead>
+            <tr>
+              <TH>Orden</TH>
+              <TH>Producto / Artículo</TH>
+              <TH center>Cant.</TH>
+              <TH>Color</TH>
+              <TH>Entrega</TH>
+              <TH>Estado</TH>
+              <TH>Cliente</TH>
+              <TH center minWidth={180}>Acciones</TH>
+            </tr>
+          </thead>
+          <tbody>
+            {productions.map((prod, idx) => {
+              const isOpen = expandedRow === prod.id;
+              const isAnulada = prod.status === 'Anulada';
+              const rowBg = isOpen ? '#fdf4ff' : (idx % 2 === 0 ? '#fff' : '#fdfcff');
 
-            return (
-              <React.Fragment key={prod.id}>
-                {/* ── Fila principal ── */}
-                <tr
-                  style={{ background: rowBg, transition: 'background 0.15s', cursor: 'default' }}
-                  onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = '#fef9ff'; }}
-                  onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = rowBg; }}
-                >
-                  {/* # Orden */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: 44, height: 26, borderRadius: 7,
-                      background: isAnulada ? '#fee2e2' : '#fdf4ff',
-                      color: '#FF4FD6',
-                      fontSize: 12, fontWeight: 800, letterSpacing: '0.02em',
-                    }}>#{prod.orderNumber}</span>
-                  </td>
+              return (
+                <React.Fragment key={prod.id}>
+                  {/* ── Fila principal ── */}
+                  <tr
+                    style={{ background: rowBg, transition: 'background 0.15s', cursor: 'default' }}
+                    onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = '#fef9ff'; }}
+                    onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = rowBg; }}
+                  >
+                    {/* # Orden */}
+                    <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 44, height: 26, borderRadius: 7,
+                        background: isAnulada ? '#fee2e2' : '#fdf4ff',
+                        color: '#FF4FD6',
+                        fontSize: 12, fontWeight: 800, letterSpacing: '0.02em',
+                      }}>#{prod.orderNumber}</span>
+                    </td>
 
-                  {/* Producto */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <IconPackage />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', lineHeight: 1.3 }}>
-                          {prod.producto || prod.referencia || '—'}
+                    {/* Producto */}
+                    <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 7, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <IconPackage />
                         </div>
-                        {prod.referencia && prod.producto !== prod.referencia && (
-                          <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>Ref: {prod.referencia}</div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Cantidad */}
-                  <td style={{ padding: '8px 14px', textAlign: 'center', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
-                      {(prod.quantity || 0).toLocaleString('es-CO')}
-                    </span>
-                    <div style={{ fontSize: 10, color: '#9ca3af' }}>uds</div>
-                  </td>
-
-                  {/* Color — todos los colores de la orden */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    {(() => {
-                      const allColors = [
-                        ...(prod.color ? [prod.color] : []),
-                        ...((prod.details || []).map(d => d.color).filter(Boolean)),
-                      ];
-                      const uniqueColors = [...new Set(allColors.map(c => c.trim()))];
-                      return (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                          {uniqueColors.length > 0 ? uniqueColors.map((c, ci) => (
-                            <span key={`${prod.id}-color-${c}-${ci}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 20, padding: '2px 7px', fontSize: 10, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
-                              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
-                              {c}
-                            </span>
-                          )) : <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>}
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', lineHeight: 1.3 }}>
+                            {prod.producto || prod.referencia || '—'}
+                          </div>
+                          {prod.referencia && prod.producto !== prod.referencia && (
+                            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>Ref: {prod.referencia}</div>
+                          )}
                         </div>
-                      );
-                    })()}
-                  </td>
+                      </div>
+                    </td>
 
-                  {/* Fecha entrega */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#6b7280' }}>
-                      <IconCalendar />
-                      <span style={{ fontSize: 12 }}>{prod.deliveryDate || '—'}</span>
-                    </div>
-                  </td>
+                    {/* Cantidad */}
+                    <td style={{ padding: '8px 14px', textAlign: 'center', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                        {(prod.quantity || 0).toLocaleString('es-CO')}
+                      </span>
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>uds</div>
+                    </td>
 
-                  {/* Estado */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
-                    <StatusBadge status={prod.status} />
-                    {prod.statusDate && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                    {/* Color — todos los colores de la orden */}
+                    <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                      {(() => {
+                        const allColors = [
+                          ...(prod.color ? [prod.color] : []),
+                          ...((prod.details || []).map(d => d.color).filter(Boolean)),
+                        ];
+                        const uniqueColors = [...new Set(allColors.map(c => c.trim()))];
+                        return (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {uniqueColors.length > 0 ? uniqueColors.map((c, ci) => (
+                              <span key={`${prod.id}-color-${c}-${ci}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 20, padding: '2px 7px', fontSize: 10, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
+                                {c}
+                              </span>
+                            )) : <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>}
+                          </div>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Fecha entrega */}
+                    <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#6b7280' }}>
                         <IconCalendar />
-                        <span style={{ fontSize: 10, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
-                          {prod.statusDate}
+                        <span style={{ fontSize: 12 }}>{prod.deliveryDate || '—'}</span>
+                      </div>
+                    </td>
+
+                    {/* Estado */}
+                    <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
+                      <StatusBadge status={prod.status} />
+                      {prod.statusDate && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                          <IconCalendar />
+                          <span style={{ fontSize: 10, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
+                            {prod.statusDate}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Cliente */}
+                    <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', maxWidth: 130 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <IconUser />
+                        </div>
+                        <span style={{ fontSize: 12, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {prod.client || '—'}
                         </span>
                       </div>
-                    )}
-                  </td>
+                    </td>
 
-                  {/* Cliente */}
-                  <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', maxWidth: 130 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <IconUser />
-                      </div>
-                      <span style={{ fontSize: 12, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {prod.client || '—'}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Acciones */}
+                    <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center', flexWrap: 'nowrap' }}>
 
-                  {/* Acciones */}
-                  <td style={{ padding: '12px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center', flexWrap: 'nowrap' }}>
-
-                      {esEmpleado ? (
-                        <>
-                          {/* Empleado: botón de acordeón para ver artículos */}
-                          <button
-                            title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
-                            disabled={loadingDetailId === prod.id}
-                            onClick={async () => {
-                              const next = isOpen ? null : prod.id;
-                              setExpandedRow(next);
-                              if (next && typeof onExpandRow === 'function') {
-                                setLoadingDetailId(prod.id);
-                                try {
-                                  await Promise.resolve(onExpandRow(prod.id));
-                                } catch (err) {
-                                  console.error('[ProductionTable] Error cargando detalles:', err);
-                                } finally {
-                                  setLoadingDetailId(null);
-                                }
-                              }
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '5px 8px', borderRadius: 7,
-                              border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
-                              background: isOpen ? '#fffff4' : '#fff',
-                              color: isOpen ? '#FF4FD6' : '#6b7280',
-                              cursor: loadingDetailId === prod.id ? 'wait' : 'pointer',
-                              fontSize: 10, fontWeight: 700,
-                              transition: 'all 0.15s',
-                              whiteSpace: 'nowrap', flexShrink: 0,
-                            }}
-                          >
-                            {loadingDetailId === prod.id ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-                                <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
-                              </span>
-                            ) : (
-                              <>
-                                <IconChevron open={isOpen} />
-                                {(prod.details || []).length > 0 && (
-                                  <span style={{
-                                    minWidth: 16, height: 16, borderRadius: 8,
-                                    background: isOpen ? '#FF4FD6' : '#e5e7eb',
-                                    color: isOpen ? '#fff' : '#6b7280',
-                                    fontSize: 9, fontWeight: 700,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'all 0.15s', flexShrink: 0,
-                                  }}>
-                                    {(prod.details || []).length}
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </button>
-
-                          {/* Empleado: botón de detalle */}
-                          <button
-                            title="Ver detalle"
-                            disabled={isAnulada}
-                            onClick={() => !isAnulada && navigate(`/layout/produccion/detalle/${prod.id}`)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '5px 10px', borderRadius: 7,
-                              border: '1px solid #e5e7eb', background: isAnulada ? '#f9fafb' : '#fff',
-                              color: isAnulada ? '#d1d5db' : '#6b7280',
-                              cursor: isAnulada ? 'not-allowed' : 'pointer',
-                              fontSize: 11, fontWeight: 600,
-                              transition: 'all 0.15s',
-                              whiteSpace: 'nowrap', flexShrink: 0,
-                            }}
-                            onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; } }}
-                            onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
-                          >
-                            <IconEye />
-                          </button>
-
-                          {/* Empleado: botón confirmar avance de etapa (cambiar estado) */}
-                          <button
-                            title="Confirmar finalización de etapa"
-                            disabled={isAnulada}
-                            onClick={() => !isAnulada && setConfirmModal({ open: true, prod })}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                              padding: '6px 14px', borderRadius: 7, border: 'none',
-                              background: isAnulada ? '#f3f4f6' : '#FF4FD6',
-                              color: isAnulada ? '#9ca3af' : '#fff',
-                              cursor: isAnulada ? 'not-allowed' : 'pointer',
-                              fontSize: 11, fontWeight: 700,
-                              whiteSpace: 'nowrap', flexShrink: 0,
-                            }}
-                          >
-                            Confirmar
-                          </button>
-                        </>
-
-                      ) : (
-                        <>
-                          {/* Ver detalle — Gerente y Administrador (observador) */}
-                          <button
-                            title="Ver detalle"
-                            onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '5px 10px', borderRadius: 7,
-                              border: '1px solid #e5e7eb', background: '#fff',
-                              color: '#6b7280', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                              transition: 'all 0.15s',
-                              whiteSpace: 'nowrap', flexShrink: 0,
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
-                          >
-                            <IconEye />
-                          </button>
-
-                          {/* Anular — exclusivo de Gerente, el Administrador solo observa */}
-                          {isGerente && (
+                        {esEmpleado ? (
+                          <>
+                            {/* Empleado: botón de acordeón para ver artículos */}
                             <button
-                              title={isAnulada ? 'Ya anulada' : 'Anular orden'}
-                              disabled={isAnulada}
-                              onClick={() => !isAnulada && onCancel?.(prod.id)}
-                              style={{
-                                display: 'flex', alignItems: 'center',
-                                padding: '5px 8px', borderRadius: 7,
-                                border: '1px solid #e5e7eb',
-                                background: isAnulada ? '#f9fafb' : '#fff',
-                                color: isAnulada ? '#d1d5db' : '#262747',
-                                cursor: isAnulada ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.15s',
-                                flexShrink: 0,
-                              }}
-                              onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; } }}
-                              onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
-                            >
-                              <IconBan />
-                            </button>
-                          )}
-
-                          {/* Acordeón toggle */}
-                          <button
-                            title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
-                            disabled={loadingDetailId === prod.id}
-                            onClick={async () => {
-                              const next = isOpen ? null : prod.id;
-                              setExpandedRow(next);
-                              if (next && typeof onExpandRow === 'function') {
-                                setLoadingDetailId(prod.id);
-                                try {
-                                  await Promise.resolve(onExpandRow(prod.id));
-                                } catch (err) {
-                                  console.error('[ProductionTable] Error cargando detalles:', err);
-                                } finally {
-                                  setLoadingDetailId(null);
+                              title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
+                              disabled={loadingDetailId === prod.id}
+                              onClick={async () => {
+                                const next = isOpen ? null : prod.id;
+                                setExpandedRow(next);
+                                if (next && typeof onExpandRow === 'function') {
+                                  setLoadingDetailId(prod.id);
+                                  try {
+                                    await Promise.resolve(onExpandRow(prod.id));
+                                  } catch (err) {
+                                    console.error('[ProductionTable] Error cargando detalles:', err);
+                                  } finally {
+                                    setLoadingDetailId(null);
+                                  }
                                 }
-                              }
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '5px 8px', borderRadius: 7,
-                              border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
-                              background: isOpen ? '#fffff4' : '#fff',
-                              color: isOpen ? '#FF4FD6' : '#6b7280',
-                              cursor: loadingDetailId === prod.id ? 'wait' : 'pointer', fontSize: 10, fontWeight: 700,
-                              transition: 'all 0.15s',
-                              whiteSpace: 'nowrap', flexShrink: 0,
-                            }}
-                            onMouseEnter={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
-                            onMouseLeave={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
-                          >
-                            {loadingDetailId === prod.id ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-                                <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
-                              </span>
-                            ) : (
-                              <>
-                                <IconChevron open={isOpen} />
-                                {(prod.details || []).length > 0 && (
-                                  <span style={{
-                                    minWidth: 16, height: 16, borderRadius: 8,
-                                    background: isOpen ? '#FF4FD6' : '#e5e7eb',
-                                    color: isOpen ? '#fff' : '#6b7280',
-                                    fontSize: 9, fontWeight: 700,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'all 0.15s', flexShrink: 0,
-                                  }}>
-                                    {(prod.details || []).length}
-                                  </span>
-                                )}
-                              </>
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                padding: '5px 8px', borderRadius: 7,
+                                border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
+                                background: isOpen ? '#fffff4' : '#fff',
+                                color: isOpen ? '#FF4FD6' : '#6b7280',
+                                cursor: loadingDetailId === prod.id ? 'wait' : 'pointer',
+                                fontSize: 10, fontWeight: 700,
+                                transition: 'all 0.15s',
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}
+                            >
+                              {loadingDetailId === prod.id ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                                  <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
+                                </span>
+                              ) : (
+                                <>
+                                  <IconChevron open={isOpen} />
+                                  {(prod.details || []).length > 0 && (
+                                    <span style={{
+                                      minWidth: 16, height: 16, borderRadius: 8,
+                                      background: isOpen ? '#FF4FD6' : '#e5e7eb',
+                                      color: isOpen ? '#fff' : '#6b7280',
+                                      fontSize: 9, fontWeight: 700,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      transition: 'all 0.15s', flexShrink: 0,
+                                    }}>
+                                      {(prod.details || []).length}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </button>
+
+                            {/* Empleado: botón de detalle */}
+                            <button
+                              title="Ver detalle"
+                              disabled={isAnulada}
+                              onClick={() => !isAnulada && navigate(`/layout/produccion/detalle/${prod.id}`)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                padding: '5px 10px', borderRadius: 7,
+                                border: '1px solid #e5e7eb', background: isAnulada ? '#f9fafb' : '#fff',
+                                color: isAnulada ? '#d1d5db' : '#6b7280',
+                                cursor: isAnulada ? 'not-allowed' : 'pointer',
+                                fontSize: 11, fontWeight: 600,
+                                transition: 'all 0.15s',
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; } }}
+                              onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                            >
+                              <IconEye />
+                            </button>
+
+                            {/* Empleado: botón confirmar avance de etapa (cambiar estado) */}
+                            <button
+                              title="Confirmar finalización de etapa"
+                              disabled={isAnulada}
+                              onClick={() => !isAnulada && setConfirmModal({ open: true, prod })}
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                padding: '6px 14px', borderRadius: 7, border: 'none',
+                                background: isAnulada ? '#f3f4f6' : '#FF4FD6',
+                                color: isAnulada ? '#9ca3af' : '#fff',
+                                cursor: isAnulada ? 'not-allowed' : 'pointer',
+                                fontSize: 11, fontWeight: 700,
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}
+                            >
+                              Confirmar
+                            </button>
+                          </>
+
+                        ) : (
+                          <>
+                            {/* Ver detalle — Gerente y Administrador (observador) */}
+                            <button
+                              title="Ver detalle"
+                              onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                padding: '5px 10px', borderRadius: 7,
+                                border: '1px solid #e5e7eb', background: '#fff',
+                                color: '#6b7280', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                                transition: 'all 0.15s',
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#FF4FD6'; e.currentTarget.style.borderColor = '#FF4FD6'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+                            >
+                              <IconEye />
+                            </button>
+
+                            {/* Anular — exclusivo de Gerente, el Administrador solo observa */}
+                            {isGerente && (
+                              <button
+                                title={isAnulada ? 'Ya anulada' : 'Anular orden'}
+                                disabled={isAnulada}
+                                onClick={() => !isAnulada && onCancel?.(prod.id)}
+                                style={{
+                                  display: 'flex', alignItems: 'center',
+                                  padding: '5px 8px', borderRadius: 7,
+                                  border: '1px solid #e5e7eb',
+                                  background: isAnulada ? '#f9fafb' : '#fff',
+                                  color: isAnulada ? '#d1d5db' : '#262747',
+                                  cursor: isAnulada ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.15s',
+                                  flexShrink: 0,
+                                }}
+                                onMouseEnter={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#ef4444'; } }}
+                                onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                              >
+                                <IconBan />
+                              </button>
                             )}
-                          </button>
-                        </>
-                      )}
 
-                    </div>
-                  </td>
-                </tr>
+                            {/* Acordeón toggle */}
+                            <button
+                              title={isOpen ? 'Ocultar artículos' : 'Ver artículos'}
+                              disabled={loadingDetailId === prod.id}
+                              onClick={async () => {
+                                const next = isOpen ? null : prod.id;
+                                setExpandedRow(next);
+                                if (next && typeof onExpandRow === 'function') {
+                                  setLoadingDetailId(prod.id);
+                                  try {
+                                    await Promise.resolve(onExpandRow(prod.id));
+                                  } catch (err) {
+                                    console.error('[ProductionTable] Error cargando detalles:', err);
+                                  } finally {
+                                    setLoadingDetailId(null);
+                                  }
+                                }
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                padding: '5px 8px', borderRadius: 7,
+                                border: `1px solid ${isOpen ? '#f6b8e7' : '#e5e7eb'}`,
+                                background: isOpen ? '#fffff4' : '#fff',
+                                color: isOpen ? '#FF4FD6' : '#6b7280',
+                                cursor: loadingDetailId === prod.id ? 'wait' : 'pointer', fontSize: 10, fontWeight: 700,
+                                transition: 'all 0.15s',
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fdf4ff'; e.currentTarget.style.color = '#d4c3d0'; e.currentTarget.style.borderColor = '#120b11'; } }}
+                              onMouseLeave={(e) => { if (!isOpen && loadingDetailId !== prod.id) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
+                            >
+                              {loadingDetailId === prod.id ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                                  <Spinner size={14} color="#FF4FD6" trackColor="#fde6f7" />
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FF4FD6' }}>Cargando...</span>
+                                </span>
+                              ) : (
+                                <>
+                                  <IconChevron open={isOpen} />
+                                  {(prod.details || []).length > 0 && (
+                                    <span style={{
+                                      minWidth: 16, height: 16, borderRadius: 8,
+                                      background: isOpen ? '#FF4FD6' : '#e5e7eb',
+                                      color: isOpen ? '#fff' : '#6b7280',
+                                      fontSize: 9, fontWeight: 700,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      transition: 'all 0.15s', flexShrink: 0,
+                                    }}>
+                                      {(prod.details || []).length}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
 
-                {/* ── Fila acordeón ── */}
-                {isOpen && (
-                  <tr>
-                    <td colSpan="8" style={{ padding: 0, background: '#fcf7ff', borderBottom: '2px solid #f5ddfb' }}>
-
-                      {/* Header del panel */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 18px 8px',
-                        borderBottom: '1px solid #f3e8ff',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 4, height: 16, borderRadius: 2, background: '#FF4FD6' }} />
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', letterSpacing: '0.04em' }}>
-                            ARTÍCULOS DE LA ORDEN #{prod.orderNumber}
-                          </span>
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, color: '#FF4FD6',
-                            background: '#fff', border: '1px solid #f5d0fe',
-                            padding: '1px 7px', borderRadius: 10,
-                          }}>
-                            {(prod.details || []).length} artículo{(prod.details || []).length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-
-                        {/* Info resumen rápido */}
-                        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
-                            <IconUser />
-                            <span>{prod.client}</span>
-                          </div>
-                          <StatusBadge status={prod.status} small />
-                          <button
-                            onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 5,
-                              padding: '5px 12px', borderRadius: 7,
-                              border: 'none', background: '#FF4FD6',
-                              color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                            }}>
-                            <IconEye />
-                            Ver detalle completo
-                          </button>
-                        </div>
                       </div>
-
-                      {/* Sub-tabla artículos */}
-                      {(prod.details || []).length === 0 ? (
-                        <div style={{ padding: '16px 18px', color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>
-                          Sin artículos registrados
-                        </div>
-                      ) : (
-                        <div style={{ padding: '8px 18px 14px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
-                            <thead>
-                              <tr>
-                                {['#', 'Ref_corte', 'Referencia', 'Estado', 'Cantidad', 'Color'].map(h => (
-                                  <th key={h} style={{
-                                    padding: '7px 10px', textAlign: 'left',
-                                    fontSize: 10, fontWeight: 700, color: '#a78bfa',
-                                    letterSpacing: '0.05em', textTransform: 'uppercase',
-                                    borderBottom: '1px solid #eeeaf3',
-                                    whiteSpace: 'nowrap',
-                                  }}>{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(prod.details || []).map((d, i) => (
-                                <tr key={`${prod.id}-detail-${i}`}
-                                  style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.5)' }}>
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#c084fc' }}>#{i + 1}</span>
-                                  </td>
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#6b21a8', background: '#f5f3ff', padding: '2px 6px', borderRadius: 4 }}>
-                                      {d.refCorte}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, color: '#374151' }}>{d.ref}</td>
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <StatusBadge status={d.status} small />
-                                  </td>
-
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
-                                      {(d.quantity || 0).toLocaleString('es-CO')}
-                                      <span style={{ fontSize: 10, fontWeight: 400, color: '#9ca3af', marginLeft: 3 }}>uds</span>
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '7px 10px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                      <span style={{
-                                        width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
-                                        background: d.color?.toLowerCase() || '#e5e7eb',
-                                        border: '1px solid rgba(0,0,0,0.1)',
-                                      }} />
-                                      <span style={{ fontSize: 11, color: '#4b5563' }}>{d.color || '—'}</span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            {/* Pie de tabla — totales */}
-                            <tfoot>
-                              <tr>
-                                <td colSpan="5" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                  Total artículos: {(prod.details || []).length}
-                                </td>
-                                <td colSpan="2" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, fontWeight: 700, color: '#6b21a8', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                                  {(prod.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0).toLocaleString('es-CO')} uds total
-                                </td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
-                      )}
-
-                      {/* Banner anulación */}
-                      {isAnulada && (() => {
-                        const entry = [...(prod.history || [])].reverse().find(h => h.status === 'Anulada');
-                        return entry?.motivo ? (
-                          <div style={{
-                            margin: '0 18px 12px', padding: '8px 12px',
-                            background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8,
-                            display: 'flex', alignItems: 'flex-start', gap: 8,
-                          }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                            <div>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>Motivo de anulación: </span>
-                              <span style={{ fontSize: 11, color: '#b91c1c' }}>{entry.motivo}</span>
-                              {entry.date && <span style={{ fontSize: 10, color: '#ef4444', marginLeft: 8 }}>({entry.date})</span>}
-                            </div>
-                          </div>
-                        ) : null;
-                      })()}
-
                     </td>
                   </tr>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+
+                  {/* ── Fila acordeón ── */}
+                  {isOpen && (
+                    <tr>
+                      <td colSpan="8" style={{ padding: 0, background: '#fcf7ff', borderBottom: '2px solid #f5ddfb' }}>
+
+                        {/* Header del panel */}
+                        <div style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '10px 18px 8px',
+                          borderBottom: '1px solid #f3e8ff',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 4, height: 16, borderRadius: 2, background: '#FF4FD6' }} />
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', letterSpacing: '0.04em' }}>
+                              ARTÍCULOS DE LA ORDEN #{prod.orderNumber}
+                            </span>
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, color: '#FF4FD6',
+                              background: '#fff', border: '1px solid #f5d0fe',
+                              padding: '1px 7px', borderRadius: 10,
+                            }}>
+                              {(prod.details || []).length} artículo{(prod.details || []).length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+
+                          {/* Info resumen rápido */}
+                          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
+                              <IconUser />
+                              <span>{prod.client}</span>
+                            </div>
+                            <StatusBadge status={prod.status} small />
+                            <button
+                              onClick={() => navigate(`/layout/produccion/detalle/${prod.id}`)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '5px 12px', borderRadius: 7,
+                                border: 'none', background: '#FF4FD6',
+                                color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                              }}>
+                              <IconEye />
+                              Ver detalle completo
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Sub-tabla artículos */}
+                        {(prod.details || []).length === 0 ? (
+                          <div style={{ padding: '16px 18px', color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>
+                            Sin artículos registrados
+                          </div>
+                        ) : (
+                          <div style={{ padding: '8px 18px 14px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+                              <thead>
+                                <tr>
+                                  {['#', 'Ref_corte', 'Referencia', 'Estado', 'Cantidad', 'Color'].map(h => (
+                                    <th key={h} style={{
+                                      padding: '7px 10px', textAlign: 'left',
+                                      fontSize: 10, fontWeight: 700, color: '#a78bfa',
+                                      letterSpacing: '0.05em', textTransform: 'uppercase',
+                                      borderBottom: '1px solid #eeeaf3',
+                                      whiteSpace: 'nowrap',
+                                    }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(prod.details || []).map((d, i) => (
+                                  <tr key={`${prod.id}-detail-${i}`}
+                                    style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.5)' }}>
+                                    <td style={{ padding: '7px 10px' }}>
+                                      <span style={{ fontSize: 10, fontWeight: 700, color: '#c084fc' }}>#{i + 1}</span>
+                                    </td>
+                                    <td style={{ padding: '7px 10px' }}>
+                                      <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#6b21a8', background: '#f5f3ff', padding: '2px 6px', borderRadius: 4 }}>
+                                        {d.refCorte}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, color: '#374151' }}>{d.ref}</td>
+                                    <td style={{ padding: '7px 10px' }}>
+                                      <StatusBadge status={d.status} small />
+                                    </td>
+
+                                    <td style={{ padding: '7px 10px' }}>
+                                      <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
+                                        {(d.quantity || 0).toLocaleString('es-CO')}
+                                        <span style={{ fontSize: 10, fontWeight: 400, color: '#9ca3af', marginLeft: 3 }}>uds</span>
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '7px 10px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <span style={{
+                                          width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+                                          background: d.color?.toLowerCase() || '#e5e7eb',
+                                          border: '1px solid rgba(0,0,0,0.1)',
+                                        }} />
+                                        <span style={{ fontSize: 11, color: '#4b5563' }}>{d.color || '—'}</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              {/* Pie de tabla — totales */}
+                              <tfoot>
+                                <tr>
+                                  <td colSpan="5" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    Total artículos: {(prod.details || []).length}
+                                  </td>
+                                  <td colSpan="2" style={{ padding: '8px 10px', borderTop: '1px solid #f3e8ff', fontSize: 11, fontWeight: 700, color: '#6b21a8', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                                    {(prod.details || []).reduce((s, d) => s + (Number(d.quantity) || 0), 0).toLocaleString('es-CO')} uds total
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* Banner anulación */}
+                        {isAnulada && (() => {
+                          const entry = [...(prod.history || [])].reverse().find(h => h.status === 'Anulada');
+                          return entry?.motivo ? (
+                            <div style={{
+                              margin: '0 18px 12px', padding: '8px 12px',
+                              background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8,
+                              display: 'flex', alignItems: 'flex-start', gap: 8,
+                            }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                              </svg>
+                              <div>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626' }}>Motivo de anulación: </span>
+                                <span style={{ fontSize: 11, color: '#b91c1c' }}>{entry.motivo}</span>
+                                {entry.date && <span style={{ fontSize: 10, color: '#ef4444', marginLeft: 8 }}>({entry.date})</span>}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
+
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* ── Modal de confirmación para el empleado ── */}
       {confirmModal.open && confirmModal.prod && (
@@ -587,7 +589,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
               Confirmar finalización
             </h3>
             <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
+              ¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
               Se avisará al gerente y la orden pasará a la siguiente etapa.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -600,12 +602,23 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                 try {
                   await ProductionAPIClient.confirmarEtapa(confirmModal.prod.id);
                   setConfirmModal({ open: false, prod: null });
+                  setAlertConfig({
+                    open: true,
+                    type: 'success',
+                    title: 'Producción confirmada',
+                    message: 'La finalización de la etapa fue registrada correctamente.',
+                  });
                   // Recargar la lista para reflejar el cambio
                   if (typeof onExpandRow === 'function') {
                     await onExpandRow(confirmModal.prod.id);
                   }
                 } catch (err) {
-                  alert(err?.message || "No se pudo confirmar la finalización de la etapa");
+                  setAlertConfig({
+                    open: true,
+                    type: 'error',
+                    title: 'No se pudo confirmar la producción',
+                    message: err?.message || 'No se pudo confirmar la finalización de la etapa.',
+                  });
                 } finally {
                   setConfirmLoading(false);
                 }
@@ -617,6 +630,13 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
           </div>
         </div>
       )}
+      <Alert
+        isOpen={alertConfig.open}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onCancel={() => setAlertConfig((p) => ({ ...p, open: false }))}
+      />
     </>
   );
 };

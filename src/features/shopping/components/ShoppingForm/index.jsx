@@ -135,13 +135,29 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     setDetalleActual((p) => {
       const updated = { ...p, [name]: value };
       const qty = parseFloat(name === 'cantidad' ? value : p.cantidad) || 0;
-      const total = parseFloat(name === 'valorTotal' ? value : p.valorTotal) || 0;
+      const unitPrice = parseFloat(name === 'valorUnitario' ? value : p.valorUnitario) || 0;
 
-      if (name === 'cantidad' || name === 'valorTotal') {
-        updated.valorUnitario = qty > 0 && total > 0 ? (total / qty).toFixed(2) : '';
+      if (name === 'cantidad' || name === 'valorUnitario') {
+        updated.valorTotal = qty > 0 && unitPrice > 0 ? (qty * unitPrice).toFixed(2) : '';
       }
       return updated;
     });
+  };
+
+  const handleCantidadDetalleChange = (id, value) => {
+    const cantidad = parseFloat(value);
+    if (value !== '' && (!Number.isFinite(cantidad) || cantidad < 0)) return;
+
+    setFormData((p) => ({
+      ...p,
+      detalles: p.detalles.map((d) => d.id === id
+        ? {
+          ...d,
+          cantidad: value === '' ? '' : cantidad,
+          valorTotal: value === '' ? 0 : cantidad * (Number(d.valorUnitario) || 0),
+        }
+        : d),
+    }));
   };
 
   const handleAgregarDetalle = () => {
@@ -149,14 +165,29 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     if (!detalleActual.cantidad || Number(detalleActual.cantidad) <= 0) { showAlert('warning', 'Campo requerido', 'Ingresa una cantidad válida.'); return; }
     if (!detalleActual.valorUnitario || Number(detalleActual.valorUnitario) <= 0) { showAlert('warning', 'Campo requerido', 'Ingresa un valor unitario válido.'); return; }
     if (!detalleActual.valorTotal || Number(detalleActual.valorTotal) <= 0) { showAlert('warning', 'Campo requerido', 'El valor total debe ser mayor a 0.'); return; }
-    setFormData((p) => ({
-      ...p, detalles: [...p.detalles, {
-        id: Date.now(), supplyId: detalleActual.supplyId || null,
-        nombre: detalleActual.nombre.trim(), medida: detalleActual.medida || null,
-        cantidad: parseFloat(detalleActual.cantidad), valorUnitario: parseFloat(detalleActual.valorUnitario),
-        valorTotal: parseFloat(detalleActual.valorTotal), descripcionAdicional: detalleActual.descripcionAdicional.trim(),
-      }],
-    }));
+    const nuevoDetalle = {
+      id: Date.now(), supplyId: detalleActual.supplyId || null,
+      nombre: detalleActual.nombre.trim(), medida: detalleActual.medida || null,
+      cantidad: parseFloat(detalleActual.cantidad), valorUnitario: parseFloat(detalleActual.valorUnitario),
+      valorTotal: parseFloat(detalleActual.valorTotal), descripcionAdicional: detalleActual.descripcionAdicional.trim(),
+    };
+    setFormData((p) => {
+      const sameSupplyAndMeasure = (d) =>
+        String(d.supplyId || d.nombre).trim().toLowerCase() === String(nuevoDetalle.supplyId || nuevoDetalle.nombre).trim().toLowerCase()
+        && String(d.medida || '').trim().toLowerCase() === String(nuevoDetalle.medida || '').trim().toLowerCase();
+      const existing = p.detalles.find(sameSupplyAndMeasure);
+
+      if (!existing) return { ...p, detalles: [...p.detalles, nuevoDetalle] };
+
+      const cantidad = Number(existing.cantidad) + nuevoDetalle.cantidad;
+      const valorTotal = Number(existing.valorTotal) + nuevoDetalle.valorTotal;
+      return {
+        ...p,
+        detalles: p.detalles.map((d) => d.id === existing.id
+          ? { ...d, cantidad, valorTotal, valorUnitario: cantidad > 0 ? valorTotal / cantidad : 0 }
+          : d),
+      };
+    });
     setDetalleActual({ supplyId: '', nombre: '', medida: '', cantidad: '', valorUnitario: '', valorTotal: '', descripcionAdicional: '' });
     setInsumoSearch('');
   };
@@ -214,6 +245,10 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     setErrors(newErrors);
     if (Object.values(newErrors).some(Boolean)) { showAlert('warning', 'Campos inválidos', 'Corrige los campos marcados antes de guardar.'); return; }
     if (formData.detalles.length === 0) { showAlert('warning', 'Sin detalles', 'Agrega al menos un producto o insumo.'); return; }
+    if (formData.detalles.some((d) => !Number(d.cantidad) || Number(d.cantidad) <= 0)) {
+      showAlert('warning', 'Cantidad inválida', 'Cada insumo debe tener una cantidad mayor a 0.');
+      return;
+    }
     try {
       await onSubmit({ ...formData, costoTotal: parseFloat(formData.costoTotal), fotoFactura });
     } catch (e) { showAlert('error', 'Error al guardar', e.message || 'No se pudo guardar la compra.'); }
@@ -260,10 +295,10 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16 }}>
-        <div style={{ display: 'flex', backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, height: '85vh', maxHeight: '95vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+        <div style={{ display: 'flex', backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, height: '92vh', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
           {/* ── COLUMNA IZQUIERDA ── */}
-          <div style={{ flex: '0 0 520px', padding: '24px 26px' }}>
+          <div style={{ flex: '0 0 520px', padding: '24px 26px', overflow: 'hidden' }}>
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
@@ -412,14 +447,14 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                   onChange={handleDetalleChange} style={inp(false)} />
               </div>
               <div>
-                <label style={labelStyle}>Valor total <span style={requiredStar}>*</span></label>
+                <label style={labelStyle}>Valor total <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
                 <input type="number" name="valorTotal" value={detalleActual.valorTotal}
-                  onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
+                  readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
               </div>
               <div>
-                <label style={labelStyle}>Valor unitario <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
+                <label style={labelStyle}>Valor unitario <span style={requiredStar}>*</span></label>
                 <input type="number" name="valorUnitario" value={detalleActual.valorUnitario}
-                  readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
+                  onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
               </div>
               <div>
                 <label style={labelStyle}>Medida</label>
@@ -447,38 +482,42 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
 
               {formData.detalles.length > 0 ? (
                 <div className="roles-modal-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      {['#', 'Producto', 'Medida', 'Cant.', 'Unitario', ''].map((h, i) => (
-                        <th key={i} style={{ position: 'sticky', top: 0, zIndex: 1, padding: '8px 6px', textAlign: i >= 3 ? 'right' : 'left', color: '#9ca3af', fontWeight: 600, fontSize: 11, background: '#fafafa' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.detalles.map((d, idx) => {
-                      const medidaLabel = medidas.find((m) => m.valor === d.medida)?.label ?? d.medida ?? '—';
-                      return (
-                        <tr key={d.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                          <td style={{ padding: '10px 6px', color: '#d1d5db', fontSize: 11, fontWeight: 600 }}>{idx + 1}</td>
-                          <td style={{ padding: '10px 6px', color: '#1f2937' }}>
-                            <div style={{ fontWeight: 500 }}>{d.nombre}</div>
-                            {d.descripcionAdicional && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{d.descripcionAdicional}</div>}
-                          </td>
-                          <td style={{ padding: '10px 6px', color: '#6b7280' }}>{medidaLabel}</td>
-                          <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>{d.cantidad}</td>
-                          <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>${Number(d.valorUnitario).toFixed(2)}</td>
-                          <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                            <button type="button" onClick={() => handleEliminarDetalle(d.id)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16 }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = '#d1d5db')}>×</button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        {['#', 'Producto', 'Medida', 'Cant.', 'Unitario', ''].map((h, i) => (
+                          <th key={i} style={{ position: 'sticky', top: 0, zIndex: 1, padding: '8px 6px', textAlign: i >= 3 ? 'right' : 'left', color: '#9ca3af', fontWeight: 600, fontSize: 11, background: '#fafafa' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.detalles.map((d, idx) => {
+                        const medidaLabel = medidas.find((m) => m.valor === d.medida)?.label ?? d.medida ?? '—';
+                        return (
+                          <tr key={d.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '10px 6px', color: '#d1d5db', fontSize: 11, fontWeight: 600 }}>{idx + 1}</td>
+                            <td style={{ padding: '10px 6px', color: '#1f2937' }}>
+                              <div style={{ fontWeight: 500 }}>{d.nombre}</div>
+                              {d.descripcionAdicional && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{d.descripcionAdicional}</div>}
+                            </td>
+                            <td style={{ padding: '10px 6px', color: '#6b7280' }}>{medidaLabel}</td>
+                            <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>
+                              <input type="number" min="0.000001" step="any" aria-label={`Cantidad de ${d.nombre}`}
+                                value={d.cantidad} onChange={(e) => handleCantidadDetalleChange(d.id, e.target.value)}
+                                style={{ width: 58, padding: '4px 6px', textAlign: 'right', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, color: '#4b5563' }} />
+                            </td>
+                            <td style={{ padding: '10px 6px', textAlign: 'right', color: '#6b7280' }}>${Number(d.valorUnitario).toFixed(2)}</td>
+                            <td style={{ padding: '10px 6px', textAlign: 'center' }}>
+                              <button type="button" onClick={() => handleEliminarDetalle(d.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16 }}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = '#d1d5db')}>×</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div style={{ flex: 1, padding: '40px 20px', textAlign: 'center', color: '#d1d5db', fontSize: 13 }}>

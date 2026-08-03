@@ -3,6 +3,9 @@ import { ProductionAPIClient } from '../production/services/ProductionAPIClient'
 import { sedesAPI } from '../sedes/services/sedesAPI';
 import { supplyAPI } from '../supplies/services/supplyAPI';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+// ⚠️ Ajusta esta ruta si la ubicación real de este archivo dentro de
+// `features/` tiene otra profundidad (debe apuntar a shared/assets).
+import putongasLogoUrl from '../shared/assets/putongasLogo.png';
 
 // ── Constantes ─────────────────────────────────────────────────────
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -117,11 +120,20 @@ const calcAvgDays = (orders) => {
   return Math.round(sum / validCount);
 };
 
-// Función universal de coincidencia por período
-const matchPeriod = (val, mode, monthIdx, year) => {
+// Función universal de coincidencia por período.
+// ✅ Nuevo modo 'Rango': cuando el usuario define un rango de fechas
+// personalizado (dateFrom/dateTo) en el filtro superior, este modo
+// reemplaza a Semana/Mes/Año en todos los cálculos del dashboard.
+const matchPeriod = (val, mode, monthIdx, year, dateFrom, dateTo) => {
   if (!val) return false;
   const d = new Date(val);
   const now = new Date();
+  if (mode === 'Rango') {
+    if (!dateFrom || !dateTo) return false;
+    const from = new Date(`${dateFrom}T00:00:00`);
+    const to = new Date(`${dateTo}T23:59:59.999`);
+    return d >= from && d <= to;
+  }
   if (mode === 'Día') return d.toDateString() === now.toDateString();
   if (mode === 'Semana') {
     const startOfWeek = new Date(now);
@@ -135,6 +147,42 @@ const matchPeriod = (val, mode, monthIdx, year) => {
   if (mode === 'Mes') return d.getMonth() === monthIdx && d.getFullYear() === year;
   if (mode === 'Año') return d.getFullYear() === year;
   return true;
+};
+
+// Genera los puntos (días o semanas) de la gráfica de línea cuando hay un
+// rango de fechas personalizado activo — reemplaza los "puntos fijos" que
+// se usan para Semana/Mes/Año (que asumen un período estándar).
+const buildRangePoints = (dateFrom, dateTo) => {
+  const from = new Date(`${dateFrom}T00:00:00`);
+  const to = new Date(`${dateTo}T23:59:59.999`);
+  const totalDays = Math.max(1, Math.round((to - from) / 86400000) + 1);
+
+  if (totalDays <= 31) {
+    // Un punto por día
+    return Array.from({ length: totalDays }, (_, i) => {
+      const d = new Date(from);
+      d.setDate(from.getDate() + i);
+      return { start: new Date(d.setHours(0, 0, 0, 0)), end: new Date(new Date(d).setHours(23, 59, 59, 999)), label: d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' }) };
+    });
+  }
+
+  // Rangos más largos: un punto por semana (Lun–Dom)
+  const points = [];
+  let cursor = new Date(from);
+  while (cursor <= to) {
+    const weekStart = new Date(cursor);
+    const weekEnd = new Date(cursor);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    const cappedEnd = weekEnd > to ? to : weekEnd;
+    points.push({
+      start: new Date(weekStart.setHours(0, 0, 0, 0)),
+      end: cappedEnd,
+      label: `${weekStart.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' })}–${cappedEnd.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' })}`,
+    });
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return points;
 };
 
 // ── Componentes base ───────────────────────────────────────────────
@@ -182,6 +230,18 @@ export default function ProductionDashboard() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [barTimeView, setBarTimeView] = useState('Año');
 
+  // ── Filtro de rango de fechas personalizado (arriba, junto al botón de
+  // descarga). Cuando ambas fechas están definidas, reemplaza por completo
+  // al filtro de Período (Semana/Mes/Año) — tanto en las tarjetas/gráfica
+  // de arriba como en la gráfica de procesos de abajo — y también acota lo
+  // que se incluye en el reporte de Excel.
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const isCustomRange = !!(dateFrom && dateTo);
+  const effectiveTimeView = isCustomRange ? 'Rango' : timeView;
+  const effectiveBarTimeView = isCustomRange ? 'Rango' : barTimeView;
+  const rangeError = isCustomRange && new Date(dateFrom) > new Date(dateTo);
+
   // Datos crudos del backend
   const [orders, setOrders] = useState([]);
   const [sedesNames, setSedesNames] = useState([]);
@@ -218,7 +278,7 @@ export default function ProductionDashboard() {
   const monthIdx = MONTHS.indexOf(selectedMonth);
 
   const { stats, generalStatus } = useMemo(() => {
-    if (!orders.length) return {
+    if (!orders.length || rangeError) return {
       stats: { current: 0, completedThisMonth: 0, pending: 0, avgTime: '—', periodLabel: '', avgPeriodLabel: '' },
       generalStatus: { delayed: 0, onTrack: 0 },
     };
@@ -226,16 +286,18 @@ export default function ProductionDashboard() {
     const nowMs = Date.now();
 
     // Etiqueta dinámica del período para el label de "Completadas"
-    const periodLabel = timeView === 'Día' ? 'hoy'
-      : timeView === 'Semana' ? 'esta semana'
-        : timeView === 'Mes' ? `en ${selectedMonth}`
-          : `en ${selectedYear}`;
+    const periodLabel = isCustomRange
+      ? `entre ${new Date(`${dateFrom}T00:00:00`).toLocaleDateString('es-CO')} y ${new Date(`${dateTo}T00:00:00`).toLocaleDateString('es-CO')}`
+      : timeView === 'Día' ? 'hoy'
+        : timeView === 'Semana' ? 'esta semana'
+          : timeView === 'Mes' ? `en ${selectedMonth}`
+            : `en ${selectedYear}`;
 
     // Una orden activa pertenece al período si alguna fecha suya cae en él
     const inPeriodActive = (o) => {
-      if (matchPeriod(o.updatedAt, timeView, monthIdx, selectedYear)) return true;
-      if (matchPeriod(o.createdAt, timeView, monthIdx, selectedYear)) return true;
-      return (o.historial || []).some(h => matchPeriod(h.fecha, timeView, monthIdx, selectedYear));
+      if (matchPeriod(o.updatedAt, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo)) return true;
+      if (matchPeriod(o.createdAt, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo)) return true;
+      return (o.historial || []).some(h => matchPeriod(h.fecha, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo));
     };
 
     // ── Producciones actuales: estado "Producción" con actividad en el período ──
@@ -245,7 +307,7 @@ export default function ProductionDashboard() {
     const completedThisMonth = orders.filter(x => {
       if (x.estado !== 'Enviado') return false;
       const h = (x.historial || []).find(h => h.estado === 'Enviado');
-      return matchPeriod(h?.fecha || x.updatedAt, timeView, monthIdx, selectedYear);
+      return matchPeriod(h?.fecha || x.updatedAt, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo);
     }).length;
 
     // ── Por iniciar: Diseño o Ficha Técnica con actividad en el período ────────
@@ -256,22 +318,24 @@ export default function ProductionDashboard() {
     ).length;
 
     // ── Tiempo promedio: período ANTERIOR al seleccionado ─────────────────────
-    // ✅ Fix: antes, cuando timeView === 'Semana' (o cualquier caso no
-    // contemplado explícitamente), el "mes anterior" se calculaba con
-    // getPrevMonth(), que usa la fecha REAL de hoy — ignorando por completo
-    // el selectedMonth/selectedYear que el usuario elige en los dropdowns
-    // del filtro "Semana". Por eso el tiempo promedio no reflejaba el
-    // mes/año pasado según el filtro seleccionado. Ahora 'Mes' y 'Semana'
-    // comparten la misma referencia: el mes/año anterior AL SELECCIONADO.
-    const prevDone = orders.filter(x => {
-      if (x.estado !== 'Enviado') return false;
-      const h = (x.historial || []).find(hh => hh.estado === 'Enviado');
-      const d = h?.fecha || x.updatedAt;
-      if (timeView === 'Año') return new Date(d || 0).getFullYear() === selectedYear - 1;
-      const pm = monthIdx === 0 ? 11 : monthIdx - 1;
-      const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
-      return sameMonthYear(d, pm, py);
-    });
+    // Con rango personalizado no existe un "período anterior" bien definido
+    // (¿anterior a qué?), así que en ese modo se muestra el promedio DENTRO
+    // del propio rango en vez de desplazarlo hacia atrás.
+    const prevDone = isCustomRange
+      ? orders.filter(x => {
+        if (x.estado !== 'Enviado') return false;
+        const h = (x.historial || []).find(hh => hh.estado === 'Enviado');
+        return matchPeriod(h?.fecha || x.updatedAt, 'Rango', monthIdx, selectedYear, dateFrom, dateTo);
+      })
+      : orders.filter(x => {
+        if (x.estado !== 'Enviado') return false;
+        const h = (x.historial || []).find(hh => hh.estado === 'Enviado');
+        const d = h?.fecha || x.updatedAt;
+        if (timeView === 'Año') return new Date(d || 0).getFullYear() === selectedYear - 1;
+        const pm = monthIdx === 0 ? 11 : monthIdx - 1;
+        const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
+        return sameMonthYear(d, pm, py);
+      });
 
     // Sin respaldo histórico a propósito: si el período anterior no tiene
     // órdenes 'Enviado', se muestra "—" igual que las demás tarjetas cuando
@@ -280,13 +344,15 @@ export default function ProductionDashboard() {
     // "—" mientras esta tarjeta mostraba un número de meses sin relación).
     const avgDays = calcAvgDays(prevDone);
 
-    const avgPeriodLabel = timeView === 'Año'
-      ? `${selectedYear - 1}`
-      : (() => {
-        const pm = monthIdx === 0 ? 11 : monthIdx - 1;
-        const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
-        return `${MONTHS[pm]} ${py}`;
-      })();
+    const avgPeriodLabel = isCustomRange
+      ? 'rango seleccionado'
+      : timeView === 'Año'
+        ? `${selectedYear - 1}`
+        : (() => {
+          const pm = monthIdx === 0 ? 11 : monthIdx - 1;
+          const py = monthIdx === 0 ? selectedYear - 1 : selectedYear;
+          return `${MONTHS[pm]} ${py}`;
+        })();
 
     // ── Retrasos: activas con actividad en el período ─────────────────────────
     const active = orders.filter(x =>
@@ -312,7 +378,7 @@ export default function ProductionDashboard() {
       stats: { current, completedThisMonth, pending, avgTime: avgDays !== null ? `${avgDays}d` : '—', periodLabel, avgPeriodLabel },
       generalStatus: { delayed, onTrack },
     };
-  }, [orders, timeView, monthIdx, selectedYear, selectedMonth]);
+  }, [orders, timeView, monthIdx, selectedYear, selectedMonth, isCustomRange, effectiveTimeView, dateFrom, dateTo, rangeError]);
 
   // ✅ Fix: las barras de "Estado general de producción" tenían alturas
   // fijas en el JSX (h-2 y h-30 — esta última ni siquiera es una clase
@@ -330,7 +396,7 @@ export default function ProductionDashboard() {
     : 4;
 
   const lineData = useMemo(() => {
-    if (!orders.length) return [];
+    if (!orders.length || rangeError) return [];
 
     // Para cada punto temporal, calculamos:
     // - Por cada sede: suma de productos (detalles.cantidad) de órdenes cuya fecha de referencia cae en ese punto
@@ -344,6 +410,38 @@ export default function ProductionDashboard() {
       const d = last?.fecha || o.updatedAt || o.createdAt;
       return d ? new Date(d) : null;
     };
+
+    // ── Rango personalizado: un punto por día (o por semana si el rango es
+    // largo), en vez de los puntos fijos de Semana/Mes/Año ──────────────────
+    if (isCustomRange) {
+      const rangePoints = buildRangePoints(dateFrom, dateTo);
+      return rangePoints.map(({ start, end, label }) => {
+        const point = { label };
+        sedesNames.forEach(name => { point[name] = 0; });
+        point.terceros = 0;
+
+        orders.forEach(o => {
+          const d = refDate(o);
+          if (!d || d < start || d > end) return;
+
+          const qty = totalProductos(o);
+          if ((o.asignaciones || []).length > 0) point.terceros += qty || 1;
+
+          const ORDEN_TERMINADA = ['Empaque', 'Enviado'];
+          const asigsSede = o.sedeAsignaciones || o.sede_asignaciones || [];
+          if (ORDEN_TERMINADA.includes(o.estado) && asigsSede.length > 0) {
+            asigsSede.forEach(a => {
+              if (sedesNames.includes(a.option)) point[a.option] = (point[a.option] || 0) + (Number(a.cantidad) || 0);
+            });
+          } else if (ORDEN_TERMINADA.includes(o.estado) && sedesNames.length > 0) {
+            const perSede = Math.round(qty / sedesNames.length) || 1;
+            sedesNames.forEach(name => { point[name] = (point[name] || 0) + perSede; });
+          }
+        });
+
+        return point;
+      });
+    }
 
     const matchPoint = (d, pointIndex) => {
       if (!d) return false;
@@ -404,22 +502,236 @@ export default function ProductionDashboard() {
 
       return point;
     });
-  }, [orders, sedesNames, timeView, selectedMonth, selectedYear, monthIdx]);
+  }, [orders, sedesNames, timeView, selectedMonth, selectedYear, monthIdx, isCustomRange, dateFrom, dateTo, rangeError]);
 
   // ── Barras: recalculadas al cambiar período de barras ─────────
   const barData = useMemo(() => {
     const counts = Object.fromEntries(BAR_PROCESSES.map(p => [p, 0]));
+    if (rangeError) return BAR_PROCESSES.map(name => ({ name, value: 0 }));
     orders.forEach(o => {
       if (!o.estado) return;
       const d = orderDate(o);
-      if (!matchPeriod(d, barTimeView, monthIdx, selectedYear)) return;
+      if (!matchPeriod(d, effectiveBarTimeView, monthIdx, selectedYear, dateFrom, dateTo)) return;
       const proceso = ESTADO_TO_PROCESO[o.estado];
       if (proceso) counts[proceso]++;
     });
     return BAR_PROCESSES.map(name => ({ name, value: counts[name] }));
-  }, [orders, barTimeView, monthIdx, selectedYear]);
+  }, [orders, barTimeView, monthIdx, selectedYear, isCustomRange, effectiveBarTimeView, dateFrom, dateTo, rangeError]);
 
   const showTerceros = viewMode === 'Todas' || viewMode === 'Terceros';
+
+  // ── Órdenes que caen dentro del filtro activo (rango personalizado si está
+  // definido, si no el período de arriba "timeView") — es lo que se exporta
+  // en el reporte de Excel, para que el archivo refleje exactamente lo que
+  // se está viendo en pantalla.
+  const filteredOrdersForExport = useMemo(() => {
+    if (rangeError) return [];
+    return orders.filter((o) => {
+      if (matchPeriod(o.updatedAt, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo)) return true;
+      if (matchPeriod(o.createdAt, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo)) return true;
+      return (o.historial || []).some(h => matchPeriod(h.fecha, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo));
+    });
+  }, [orders, effectiveTimeView, monthIdx, selectedYear, dateFrom, dateTo, rangeError]);
+
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+
+  /* ══════════════════════════════════════════════════════════════════════
+   * DESCARGA EXCEL — mismo estilo (ExcelJS + paleta magenta + logo
+   * Putongas) que el resto de reportes del sistema (ver ProductionPage.jsx).
+   * Incluye: resumen de KPIs del período/rango activo, desglose por
+   * proceso, y el detalle de las órdenes incluidas en ese filtro.
+   * ══════════════════════════════════════════════════════════════════════ */
+  const handleDownloadExcel = async () => {
+    if (rangeError || downloadingExcel) return;
+    setDownloadingExcel(true);
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'UniStock';
+      wb.created = new Date();
+
+      const ARGB = (hex) => 'FF' + hex.replace('#', '').toUpperCase();
+      const fillSolid = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: ARGB(hex) } });
+      const thinBorder = (hex = '#FF4FD6') => {
+        const c = { style: 'thin', color: { argb: ARGB(hex) } };
+        return { top: c, bottom: c, left: c, right: c };
+      };
+      const now = new Date();
+      const fechaGeneracion = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+      const periodoTexto = isCustomRange
+        ? `${new Date(`${dateFrom}T00:00:00`).toLocaleDateString('es-CO')} — ${new Date(`${dateTo}T00:00:00`).toLocaleDateString('es-CO')}`
+        : (timeView === 'Semana' ? `${selectedMonth} ${selectedYear} (semana actual)`
+          : timeView === 'Mes' ? `${selectedMonth} ${selectedYear}`
+            : `Año ${selectedYear}`);
+
+      let logoImageId = null;
+      try {
+        const logoRes = await fetch(putongasLogoUrl);
+        const logoBlob = await logoRes.blob();
+        const logoBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(logoBlob);
+        });
+        logoImageId = wb.addImage({ base64: logoBase64, extension: 'png' });
+      } catch (e) {
+        console.warn('[Dashboard] No se pudo cargar el logo para el Excel:', e);
+      }
+
+      /* ── Hoja 1: Resumen ── */
+      const wsResumen = wb.addWorksheet('Resumen', { pageSetup: { orientation: 'landscape', fitToPage: true } });
+      wsResumen.columns = [{ key: 'a', width: 30 }, { key: 'b', width: 20 }, { key: 'c', width: 20 }, { key: 'd', width: 20 }];
+
+      if (logoImageId) wsResumen.addImage(logoImageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 46, height: 60 } });
+
+      wsResumen.mergeCells('B1:D1');
+      wsResumen.getRow(1).height = 30;
+      wsResumen.getCell('B1').value = 'Dashboard de Producción — Sistema de Gestión UniStock';
+      wsResumen.getCell('B1').font = { name: 'Arial', size: 15, bold: true, color: { argb: '000000' } };
+      wsResumen.getCell('B1').alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      ['A1', 'B1', 'C1', 'D1'].forEach(ref => { wsResumen.getCell(ref).fill = fillSolid('#FFFFFF'); });
+
+      wsResumen.mergeCells('B2:D2');
+      wsResumen.getRow(2).height = 18;
+      wsResumen.getCell('B2').value = `Generado el ${fechaGeneracion}  ·  Período: ${periodoTexto}`;
+      wsResumen.getCell('B2').font = { name: 'Arial', size: 10, color: { argb: '#000000' } };
+      wsResumen.getCell('B2').alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      ['A2', 'B2', 'C2', 'D2'].forEach(ref => { wsResumen.getCell(ref).fill = fillSolid('#FFFFFF'); });
+      wsResumen.getCell('B2').border = { bottom: { style: 'thin', color: { argb: ARGB('#FF4FD6') } } };
+
+      wsResumen.getRow(3).height = 6;
+      ['A3', 'B3', 'C3', 'D3'].forEach(ref => { wsResumen.getCell(ref).fill = fillSolid('#ffffff'); });
+
+      // Tabla de KPIs
+      const kpiHeaderRow = wsResumen.getRow(4);
+      kpiHeaderRow.height = 24;
+      ['Indicador', 'Valor', '', ''].forEach((h, i) => {
+        const cell = kpiHeaderRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: ARGB('#FF4FD6') } };
+        cell.fill = fillSolid('#FFFFFF');
+        cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        const pinkThin = { style: 'thin', color: { argb: ARGB('#FF4FD6') } };
+        cell.border = { top: pinkThin, left: pinkThin, right: pinkThin, bottom: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      });
+
+      const kpiRows = [
+        ['Producciones actuales', stats.current || 0],
+        [stats.periodLabel ? `Completadas ${stats.periodLabel}` : 'Completadas', stats.completedThisMonth || 0],
+        ['Por iniciar', stats.pending || 0],
+        [stats.avgPeriodLabel ? `Tiempo promedio (${stats.avgPeriodLabel})` : 'Tiempo promedio', stats.avgTime || '—'],
+        ['Producciones con retraso', generalStatus.delayed || 0],
+        ['Producciones en orden', generalStatus.onTrack || 0],
+        ['Total de órdenes en el período', filteredOrdersForExport.length],
+      ];
+      kpiRows.forEach((vals, i) => {
+        const row = wsResumen.getRow(5 + i);
+        row.height = 20;
+        vals.forEach((v, ci) => {
+          const cell = row.getCell(ci + 1);
+          cell.value = v;
+          cell.fill = fillSolid('#FFFFFF');
+          cell.border = thinBorder();
+          cell.alignment = { horizontal: ci === 1 ? 'right' : 'left', vertical: 'middle', indent: ci === 1 ? 0 : 1 };
+          cell.font = ci === 1
+            ? { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#a858d6') } }
+            : { name: 'Arial', size: 10, color: { argb: 'FF374151' } };
+        });
+      });
+
+      // Tabla de procesos (barData) debajo de los KPIs
+      const procTitleRowIdx = 5 + kpiRows.length + 1;
+      wsResumen.mergeCells(`A${procTitleRowIdx}:D${procTitleRowIdx}`);
+      wsResumen.getCell(`A${procTitleRowIdx}`).value = 'Órdenes por proceso';
+      wsResumen.getCell(`A${procTitleRowIdx}`).font = { name: 'Arial', size: 12, bold: true, color: { argb: '000000' } };
+      wsResumen.getCell(`A${procTitleRowIdx}`).fill = fillSolid('#FFFFFF');
+      wsResumen.getCell(`A${procTitleRowIdx}`).alignment = { indent: 1 };
+
+      const procHeaderRowIdx = procTitleRowIdx + 1;
+      const procHeaderRow = wsResumen.getRow(procHeaderRowIdx);
+      procHeaderRow.height = 22;
+      ['Proceso', 'Cantidad', '', ''].forEach((h, i) => {
+        const cell = procHeaderRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#FF4FD6') } };
+        cell.fill = fillSolid('#FFFFFF');
+        cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        const pinkThin = { style: 'thin', color: { argb: ARGB('#FF4FD6') } };
+        cell.border = { top: pinkThin, left: pinkThin, right: pinkThin, bottom: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      });
+      barData.forEach((p, i) => {
+        const row = wsResumen.getRow(procHeaderRowIdx + 1 + i);
+        row.height = 18;
+        [p.name, p.value].forEach((v, ci) => {
+          const cell = row.getCell(ci + 1);
+          cell.value = v;
+          cell.fill = fillSolid('#FFFFFF');
+          cell.border = thinBorder();
+          cell.alignment = { horizontal: ci === 1 ? 'right' : 'left', vertical: 'middle', indent: ci === 1 ? 0 : 1 };
+          cell.font = { name: 'Arial', size: 10, color: { argb: 'FF374151' } };
+        });
+      });
+
+      /* ── Hoja 2: Órdenes (detalle) ── */
+      const wsOrdenes = wb.addWorksheet('Órdenes', { pageSetup: { orientation: 'landscape', fitToPage: true } });
+      wsOrdenes.columns = [
+        { key: 'orden', width: 10 },
+        { key: 'producto', width: 30 },
+        { key: 'cliente', width: 24 },
+        { key: 'estado', width: 16 },
+        { key: 'cantidad', width: 12 },
+        { key: 'fecha', width: 16 },
+      ];
+      const ordHeaderRow = wsOrdenes.getRow(1);
+      ordHeaderRow.height = 24;
+      ['Orden', 'Producto', 'Cliente', 'Estado', 'Cantidad', 'Fecha'].forEach((h, i) => {
+        const cell = ordHeaderRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: ARGB('#FF4FD6') } };
+        cell.fill = fillSolid('#FFFFFF');
+        cell.alignment = { horizontal: i === 4 ? 'right' : 'left', vertical: 'middle', indent: i === 4 ? 0 : 1 };
+        const pinkThin = { style: 'thin', color: { argb: ARGB('#FF4FD6') } };
+        cell.border = { top: pinkThin, left: pinkThin, right: pinkThin, bottom: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      });
+      filteredOrdersForExport.forEach((o, i) => {
+        const row = wsOrdenes.getRow(2 + i);
+        row.height = 20;
+        const fecha = orderDate(o);
+        const values = [
+          `#${o.orderNumber || o.numero_orden || ''}`,
+          o.producto || o.referencia || '—',
+          o.client || o.cliente || '—',
+          o.estado || o.status || '—',
+          totalProductos(o),
+          fecha ? new Date(fecha).toLocaleDateString('es-CO') : '—',
+        ];
+        values.forEach((v, ci) => {
+          const cell = row.getCell(ci + 1);
+          cell.value = v;
+          cell.fill = fillSolid('#FFFFFF');
+          cell.border = thinBorder();
+          cell.alignment = { horizontal: ci === 4 ? 'right' : 'left', vertical: 'middle', indent: ci === 4 ? 0 : 1 };
+          cell.font = { name: 'Arial', size: 10, color: { argb: 'FF374151' } };
+        });
+        row.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#FF4FD6') } };
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const suffix = isCustomRange ? `${dateFrom}_a_${dateTo}` : `${(timeView || '').toLowerCase()}`;
+      link.download = `dashboard-produccion-${suffix}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('[Dashboard] Error generando el Excel:', e);
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
 
   const GlobalTimeFilter = () => (
     <div className="flex items-center gap-2">
@@ -446,13 +758,66 @@ export default function ProductionDashboard() {
           un tinte rosado (#fdf6fc) que no coincidía con ningún otro módulo */}
 
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h1 className="text-xl font-bold text-gray-900" style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: '0' }}>Dashboard</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* ── Filtro de rango de fechas ──
+              Al llenar ambas fechas, reemplaza automáticamente al filtro de
+              Período (Semana/Mes/Año) en todas las tarjetas y gráficas. */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2 py-1">
+            <span className="text-xs text-gray-500 font-medium pl-1">Del</span>
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="text-xs text-gray-800 border-none outline-none bg-transparent"
+              style={{ colorScheme: 'light' }}
+            />
+            <span className="text-xs text-gray-500 font-medium">al</span>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="text-xs text-gray-800 border-none outline-none bg-transparent"
+              style={{ colorScheme: 'light' }}
+            />
+            {isCustomRange && (
+              <button
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                title="Quitar filtro de fechas"
+                className="text-gray-400 hover:text-fuchsia-600 px-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            )}
+          </div>
+
           <span className="text-sm text-gray-500 font-medium">Período:</span>
-          <GlobalTimeFilter />
+          <div style={isCustomRange ? { opacity: 0.4, pointerEvents: 'none' } : undefined} title={isCustomRange ? 'Deshabilitado mientras haya un rango de fechas activo' : undefined}>
+            <GlobalTimeFilter />
+          </div>
+
+          {/* ── Botón de descarga de reporte Excel ── */}
+          <button
+            onClick={handleDownloadExcel}
+            disabled={downloadingExcel || rangeError}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-white transition-opacity"
+            style={{ background: '#FF4FD6', opacity: (downloadingExcel || rangeError) ? 0.6 : 1, cursor: (downloadingExcel || rangeError) ? 'not-allowed' : 'pointer' }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {downloadingExcel ? 'Generando...' : 'Descargar reporte'}
+          </button>
         </div>
       </div>
+      {rangeError && (
+        <div className="mb-4 px-4 py-2 rounded-xl text-xs font-medium" style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca' }}>
+          La fecha "Del" no puede ser posterior a la fecha "al". Corrige el rango para ver los datos.
+        </div>
+      )}
 
       {/* Fila 1: Stats */}
       <Card className="mb-4">
@@ -520,8 +885,10 @@ export default function ProductionDashboard() {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <span>Período: <span className="font-semibold text-fuchsia-600">
-                {timeView === 'Semana' ? `${selectedMonth} ${selectedYear} — por semana` :
-                  timeView === 'Mes' ? `${selectedMonth} ${selectedYear}` : `Año ${selectedYear}`}
+                {isCustomRange
+                  ? `${new Date(`${dateFrom}T00:00:00`).toLocaleDateString('es-CO')} – ${new Date(`${dateTo}T00:00:00`).toLocaleDateString('es-CO')}`
+                  : timeView === 'Semana' ? `${selectedMonth} ${selectedYear} — por semana` :
+                    timeView === 'Mes' ? `${selectedMonth} ${selectedYear}` : `Año ${selectedYear}`}
               </span></span>
             </div>
           </div>
@@ -643,15 +1010,19 @@ export default function ProductionDashboard() {
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span>Período: <span className="font-semibold text-fuchsia-600">
-              {barTimeView === 'Día' ? 'Hoy' : barTimeView === 'Mes' ? `${selectedMonth} ${selectedYear}` : `Año ${selectedYear}`}
+              {isCustomRange
+                ? `${new Date(`${dateFrom}T00:00:00`).toLocaleDateString('es-CO')} – ${new Date(`${dateTo}T00:00:00`).toLocaleDateString('es-CO')}`
+                : barTimeView === 'Día' ? 'Hoy' : barTimeView === 'Mes' ? `${selectedMonth} ${selectedYear}` : `Año ${selectedYear}`}
             </span></span>
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-0.5 ml-2">
-              {['Día', 'Mes', 'Año'].map(p => (
-                <button key={p} onClick={() => setBarTimeView(p)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${barTimeView === p ? 'bg-fuchsia-500 text-white' : 'text-gray-500 hover:text-gray-800'}`}>
-                  {p}
-                </button>
-              ))}
+            <div style={isCustomRange ? { opacity: 0.4, pointerEvents: 'none' } : undefined} title={isCustomRange ? 'Deshabilitado mientras haya un rango de fechas activo' : undefined}>
+              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-0.5 ml-2">
+                {['Día', 'Mes', 'Año'].map(p => (
+                  <button key={p} onClick={() => setBarTimeView(p)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${barTimeView === p ? 'bg-fuchsia-500 text-white' : 'text-gray-500 hover:text-gray-800'}`}>
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
