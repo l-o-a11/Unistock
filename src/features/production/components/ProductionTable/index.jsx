@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../../shared/components/LoadingState';
 import { useSedeScope } from '../../../shared/hooks/useSedeScope';
-import { ProductionAPIClient } from '../../services/ProductionAPIClient';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const IconEye = () => (
@@ -36,6 +35,11 @@ const IconUser = () => (
 const IconCalendar = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+const IconAlert = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
 
@@ -75,14 +79,46 @@ const StatusBadge = ({ status, small }) => {
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
+// ✅ Fix: "Confirmar" ahora delega en el prop `onConfirmar` (provisto por
+// ProductionsPage) en vez de llamar directamente a ProductionAPIClient.
+// Así el padre controla el refetch real de la lista completa y el Alert
+// de éxito/error consistente con el resto de la app. Antes se llamaba a
+// onExpandRow (que solo trae el detalle de artículos de UNA orden, no
+// refresca la lista), por eso la fila nunca se actualizaba ni se veía
+// ningún mensaje de éxito. El único feedback era un alert() nativo del
+// navegador en caso de error, que además tapaba el flujo.
 const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
   const navigate = useNavigate();
   const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
   const esEmpleado = isEmpleado;
+
+  const closeConfirmModal = () => {
+    if (confirmLoading) return;
+    setConfirmModal({ open: false, prod: null });
+    setConfirmError('');
+  };
+
+  const handleConfirmar = async () => {
+    if (!confirmModal.prod || typeof onConfirmar !== 'function') return;
+    setConfirmLoading(true);
+    setConfirmError('');
+    try {
+      await onConfirmar(confirmModal.prod.id);
+      // Éxito: el padre (ProductionsPage) se encarga de refrescar la lista
+      // y de mostrar el Alert de éxito. Aquí solo cerramos el modal.
+      setConfirmModal({ open: false, prod: null });
+    } catch (err) {
+      console.error('[ProductionTable] Error confirmando etapa:', err);
+      setConfirmError(err?.message || 'No se pudo confirmar la finalización de la etapa.');
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
 
   if (!productions || productions.length === 0) {
     return (
@@ -580,36 +616,37 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
       {/* ── Modal de confirmación para el empleado ── */}
       {confirmModal.open && confirmModal.prod && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-          onClick={() => !confirmLoading && setConfirmModal({ open: false, prod: null })}>
+          onClick={closeConfirmModal}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
               Confirmar finalización
             </h3>
-            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
+              ¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
               Se avisará al gerente y la orden pasará a la siguiente etapa.
             </p>
+
+            {/* ✅ Fix: antes el error se mostraba con alert() nativo del
+                navegador (bloqueante y fuera de estilo). Ahora es un banner
+                inline consistente con el resto de la app. */}
+            {confirmError && (
+              <div style={{
+                margin: "0 0 16px", padding: "8px 12px",
+                background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8,
+                display: "flex", alignItems: "flex-start", gap: 8,
+              }}>
+                <IconAlert />
+                <span style={{ fontSize: 12, color: "#b91c1c" }}>{confirmError}</span>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmModal({ open: false, prod: null })} disabled={confirmLoading}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: "pointer", color: "#555" }}>
+              <button onClick={closeConfirmModal} disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: confirmLoading ? "not-allowed" : "pointer", color: "#555" }}>
                 Cancelar
               </button>
-              <button onClick={async () => {
-                setConfirmLoading(true);
-                try {
-                  await ProductionAPIClient.confirmarEtapa(confirmModal.prod.id);
-                  setConfirmModal({ open: false, prod: null });
-                  // Recargar la lista para reflejar el cambio
-                  if (typeof onExpandRow === 'function') {
-                    await onExpandRow(confirmModal.prod.id);
-                  }
-                } catch (err) {
-                  alert(err?.message || "No se pudo confirmar la finalización de la etapa");
-                } finally {
-                  setConfirmLoading(false);
-                }
-              }} disabled={confirmLoading}
+              <button onClick={handleConfirmar} disabled={confirmLoading}
                 style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: confirmLoading ? "not-allowed" : "pointer", opacity: confirmLoading ? 0.6 : 1 }}>
                 {confirmLoading ? "Confirmando..." : "Confirmar"}
               </button>

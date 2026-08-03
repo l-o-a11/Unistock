@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ProductionAPIClient } from '../services/ProductionAPIClient';
-import { getCurrentUser } from '../services/ProductionAPI';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -175,18 +174,27 @@ export const useProductions = () => {
   // ── Crear orden + detalles ────────────────────────────────────────────────
   const createProduction = async (productionData) => {
     try {
+      const cliente = String(productionData.client || productionData.cliente || '').trim();
+      const fechaEntrega = productionData.deliveryDate || productionData.fecha_entrega || productionData.fechaSolicitud || '';
+      const tipo = productionData.tipo || 'produccion';
+      const referencia = String(productionData.referencia || productionData.reference || '').trim();
+      const producto = String(productionData.producto || productionData.product || '').trim();
       const backendData = {
-        cliente: (productionData.client || productionData.cliente || '').trim(),
-        fecha_entrega: productionData.deliveryDate || productionData.fecha_entrega || productionData.fechaSolicitud,
-        tipo: productionData.tipo || 'produccion',
-        referencia: productionData.referencia || productionData.reference || '',
-        producto: productionData.producto || productionData.product || '',
+        cliente,
+        fecha_entrega: fechaEntrega || new Date().toISOString(),
+        tipo,
+        referencia,
+        producto,
+        techSpecification: productionData.techSheet || productionData.techSpecification || null,
         techSheet: productionData.techSheet || productionData.techSpecification || null,
-        designImages: productionData.designImages || [],
-        fromDamaged: productionData.fromDamaged || false,
+        designImages: Array.isArray(productionData.designImages) ? productionData.designImages : [],
+        finishedImages: Array.isArray(productionData.finishedImages) ? productionData.finishedImages : [],
+        finishedImageUrl: productionData.finishedImageUrl || null,
+        fromDamaged: Boolean(productionData.fromDamaged),
         originalOrderNumber: productionData.originalOrderNumber || null,
         originalOrderStatus: productionData.originalOrderStatus || null,
         sedeId: productionData.sedeId || null,
+        id_usuario: productionData.id_usuario || productionData.userId || null,
       };
 
       const newOrder = await ProductionAPIClient.createOrder(backendData);
@@ -194,7 +202,6 @@ export const useProductions = () => {
 
       // Armar array de detalles desde los campos del form
       const detalles = [];
-      const referencia = String(productionData.referencia || '').trim();
       const cantidadPrincipal = Number(productionData.cantidad) || 0;
       const colorPrincipal = String(productionData.color || '').trim();
 
