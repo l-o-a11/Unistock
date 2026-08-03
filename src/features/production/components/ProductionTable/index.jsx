@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../../shared/components/LoadingState';
-import Alert from '../../../shared/components/Alert';
 import { useSedeScope } from '../../../shared/hooks/useSedeScope';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
@@ -93,11 +92,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
   const [loadingDetailId, setLoadingDetailId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
-<<<<<<< HEAD
-  const [alertConfig, setAlertConfig] = useState({ open: false, type: 'success', title: '', message: '' });
-=======
   const [confirmError, setConfirmError] = useState('');
->>>>>>> c20ad5babb7ae4d53108351406b5064caf198b56
   const navigate = useNavigate();
   const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
   const esEmpleado = isEmpleado;
@@ -627,11 +622,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
             <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
               Confirmar finalización
             </h3>
-<<<<<<< HEAD
-            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-=======
             <p style={{ margin: "0 0 16px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
->>>>>>> c20ad5babb7ae4d53108351406b5064caf198b56
               ¿Confirmas que terminaste tu parte de la etapa <strong>"{confirmModal.prod.status}"</strong>?
               Se avisará al gerente y la orden pasará a la siguiente etapa.
             </p>
@@ -655,36 +646,7 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                 style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, cursor: confirmLoading ? "not-allowed" : "pointer", color: "#555" }}>
                 Cancelar
               </button>
-<<<<<<< HEAD
-              <button onClick={async () => {
-                setConfirmLoading(true);
-                try {
-                  await ProductionAPIClient.confirmarEtapa(confirmModal.prod.id);
-                  setConfirmModal({ open: false, prod: null });
-                  setAlertConfig({
-                    open: true,
-                    type: 'success',
-                    title: 'Producción confirmada',
-                    message: 'La finalización de la etapa fue registrada correctamente.',
-                  });
-                  // Recargar la lista para reflejar el cambio
-                  if (typeof onExpandRow === 'function') {
-                    await onExpandRow(confirmModal.prod.id);
-                  }
-                } catch (err) {
-                  setAlertConfig({
-                    open: true,
-                    type: 'error',
-                    title: 'No se pudo confirmar la producción',
-                    message: err?.message || 'No se pudo confirmar la finalización de la etapa.',
-                  });
-                } finally {
-                  setConfirmLoading(false);
-                }
-              }} disabled={confirmLoading}
-=======
               <button onClick={handleConfirmar} disabled={confirmLoading}
->>>>>>> c20ad5babb7ae4d53108351406b5064caf198b56
                 style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#FF4FD6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: confirmLoading ? "not-allowed" : "pointer", opacity: confirmLoading ? 0.6 : 1 }}>
                 {confirmLoading ? "Confirmando..." : "Confirmar"}
               </button>
@@ -692,13 +654,6 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
           </div>
         </div>
       )}
-      <Alert
-        isOpen={alertConfig.open}
-        type={alertConfig.type}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onCancel={() => setAlertConfig((p) => ({ ...p, open: false }))}
-      />
     </>
   );
 };
