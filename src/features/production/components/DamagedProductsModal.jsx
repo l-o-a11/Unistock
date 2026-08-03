@@ -79,11 +79,15 @@ const DamagedProductsModal = ({
   isOpen,
   production,
   onClose,
+  onIgnore,
   onNewOrder,
   onNewTechSheet,
+  // 🆕 "Solo crear ficha técnica": crea la producción de reemplazo y la deja
+  // en "Ficha Técnica", lista para pasar a corte, SIN abrir el editor.
+  onNewTechSheetOnly,
 }) => {
-  // IDs de los artículos seleccionados como dañados
-  const [selectedIds, setSelectedIds] = useState(new Set());
+  // Cantidad dañada seleccionada por cada artículo
+  const [selectedQuantities, setSelectedQuantities] = useState({});
   // Paso: "select" → seleccionar artículos | "confirm" → confirmar acción elegida
   const [step,        setStep]        = useState("select");
   const [chosenAction, setChosenAction] = useState(null); // "order" | "techsheet"
@@ -93,40 +97,87 @@ const DamagedProductsModal = ({
   // Reiniciar estado al abrir
   useEffect(() => {
     if (isOpen) {
-      setSelectedIds(new Set(details.map((_, i) => i)));  // todos seleccionados por defecto
+      const initialQuantities = Object.fromEntries(
+        details.map((detail, index) => [index, Number(detail.quantity) || 0])
+      );
+      setSelectedQuantities(initialQuantities);
       setStep("select");
       setChosenAction(null);
     }
-  }, [isOpen]);
+  }, [isOpen, details]);
 
   if (!isOpen || !production) return null;
 
-  const selectedCount   = selectedIds.size;
-  const damagedDetails  = details.filter((_, i) => selectedIds.has(i));
+  const selectedCount   = Object.values(selectedQuantities).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
+  const damagedDetails  = details
+    .map((detail, index) => ({ ...detail, quantity: Number(selectedQuantities[index] || 0), sourceIndex: index }))
+    .filter((detail) => Number(detail.quantity) > 0);
   const hasSelection    = selectedCount > 0;
+  const isTechSheetAction = chosenAction === "techsheet" || chosenAction === "techsheetOnly";
 
   // ── Handlers de selección ────────────────────────────────────────────────
 
-  const toggleItem = (index) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(index) ? next.delete(index) : next.add(index);
-      return next;
-    });
+  const updateQuantity = (index, nextValue) => {
+    const maxQty = Number(details[index]?.quantity || 0);
+    const normalized = Math.max(0, Math.min(Number(nextValue) || 0, maxQty));
+    setSelectedQuantities(prev => ({ ...prev, [index]: normalized }));
   };
 
-  const selectAll   = () => setSelectedIds(new Set(details.map((_, i) => i)));
-  const deselectAll = () => setSelectedIds(new Set());
+  const selectAll = () => {
+    const initialQuantities = Object.fromEntries(
+      details.map((detail, index) => [index, Number(detail.quantity) || 0])
+    );
+    setSelectedQuantities(initialQuantities);
+  };
+
+  const deselectAll = () => {
+    const initialQuantities = Object.fromEntries(
+      details.map((_, index) => [index, 0])
+    );
+    setSelectedQuantities(initialQuantities);
+  };
 
   // ── Handlers de acción ───────────────────────────────────────────────────
 
+  // 🐛 FIX (Issue 3): se eliminó el `window.confirm()` nativo que se usaba
+  // para la acción "Nueva ficha técnica". Ahora TODAS las acciones pasan por
+  // el paso de confirmación estilizado "confirm" del modal, que muestra un
+  // resumen de lo que se hará y pide confirmación con los botones de la app.
   const handleNewOrder = () => {
-    onNewOrder(damagedDetails);
-    onClose();
+    setChosenAction("order");
+    setStep("confirm");
   };
 
   const handleNewTechSheet = () => {
-    onNewTechSheet(damagedDetails);
+    setChosenAction("techsheet");
+    setStep("confirm");
+  };
+
+  const confirmAction = (action) => {
+    if (action === "order") {
+      onNewOrder(damagedDetails);
+    } else if (action === "techsheet") {
+      onNewTechSheet(damagedDetails);
+    } else if (action === "techsheetOnly") {
+      // 🐛 FIX: "Solo crear ficha técnica" — crea la producción de reemplazo
+      // y la deja en "Ficha Técnica" lista para pasar a corte, sin abrir el
+      // editor (la ficha se hereda del producto original).
+      if (typeof onNewTechSheetOnly === "function") onNewTechSheetOnly(damagedDetails);
+      else onNewTechSheet(damagedDetails);
+    }
+    onClose();
+  };
+
+  const backToSelect = () => {
+    setStep("select");
+    setChosenAction(null);
+  };
+
+  const handleIgnore = () => {
+    if (typeof onIgnore === "function") {
+      onIgnore();
+      return;
+    }
     onClose();
   };
 
@@ -160,9 +211,164 @@ const DamagedProductsModal = ({
           overflow: "hidden",
           maxHeight: "90vh",
           display: "flex", flexDirection: "column",
+          position: "relative",
         }}
         onClick={e => e.stopPropagation()}
       >
+
+        {/* ── PASO CONFIRMACIÓN (reemplaza el window.confirm nativo) ── */}
+        {step === "confirm" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 20,
+            background: "#f6f6f8", borderRadius: 20,
+            display: "flex", flexDirection: "column",
+            overflow: "hidden", animation: "fadeIn 0.18s ease",
+          }}>
+            {/* Header */}
+            <div style={{
+              background: "#fff", borderBottom: "3px solid #FF4FD6",
+              padding: "18px 22px", display: "flex", justifyContent: "space-between",
+              alignItems: "flex-start", flexShrink: 0,
+            }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: "#fdf2f8", display: "flex", alignItems: "center",
+                  justifyContent: "center", flexShrink: 0,
+                  boxShadow: "0 4px 12px rgba(255,79,214,0.2)",
+                }}>
+                  {isTechSheetAction ? <FileIcon /> : <PlusIcon />}
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
+                    {isTechSheetAction ? "Crear ficha técnica de reemplazo" : "Nueva producción de reemplazo"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "#9ca3af", lineHeight: 1.5 }}>
+                    {chosenAction === "techsheetOnly"
+                      ? "La producción quedará en Ficha Técnica, lista para continuar a corte."
+                      : "Revisa el resumen antes de continuar."}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={backToSelect}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  border: "1px solid #e5e7eb", background: "#f9fafb",
+                  color: "#555", cursor: "pointer", fontSize: 18,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ overflowY: "auto", padding: "16px 22px", flex: 1 }}>
+              <div style={{
+                padding: "12px 16px", borderRadius: 12, marginBottom: 14,
+                background: "#fdf2f8", border: "1px solid #f9a8d4",
+                fontSize: 12.5, color: "#6b21a8", lineHeight: 1.6,
+              }}>
+                {chosenAction === "techsheet" ? (
+                  <>Se creará una <strong>nueva producción de reemplazo</strong> con los artículos dañados y se abrirá la <strong>ficha técnica</strong> para ajustarla según lo modificado/dañado.</>
+                ) : chosenAction === "techsheetOnly" ? (
+                  <>Se creará una <strong>nueva producción de reemplazo</strong> con los artículos dañados, en estado <strong>"Ficha Técnica"</strong> y lista para pasar a corte.</>
+                ) : (
+                  <>Se abrirá el <strong>formulario de nueva producción</strong> pre-llenado con los artículos dañados, para rehacer la misma referencia desde el inicio.</>
+                )}
+              </div>
+
+              <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Artículos dañados ({damagedDetails.length})
+              </p>
+              <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid #f0f0f0" }}>
+                {damagedDetails.map((detail, i) => (
+                  <div key={i} style={{
+                    padding: "10px 14px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                    borderBottom: i < damagedDetails.length - 1 ? "1px solid #f5f5f5" : "none",
+                  }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {detailLabel(detail)}
+                    </span>
+                    <span style={{
+                      padding: "3px 9px", borderRadius: 8, flexShrink: 0,
+                      fontSize: 11, fontWeight: 700,
+                      background: "#fef3c7", color: "#d97706",
+                    }}>
+                      {Number(detail.quantity) || 0} uds
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: "14px 22px 20px", borderTop: "1px solid #f0f0f0",
+              background: "#fff", flexShrink: 0,
+              display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              {chosenAction === "order" ? (
+                <button
+                  onClick={() => confirmAction("order")}
+                  style={{
+                    width: "100%", padding: "12px", borderRadius: 12,
+                    border: "none", background: "linear-gradient(135deg, #FF4FD6, #ff4fd6)",
+                    color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    boxShadow: "0 4px 14px rgba(255,79,214,0.3)",
+                  }}
+                >
+                  <CheckIcon />
+                  Continuar a nueva producción
+                </button>
+              ) : (
+                <>
+                  {/* Crear producción y abrir la ficha para ajustarla */}
+                  <button
+                    onClick={() => confirmAction("techsheet")}
+                    style={{
+                      width: "100%", padding: "12px", borderRadius: 12,
+                      border: "none", background: "linear-gradient(135deg, #FF4FD6, #ff4fd6)",
+                      color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                      boxShadow: "0 4px 14px rgba(255,79,214,0.3)",
+                    }}
+                  >
+                    <CheckIcon />
+                    Crear producción y abrir ficha
+                  </button>
+                  {/* 🆕 Solo crear la ficha: deja la producción en Ficha Técnica, lista para corte */}
+                  <button
+                    onClick={() => confirmAction("techsheetOnly")}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: 12,
+                      border: "1.5px solid #FF4FD6", background: "#fff",
+                      color: "#FF4FD6", cursor: "pointer", fontSize: 13, fontWeight: 700,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    }}
+                  >
+                    <FileIcon />
+                    Solo crear ficha técnica
+                  </button>
+                </>
+              )}
+              <button
+                onClick={backToSelect}
+                style={{
+                  width: "100%", padding: "10px", borderRadius: 10,
+                  border: "1.5px solid #e5e7eb", background: "#f9fafb",
+                  color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                }}
+              >
+                Volver a la selección
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── HEADER ── */}
         <div className="dmg-stats-grid" style={{
@@ -256,7 +462,7 @@ const DamagedProductsModal = ({
                     background: selectedCount > 0 ? "#fef3c7" : "#f3f4f6",
                     color: selectedCount > 0 ? "#d97706" : "#9ca3af",
                   }}>
-                    {selectedCount} de {details.length} seleccionados
+                    {selectedCount} uds seleccionadas
                   </span>
                 )}
               </span>
@@ -284,34 +490,19 @@ const DamagedProductsModal = ({
             ) : (
               <div>
                 {details.map((detail, index) => {
-                  const isChecked = selectedIds.has(index);
+                  const selectedQty = Number(selectedQuantities[index] || 0);
+                  const maxQty = Number(detail.quantity || 0);
                   return (
                     <div
                       key={index}
-                      onClick={() => toggleItem(index)}
                       style={{
                         padding: "10px 12px",
                         display: "flex", alignItems: "center", gap: 12,
-                        cursor: "pointer",
                         borderBottom: index < details.length - 1 ? "1px solid #f5f5f5" : "none",
-                        background: isChecked ? "#fffbeb" : "#fff",
+                        background: selectedQty > 0 ? "#fffbeb" : "#fff",
                         transition: "background 0.12s",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = isChecked ? "#fef3c7" : "#fafafa"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = isChecked ? "#fffbeb" : "#fff"; }}
                     >
-                      {/* Checkbox personalizado */}
-                      <div style={{
-                        width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-                        border: isChecked ? "none" : "2px solid #d1d5db",
-                        background: isChecked ? "#f59e0b" : "#fff",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "all 0.15s",
-                        boxShadow: isChecked ? "0 2px 8px rgba(245,158,11,0.35)" : "none",
-                      }}>
-                        {isChecked && <CheckIcon />}
-                      </div>
-
                       {/* Info del artículo */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -322,18 +513,66 @@ const DamagedProductsModal = ({
                             Ref. Corte: {detail.refCorte}
                           </p>
                         )}
+                        <p style={{ margin: "3px 0 0", fontSize: 11, color: "#6b7280" }}>
+                          Cantidad total: {maxQty} uds
+                        </p>
+                      </div>
+
+                      {/* Selector de cantidad dañada */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); updateQuantity(index, selectedQty - 1); }}
+                          disabled={selectedQty <= 0}
+                          style={{
+                            width: 28, height: 28, borderRadius: 8, border: "1px solid #e5e7eb",
+                            background: selectedQty > 0 ? "#fff" : "#f9fafb",
+                            color: selectedQty > 0 ? "#374151" : "#9ca3af",
+                            cursor: selectedQty > 0 ? "pointer" : "not-allowed",
+                            fontSize: 15, fontWeight: 700,
+                          }}
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          max={maxQty}
+                          value={selectedQty}
+                          onChange={(e) => updateQuantity(index, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            width: 70, padding: "6px 8px", borderRadius: 8,
+                            border: "1px solid #d1d5db", textAlign: "center",
+                            fontSize: 12, fontWeight: 700, color: "#374151",
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); updateQuantity(index, selectedQty + 1); }}
+                          disabled={selectedQty >= maxQty}
+                          style={{
+                            width: 28, height: 28, borderRadius: 8, border: "1px solid #e5e7eb",
+                            background: selectedQty < maxQty ? "#fff" : "#f9fafb",
+                            color: selectedQty < maxQty ? "#374151" : "#9ca3af",
+                            cursor: selectedQty < maxQty ? "pointer" : "not-allowed",
+                            fontSize: 15, fontWeight: 700,
+                          }}
+                        >
+                          +
+                        </button>
                       </div>
 
                       {/* Badge de estado */}
                       <span style={{
                         padding: "3px 8px", borderRadius: 8,
                         fontSize: 10, fontWeight: 700,
-                        background: isChecked ? "#fef3c7" : "#f3f4f6",
-                        color: isChecked ? "#d97706" : "#9ca3af",
+                        background: selectedQty > 0 ? "#fef3c7" : "#f3f4f6",
+                        color: selectedQty > 0 ? "#d97706" : "#9ca3af",
                         flexShrink: 0,
                         transition: "all 0.15s",
                       }}>
-                        {isChecked ? "⚠ Dañado" : "OK"}
+                        {selectedQty > 0 ? `${selectedQty} uds` : "Sin seleccionar"}
                       </span>
                     </div>
                   );
@@ -362,8 +601,8 @@ const DamagedProductsModal = ({
               background: "#fef3c7", border: "1px solid #fcd34d",
               fontSize: 12, color: "#92400e", lineHeight: 1.5,
             }}>
-              <strong>Tienes {selectedCount} artículo{selectedCount !== 1 ? "s" : ""} dañado{selectedCount !== 1 ? "s" : ""} seleccionado{selectedCount !== 1 ? "s" : ""}.</strong>
-              {" "}Elige qué acción tomar con ellos:
+              <strong>Tienes {selectedCount} unidad{selectedCount !== 1 ? "es" : ""} dañada{selectedCount !== 1 ? "s" : ""} seleccionada{selectedCount !== 1 ? "s" : ""}.</strong>
+              {" "}Puedes ajustar la cantidad por artículo y seguir con la nueva ruta elegida.
             </div>
           )}
 
@@ -382,46 +621,57 @@ const DamagedProductsModal = ({
               <p style={{ margin: "0 0 10px", fontSize: 11, color: "#9ca3af", textAlign: "center" }}>
                 ¿Qué deseas hacer con los {selectedCount} artículos dañados?
               </p>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {/* Crear ficha técnica */}
+                  <button
+                    onClick={handleNewTechSheet}
+                    style={{
+                      flex: 1, padding: "11px 16px", borderRadius: 12,
+                      border: "1.5px solid #e5e7eb", background: "#fff",
+                      color: "#374151", cursor: "pointer",
+                      fontSize: 13, fontWeight: 700,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#FF4FD6"; e.currentTarget.style.color = "#FF4FD6"; e.currentTarget.style.background = "#fff0fb"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#374151"; e.currentTarget.style.background = "#fff"; }}
+                  >
+                    <FileIcon />
+                    Nueva ficha técnica
+                  </button>
 
-                {/* Crear ficha técnica */}
+                  {/* Nueva orden para reintentar desde corte */}
+                  <button
+                    onClick={handleNewOrder}
+                    style={{
+                      flex: 1, padding: "11px 16px", borderRadius: 12,
+                      border: "none",
+                      background: "linear-gradient(135deg, #FF4FD6, #ff4fd6)",
+                      color: "#fff", cursor: "pointer",
+                      fontSize: 13, fontWeight: 700,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                      boxShadow: "0 4px 14px rgba(255,79,214,0.3)",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 18px rgba(255,79,214,0.3)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(255,79,214,0.3)"; }}
+                  >
+                    <PlusIcon />
+                    Nueva producción desde corte
+                  </button>
+                </div>
+
                 <button
-                  onClick={handleNewTechSheet}
+                  onClick={handleIgnore}
                   style={{
-                    flex: 1, padding: "11px 16px", borderRadius: 12,
-                    border: "1.5px solid #e5e7eb", background: "#fff",
-                    color: "#374151", cursor: "pointer",
-                    fontSize: 13, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                    transition: "all 0.15s",
+                    width: "100%", padding: "10px",
+                    borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#f9fafb",
+                    color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 700,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#FF4FD6"; e.currentTarget.style.color = "#FF4FD6"; e.currentTarget.style.background = "#fff0fb"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#374151"; e.currentTarget.style.background = "#fff"; }}
                 >
-                  <FileIcon />
-                  Nueva ficha técnica
+                  No hacer nada nuevo
                 </button>
-
-                {/* Nueva orden */}
-                <button
-                  onClick={handleNewOrder}
-                  style={{
-                    flex: 1, padding: "11px 16px", borderRadius: 12,
-                    border: "none",
-                    background: "linear-gradient(135deg, #FF4FD6, #ff4fd6)",
-                    color: "#fff", cursor: "pointer",
-                    fontSize: 13, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                    boxShadow: "0 4px 14px rgba(255,79,214,0.3)",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 18px rgba(255,79,214,0.3)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(255,79,214,0.3)"; }}
-                >
-                  <PlusIcon />
-                  Nueva orden de producción
-                </button>
-
               </div>
             </>
           ) : (
@@ -438,21 +688,6 @@ const DamagedProductsModal = ({
               onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}
             >
               Cerrar — no hay artículos dañados
-            </button>
-          )}
-
-          {/* Siempre disponible: ignorar y cerrar */}
-          {hasSelection && (
-            <button
-              onClick={onClose}
-              style={{
-                marginTop: 8, width: "100%", padding: "8px",
-                borderRadius: 8, border: "none", background: "transparent",
-                color: "#9ca3af", cursor: "pointer", fontSize: 12,
-                textDecoration: "underline",
-              }}
-            >
-              Ignorar y cerrar sin acción
             </button>
           )}
 
