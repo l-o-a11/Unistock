@@ -3,6 +3,9 @@ import { ProductionAPIClient } from '../production/services/ProductionAPIClient'
 import { sedesAPI } from '../sedes/services/sedesAPI';
 import { supplyAPI } from '../supplies/services/supplyAPI';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+// ⚠️ Ajusta esta ruta si la ubicación real de este archivo dentro de
+// `features/` tiene otra profundidad (debe apuntar a shared/assets).
+import putongasLogoUrl from '../shared/assets/putongasLogo.png';
 
 // ── Constantes ─────────────────────────────────────────────────────
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -65,13 +68,6 @@ const totalProductos = (o) =>
   (o.detalles || []).reduce((s, d) => s + (Number(d.cantidad) || 0), 0);
 
 const calcAvgDays = (orders) => {
-  // El "inicio" puede venir en createdAt/updatedAt, pero si el backend no los
-  // incluye en la respuesta de la lista (común cuando el endpoint de listado
-  // no trae timestamps para aligerar el payload), respaldamos con la primera
-  // entrada del historial — igual que ya hace orderDate() para el resto de
-  // las stats del dashboard. Antes, si createdAt/updatedAt venían vacíos,
-  // esta función SIEMPRE devolvía null (por eso el "—" fijo) aunque el resto
-  // de tarjetas sí funcionaran, porque solo ellas usaban ese respaldo.
   const done = orders.filter(o => o.estado === 'Enviado');
   if (!done.length) return null;
 
@@ -107,9 +103,6 @@ const calcAvgDays = (orders) => {
 
   if (!validCount) {
     if (invalidSamples.length) {
-      // 🔎 Diagnóstico temporal: si esto sigue en "—", revisa en la consola
-      // qué campos vienen realmente en las órdenes "Enviado" (createdAt,
-      // updatedAt, historial) para confirmar cuál falta en el backend.
       console.warn('[Dashboard] Tiempo promedio: ninguna orden "Enviado" tiene fechas válidas. Ejemplos:', invalidSamples);
     }
     return null;
@@ -117,7 +110,7 @@ const calcAvgDays = (orders) => {
   return Math.round(sum / validCount);
 };
 
-// Función universal de coincidencia por período
+// Función universal de coincidencia por período (solo modos fijos: Día, Semana, Mes, Año)
 const matchPeriod = (val, mode, monthIdx, year) => {
   if (!val) return false;
   const d = new Date(val);
@@ -182,6 +175,12 @@ export default function ProductionDashboard() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [barTimeView, setBarTimeView] = useState('Año');
 
+  // ── Modal de descarga con rango de fechas personalizado ──────────
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [modalDateFrom, setModalDateFrom] = useState('');
+  const [modalDateTo, setModalDateTo] = useState('');
+  const modalRangeError = !!(modalDateFrom && modalDateTo) && new Date(modalDateFrom) > new Date(modalDateTo);
+
   // Datos crudos del backend
   const [orders, setOrders] = useState([]);
   const [sedesNames, setSedesNames] = useState([]);
@@ -203,9 +202,9 @@ export default function ProductionDashboard() {
         const allSupplies = Array.isArray(suppliesResult?.data) ? suppliesResult.data
           : Array.isArray(suppliesResult) ? suppliesResult : [];
         setSupplies({
-          adquisicion: allSupplies.filter(s => (s.stock ?? 0) === 0).length,           // sin existencias → pendiente compra
-          almacenamiento: allSupplies.length,                                              // total de insumos activos
-          stock: allSupplies.reduce((sum, s) => sum + (Number(s.stock) || 0), 0), // sumatoria total de stock
+          adquisicion: allSupplies.filter(s => (s.stock ?? 0) === 0).length,
+          almacenamiento: allSupplies.length,
+          stock: allSupplies.reduce((sum, s) => sum + (Number(s.stock) || 0), 0),
         });
       } catch (e) { console.error('[Dashboard]', e); }
     };
@@ -239,7 +238,9 @@ export default function ProductionDashboard() {
     };
 
     // ── Producciones actuales: estado "Producción" con actividad en el período ──
-    const current = orders.filter(x => ESTADOS_EN_PRODUCCION.includes(x.estado) && inPeriodActive(x)).length;
+    const currentInPeriod = orders.filter(x => ESTADOS_EN_PRODUCCION.includes(x.estado) && inPeriodActive(x)).length;
+    const currentTotal = orders.filter(x => ESTADOS_EN_PRODUCCION.includes(x.estado)).length;
+    const current = currentInPeriod > 0 ? currentInPeriod : currentTotal;
 
     // ── Completadas en el período ──────────────────────────────────────────────
     const completedThisMonth = orders.filter(x => {
@@ -256,13 +257,6 @@ export default function ProductionDashboard() {
     ).length;
 
     // ── Tiempo promedio: período ANTERIOR al seleccionado ─────────────────────
-    // ✅ Fix: antes, cuando timeView === 'Semana' (o cualquier caso no
-    // contemplado explícitamente), el "mes anterior" se calculaba con
-    // getPrevMonth(), que usa la fecha REAL de hoy — ignorando por completo
-    // el selectedMonth/selectedYear que el usuario elige en los dropdowns
-    // del filtro "Semana". Por eso el tiempo promedio no reflejaba el
-    // mes/año pasado según el filtro seleccionado. Ahora 'Mes' y 'Semana'
-    // comparten la misma referencia: el mes/año anterior AL SELECCIONADO.
     const prevDone = orders.filter(x => {
       if (x.estado !== 'Enviado') return false;
       const h = (x.historial || []).find(hh => hh.estado === 'Enviado');
@@ -273,11 +267,6 @@ export default function ProductionDashboard() {
       return sameMonthYear(d, pm, py);
     });
 
-    // Sin respaldo histórico a propósito: si el período anterior no tiene
-    // órdenes 'Enviado', se muestra "—" igual que las demás tarjetas cuando
-    // no hay datos en el período, en vez de mezclar un promedio de todo el
-    // histórico (que confundía, porque el resto del dashboard sí quedaba en
-    // "—" mientras esta tarjeta mostraba un número de meses sin relación).
     const avgDays = calcAvgDays(prevDone);
 
     const avgPeriodLabel = timeView === 'Año'
@@ -332,13 +321,6 @@ export default function ProductionDashboard() {
   const lineData = useMemo(() => {
     if (!orders.length) return [];
 
-    // Para cada punto temporal, calculamos:
-    // - Por cada sede: suma de productos (detalles.cantidad) de órdenes cuya fecha de referencia cae en ese punto
-    // - Terceros: cantidad de órdenes con asignaciones activas cuya fecha cae en ese punto
-    //
-    // La "fecha de referencia" de una orden es la fecha de su última entrada en historial
-    // (momento en que se actualizó por última vez), o updatedAt como fallback.
-
     const refDate = (o) => {
       const last = (o.historial || []).slice(-1)[0];
       const d = last?.fecha || o.updatedAt || o.createdAt;
@@ -367,9 +349,7 @@ export default function ProductionDashboard() {
 
     return Array.from({ length: points }, (_, i) => {
       const point = { label: labels[i] };
-      // Por cada sede: suma de productos de órdenes en ese punto temporal
       sedesNames.forEach(name => { point[name] = 0; });
-      // Terceros: órdenes con asignaciones en ese punto
       point.terceros = 0;
 
       orders.forEach(o => {
@@ -378,14 +358,10 @@ export default function ProductionDashboard() {
 
         const qty = totalProductos(o);
 
-        // Terceros: orden tiene asignaciones activas
         if ((o.asignaciones || []).length > 0) {
-          point.terceros += qty || 1; // si no hay detalles, contar la orden
+          point.terceros += qty || 1;
         }
 
-        // Sedes: distribuimos los productos entre las sedes según sedeAsignaciones,
-        // SOLO contando órdenes que ya terminaron su producción (Empaque o Enviado).
-        // Antes se contaba en cualquier estado, lo cual no refleja "al terminar la orden".
         const ORDEN_TERMINADA = ['Empaque', 'Enviado'];
         const asigsSede = o.sedeAsignaciones || o.sede_asignaciones || [];
         if (ORDEN_TERMINADA.includes(o.estado) && asigsSede.length > 0) {
@@ -395,8 +371,6 @@ export default function ProductionDashboard() {
             }
           });
         } else if (ORDEN_TERMINADA.includes(o.estado) && sedesNames.length > 0) {
-          // Fallback: la orden terminó pero no tiene sedeAsignaciones registrada
-          // (órdenes antiguas) — repartir por igual entre sedes
           const perSede = Math.round(qty / sedesNames.length) || 1;
           sedesNames.forEach(name => { point[name] = (point[name] || 0) + perSede; });
         }
@@ -421,6 +395,182 @@ export default function ProductionDashboard() {
 
   const showTerceros = viewMode === 'Todas' || viewMode === 'Terceros';
 
+  // ── Órdenes que caen dentro del filtro activo de la página ──
+  const filteredOrdersForExport = useMemo(() => {
+    return orders.filter((o) => {
+      if (matchPeriod(o.updatedAt, timeView, monthIdx, selectedYear)) return true;
+      if (matchPeriod(o.createdAt, timeView, monthIdx, selectedYear)) return true;
+      return (o.historial || []).some(h => matchPeriod(h.fecha, timeView, monthIdx, selectedYear));
+    });
+  }, [orders, timeView, monthIdx, selectedYear]);
+
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+
+  /* ══════════════════════════════════════════════════════════════════════
+   * DESCARGA EXCEL — acepta un rango de fechas opcional del modal.
+   * Si se proporcionan fechas, filtra las órdenes por ese rango; si no,
+   * usa el período activo de la página (timeView).
+   * ══════════════════════════════════════════════════════════════════════ */
+  const handleDownloadExcel = async (dateFrom, dateTo) => {
+    if (downloadingExcel) return;
+    setDownloadingExcel(true);
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'UniStock';
+      wb.created = new Date();
+
+      const ARGB = (hex) => 'FF' + hex.replace('#', '').toUpperCase();
+      const fillSolid = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: ARGB(hex) } });
+      const thinBorder = (hex = '#FF4FD6') => {
+        const c = { style: 'thin', color: { argb: ARGB(hex) } };
+        return { top: c, bottom: c, left: c, right: c };
+      };
+      const now = new Date();
+      const fechaGeneracion = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+
+      // Determinar qué órdenes incluir según el rango del modal o el período de la página
+      const hasRange = !!(dateFrom && dateTo);
+      const ordersToExport = hasRange
+        ? orders.filter((o) => {
+            const from = new Date(`${dateFrom}T00:00:00`);
+            const to = new Date(`${dateTo}T23:59:59.999`);
+            const d = new Date(orderDate(o));
+            return d >= from && d <= to;
+          })
+        : filteredOrdersForExport;
+
+      const periodoTexto = hasRange
+        ? `${new Date(`${dateFrom}T00:00:00`).toLocaleDateString('es-CO')} — ${new Date(`${dateTo}T00:00:00`).toLocaleDateString('es-CO')}`
+        : (timeView === 'Semana' ? `${selectedMonth} ${selectedYear} (semana actual)`
+          : timeView === 'Mes' ? `${selectedMonth} ${selectedYear}`
+            : `Año ${selectedYear}`);
+
+      let logoImageId = null;
+      try {
+        const logoRes = await fetch(putongasLogoUrl);
+        const logoBlob = await logoRes.blob();
+        const logoBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(logoBlob);
+        });
+        logoImageId = wb.addImage({ base64: logoBase64, extension: 'png' });
+      } catch (e) {
+        console.warn('[Dashboard] No se pudo cargar el logo para el Excel:', e);
+      }
+
+      /* ── Hoja 1: Resumen ── */
+      const wsResumen = wb.addWorksheet('Resumen', { pageSetup: { orientation: 'landscape', fitToPage: true } });
+      wsResumen.columns = [{ key: 'a', width: 30 }, { key: 'b', width: 20 }, { key: 'c', width: 20 }, { key: 'd', width: 20 }];
+
+      if (logoImageId) wsResumen.addImage(logoImageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 46, height: 60 } });
+
+      wsResumen.mergeCells('B1:G1');
+      wsResumen.getRow(1).height = 30;
+      wsResumen.getCell('B1').value = 'Dashboard de Producción — Sistema de Gestión UniStock';
+      wsResumen.getCell('B1').font = { name: 'Arial', size: 15, bold: true, color: { argb: '000000' } };
+      wsResumen.getCell('B1').alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      ['A1', 'B1'].forEach(ref => { wsResumen.getCell(ref).fill = fillSolid('#FFFFFF'); });
+
+      wsResumen.mergeCells('B2:D2');
+      wsResumen.getRow(2).height = 18;
+      wsResumen.getCell('B2').value = `Generado el ${fechaGeneracion}  ·  Período: ${periodoTexto}`;
+      wsResumen.getCell('B2').font = { name: 'Arial', size: 10, color: { argb: '#000000' } };
+      wsResumen.getCell('B2').alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      ['A2', 'B2'].forEach(ref => { wsResumen.getCell(ref).fill = fillSolid('#FFFFFF'); });
+      wsResumen.getCell('B2').border = { bottom: { style: 'thin', color: { argb: ARGB('#FF4FD6') } } };
+
+      wsResumen.getRow(3).height = 6;
+      ['A3', 'B3'].forEach(ref => { wsResumen.getCell(ref).fill = fillSolid('#ffffff'); });
+
+      // Tabla de KPIs
+      const kpiHeaderRow = wsResumen.getRow(4);
+      kpiHeaderRow.height = 24;
+      ['Indicador', 'Valor'].forEach((h, i) => {
+        const cell = kpiHeaderRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: ARGB('#FF4FD6') } };
+        cell.fill = fillSolid('#FFFFFF');
+        cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        const pinkThin = { style: 'thin', color: { argb: ARGB('#FF4FD6') } };
+        cell.border = { top: pinkThin, left: pinkThin, right: pinkThin, bottom: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      });
+
+      const kpiRows = [
+        ['Producciones actuales', stats.current || 0],
+        [stats.periodLabel ? `Completadas ${stats.periodLabel}` : 'Completadas', stats.completedThisMonth || 0],
+        ['Por iniciar', stats.pending || 0],
+        [stats.avgPeriodLabel ? `Tiempo promedio (${stats.avgPeriodLabel})` : 'Tiempo promedio', stats.avgTime || '—'],
+        ['Producciones con retraso', generalStatus.delayed || 0],
+        ['Producciones en orden', generalStatus.onTrack || 0],
+        ['Total de órdenes en el período', ordersToExport.length],
+      ];
+      kpiRows.forEach((vals, i) => {
+        const row = wsResumen.getRow(5 + i);
+        row.height = 20;
+        vals.forEach((v, ci) => {
+          const cell = row.getCell(ci + 1);
+          cell.value = v;
+          cell.fill = fillSolid('#FFFFFF');
+          cell.border = thinBorder();
+          cell.alignment = { horizontal: ci === 1 ? 'right' : 'left', vertical: 'middle', indent: ci === 1 ? 0 : 1 };
+          cell.font = ci === 1
+            ? { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#a858d6') } }
+            : { name: 'Arial', size: 10, color: { argb: 'FF374151' } };
+        });
+      });
+
+      // Tabla de procesos (barData) debajo de los KPIs
+      const procTitleRowIdx = 5 + kpiRows.length + 1;
+      wsResumen.mergeCells(`A${procTitleRowIdx}:D${procTitleRowIdx}`);
+      wsResumen.getCell(`A${procTitleRowIdx}`).value = 'Órdenes por proceso';
+      wsResumen.getCell(`A${procTitleRowIdx}`).font = { name: 'Arial', size: 12, bold: true, color: { argb: '000000' } };
+      wsResumen.getCell(`A${procTitleRowIdx}`).fill = fillSolid('#FFFFFF');
+      wsResumen.getCell(`A${procTitleRowIdx}`).alignment = { indent: 1 };
+
+      const procHeaderRowIdx = procTitleRowIdx + 1;
+      const procHeaderRow = wsResumen.getRow(procHeaderRowIdx);
+      procHeaderRow.height = 22;
+      ['Proceso', 'Cantidad'].forEach((h, i) => {
+        const cell = procHeaderRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: ARGB('#FF4FD6') } };
+        cell.fill = fillSolid('#FFFFFF');
+        cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        const pinkThin = { style: 'thin', color: { argb: ARGB('#FF4FD6') } };
+        cell.border = { top: pinkThin, left: pinkThin, right: pinkThin, bottom: { style: 'medium', color: { argb: ARGB('#FF4FD6') } } };
+      });
+      barData.forEach((p, i) => {
+        const row = wsResumen.getRow(procHeaderRowIdx + 1 + i);
+        row.height = 18;
+        [p.name, p.value].forEach((v, ci) => {
+          const cell = row.getCell(ci + 1);
+          cell.value = v;
+          cell.fill = fillSolid('#FFFFFF');
+          cell.border = thinBorder();
+          cell.alignment = { horizontal: ci === 1 ? 'right' : 'left', vertical: 'middle', indent: ci === 1 ? 0 : 1 };
+          cell.font = { name: 'Arial', size: 10, color: { argb: 'FF374151' } };
+        });
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const suffix = hasRange ? `${dateFrom}_a_${dateTo}` : `${(timeView || '').toLowerCase()}`;
+      link.download = `dashboard-produccion-${suffix}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('[Dashboard] Error generando el Excel:', e);
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
+
   const GlobalTimeFilter = () => (
     <div className="flex items-center gap-2">
       {timeView === 'Semana' && <>
@@ -442,17 +592,95 @@ export default function ProductionDashboard() {
 
   return (
     <div className="min-h-screen p-5" >
-      {/* ✅ Fix: fondo neutro unificado con el resto de la app — antes tenía
-          un tinte rosado (#fdf6fc) que no coincidía con ningún otro módulo */}
-
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h1 className="text-xl font-bold text-gray-900" style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: '0' }}>Dashboard</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm text-gray-500 font-medium">Período:</span>
           <GlobalTimeFilter />
+
+          {/* ── Botón de descarga de reporte Excel ── */}
+          <button
+            onClick={() => { setModalDateFrom(''); setModalDateTo(''); setShowDownloadModal(true); }}
+            disabled={downloadingExcel}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-white transition-opacity"
+            style={{ background: '#FF4FD6', opacity: downloadingExcel ? 0.6 : 1, cursor: downloadingExcel ? 'not-allowed' : 'pointer' }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {downloadingExcel ? 'Generando...' : 'Descargar reporte'}
+          </button>
         </div>
       </div>
+
+      {/* ── Modal de descarga con filtro de fechas ── */}
+      {showDownloadModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1200, padding: '0 16px' }}>
+          <div style={{ borderRadius: 16, padding: 24, background: '#fff', boxShadow: '0 12px 40px rgba(0,0,0,0.18)', width: 'calc(100vw - 32px)', maxWidth: 400, animation: 'fadeIn 0.18s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#FF4FD6' }}>Descargar reporte</h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>Selecciona un rango de fechas para el reporte</p>
+              </div>
+              <button onClick={() => setShowDownloadModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                <span className="text-xs text-gray-500 font-medium pl-1">Del</span>
+                <input
+                  type="date"
+                  value={modalDateFrom}
+                  max={modalDateTo || undefined}
+                  onChange={(e) => setModalDateFrom(e.target.value)}
+                  className="text-xs text-gray-800 border-none outline-none bg-transparent flex-1"
+                  style={{ colorScheme: 'light' }}
+                />
+                <span className="text-xs text-gray-500 font-medium">al</span>
+                <input
+                  type="date"
+                  value={modalDateTo}
+                  min={modalDateFrom || undefined}
+                  onChange={(e) => setModalDateTo(e.target.value)}
+                  className="text-xs text-gray-800 border-none outline-none bg-transparent flex-1"
+                  style={{ colorScheme: 'light' }}
+                />
+              </div>
+              {modalRangeError && (
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: '#dc2626', fontWeight: 500 }}>
+                  La fecha "Del" no puede ser posterior a la fecha "al".
+                </p>
+              )}
+              <p style={{ margin: '8px 0 0', fontSize: 11, color: '#9ca3af', textAlign: 'center' }}>
+                Si no seleccionas fechas, se usará el período activo del dashboard.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const hasBothDates = modalDateFrom && modalDateTo;
+                  if (hasBothDates && modalRangeError) return;
+                  const isRange = !!(modalDateFrom && modalDateTo);
+                  setShowDownloadModal(false);
+                  handleDownloadExcel(isRange ? modalDateFrom : null, isRange ? modalDateTo : null);
+                }}
+                disabled={downloadingExcel || (modalDateFrom && modalDateTo && modalRangeError)}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#FF4FD6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: (downloadingExcel || (modalDateFrom && modalDateTo && modalRangeError)) ? 0.6 : 1 }}
+              >
+                {downloadingExcel ? 'Generando...' : 'Descargar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fila 1: Stats */}
       <Card className="mb-4">
@@ -494,7 +722,7 @@ export default function ProductionDashboard() {
       {/* Fila 2: gráfica + panel */}
       <div className="flex gap-4 mb-4">
         <Card className="flex-1">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Producción en las sedes</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Productos asignados a las sedes</h2>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-gray-600">Último mes</span>
@@ -562,7 +790,6 @@ export default function ProductionDashboard() {
           <Card>
             <h3 className="text-sm font-bold text-gray-900 mb-4 text-center">Insumos</h3>
             <div className="space-y-3">
-
               {/* Por adquisición */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -628,7 +855,6 @@ export default function ProductionDashboard() {
                   </span>
                 </div>
               </div>
-
             </div>
           </Card>
         </div>

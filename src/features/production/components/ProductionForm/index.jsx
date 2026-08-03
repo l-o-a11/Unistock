@@ -42,6 +42,15 @@ const normalizeText = (text) =>
     .toLowerCase()
     .trim();
 
+const getDefaultDeliveryDate = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENTE: DROPDOWN DE CLIENTE (mismo diseño/estilo que ProductForm)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -210,7 +219,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
-const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice = null }) => {
+const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice = null, defaultType = 'produccion' }) => {
   const modalRef = useRef(null);
   const colorRef = useRef(null);
   const [colorAccordionOpen, setColorAccordionOpen] = useState(false);
@@ -227,7 +236,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     return () => document.removeEventListener('mousedown', handler);
   }, [colorAccordionOpen]);
 
-  const [type, setType] = useState('produccion');
+  const [type, setType] = useState(defaultType || 'produccion');
+  useEffect(() => {
+    setType(defaultType || 'produccion');
+  }, [defaultType]);
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsLoaded, setProductsLoaded] = useState(false);
@@ -293,9 +305,23 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     producto: initialData?.producto || '',
     cantidad: String(initialData?.cantidad || ''),
     color: initialData?.color || '',
-    cliente: initialData?.cliente || '',
-    fechaSolicitud: '',
+    cliente: initialData?.cliente || initialData?.client || initialData?.cliente_name || initialData?.rawData?.cliente || '',
+    fechaSolicitud: initialData?.fechaSolicitud || initialData?.fecha_entrega || initialData?.deliveryDate || (damageNotice ? getDefaultDeliveryDate() : ''),
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        referencia: initialData?.referencia || prev.referencia || '',
+        producto: initialData?.producto || prev.producto || '',
+        cantidad: initialData?.cantidad ? String(initialData.cantidad) : prev.cantidad,
+        color: initialData?.color || prev.color || '',
+        cliente: initialData?.cliente || initialData?.client || initialData?.cliente_name || initialData?.rawData?.cliente || prev.cliente || '',
+        fechaSolicitud: initialData?.fechaSolicitud || initialData?.fecha_entrega || initialData?.deliveryDate || prev.fechaSolicitud || (damageNotice ? getDefaultDeliveryDate() : ''),
+      }));
+    }
+  }, [initialData, damageNotice]);
 
   const [errors, setErrors] = useState({});
   const [alertConfig, setAlertConfig] = useState({ open: false, type: 'warning', title: '', message: '', onConfirm: null });
@@ -687,13 +713,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#92400e' }}>Nueva orden por productos dañados</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#92400e' }}>
+                  {defaultType === 'diseno' ? 'Ficha técnica por productos dañados' : 'Nueva orden por productos dañados'}
+                </p>
                 <p style={{ margin: '3px 0 0', fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>
-                  Esta orden se crea a partir de{' '}
+                  Esta {defaultType === 'diseno' ? 'ficha técnica' : 'orden'} se crea a partir de{' '}
                   <strong>{damageNotice.damagedCount} artículo{damageNotice.damagedCount !== 1 ? 's' : ''}</strong>{' '}
                   ({damageNotice.totalDamagedQty} uds) dañados durante el paso{' '}
                   <strong>{damageNotice.originalOrderStatus}</strong> de la orden{' '}
                   <strong>#{damageNotice.originalOrderNumber}</strong>.
+                  {damageNotice.replacementOrderNumber && (
+                    <> La reposición de las unidades buenas ya se creó como la orden <strong>#{damageNotice.replacementOrderNumber}</strong> (Corte).</>
+                  )}
                 </p>
               </div>
             </div>
@@ -720,10 +751,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937' }}>
-                  {damageNotice ? 'Nueva orden (reposición por daño)' : 'Nueva orden de producción'}
+                  {damageNotice ? (defaultType === 'diseno' ? 'Nueva ficha técnica (por daño)' : 'Nueva orden (reposición por daño)') : 'Nueva orden de producción'}
                 </h2>
                 <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>
-                  {damageNotice ? `Reposición de orden #${damageNotice.originalOrderNumber}` : 'Completa todos los campos obligatorios'}
+                  {damageNotice ? `${defaultType === 'diseno' ? 'Ficha técnica' : 'Reposición'} de orden #${damageNotice.originalOrderNumber}` : 'Completa todos los campos obligatorios'}
                 </p>
               </div>
             </div>
