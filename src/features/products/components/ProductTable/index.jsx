@@ -118,8 +118,8 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                 const isActive = product.active !== false;
 
                 return (
-                  <tr
-                    key={product.id}
+<tr
+                    key={product.id ?? product.reference ?? product.index}
                     style={{ transition: "background 0.15s" }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}

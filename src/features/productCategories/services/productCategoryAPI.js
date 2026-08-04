@@ -1,6 +1,6 @@
 /**
  * Cliente API Real para Categorías de Producto
- * Conecta con el backend en http://localhost:3020/api/product-categories
+ * Conecta con la API unificada (Api_Unistock) en http://localhost:3000/api/product-categories
  *
  * Nota: El backend retorna:
  *  - GET /product-categories -> { success: true, data: [{ id, nombre, descripcion, ... }] }

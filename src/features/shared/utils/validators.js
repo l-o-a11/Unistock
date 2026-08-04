@@ -35,9 +35,9 @@ export const validators = {
     return "";
   },
 
-  /** NIT colombiano: 8-12 dígitos, opcionalmente con guion y dígito verificador */
+/** NIT colombiano: 6-20 dígitos, opcionalmente con guion y dígito verificador */
   nit: (value) => {
-    if (value && !/^\d{6,10}(-\d)?$/.test(value.trim()))
+    if (value && !/^\d{6,20}(-\d)?$/.test(value.trim()))
       return "NIT inválido (ej: 900123456 o 900123456-7)";
     return "";
   },

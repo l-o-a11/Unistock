@@ -7,11 +7,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-      workbox: {
+workbox: {
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,jsx,css,html,png,svg,jpeg}'],
         clientsClaim: true,
-        skipWaiting: true
+        skipWaiting: true,
+        // ✅ El bundle principal supera los 2 MiB por defecto; se sube el
+        // límite para que el SW pueda precachearlo sin fallar el build.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
       },
       manifest: {
         name: 'Aplicativo PWA ',
