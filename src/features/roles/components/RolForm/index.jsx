@@ -324,7 +324,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
           <label htmlFor="descripcion" style={labelStyle}>
             Descripción
             <span style={{ color: '#9ca3af', fontWeight: 100, marginLeft: 6, fontSize: 11 }}>
-              (opcional · máx. 200 caracteres)
+              (máx. 200 caracteres)
             </span>
           </label>
           <textarea

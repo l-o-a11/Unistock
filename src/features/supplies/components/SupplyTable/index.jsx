@@ -181,7 +181,7 @@ const SupplyTable = ({
                           alignItems: "center",
                         }}
                         onMouseEnter={(e) =>
-                          (e.currentTarget.style.color = "#8b5cf6")
+                          (e.currentTarget.style.color = "#FF4FD6")
                         }
                         onMouseLeave={(e) =>
                           (e.currentTarget.style.color = "#555")
@@ -221,7 +221,7 @@ const SupplyTable = ({
                           alignItems: "center",
                         }}
                         onMouseEnter={(e) =>
-                          (e.currentTarget.style.color = "#8b5cf6")
+                          (e.currentTarget.style.color = "#FF4FD6")
                         }
                         onMouseLeave={(e) =>
                           (e.currentTarget.style.color = "#555")
