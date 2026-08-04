@@ -4,19 +4,13 @@ import { productCategoryAPI } from "../../productCategories/services/productCate
 
 const PRODUCT_ENDPOINTS = ["/products"];
 const PRODUCT_CATEGORY_ENDPOINTS = ["/product-categories", "/products-categories"];
+// ✅ Solo se usa la API nueva (Api_Unistock, /tecnicas).
+// Se eliminó el respaldo del backend viejo (/technical-sheets).
 const TECHNICAL_SHEET_ENDPOINTS = {
-  api: {
-    list: (productId) => `/products/${productId}/tecnicas`,
-    get: (productId, sheetId) => `/products/${productId}/tecnicas/${sheetId}`,
-    create: (productId) => `/products/${productId}/tecnicas`,
-    delete: (productId, sheetId) => `/products/${productId}/tecnicas/${sheetId}`,
-  },
-  back: {
-    list: (productId) => `/products/${productId}/technical-sheets`,
-    get: (productId, sheetId) => `/products/${productId}/technical-sheets/${sheetId}`,
-    create: (productId) => `/products/${productId}/technical-sheets`,
-    delete: (productId, sheetId) => `/products/${productId}/technical-sheets/${sheetId}`,
-  },
+  list: (productId) => `/products/${productId}/tecnicas`,
+  get: (productId, sheetId) => `/products/${productId}/tecnicas/${sheetId}`,
+  create: (productId) => `/products/${productId}/tecnicas`,
+  delete: (productId, sheetId) => `/products/${productId}/tecnicas/${sheetId}`,
 };
 
 const unwrapResponse = (response) => {
@@ -397,15 +391,7 @@ const buildTechnicalSheetPayloads = (productId, sheetData = {}) => {
   ];
 };
 
-const getTechnicalSheetEndpoints = (productId) => [
-  TECHNICAL_SHEET_ENDPOINTS.api.list(productId),
-  TECHNICAL_SHEET_ENDPOINTS.back.list(productId),
-];
-
-const createTechnicalSheetEndpoints = (productId) => [
-  TECHNICAL_SHEET_ENDPOINTS.api.create(productId),
-  TECHNICAL_SHEET_ENDPOINTS.back.create(productId),
-];
+const getTechnicalSheetEndpoints = (productId) => [TECHNICAL_SHEET_ENDPOINTS.list(productId)];
 
 export const productAPI = {
   getAll: async () => {
@@ -437,7 +423,9 @@ export const productAPI = {
     return asArray(response).map((product) => toUiProduct(product, categories));
   },
 
-  getById: async (id) => {
+getById: async (id) => {
+    // ✅ Fix: nunca llamar /products/undefined (evita el 404 de GET /api/products/undefined)
+    if (!id) return null;
     const categories = await getCategories();
     const response = await requestEndpointFallback(PRODUCT_ENDPOINTS.map((endpoint) => `${endpoint}/${id}`), { method: "GET" });
     const product = toUiProduct(unwrapResponse(response), categories);
@@ -452,11 +440,17 @@ export const productAPI = {
     };
   },
 
-  create: async (productData) => {
+create: async (productData) => {
     const payloads = await buildProductCreatePayloads(productData);
     const response = await sendWithPayloadFallback(PRODUCT_ENDPOINTS[0], "POST", payloads);
-    const data = unwrapResponse(response);
-    const created = toUiProduct(data.product || data, await getCategories());
+// ✅ Usar la respuesta cruda para leer product y ficha_tecnica juntos.
+    // La API nueva (Api_Unistock) envuelve la respuesta en { success, data: { product, ficha_tecnica } }.
+    // NUNCA unwrapResponse aquí: unwrapResponse devuelve `product` (el primer truthy),
+    // perdiendo la ficha. Además, hay que leer `response.data.product` (no `response.product`),
+    // porque el objeto `data` de la API contiene { product, ficha_tecnica }.
+    const data = response?.data ?? response ?? {};
+    const productRaw = data.product || data;
+    const created = toUiProduct(productRaw, await getCategories());
     const createdSheet = data.ficha_tecnica || data.technicalSheet || data.fichaTecnica;
 
     if (createdSheet) {
@@ -541,10 +535,7 @@ export const productAPI = {
 
   getTechnicalSheetById: async (productId, sheetId) => {
     const response = await requestEndpointFallback(
-      [
-        TECHNICAL_SHEET_ENDPOINTS.api.get(productId, sheetId),
-        TECHNICAL_SHEET_ENDPOINTS.back.get(productId, sheetId),
-      ],
+      [TECHNICAL_SHEET_ENDPOINTS.get(productId, sheetId)],
       { method: "GET" }
     );
     return toUiSheet(unwrapResponse(response));
@@ -553,21 +544,12 @@ export const productAPI = {
   createTechnicalSheet: async (sheetData) => {
     const productId = sheetData.productId ?? sheetData.id_producto;
     const payloads = buildTechnicalSheetPayloads(productId, sheetData);
-    const endpoints = createTechnicalSheetEndpoints(productId);
-    let lastError;
-
-    for (const endpoint of endpoints) {
-      try {
-        const response = await sendWithPayloadFallback(endpoint, "POST", payloads);
-        return toUiSheet(unwrapResponse(response));
-      } catch (error) {
-        lastError = error;
-        if (error?.status === 404) continue;
-        throw error;
-      }
-    }
-
-    throw lastError;
+    const response = await sendWithPayloadFallback(
+      TECHNICAL_SHEET_ENDPOINTS.create(productId),
+      "POST",
+      payloads
+    );
+    return toUiSheet(unwrapResponse(response));
   },
 
   updateTechnicalSheet: async (productId, sheetData) => {
@@ -590,10 +572,7 @@ export const productAPI = {
     }
 
     const response = await requestEndpointFallback(
-      [
-        TECHNICAL_SHEET_ENDPOINTS.api.delete(productId, sheetId),
-        TECHNICAL_SHEET_ENDPOINTS.back.delete(productId, sheetId),
-      ],
+      [TECHNICAL_SHEET_ENDPOINTS.delete(productId, sheetId)],
       { method: "DELETE" }
     );
     return unwrapResponse(response);

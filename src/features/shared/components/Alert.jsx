@@ -196,7 +196,15 @@ const Alert = ({
               {title}
             </h3>
           )}
-          <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", textAlign: "center", lineHeight: 1.6, wordBreak: "break-word" }}>
+          <p style={{
+            margin: 0,
+            fontSize: "14px",
+            color: "#6b7280",
+            textAlign: "left",
+            lineHeight: 1.6,
+            wordBreak: "break-word",
+            whiteSpace: "pre-wrap", // respeta saltos de línea (ej. errores de validación por campo)
+          }}>
             {message}
           </p>
         </div>

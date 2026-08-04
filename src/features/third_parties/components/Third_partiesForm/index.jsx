@@ -123,10 +123,22 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
     return error;
   };
 
-  const handleChange = (e) => {
+const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'telefono' && !blockInput.onlyNumbers(e)) return;
-    if (name === 'nit'      && !blockInput.nit(e))         return;
+    if (name === 'nit') {
+      if (!blockInput.nit(e)) return;
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length > 20) {
+        setAlertConfig({
+          open: true, type: 'warning',
+          title: 'NIT',
+          message: 'No se pueden ingresar más caracteres',
+          onConfirm: null,
+        });
+        return;
+      }
+    }
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -327,7 +339,7 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
               }}>
                 <Field label="Nombre empresa" name="nombre" required placeholder="Ej: Confecciones López S.A.S."
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
-                <Field label="NIT" name="nit" placeholder="Ej: 900123456-7" hint="6-10 dígitos, guión opcional"
+<Field label="NIT" name="nit" placeholder="Ej: 900123456-7"
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 

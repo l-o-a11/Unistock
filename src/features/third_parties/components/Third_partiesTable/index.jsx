@@ -75,7 +75,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
         }}>
           <thead>
             <tr>
-              <th style={thStyle}>NIT</th>
+              <th style={thStyle}>Identificador</th>
               <th style={thStyle}>Nombre</th>
               <th style={thStyle}>Contacto principal</th>
               <th style={thStyle}>Acciones</th>

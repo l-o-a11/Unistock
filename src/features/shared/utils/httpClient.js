@@ -124,12 +124,27 @@ export const httpRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, requestConfig);
 
-    // Manejar respuestas no exitosas
+// Manejar respuestas no exitosas
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const error = new Error(
-        errorData.message || `HTTP Error ${response.status}`
-      );
+
+      // Componer un mensaje legible con los errores de validación por campo
+      // que algunos endpoints devuelven en `errorData.errors` (ej. Zod).
+      // Ej: "Error de validación en los datos enviados\n• telefono_contacto: ..."
+      let message = errorData.message || `HTTP Error ${response.status}`;
+      if (Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+        const detalle = errorData.errors
+          .map((e) => {
+            const campo = e?.field
+              ? String(e.field).replace(/^\./, '')
+              : 'datos';
+            return `• ${campo}: ${e?.message || 'valor inválido'}`;
+          })
+          .join('\n');
+        message = `${message}\n${detalle}`;
+      }
+
+      const error = new Error(message);
       error.status = response.status;
       error.data = errorData;
 
