@@ -92,7 +92,7 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
 
                         <button onClick={() => onView(rol)} title="Ver detalles del rol"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -104,7 +104,7 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
 
                         <button onClick={() => onEdit(rol)} title="Editar rol"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         >
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

@@ -84,7 +84,7 @@ const SedeTable = ({
                       {/* Editar */}
                       <button onClick={() => onEdit(sede)} title="Editar"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4FD6")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
