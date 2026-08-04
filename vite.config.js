@@ -6,18 +6,6 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-<<<<<<< HEAD
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-workbox: {
-        navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,jsx,css,html,png,svg,jpeg}'],
-        clientsClaim: true,
-        skipWaiting: true,
-        // ✅ El bundle principal supera los 2 MiB por defecto; se sube el
-        // límite para que el SW pueda precachearlo sin fallar el build.
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
-=======
       registerType: "autoUpdate",
       // includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       workbox: {
@@ -25,7 +13,6 @@ workbox: {
         globPatterns: ["**/*.{jsx,css,html,png,svg,jpeg}"],
         clientsClaim: true,
         skipWaiting: true,
->>>>>>> 7c7b3dc0cdf834107f8b89b87d729450a7581b38
       },
       manifest: {
         name: "Unistock",
