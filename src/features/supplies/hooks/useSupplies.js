@@ -16,10 +16,10 @@ import { supplyAPI } from "../services/supplyAPI";
 
 export const useSupplies = (initialFilters = {}) => {
   const [supplies, setSupplies] = useState([]);
-  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 1000, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ limit: 10, ...initialFilters });
+  const [filters, setFilters] = useState({ limit: 1000, ...initialFilters });
 
   // ── Catálogos ──────────────────────────────────────────────────────────────
   const [categorias, setCategorias] = useState([]);
