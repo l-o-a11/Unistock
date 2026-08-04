@@ -433,11 +433,11 @@ export default function ProductionDashboard() {
       const hasRange = !!(dateFrom && dateTo);
       const ordersToExport = hasRange
         ? orders.filter((o) => {
-            const from = new Date(`${dateFrom}T00:00:00`);
-            const to = new Date(`${dateTo}T23:59:59.999`);
-            const d = new Date(orderDate(o));
-            return d >= from && d <= to;
-          })
+          const from = new Date(`${dateFrom}T00:00:00`);
+          const to = new Date(`${dateTo}T23:59:59.999`);
+          const d = new Date(orderDate(o));
+          return d >= from && d <= to;
+        })
         : filteredOrdersForExport;
 
       const periodoTexto = hasRange
