@@ -1,7 +1,6 @@
 /**
  * @file SupplyForm/index.jsx
  * @description Formulario modal para crear o editar un insumo.
- *              Estilo visual alineado con ProductionForm (UniStock design system).
  */
 import React, { useState } from "react";
 import Alert from "../../../shared/components/Alert";
@@ -76,8 +75,8 @@ const SupplyForm = ({
     required:       (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) => isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
     cannotDecreaseStock: (v) =>
-      isEdit && supply?.stock !== undefined && Number(v) < Number(supply.stock)
-        ? "No puedes disminuir el stock al editar el insumo"
+      isEdit && supply?.stock !== undefined && Number(v) >  Number(supply.stock)
+        ? "No puedes aumentar el stock al editar el insumo"
         : "",
     nombreValido:   (v) => v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v) ? "El nombre contiene caracteres no permitidos" : "",
     minLength:      (v) => v && v.trim().length < 3 ? "Mínimo 3 caracteres" : "",
