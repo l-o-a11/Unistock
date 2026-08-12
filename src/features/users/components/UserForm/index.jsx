@@ -1,0 +1,316 @@
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Alert from '../../../shared/components/Alert';
+import Button from '../../../shared/components/Button';
+import { validators } from '../../../shared/utils/validators';
+import { blockInput } from '../../../shared/utils/blockInput';
+import {
+  getInputStyleBox,
+  errorStyle as errMsg,
+  labelStyle,
+  requiredStar,
+} from '../../../shared/utils/validationStyles';
+
+const sectionTitle = (t) => (
+  <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '18px 0 10px' }}>{t}</p>
+);
+
+// Cargos disponibles para el rol "Empleado" — separan la FUNCIÓN específica
+// (en qué etapa de producción trabaja) del ROL de acceso (Empleado/Admin/Gerente).
+// Datos quemados a propósito: solo hay 3 roles en el sistema ahora, así que
+// esto no depende de lo que se cree en el módulo de Roles.
+const CARGOS_DISPONIBLES = ['Corte', 'Compras', 'Recepción', 'Vendedor', 'Bodega'];
+
+const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
+  const modalRef = useRef(null);
+
+  const [formData, setFormData] = useState(() => user ?? {
+    documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '', cargos: [],
+  });
+  const [errors, setErrors] = useState({});
+  const [sending, setSending] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ open: false, type: 'confirm', title: '', message: '', onConfirm: null });
+
+  const closeAlert = useCallback(() => setAlertConfig((p) => ({ ...p, open: false })), []);
+
+  // El selector de Cargo solo aplica cuando el rol elegido es "Empleado" —
+  // Administrador y Gerente no tienen etapa específica asignada.
+  const esRolEmpleado = (roleId) => {
+    const nombre = roles.find((r) => String(r.id) === String(roleId))?.nombre ?? '';
+    return nombre.trim().toLowerCase() === 'empleado';
+  };
+
+  useEffect(() => {
+    if (pendingClose && !alertConfig.open) { setPendingClose(false); onCancel(); }
+  }, [alertConfig.open, pendingClose, onCancel]);
+
+  const handleCancelClick = useCallback(() => {
+    const blank = !formData.documentType && !formData.documentNumber && !formData.name && !formData.email && !formData.role && !formData.sede;
+    if (blank) { onCancel(); return; }
+    setAlertConfig({
+      open: true, type: 'confirm', title: 'Cancelar',
+      message: '¿Seguro que deseas cancelar? Se perderán los cambios.',
+      onConfirm: () => { setAlertConfig((p) => ({ ...p, open: false })); onCancel(); },
+    });
+  }, [onCancel, formData]);
+
+  useEffect(() => {
+    const fn = (e) => { if (e.key === 'Escape') handleCancelClick(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [handleCancelClick]);
+
+  const handleOverlayClick = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
+  };
+
+  const validateField = (name, value) => {
+    let error = '';
+    switch (name) {
+      case 'documentType': error = validators.required(value); break;
+      case 'documentNumber':
+        error = validators.required(value)
+          || (value && value.toString().trim().length < 10 ? 'Mínimo 10 dígitos' : '');
+        break;
+      case 'name':
+        error = validators.required(value)
+          || (value && value.trim().length < 3 ? 'Mínimo 3 caracteres' : '');
+        break;
+      case 'email': error = validators.required(value) || validators.email(value); break;
+      case 'role': error = validators.required(value); break;
+      case 'sede': error = validators.required(value); break;
+      case 'cargos':
+        if (esRolEmpleado(formData.role) && (!Array.isArray(value) || value.length === 0)) {
+          error = 'Selecciona al menos un cargo';
+        }
+        break;
+    }
+    setErrors((p) => ({ ...p, [name]: error }));
+    return error;
+  };
+
+  const validateAll = () => {
+    const newErrors = {};
+    Object.entries(formData).forEach(([k, v]) => { const e = validateField(k, v); if (e) newErrors[k] = e; });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((p) => {
+      const next = { ...p, [name]: value };
+      if (name === 'role' && !esRolEmpleado(value)) next.cargos = [];
+      return next;
+    });
+    if (errors[name] !== undefined) validateField(name, value);
+  };
+
+  // Cargos es multi-selección (checkboxes) — un empleado puede tener varios.
+  const handleToggleCargo = (cargo) => {
+    setFormData((p) => {
+      const actuales = Array.isArray(p.cargos) ? p.cargos : [];
+      const next = actuales.includes(cargo) ? actuales.filter((c) => c !== cargo) : [...actuales, cargo];
+      if (errors.cargos !== undefined) validateField('cargos', next);
+      return { ...p, cargos: next };
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateAll()) {
+      setAlertConfig({ open: true, type: 'warning', title: 'Campos incompletos', message: 'Corrige los campos marcados antes de continuar.', onConfirm: null });
+      return;
+    }
+    const payload = {
+      tipoDocumento: formData.documentType,
+      numeroDocumento: formData.documentNumber,
+      nombreCompleto: formData.name,
+      correo: formData.email,
+      rolId: formData.role || null,
+      sedeId: formData.sede || null,
+      // La API guarda los cargos en el campo `cargo`. Puede contener varios
+      // valores para que un empleado sea elegible en más de una etapa.
+      cargo: esRolEmpleado(formData.role) ? (formData.cargos || []) : [],
+    };
+    try {
+      setSending(true);
+      await Promise.resolve(onSubmit(payload));
+      setPendingClose(true);
+      setAlertConfig({
+        open: true, type: 'success',
+        title: user ? 'Usuario actualizado' : 'Usuario creado',
+        message: user
+          ? 'El usuario fue actualizado correctamente.'
+          : `Usuario creado. Se envió un correo a ${formData.email} con las credenciales de acceso.`,
+        onConfirm: null,
+      });
+    } catch (err) {
+      setAlertConfig({
+        open: true, type: 'error', title: 'Error al guardar',
+        message: err?.message || err?.data?.message || 'No se pudo guardar el usuario. Intenta nuevamente.',
+        onConfirm: null,
+      });
+    } finally { setSending(false); }
+  };
+
+  return (
+    <>
+      <Alert
+        isOpen={alertConfig.open} type={alertConfig.type}
+        title={alertConfig.title} message={alertConfig.message}
+        onConfirm={() => { if (alertConfig.onConfirm) alertConfig.onConfirm(); else closeAlert(); }}
+        onCancel={closeAlert}
+      />
+
+      <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
+        <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
+
+          <div style={{ padding: '28px 30px' }}>
+            {/* Botón cerrar */}
+            <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#ff4fd6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937' }}>
+                  {user ? 'Editar usuario' : 'Nuevo usuario'}
+                </h2>
+                <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>Completa todos los campos obligatorios</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} noValidate>
+              {sectionTitle('Datos personales')}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <label style={labelStyle}>Tipo de documento <span style={requiredStar}>*</span></label>
+                  <select
+                    name="documentType" value={formData.documentType} onChange={handleChange}
+                    style={getInputStyleBox(errors.documentType)}
+                  >
+                    <option value="">Seleccionar tipo...</option>
+                    <option value="CC">CC — Cédula de ciudadanía</option>
+                    <option value="TI">TI — Tarjeta de identidad</option>
+                    <option value="CE">CE — Cédula de extranjería</option>
+                    <option value="PEP">PEP</option>
+                    <option value="PAS">PAS — Pasaporte</option>
+                    <option value="PPT">PPT</option>
+                  </select>
+                  {errors.documentType && <span style={errMsg}>⚠ {errors.documentType}</span>}
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Número de documento <span style={requiredStar}>*</span></label>
+                  <input
+                    type="text" inputMode="numeric" name="documentNumber"
+                    value={formData.documentNumber}
+                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; handleChange(e); }}
+                    onBlur={(e) => validateField('documentNumber', e.target.value)}
+                    placeholder="Ej: 1234567890"
+                    style={getInputStyleBox(errors.documentNumber)}
+                  />
+                  {errors.documentNumber && <span style={errMsg}>⚠ {errors.documentNumber}</span>}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Nombre completo <span style={requiredStar}>*</span></label>
+                <input
+                  name="name" value={formData.name}
+                  onChange={(e) => { if (!blockInput.onlyLetters(e)) return; handleChange(e); }}
+                  onBlur={(e) => validateField('name', e.target.value)}
+                  placeholder="Ej: Carlos Ramírez"
+                  style={getInputStyleBox(errors.name)}
+                />
+                {errors.name && <span style={errMsg}>⚠ {errors.name}</span>}
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Correo electrónico <span style={requiredStar}>*</span></label>
+                <input
+                  type="email" name="email" value={formData.email}
+                  onChange={handleChange}
+                  onBlur={(e) => validateField('email', e.target.value)}
+                  placeholder="Ej: carlos@empresa.com"
+                  style={getInputStyleBox(errors.email)}
+                />
+                {errors.email && <span style={errMsg}>⚠ {errors.email}</span>}
+              </div>
+
+              {sectionTitle('Acceso y ubicación')}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <label style={labelStyle}>Rol <span style={requiredStar}>*</span></label>
+                  <select
+                    name="role" value={formData.role} onChange={handleChange}
+                    onBlur={(e) => validateField('role', e.target.value)}
+                    style={getInputStyleBox(errors.role)}
+                  >
+                    <option value="">Seleccionar rol...</option>
+                    {roles.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                  </select>
+                  {errors.role && <span style={errMsg}>⚠ {errors.role}</span>}
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Sede <span style={requiredStar}>*</span></label>
+                  <select
+                    name="sede" value={formData.sede} onChange={handleChange}
+                    onBlur={(e) => validateField('sede', e.target.value)}
+                    style={getInputStyleBox(errors.sede)}
+                  >
+                    <option value="">Seleccionar sede...</option>
+                    {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                  </select>
+                  {errors.sede && <span style={errMsg}>⚠ {errors.sede}</span>}
+                </div>
+
+                {esRolEmpleado(formData.role) && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Cargos <span style={requiredStar}>*</span>
+                      <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10, marginLeft: 6 }}>puede elegir varios</span>
+                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                      {CARGOS_DISPONIBLES.map((c) => {
+                        const activo = (formData.cargos || []).includes(c);
+                        return (
+                          <button key={c} type="button" onClick={() => handleToggleCargo(c)}
+                            style={{
+                              padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                              border: activo ? '1.5px solid #FF4FD6' : '1.5px solid #e5e7eb',
+                              background: activo ? '#fdf4ff' : '#fff',
+                              color: activo ? '#FF4FD6' : '#6b7280',
+                            }}>
+                            {activo ? '✓ ' : ''}{c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {errors.cargos && <span style={errMsg}>⚠ {errors.cargos}</span>}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4, borderTop: '1px solid #f3f4f6', marginTop: 8 }}>
+                <Button type="button" variant="secondary" onClick={handleCancelClick}>Cancelar</Button>
+                <Button type="submit" variant="primary" disabled={sending}>
+                  {sending ? 'Guardando...' : user ? 'Guardar cambios' : 'Crear usuario'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default UserForm;

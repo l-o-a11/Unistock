@@ -1,0 +1,306 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { AuthAPI } from "../../features/auth/services/AuthAPI";
+import { userAPI } from "../users/services/usersAPI";
+
+export const ROUTE_MODULE_MAP = {
+  "dashboard": 0,
+  "usuarios": 1,
+  "categorias de insumos": 2,
+  "insumos": 3,
+  "proveedores": 4,
+  "compras": 5,
+  "categorias de productos": 6,
+  "productos": 7,
+  "produccion": 8,
+  "terceros": 9,
+  "empleados": 10,
+  "sedes": 11,
+  "roles": 12,
+};
+
+const ROLES_KEY = "app_roles";
+const ROLES_TTL_MS = 30 * 60 * 1000; // 30 minutos — después se refetch de la API
+
+const getRolesFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(ROLES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Soporte para el formato nuevo { roles, savedAt } y el legacy (array directo)
+    if (Array.isArray(parsed)) return parsed; // legacy sin TTL — se refresca igual
+    if (parsed?.roles && parsed?.savedAt) {
+      const age = Date.now() - parsed.savedAt;
+      if (age > ROLES_TTL_MS) {
+        // Cache expirado — forzar refetch de la API
+        localStorage.removeItem(ROLES_KEY);
+        return [];
+      }
+      return parsed.roles;
+    }
+    return [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRolesToStorage = (roles) => {
+  try {
+    localStorage.setItem(ROLES_KEY, JSON.stringify({ roles, savedAt: Date.now() }));
+  } catch { }
+};
+
+// Permite forzar invalidación del cache desde fuera (ej. cuando cambian permisos)
+export const invalidateRolesCache = () => {
+  try { localStorage.removeItem(ROLES_KEY); } catch { }
+};
+
+const normalizeRole = (role) => {
+  if (!role) return role;
+  // Ya normalizado
+  const normalizeModuloKey = (valor) => {
+    const raw =
+      typeof valor === "object"
+        ? (valor?.nombre ?? valor?.name ?? "")
+        : String(valor ?? "");
+    return raw
+      .toLowerCase()
+      .trim()
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ");
+  };
+
+  const normalizeModuloItem = (item) => {
+    if (item == null) return null;
+
+    const moduloIdCandidate =
+      typeof item === "object"
+        ? item.moduloId
+        : Number(item);
+
+    if (moduloIdCandidate !== undefined && moduloIdCandidate !== null && !Number.isNaN(Number(moduloIdCandidate))) {
+      return { moduloId: Number(moduloIdCandidate), privilegios: item.privilegios ?? [] };
+    }
+
+    const moduloName =
+      typeof item === "string"
+        ? item
+        : item.modulo ?? item.nombre ?? item.name ?? item;
+    const mappedId = ROUTE_MODULE_MAP[normalizeModuloKey(moduloName)];
+    if (mappedId === undefined) return null;
+    return { moduloId: mappedId, privilegios: item.privilegios ?? [] };
+  };
+
+  const normalizeModulosArray = (items = []) =>
+    (Array.isArray(items) ? items : [])
+      .map(normalizeModuloItem)
+      .filter(Boolean);
+
+  if (Array.isArray(role.modulos)) {
+    return { ...role, modulos: normalizeModulosArray(role.modulos) };
+  }
+
+  if (Array.isArray(role.permisos)) {
+    const permisosArray = role.permisos;
+    if (permisosArray.length === 0) return { ...role, modulos: [] };
+    const first = permisosArray[0];
+
+    // Formato API real: [{ modulo: "usuarios", privilegios: ["leer"] }]
+    // También soporta modulo: { nombre: "insumos" }
+    if (typeof first === "object" && first !== null && "modulo" in first) {
+      return {
+        ...role,
+        modulos: permisosArray
+          .map((p) => {
+            const moduloName = normalizeModuloKey(p.modulo);
+            const moduloId = ROUTE_MODULE_MAP[moduloName];
+            if (moduloId === undefined) return null;
+            return { moduloId, privilegios: p.privilegios ?? [] };
+          })
+          .filter(Boolean),
+      };
+    }
+
+    // Formato legacy: [{ moduloId: 1, privilegios: [1] }]
+    if (typeof first === "object" && first !== null && "moduloId" in first) {
+      return { ...role, modulos: permisosArray };
+    }
+
+    // Formato legacy: [1, 2, 3]
+    if (typeof first === "number" || typeof first === "string") {
+      return {
+        ...role,
+        modulos: permisosArray.map((moduloId) => ({ moduloId: Number(moduloId), privilegios: [1] })),
+      };
+    }
+  }
+  return role;
+};
+
+const rolesMatchSession = (roles, session) => {
+  if (!session) return false;
+  const exactMatch = roles.some((r) => String(r.id) === String(session.rolId));
+  if (exactMatch) return true;
+  const sessionRolNombre = session.rolNombre?.toString().toLowerCase();
+  if (sessionRolNombre) {
+    return roles.some((r) => String(r.nombre).toLowerCase() === sessionRolNombre);
+  }
+  return false;
+};
+
+const fetchRolesCatalog = async (session) => {
+  let storedRoles = [];
+  try {
+    storedRoles = getRolesFromStorage();
+  } catch { storedRoles = []; }
+
+  if (storedRoles.length > 0 && rolesMatchSession(storedRoles, session)) {
+    return storedRoles.map(normalizeRole);
+  }
+
+  try {
+    const remoteRoles = await userAPI.getRoles();
+    if (Array.isArray(remoteRoles) && remoteRoles.length > 0) {
+      const normalized = remoteRoles.map(normalizeRole);
+      saveRolesToStorage(normalized);
+      return normalized;
+    }
+  } catch (err) {
+    console.error("Error cargando roles desde API:", err);
+  }
+
+  return storedRoles.map(normalizeRole);
+};
+
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [permisos, setPermisos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const cargarPermisos = async (session) => {
+    try {
+      const roles = await fetchRolesCatalog(session);
+      const sessionRolId = session?.rolId;
+      const sessionRolNombre = session?.rolNombre?.toString().toLowerCase();
+
+      const rol = roles.find((r) => {
+        if (String(r.id) === String(sessionRolId)) return true;
+        if (sessionRolNombre && String(r.nombre).toLowerCase() === sessionRolNombre) return true;
+        return false;
+      });
+
+      if (rol) {
+        const ids = rol.modulos?.map((m) => m.moduloId) ?? [];
+        setPermisos(ids);
+      } else {
+        setPermisos([]);
+      }
+    } catch (err) {
+      // Si falla la carga de roles (error de red, token inválido, etc.)
+      // no dejar loading=true para siempre — simplemente continuar sin permisos.
+      console.error("Error cargando permisos:", err);
+      setPermisos([]);
+    } finally {
+      // SIEMPRE apagar el loading, sin importar si hubo error
+      setLoading(false);
+    }
+  };
+
+  // Carga sesión inicial desde localStorage
+  useEffect(() => {
+    const session = AuthAPI.getSession();
+    if (session) {
+      setUser(session);
+      cargarPermisos(session);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  // Recarga permisos si otra pestaña actualiza los roles
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === ROLES_KEY && user) cargarPermisos(user);
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [user]);
+
+  const login = (session) => {
+    setLoading(true);
+    setUser(session);
+    invalidateRolesCache();
+    cargarPermisos(session);
+  };
+
+  const logout = () => {
+    AuthAPI.logout();
+    setUser(null);
+    setPermisos([]);
+  };
+
+  const canAccess = (rutaSegmento) => {
+    if (!user) return false;
+    const rolNombre = (user.rolNombre ?? "").toLowerCase();
+    // Solo "Gerente" tiene acceso total sin mirar permisos. Antes "administrador"
+    // también hacía bypass completo, lo que dejaba ver Usuarios sin importar los
+    // permisos asignados al rol — ahora un admin de sede pasa por la validación
+    // normal de permisos como cualquier otro rol.
+    if (rolNombre === "gerente") return true;
+    // Usuarios es exclusivo de Gerente, sin excepción (aunque el rol tenga
+    // el módulo marcado por error al crearlo).
+    if (rutaSegmento === "usuarios") return false;
+    const moduloId = ROUTE_MODULE_MAP[rutaSegmento];
+    if (moduloId === undefined) return true;
+    return permisos.includes(moduloId);
+  };
+
+  const refrescarPermisos = () => {
+    if (user) cargarPermisos(user);
+  };
+
+  // Devuelve la primera ruta a la que el usuario tiene acceso
+  const getFirstAccessibleRoute = (u = user) => {
+    if (!u) return "/";
+    const rolNombre = (u.rolNombre ?? "").toLowerCase();
+    if (rolNombre === "gerente") return "/layout/dashboard";
+    const ORDER = [
+      "dashboard", "usuarios", "roles", "sedes", "insumos",
+      "categorias de insumos", "proveedores", "compras",
+      "productos", "categorias de productos", "produccion",
+      "terceros", "empleados",
+    ];
+    const ROUTE_MAP = {
+      "dashboard": "/layout/dashboard",
+      "usuarios": "/layout/usuarios",
+      "roles": "/layout/roles",
+      "sedes": "/layout/sedes",
+      "insumos": "/layout/insumos",
+      "categorias de insumos": "/layout/categorias-insumos",
+      "proveedores": "/layout/proveedores",
+      "compras": "/layout/compras",
+      "productos": "/layout/productos",
+      "categorias de productos": "/layout/categorias-productos",
+      "produccion": "/layout/produccion",
+      "terceros": "/layout/terceros",
+      "empleados": "/layout/empleados",
+    };
+    for (const modulo of ORDER) {
+      if (canAccess(modulo)) return ROUTE_MAP[modulo];
+    }
+    return "/layout/perfil"; // fallback: solo puede ver su perfil
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, permisos, loading, login, logout, canAccess, refrescarPermisos, getFirstAccessibleRoute }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuthContext = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuthContext debe usarse dentro de AuthProvider");
+  return ctx;
+};
