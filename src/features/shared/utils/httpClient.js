@@ -103,3 +103,150 @@ console.log(
   API_TIMEOUT
 );
 console.log("====================================");
+
+// ============================================================
+// TOKEN
+// ============================================================
+
+const getToken = () => {
+  try {
+    const raw =
+      localStorage.getItem("session_user") ||
+      sessionStorage.getItem("session_user");
+    return raw ? JSON.parse(raw).token : null;
+  } catch {
+    return null;
+  }
+};
+
+// ============================================================
+// LOGOUT AUTOMÁTICO
+// ============================================================
+
+const handleAutoLogout = () => {
+  localStorage.removeItem("session_user");
+  sessionStorage.removeItem("session_user");
+  window.location.href = "/login";
+};
+
+// ============================================================
+// HTTP REQUEST
+// ============================================================
+
+export const httpRequest = async (endpoint, options = {}) => {
+  const {
+    method = "GET",
+    body,
+    skipAuth = false,
+    suppressAutoLogout = false,
+    headers = {},
+  } = options;
+
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  const url = `${API_URL}${normalizedEndpoint}`;
+
+  const requestHeaders = { ...headers };
+
+  if (!skipAuth) {
+    const token = getToken();
+    if (token) {
+      requestHeaders.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  if (
+    body &&
+    !(body instanceof FormData) &&
+    !(body instanceof Blob) &&
+    !(body instanceof ArrayBuffer)
+  ) {
+    requestHeaders["Content-Type"] = "application/json";
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: requestHeaders,
+      body:
+        body instanceof FormData ||
+        body instanceof Blob ||
+        body instanceof ArrayBuffer
+          ? body
+          : body !== undefined
+            ? JSON.stringify(body)
+            : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      const error = new Error(`Request timeout after ${API_TIMEOUT}ms`);
+      error.status = 408;
+      throw error;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (response.status === 204) return null;
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const error = new Error(data?.message || `HTTP Error ${response.status}`);
+    error.status = response.status;
+    error.data = data;
+    error.response = response;
+
+    if (response.status === 401 && !suppressAutoLogout) {
+      handleAutoLogout();
+    }
+
+    throw error;
+  }
+
+  return data;
+};
+
+// ============================================================
+// HELPERS CONVENIENCE
+// ============================================================
+
+export const get = (endpoint, options = {}) =>
+  httpRequest(endpoint, { ...options, method: "GET" });
+
+export const post = (endpoint, data, options = {}) =>
+  httpRequest(endpoint, { ...options, method: "POST", body: data });
+
+export const put = (endpoint, data, options = {}) =>
+  httpRequest(endpoint, { ...options, method: "PUT", body: data });
+
+export const patch = (endpoint, data, options = {}) =>
+  httpRequest(endpoint, { ...options, method: "PATCH", body: data });
+
+export const deleteRequest = (endpoint, options = {}) =>
+  httpRequest(endpoint, { ...options, method: "DELETE" });
+
+// ============================================================
+// CLIENTE POR DEFECTO
+// ============================================================
+
+const httpClient = {
+  get: (endpoint, options) => get(endpoint, options),
+  post: (endpoint, data, options) => post(endpoint, data, options),
+  put: (endpoint, data, options) => put(endpoint, data, options),
+  patch: (endpoint, data, options) => patch(endpoint, data, options),
+  delete: (endpoint, options) => deleteRequest(endpoint, options),
+  request: httpRequest,
+};
+
+export default httpClient;
