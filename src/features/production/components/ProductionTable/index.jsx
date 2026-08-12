@@ -238,14 +238,6 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                     {/* Estado */}
                     <td style={{ padding: '8px 14px', borderBottom: isOpen ? 'none' : '1px solid #f3f4f6' }}>
                       <StatusBadge status={prod.status} />
-                      {prod.statusDate && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
-                          <IconCalendar />
-                          <span style={{ fontSize: 10, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
-                            {prod.statusDate}
-                          </span>
-                        </div>
-                      )}
                     </td>
 
                     {/* Cliente */}

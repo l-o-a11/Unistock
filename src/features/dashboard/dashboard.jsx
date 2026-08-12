@@ -186,18 +186,41 @@ export default function ProductionDashboard() {
   const [sedesNames, setSedesNames] = useState([]);
   const [supplies, setSupplies] = useState({ adquisicion: 0, almacenamiento: 0, stock: 0 });
 
+  // El catálogo de sedes puede no estar disponible para todos los roles. Las
+  // asignaciones ya guardadas en cada orden siguen siendo una fuente válida
+  // para la gráfica, por lo que se incluyen sus nombres como respaldo.
+  const sedeSeriesNames = useMemo(() => {
+    const names = new Set(sedesNames.filter(Boolean));
+    orders.forEach((order) => {
+      (order.sedeAsignaciones || order.sede_asignaciones || []).forEach((assignment) => {
+        if (assignment?.option) names.add(assignment.option);
+      });
+    });
+    return [...names];
+  }, [orders, sedesNames]);
+
   // ── Carga inicial + polling (solo datos crudos) ───────────────
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const [ordersRaw, sedesResult, suppliesResult] = await Promise.all([
+        // Las tarjetas de producción deben seguir mostrándose aunque falle la
+        // consulta de sedes o insumos (por permisos, timeout, etc.).
+        const [ordersRequest, sedesRequest, suppliesRequest] = await Promise.allSettled([
           ProductionAPIClient.getOrders({ limit: 1000 }),
           sedesAPI.getAll({ limit: 100, estado: true }),
           supplyAPI.getAll({ estado: true, limit: 1000 }),
         ]);
         if (!mounted) return;
-        setOrders(Array.isArray(ordersRaw) ? ordersRaw : []);
+
+        if (ordersRequest.status === 'fulfilled') {
+          setOrders(Array.isArray(ordersRequest.value) ? ordersRequest.value : []);
+        } else {
+          console.error('[Dashboard] No se pudieron cargar las producciones:', ordersRequest.reason);
+        }
+
+        const sedesResult = sedesRequest.status === 'fulfilled' ? sedesRequest.value : null;
+        const suppliesResult = suppliesRequest.status === 'fulfilled' ? suppliesRequest.value : null;
         setSedesNames((sedesResult?.data || []).map(s => s.nombre).filter(Boolean));
         const allSupplies = Array.isArray(suppliesResult?.data) ? suppliesResult.data
           : Array.isArray(suppliesResult) ? suppliesResult : [];
@@ -349,7 +372,7 @@ export default function ProductionDashboard() {
 
     return Array.from({ length: points }, (_, i) => {
       const point = { label: labels[i] };
-      sedesNames.forEach(name => { point[name] = 0; });
+      sedeSeriesNames.forEach(name => { point[name] = 0; });
       point.terceros = 0;
 
       orders.forEach(o => {
@@ -362,23 +385,21 @@ export default function ProductionDashboard() {
           point.terceros += qty || 1;
         }
 
-        const ORDEN_TERMINADA = ['Empaque', 'Enviado'];
         const asigsSede = o.sedeAsignaciones || o.sede_asignaciones || [];
-        if (ORDEN_TERMINADA.includes(o.estado) && asigsSede.length > 0) {
+        // La gráfica representa productos asignados, no únicamente órdenes
+        // finalizadas. En cuanto se guarda una asignación válida debe verse.
+        if (o.estado !== 'Anulada' && asigsSede.length > 0) {
           asigsSede.forEach(a => {
-            if (sedesNames.includes(a.option)) {
+            if (a?.option) {
               point[a.option] = (point[a.option] || 0) + (Number(a.cantidad) || 0);
             }
           });
-        } else if (ORDEN_TERMINADA.includes(o.estado) && sedesNames.length > 0) {
-          const perSede = Math.round(qty / sedesNames.length) || 1;
-          sedesNames.forEach(name => { point[name] = (point[name] || 0) + perSede; });
         }
       });
 
       return point;
     });
-  }, [orders, sedesNames, timeView, selectedMonth, selectedYear, monthIdx]);
+  }, [orders, sedeSeriesNames, timeView, selectedMonth, selectedYear, monthIdx]);
 
   // ── Barras: recalculadas al cambiar período de barras ─────────
   const barData = useMemo(() => {
@@ -735,7 +756,7 @@ export default function ProductionDashboard() {
                 <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#22c55e" /></svg>
                 Terceros
               </button>
-              {sedesNames.map((name, i) => (
+              {sedeSeriesNames.map((name, i) => (
                 <button key={name} onClick={() => setViewMode(name)}
                   className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-sm font-medium bg-white border transition-colors ${viewMode === name ? 'border-gray-400 text-gray-800' : 'border-gray-200 text-gray-600'}`}>
                   <span className="w-3 h-3 inline-block rounded-sm" style={{ background: SEDE_COLORS[i % SEDE_COLORS.length] }} />
@@ -761,7 +782,7 @@ export default function ProductionDashboard() {
                 label={{ value: 'Órdenes de producción', angle: -90, position: 'insideLeft', dx: 10, style: { fontSize: 10, fill: '#d946ef', textAnchor: 'middle' } }} />
               <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #fce7f3', fontSize: 12, color: '#111827' }} />
               {showTerceros && <Line type="monotone" dataKey="terceros" stroke="#22c55e" strokeWidth={2} dot={false} name="Terceros" />}
-              {sedesNames.map((name, i) =>
+              {sedeSeriesNames.map((name, i) =>
                 (viewMode === 'Todas' || viewMode === name)
                   ? <Line key={name} type="monotone" dataKey={name} stroke={SEDE_COLORS[i % SEDE_COLORS.length]} strokeWidth={i === 0 ? 2 : 1.5} dot={false} name={name} />
                   : null
