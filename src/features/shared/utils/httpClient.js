@@ -1,89 +1,257 @@
 /**
- * Cliente HTTP centralizado para todas las peticiones al backend
- * Maneja autenticación, errores y configuración base
+ * Cliente HTTP centralizado para todas las peticiones al backend.
+ *
+ * Detecta automáticamente:
+ * - Desarrollo/local: http://localhost:3000/api
+ * - Producción: https://api-unistock.onrender.com
+ *
+ * Las variables de entorno tienen prioridad sobre los valores automáticos.
  */
 
+// ============================================================
+// CONFIGURACIÓN DE ENTORNO
+// ============================================================
+
+const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+const isProduction =
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1";
+
+// ============================================================
+// URLS DEL BACKEND
+// ============================================================
+
+const LOCAL_API_URL = "http://localhost:3000/api";
+
+const PRODUCTION_API_URL = "https://api-unistock.onrender.com";
+
+// Variable principal del backend
 const BACKEND_API_URL =
   import.meta.env.VITE_BACKEND_API_URL ||
   import.meta.env.VITE_API_URL ||
-  "https://api-unistock.onrender.com/";
-const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || "https://api-unistock.onrender.com/";
-const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000;
+  (isLocalhost ? LOCAL_API_URL : PRODUCTION_API_URL);
 
-const getApiUrl = (endpoint) => (
-  endpoint.startsWith("/auth") ? AUTH_API_URL : BACKEND_API_URL
-);
+// URL específica para autenticación
+const AUTH_API_URL =
+  import.meta.env.VITE_AUTH_API_URL ||
+  (isLocalhost ? LOCAL_API_URL : PRODUCTION_API_URL);
+
+// Timeout
+const API_TIMEOUT =
+  parseInt(import.meta.env.VITE_API_TIMEOUT, 10) || 10000;
+
+
+// ============================================================
+// NORMALIZAR URL
+// ============================================================
+
+/**
+ * Evita problemas como:
+ *
+ * https://api-unistock.onrender.com//auth/login
+ *
+ * y garantiza:
+ *
+ * https://api-unistock.onrender.com/auth/login
+ */
+const normalizeBaseUrl = (url) => {
+  if (!url) return "";
+
+  return url.replace(/\/+$/, "");
+};
+
+const normalizeEndpoint = (endpoint) => {
+  if (!endpoint) return "";
+
+  return endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+};
+
+
+// Normalizamos las URLs una sola vez
+const NORMALIZED_BACKEND_API_URL = normalizeBaseUrl(BACKEND_API_URL);
+const NORMALIZED_AUTH_API_URL = normalizeBaseUrl(AUTH_API_URL);
+
+
+// ============================================================
+// SELECCIONAR URL SEGÚN ENDPOINT
+// ============================================================
+
+const getApiUrl = (endpoint) => {
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+
+  if (normalizedEndpoint.startsWith("/auth")) {
+    return NORMALIZED_AUTH_API_URL;
+  }
+
+  return NORMALIZED_BACKEND_API_URL;
+};
+
+
+// ============================================================
+// INFORMACIÓN DE ENTORNO
+// ============================================================
+
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("🌐 UniStock HTTP Client");
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("Entorno:", isLocalhost ? "LOCAL" : "PRODUCCIÓN");
+console.log("Hostname:", window.location.hostname);
+console.log("Backend:", NORMALIZED_BACKEND_API_URL);
+console.log("Auth:", NORMALIZED_AUTH_API_URL);
+console.log("Timeout:", API_TIMEOUT);
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+
+// ============================================================
+// LIMPIAR SESIÓN Y REDIRIGIR
+// ============================================================
 
 /**
  * Limpia la sesión, muestra una alerta visual y redirige al login
- * cuando el token es inválido/expirado.
+ * cuando el token es inválido o expirado.
  */
-const clearSessionAndRedirect = (message = "Tu sesión ha expirado. Por favor inicia sesión de nuevo.") => {
+const clearSessionAndRedirect = (
+  message = "Tu sesión ha expirado. Por favor inicia sesión de nuevo."
+) => {
   localStorage.removeItem("session_user");
   sessionStorage.removeItem("session_user");
 
-  // Solo redirigir si no estamos ya en /login para evitar bucles
-  if (window.location.pathname.includes("/login")) return;
+  // Evitar bucles si ya estamos en login
+  if (window.location.pathname.includes("/login")) {
+    return;
+  }
 
-  // Inyectar un toast de sesión expirada antes del redirect.
-  // Se hace con DOM puro porque en este punto React puede ya no estar montado.
-  const existing = document.getElementById("__session_expired_toast__");
+  // Buscar toast existente
+  const existing = document.getElementById(
+    "__session_expired_toast__"
+  );
+
   if (!existing) {
     const toast = document.createElement("div");
+
     toast.id = "__session_expired_toast__";
+
     toast.innerHTML = `
       <div style="
-        position:fixed; top:20px; right:20px; z-index:99999;
-        background:#fff; border-left:6px solid #ef4444;
-        border-radius:14px; padding:16px 20px 20px;
+        position:fixed;
+        top:20px;
+        right:20px;
+        z-index:99999;
+        background:#fff;
+        border-left:6px solid #ef4444;
+        border-radius:14px;
+        padding:16px 20px 20px;
         box-shadow:0 10px 25px rgba(0,0,0,0.13);
-        width:320px; font-family:Arial,sans-serif;
-        animation: __slideIn__ .3s ease forwards;
+        width:320px;
+        font-family:Arial,sans-serif;
+        animation:__slideIn__ .3s ease forwards;
       ">
-        <strong style="color:#111; font-size:14px;">⚠ Sesión finalizada</strong>
-        <p style="margin:6px 0 0; font-size:13px; color:#555; line-height:1.5;">${message}</p>
+        <strong style="
+          color:#111;
+          font-size:14px;
+        ">
+          ⚠ Sesión finalizada
+        </strong>
+
+        <p style="
+          margin:6px 0 0;
+          font-size:13px;
+          color:#555;
+          line-height:1.5;
+        ">
+          ${message}
+        </p>
+
         <div style="
-          position:absolute; bottom:0; left:0; height:4px; width:100%;
-          background:#ef4444; border-radius:0 0 14px 14px;
-          animation: __shrink__ 3s linear forwards;
+          position:absolute;
+          bottom:0;
+          left:0;
+          height:4px;
+          width:100%;
+          background:#ef4444;
+          border-radius:0 0 14px 14px;
+          animation:__shrink__ 3s linear forwards;
         "></div>
       </div>
+
       <style>
-        @keyframes __slideIn__ { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
-        @keyframes __shrink__  { from{width:100%} to{width:0%} }
+        @keyframes __slideIn__ {
+          from {
+            transform:translateX(120%);
+            opacity:0;
+          }
+
+          to {
+            transform:translateX(0);
+            opacity:1;
+          }
+        }
+
+        @keyframes __shrink__ {
+          from {
+            width:100%;
+          }
+
+          to {
+            width:0%;
+          }
+        }
       </style>
     `;
+
     document.body.appendChild(toast);
   }
 
-  // Redirigir después de que el usuario pueda leer la alerta (3 s)
-  setTimeout(() => { window.location.href = "/login"; }, 3000);
+  // Dar 3 segundos para leer el mensaje
+  setTimeout(() => {
+    window.location.href = "/login";
+  }, 3000);
 };
 
-/**
- * Obtiene el token JWT del localStorage
- */
+
+// ============================================================
+// OBTENER TOKEN JWT
+// ============================================================
+
 const getAuthToken = () => {
   try {
-    // Buscar en localStorage primero (donde guarda AuthAPI)
-    const sessionUser = localStorage.getItem("session_user") || sessionStorage.getItem("session_user");
+    const sessionUser =
+      localStorage.getItem("session_user") ||
+      sessionStorage.getItem("session_user");
+
     if (sessionUser) {
       const user = JSON.parse(sessionUser);
+
       return user.token || null;
     }
   } catch (error) {
     console.error("Error getting auth token:", error);
   }
+
   return null;
 };
 
+
+// ============================================================
+// PETICIÓN HTTP CENTRALIZADA
+// ============================================================
+
 /**
- * Realiza una petición HTTP al backend
- * @param {string} endpoint - Endpoint relativo (ej: '/users', '/products/1')
- * @param {object} options - Opciones fetch
- * @returns {Promise<any>} Respuesta parseada del servidor
+ * Realiza una petición HTTP al backend.
+ *
+ * @param {string} endpoint
+ * @param {object} options
+ * @returns {Promise<any>}
  */
-export const httpRequest = async (endpoint, options = {}) => {
+export const httpRequest = async (
+  endpoint,
+  options = {}
+) => {
   const {
     method = "GET",
     body = null,
@@ -94,40 +262,71 @@ export const httpRequest = async (endpoint, options = {}) => {
     ...otherOptions
   } = options;
 
-  const url = `${getApiUrl(endpoint)}${endpoint}`;
+  // ----------------------------------------------------------
+  // Construcción segura de URL
+  // ----------------------------------------------------------
 
-  // Headers por defecto
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+
+  const baseUrl = getApiUrl(normalizedEndpoint);
+
+  const url = `${baseUrl}${normalizedEndpoint}`;
+
+
+  // ----------------------------------------------------------
+  // Headers
+  // ----------------------------------------------------------
+
   const defaultHeaders = {
     "Content-Type": "application/json",
     ...headers,
   };
 
-  // Agregar token de autenticación si existe
+
+  // ----------------------------------------------------------
+  // Token
+  // ----------------------------------------------------------
+
   if (!skipAuth) {
     const token = getAuthToken();
+
     if (token) {
       defaultHeaders["Authorization"] = `Bearer ${token}`;
     }
   }
 
-  // 🐛 FIX (rendimiento): `fetch()` nativo NO soporta la opción `timeout`,
-  // así que antes esa config se ignoraba silenciosamente — una petición
-  // colgada podía quedarse viva indefinidamente, consumiendo un slot de
-  // conexión del navegador (que limita ~6 peticiones concurrentes por
-  // dominio) y contribuyendo a la saturación del network. Ahora se
-  // implementa con AbortController real, y además se permite que el
-  // caller pase su propio `signal` (p. ej. para cancelar al desmontar un
-  // componente o al disparar una búsqueda nueva antes de que termine la
-  // anterior).
-  const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), API_TIMEOUT);
 
-  // Si el caller también pasó su propio signal, hay que combinar ambos:
-  // abortar si vence el timeout O si el caller cancela manualmente.
+  // ----------------------------------------------------------
+  // AbortController / Timeout
+  // ----------------------------------------------------------
+
+  const timeoutController = new AbortController();
+
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort();
+  }, API_TIMEOUT);
+
+
+  // ----------------------------------------------------------
+  // Combinar signal externo con timeout
+  // ----------------------------------------------------------
+
   if (externalSignal) {
-    if (externalSignal.aborted) timeoutController.abort();
-    else externalSignal.addEventListener("abort", () => timeoutController.abort(), { once: true });
+    if (externalSignal.aborted) {
+      timeoutController.abort();
+    } else {
+      externalSignal.addEventListener(
+        "abort",
+        () => timeoutController.abort(),
+        { once: true }
+      );
+    }
   }
+
+
+  // ----------------------------------------------------------
+  // Configuración fetch
+  // ----------------------------------------------------------
 
   const requestConfig = {
     method,
@@ -136,123 +335,249 @@ export const httpRequest = async (endpoint, options = {}) => {
     ...otherOptions,
   };
 
-  // Agregar body si existe
-  if (body) {
-    requestConfig.body = typeof body === "string" ? body : JSON.stringify(body);
+
+  // ----------------------------------------------------------
+  // Body
+  // ----------------------------------------------------------
+
+  if (body !== null && body !== undefined) {
+    requestConfig.body =
+      typeof body === "string"
+        ? body
+        : JSON.stringify(body);
   }
 
+
+  // ----------------------------------------------------------
+  // REQUEST
+  // ----------------------------------------------------------
+
   try {
-    const response = await fetch(url, requestConfig);
+    console.log(`➡️ ${method} ${url}`);
+
+    const response = await fetch(
+      url,
+      requestConfig
+    );
+
     clearTimeout(timeoutId);
 
-// Manejar respuestas no exitosas
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
 
-      // Componer un mensaje legible con los errores de validación por campo
-      // que algunos endpoints devuelven en `errorData.errors` (ej. Zod).
-      // Ej: "Error de validación en los datos enviados\n• telefono_contacto: ..."
-      let message = errorData.message || `HTTP Error ${response.status}`;
-      if (Array.isArray(errorData.errors) && errorData.errors.length > 0) {
-        const detalle = errorData.errors
-          .map((e) => {
-            const campo = e?.field
-              ? String(e.field).replace(/^\./, '')
-              : 'datos';
-            return `• ${campo}: ${e?.message || 'valor inválido'}`;
-          })
-          .join('\n');
+    // --------------------------------------------------------
+    // ERROR HTTP
+    // --------------------------------------------------------
+
+    if (!response.ok) {
+      const errorData =
+        await response
+          .json()
+          .catch(() => ({}));
+
+
+      // Mensaje principal
+      let message =
+        errorData.message ||
+        `HTTP Error ${response.status}`;
+
+
+      // Errores de validación
+      if (
+        Array.isArray(errorData.errors) &&
+        errorData.errors.length > 0
+      ) {
+        const detalle =
+          errorData.errors
+            .map((e) => {
+              const campo = e?.field
+                ? String(e.field).replace(/^\./, "")
+                : "datos";
+
+              return `• ${
+                campo
+              }: ${
+                e?.message ||
+                "valor inválido"
+              }`;
+            })
+            .join("\n");
+
         message = `${message}\n${detalle}`;
       }
 
+
+      // Crear error
       const error = new Error(message);
+
       error.status = response.status;
       error.data = errorData;
 
-      // 401 → sesión inválida o token ausente/expirado: forzar re-login.
-      // FIX: antes esto reusaba `skipAuth` (que también controla si se manda
-      // el token). Eso hacía que cualquier llamada con skipAuth:true saliera
-      // SIN Authorization header, y endpoints protegidos por requireAuth
-      // (como /auth/verify-password) rechazaban siempre con 401 "Token no
-      // proporcionado" — sin importar la contraseña. Ahora son dos flags
-      // independientes: skipAuth (no mandar token) y suppressAutoLogout
-      // (no cerrar sesión si el 401 es un error de negocio esperado).
-      if (response.status === 401 && !suppressAutoLogout) {
+
+      // ------------------------------------------------------
+      // 401 → TOKEN INVÁLIDO / EXPIRADO
+      // ------------------------------------------------------
+
+      if (
+        response.status === 401 &&
+        !suppressAutoLogout
+      ) {
         clearSessionAndRedirect();
       }
 
       throw error;
     }
 
-    // Si la respuesta es 204 No Content, no hay body
+
+    // --------------------------------------------------------
+    // 204 NO CONTENT
+    // --------------------------------------------------------
+
     if (response.status === 204) {
       return null;
     }
 
-    // Intentar parsear como JSON, si no, devolver texto
-    const contentType = response.headers.get("content-type");
-    if (contentType?.includes("application/json")) {
+
+    // --------------------------------------------------------
+    // JSON / TEXT
+    // --------------------------------------------------------
+
+    const contentType =
+      response.headers.get("content-type");
+
+    if (
+      contentType?.includes(
+        "application/json"
+      )
+    ) {
       return await response.json();
     }
+
     return await response.text();
+
   } catch (error) {
+
     clearTimeout(timeoutId);
 
-    // Distinguir un timeout/cancelación real de un error de negocio.
+
+    // --------------------------------------------------------
+    // ABORT / TIMEOUT
+    // --------------------------------------------------------
+
     if (error.name === "AbortError") {
-      const wasExternalAbort = externalSignal?.aborted;
+
+      const wasExternalAbort =
+        externalSignal?.aborted;
+
       const abortError = new Error(
-        wasExternalAbort ? "Petición cancelada" : "Tiempo de espera agotado. Verifica tu conexión."
+        wasExternalAbort
+          ? "Petición cancelada"
+          : "Tiempo de espera agotado. Verifica tu conexión."
       );
-      abortError.status = wasExternalAbort ? undefined : 408;
-      abortError.isTimeout = !wasExternalAbort;
-      abortError.isCancelled = !!wasExternalAbort;
-      if (!wasExternalAbort) console.error(`Timeout (${API_TIMEOUT}ms) en petición a ${url}`);
+
+      abortError.status =
+        wasExternalAbort
+          ? undefined
+          : 408;
+
+      abortError.isTimeout =
+        !wasExternalAbort;
+
+      abortError.isCancelled =
+        !!wasExternalAbort;
+
+
+      if (!wasExternalAbort) {
+        console.error(
+          `Timeout (${API_TIMEOUT}ms) en petición a ${url}`
+        );
+      }
+
       throw abortError;
     }
 
-    // FIX: antes se logueaba CUALQUIER error con console.error, incluyendo
-    // casos esperados de negocio (ej. credenciales inválidas, validaciones).
-    // Ahora solo se loguea si es un error inesperado: sin status (falla de
-    // red/timeout) o un 5xx (error real del servidor). Los 400/401/403/404
-    // son flujos normales que la UI ya maneja y muestra al usuario.
-    const isUnexpected = !error.status || error.status >= 500;
+
+    // --------------------------------------------------------
+    // ERRORES INESPERADOS
+    // --------------------------------------------------------
+
+    const isUnexpected =
+      !error.status ||
+      error.status >= 500;
+
     if (isUnexpected) {
-      console.error(`Error in HTTP request to ${url}:`, error);
+      console.error(
+        `Error in HTTP request to ${url}:`,
+        error
+      );
     }
+
     throw error;
   }
 };
 
-/**
- * GET request
- */
-export const get = (endpoint, options = {}) =>
-  httpRequest(endpoint, { ...options, method: "GET" });
 
-/**
- * POST request
- */
-export const post = (endpoint, body, options = {}) =>
-  httpRequest(endpoint, { ...options, method: "POST", body });
+// ============================================================
+// MÉTODOS HTTP
+// ============================================================
 
-/**
- * PUT request
- */
-export const put = (endpoint, body, options = {}) =>
-  httpRequest(endpoint, { ...options, method: "PUT", body });
+export const get = (
+  endpoint,
+  options = {}
+) =>
+  httpRequest(endpoint, {
+    ...options,
+    method: "GET",
+  });
 
-/**
- * PATCH request
- */
-export const patch = (endpoint, body, options = {}) =>
-  httpRequest(endpoint, { ...options, method: "PATCH", body });
 
-/**
- * DELETE request
- */
-export const deleteRequest = (endpoint, options = {}) =>
-  httpRequest(endpoint, { ...options, method: "DELETE" });
+export const post = (
+  endpoint,
+  body,
+  options = {}
+) =>
+  httpRequest(endpoint, {
+    ...options,
+    method: "POST",
+    body,
+  });
+
+
+export const put = (
+  endpoint,
+  body,
+  options = {}
+) =>
+  httpRequest(endpoint, {
+    ...options,
+    method: "PUT",
+    body,
+  });
+
+
+export const patch = (
+  endpoint,
+  body,
+  options = {}
+) =>
+  httpRequest(endpoint, {
+    ...options,
+    method: "PATCH",
+    body,
+  });
+
+
+export const deleteRequest = (
+  endpoint,
+  options = {}
+) =>
+  httpRequest(endpoint, {
+    ...options,
+    method: "DELETE",
+  });
+
+
+// ============================================================
+// EXPORT DEFAULT
+// ============================================================
 
 export default {
   get,
