@@ -21,7 +21,7 @@ import httpClient from "../../shared/utils/httpClient";
 // Este helper usa fetch directo SOLO para las llamadas que llevan imagen;
 // el resto del módulo sigue usando httpClient sin cambios.
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://api-unistock.onrender.com/";
 
 const getToken = () => {
   try {
