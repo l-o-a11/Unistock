@@ -575,6 +575,9 @@ try {
       if (coe) { newExtraErr[i].color = coe; missing.push(`Artículo #${i + 2} — Color`); }
 
     });
+    if (type === 'diseno' && !hasTechnicalSheetMaterials(techSheetData)) {
+      missing.push('Ficha técnica — completa al menos un material o medida');
+    }
     setErrors(newErrors); setExtraErrors(newExtraErr);
     if (nuevaRefOpen) validateNuevaRef();
     if (missing.length > 0) {
@@ -690,6 +693,7 @@ try {
   };
 
   const selectedClient = getSelectedClientObject();
+  const selectedProduct = products.find(p => p.reference === formData.referencia || p.id === formData.referencia);
 
   return (
     <>
@@ -1265,6 +1269,10 @@ try {
                 <Button type="button" variant="secondary" onClick={() => setShowTechSheet(false)}>Cerrar</Button>
                 {type === 'diseno' && (
                   <Button type="button" variant="primary" onClick={() => {
+                    if (!hasTechnicalSheetMaterials(techSheetData)) {
+                      setAlertConfig({ open: true, type: 'warning', title: 'Ficha técnica vacía', message: 'Completa al menos un material o medida antes de guardar la ficha.', onConfirm: null });
+                      return;
+                    }
                     setShowTechSheet(false);
                     setAlertConfig({ open: true, type: 'success', title: 'Ficha guardada', message: 'La ficha técnica fue asociada a la orden.', onConfirm: null });
                   }}>
@@ -1283,6 +1291,10 @@ try {
               })}
               isEditing={type === 'diseno'}
               onChange={(data) => { if (type === 'diseno') setTechSheetData(data); }}
+              productName={nuevaRefOpen ? nuevaRef.name : (selectedProduct?.name || formData.producto || '')}
+              categoryDescription={nuevaRefOpen ? nuevaRef.category : (selectedProduct?.category || '')}
+              productRef={nuevaRefOpen ? nuevaRef.reference : formData.referencia}
+              productImage={nuevaRefOpen ? null : (selectedProduct?.image || null)}
             />
           </div>
         </div>
