@@ -12,6 +12,9 @@
  */
 
 import httpClient from '../../shared/utils/httpClient';
+import { withCache, invalidateCacheByPrefix } from '../../shared/utils/apiCache';
+
+const CACHE_PREFIX = 'third-parties:';
 
 // ─── Mapeo back → front ───────────────────────────────────────────────────────
 const toFrontend = (doc) => {
@@ -129,19 +132,38 @@ const extractOne = (response) => {
 // ─── API pública ─────────────────────────────────────────────────────────────
 export const thirdPartyAPI = {
 
-  /** GET /api/terceros — lista completa con filtros opcionales */
+  /**
+   * GET /api/terceros — lista completa con filtros opcionales
+   *
+   * 🐛 FIX (rendimiento): antes se llamaba directo a httpClient cada vez.
+   * Como thirdPartyAPI.getAll() se invoca de forma independiente desde
+   * varios componentes (ProductForm, ThirdPartiesSection,
+   * ProductionAlerts, ProductionDetailsPage...), montarlos juntos disparaba
+   * varias peticiones idénticas al backend en paralelo. Ahora se envuelve
+   * con `withCache`: si ya hay una petición en vuelo para los mismos
+   * `params`, se reusa la misma promesa; si ya se pidió hace menos de 60s,
+   * se reusa el resultado en memoria en vez de volver a golpear la red.
+   *
+   * Usa `{ force: true }` en `params` para forzar una recarga (p. ej. justo
+   * después de crear/editar un tercero, aunque normalmente no hace falta
+   * porque create/update/delete/toggle ya invalidan el caché).
+   */
   async getAll(params = {}) {
-    try {
-      const query = new URLSearchParams({
-        limit: 100,
-        ...params,
-      }).toString();
-      const response = await httpClient.get(`/terceros?${query}`);
-      return extractData(response).map(toFrontend);
-    } catch (err) {
-      console.error('[thirdPartyAPI] getAll error:', err?.message);
-      throw err;
-    }
+    const { force, ...queryParams } = params;
+    const cacheKey = `${CACHE_PREFIX}getAll:${JSON.stringify(queryParams)}`;
+    return withCache(cacheKey, async () => {
+      try {
+        const query = new URLSearchParams({
+          limit: 100,
+          ...queryParams,
+        }).toString();
+        const response = await httpClient.get(`/terceros?${query}`);
+        return extractData(response).map(toFrontend);
+      } catch (err) {
+        console.error('[thirdPartyAPI] getAll error:', err?.message);
+        throw err;
+      }
+    }, { force });
   },
 
   /** GET /api/terceros/:id */
@@ -159,6 +181,7 @@ export const thirdPartyAPI = {
   async create(data) {
     try {
       const response = await httpClient.post('/terceros', toBackend(data));
+      invalidateCacheByPrefix(CACHE_PREFIX); // los datos cacheados quedaron obsoletos
       return toFrontend(extractOne(response));
     } catch (err) {
       console.error('[thirdPartyAPI] create error:', err?.message);
@@ -170,6 +193,7 @@ export const thirdPartyAPI = {
   async update(id, data) {
     try {
       const response = await httpClient.put(`/terceros/${id}`, toBackend(data));
+      invalidateCacheByPrefix(CACHE_PREFIX);
       return toFrontend(extractOne(response));
     } catch (err) {
       console.error('[thirdPartyAPI] update error:', err?.message);
@@ -180,7 +204,9 @@ export const thirdPartyAPI = {
   /** DELETE /api/terceros/:id */
   async delete(id) {
     try {
-      return await httpClient.delete(`/terceros/${id}`);
+      const result = await httpClient.delete(`/terceros/${id}`);
+      invalidateCacheByPrefix(CACHE_PREFIX);
+      return result;
     } catch (err) {
       console.error('[thirdPartyAPI] delete error:', err?.message);
       throw err;
@@ -191,6 +217,7 @@ export const thirdPartyAPI = {
   async toggle(id) {
     try {
       const response = await httpClient.patch(`/terceros/${id}/toggle`, {});
+      invalidateCacheByPrefix(CACHE_PREFIX);
       return toFrontend(extractOne(response));
     } catch (err) {
       console.error('[thirdPartyAPI] toggle error:', err?.message);
@@ -205,6 +232,7 @@ export const thirdPartyAPI = {
         `/terceros/${id}/producciones`,
         { orden, fecha, produccionId, cantidad: Number(cantidad) || 0 }
       );
+      invalidateCacheByPrefix(CACHE_PREFIX);
       return toFrontend(extractOne(response));
     } catch (err) {
       // Endpoint puede no existir aún en backend — error silencioso
