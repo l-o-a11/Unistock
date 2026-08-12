@@ -78,7 +78,7 @@ export const invalidateCacheByPrefix = (prefix) => {
 };
 
 /** Limpia todo el caché (ej: al cerrar sesión). */
-export const clearApiCache = () => {
+export const clearApicache = () => {
   cache.clear();
   inFlight.clear();
 };
