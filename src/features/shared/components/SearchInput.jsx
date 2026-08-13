@@ -6,11 +6,24 @@
  * USO:
  *   import SearchInput from "../../shared/components/SearchInput";
  *   <SearchInput value={term} onChange={setTerm} placeholder="Buscar" />
+ *
+ * NOTA: "width" ahora funciona como ANCHO MÁXIMO (maxWidth real).
+ * El contenedor siempre parte de width: 100% para no desbordar
+ * contenedores angostos, y solo crece hasta el límite indicado.
  */
 import React from "react";
 
-const SearchInput = ({ value, onChange, placeholder = "Buscar", width = "100%", maxWidth = "280px" }) => (
-  <div style={{ position: "relative", width, maxWidth }}>
+const SearchInput = ({ value, onChange, placeholder = "Buscar", width = "280px", margin = "0" }) => (
+  <div
+    style={{
+      position: "relative",
+      width: "100%",
+      maxWidth: width,
+      minWidth: 0,       // clave: permite que el flex/grid padre lo encoja sin desbordar
+      boxSizing: "border-box",
+      margin,
+    }}
+  >
     {/* Ícono lupa */}
     <span style={{
       position: "absolute", left: "11px", top: "50%",
@@ -31,6 +44,7 @@ const SearchInput = ({ value, onChange, placeholder = "Buscar", width = "100%", 
       placeholder={placeholder}
       style={{
         width: "100%",
+        maxWidth: "100%",
         padding: "9px 14px 9px 34px",
         border: "1.5px solid #e5e7eb",
         borderRadius: "10px",
