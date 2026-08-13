@@ -253,7 +253,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [clientOptions, setClientOptions] = useState([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState(null);
-  const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
+  const [clientDraft, setClientDraft] = useState({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
   const [clientFormError, setClientFormError] = useState('');
   const [technicalSheet, setTechnicalSheet] = useState(() => {
     if (!product?.technicalSheet) return null;
@@ -359,7 +359,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const openCreateClientModal = () => {
     setEditingClientId(null);
-    setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setClientDraft({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
     setClientFormError('');
     setClientFormOpen(true);
   };
@@ -370,6 +370,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     setEditingClientId(client.id || client._id || null);
     setClientDraft({
       nombre: client.nombre || '',
+      tipoDocumento: client.tipoDocumento || 'Cédula de ciudadanía',
       documento: client.documento || '',
       telefono: client.telefono || '',
       correo: client.correo || '',
@@ -386,14 +387,15 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const handleClientCreate = async (e) => {
     e.preventDefault();
-    if (!clientDraft.nombre.trim() || !clientDraft.documento.trim()) {
-      setClientFormError('Nombre y documento son obligatorios');
+    if (!clientDraft.nombre.trim() || !clientDraft.tipoDocumento.trim() || !clientDraft.documento.trim() || !clientDraft.correo.trim()) {
+      setClientFormError('Nombre, tipo de documento, documento y correo son obligatorios');
       return;
     }
 
     try {
       const payload = {
         nombre: clientDraft.nombre.trim(),
+        tipoDocumento: clientDraft.tipoDocumento.trim(),
         documento: clientDraft.documento.trim(),
         telefono: clientDraft.telefono.trim(),
         correo: clientDraft.correo.trim(),
@@ -404,7 +406,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       const nextClient = saved?.nombre || clientDraft.nombre.trim();
       setTechnicalSheet((prev) => ({ ...(prev || {}), client: nextClient }));
       await loadClients();
-      setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setClientDraft({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
       setEditingClientId(null);
       setClientFormError('');
       setClientFormOpen(false);
@@ -1650,7 +1652,21 @@ if ((touched[field] || formData[field]) && errors[field]) {
             <form onSubmit={handleClientCreate}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Tipo de documento <span style={{ color: "#ff4fd6" }}>*</span></label>
+                  <select
+                    value={clientDraft.tipoDocumento}
+                    onChange={(e) => setClientDraft(prev => ({ ...prev, tipoDocumento: e.target.value }))}
+                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff" }}
+                  >
+                    <option value="Cédula de ciudadanía">Cédula de ciudadanía</option>
+                    <option value="NIT">NIT</option>
+                    <option value="Cédula de extranjería">Cédula de extranjería</option>
+                    <option value="Pasaporte">Pasaporte</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
                     value={clientDraft.nombre}
                     onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))}
@@ -1659,7 +1675,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
                     value={clientDraft.documento}
                     onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))}
@@ -1677,7 +1693,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
                     value={clientDraft.correo}
                     onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))}
