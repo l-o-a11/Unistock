@@ -425,7 +425,7 @@ const SupplyForm = ({
               {/* Selector + valor + botón agregar */}
               <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-end" }}>
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Propiedad</label>
+                  <label style={labelStyle}>Propiedad <span style={requiredStar}>*</span></label>
                   <select
                     value={propiedadId}
                     onChange={(e) => setPropiedadId(e.target.value)}
@@ -440,7 +440,7 @@ const SupplyForm = ({
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Valor</label>
+                  <label style={labelStyle}>Valor<span style={requiredStar}>*</span></label>
                   <input
                     placeholder="Ej: Rojo"
                     value={valorPropiedad}

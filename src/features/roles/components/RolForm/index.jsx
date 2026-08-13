@@ -86,7 +86,7 @@ const onBlurField = (e) => {
 // ─────────────────────────────────────────────────
 // RolForm
 // ─────────────────────────────────────────────────
-const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
+const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   const initialFormData = {
     nombre: rol?.nombre || '',
     descripcion: rol?.descripcion || '',
@@ -110,6 +110,20 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   const getModuloNombre = (id) =>
     MODULOS_PREDETERMINADOS.find((m) => m.id === id)?.nombre || 'Módulo desconocido';
 
+  const getDuplicateRoleNameError = (value) => {
+    if (!value || !value.toString().trim()) return '';
+
+    const normalizedValue = value.toString().trim().toLowerCase();
+    const exists = roles.some((existingRol) => {
+      if (!existingRol?.nombre) return false;
+      const sameRole = rol && String(existingRol.id) === String(rol.id);
+      if (sameRole) return false;
+      return existingRol.nombre.trim().toLowerCase() === normalizedValue;
+    });
+
+    return exists ? 'Ya existe un rol con este nombre. Usa otro nombre.' : '';
+  };
+
   // ── Validación ────────────────────────────────────
   const validateField = (name, value) => {
     let error = '';
@@ -119,9 +133,13 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         validators.noNumbers(value) ||
         validators.minLength(3)(value) ||
         validators.maxLength(50)(value);
+
+      if (!error) {
+        error = getDuplicateRoleNameError(value);
+      }
     }
-    if (name === 'descripcion' && value) {
-      error = validators.maxLength(200)(value);
+    if (name === 'descripcion') {
+      error = validators.required(value) || validators.maxLength(200)(value);
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
@@ -143,12 +161,37 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
   // ── Handlers ──────────────────────────────────────
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const nextValue = value;
+
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+
+    if (name === 'nombre' || name === 'descripcion') {
+      validateField(name, nextValue);
+    }
   };
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
     validateField(name, value);
+  };
+
+  const getDuplicateRoleErrorMessage = (error) => {
+    const message = error?.message || error?.response?.data?.message || '';
+    const normalized = message.toLowerCase();
+
+    if (
+      !message ||
+      !(
+        normalized.includes('ya existe') ||
+        normalized.includes('duplicate') ||
+        normalized.includes('duplicado') ||
+        normalized.includes('nombre') && normalized.includes('rol') && normalized.includes('existe')
+      )
+    ) {
+      return '';
+    }
+
+    return 'Ya existe un rol con este nombre. Usa otro nombre.';
   };
 
   const handleModuloChange = (e) => {
@@ -217,20 +260,33 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const isValid = validateAll();
     if (!isValid) {
       showAlert('warning', 'Campos incompletos', 'Corrige los campos marcados antes de guardar.');
       return;
     }
+
     const dataNormalizada = {
       ...formData,
       nombre: formData.nombre.trim()
         ? formData.nombre.trim().charAt(0).toUpperCase() + formData.nombre.trim().slice(1).toLowerCase()
         : formData.nombre,
     };
-    onSubmit(dataNormalizada);
+
+    try {
+      await onSubmit(dataNormalizada);
+    } catch (error) {
+      const duplicateMessage = getDuplicateRoleErrorMessage(error);
+
+      if (duplicateMessage) {
+        setErrors((prev) => ({ ...prev, nombre: duplicateMessage }));
+        return;
+      }
+
+      showAlert('error', 'Error', error?.message || 'Ocurrió un error al guardar el rol. Intenta nuevamente.');
+    }
   };
 
   const handleCancel = () => {
@@ -322,7 +378,7 @@ const RolForm = ({ rol, onSubmit, onCancel, usuariosEnlazados = 0 }) => {
         {/* DESCRIPCIÓN */}
         <div style={{ marginBottom: 10 }}>
           <label htmlFor="descripcion" style={labelStyle}>
-            Descripción
+            Descripción {req}
             <span style={{ color: '#9ca3af', fontWeight: 100, marginLeft: 6, fontSize: 11 }}>
               (máx. 200 caracteres)
             </span>

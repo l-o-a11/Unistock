@@ -279,11 +279,21 @@ const RolesPage = () => {
       await createRol(data);
       setModalType(null);
       showAlert("success", "Rol creado", "El rol fue creado correctamente.");
-    } catch {
+    } catch (error) {
+      const message = error?.message || "";
+      const isDuplicate =
+        message.toLowerCase().includes("ya existe") ||
+        message.toLowerCase().includes("duplicado") ||
+        message.toLowerCase().includes("duplicate");
+
+      if (isDuplicate) {
+        throw error;
+      }
+
       showAlert(
         "error",
         "Error",
-        "Ocurrió un error al crear el rol. Intenta nuevamente.",
+        message || "Ocurrió un error al crear el rol. Intenta nuevamente.",
       );
     }
   };
@@ -298,11 +308,21 @@ const RolesPage = () => {
         "Rol actualizado",
         "El rol fue actualizado correctamente.",
       );
-    } catch {
+    } catch (error) {
+      const message = error?.message || "";
+      const isDuplicate =
+        message.toLowerCase().includes("ya existe") ||
+        message.toLowerCase().includes("duplicado") ||
+        message.toLowerCase().includes("duplicate");
+
+      if (isDuplicate) {
+        throw error;
+      }
+
       showAlert(
         "error",
         "Error",
-        "Ocurrió un error al actualizar el rol. Intenta nuevamente.",
+        message || "Ocurrió un error al actualizar el rol. Intenta nuevamente.",
       );
     }
   };
@@ -436,12 +456,14 @@ const RolesPage = () => {
               {modalType === "create" && (
                 <CreateRolPage
                   createRol={handleCreateRol}
+                  roles={roles}
                   onClose={() => setModalType(null)}
                 />
               )}
               {modalType === "edit" && (
                 <EditRolPage
                   rol={editingRol}
+                  roles={roles}
                   updateRol={handleUpdateRol}
                   onClose={() => {
                     setModalType(null);
