@@ -737,6 +737,7 @@ const ShoppingsPage = () => {
 
   return (
     <div
+      className="sh-page"
       style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px" }}
     >
       <style>{`
@@ -745,15 +746,28 @@ const ShoppingsPage = () => {
         .sh-download-opt-btn { width:100%; display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:10px; cursor:pointer; border:1.5px solid #e5e7eb; background:#fafafa; text-align:left; transition:border-color 0.15s,background 0.15s; }
         .sh-download-opt-btn:hover { border-color:#FF4FD6; background:#fff0fb; }
         .sh-download-opt-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#ffffff; }
+
+        @media (max-width: 640px) {
+          .sh-page { padding: 16px 16px 0px 16px !important; }
+          .sh-header { flex-direction: column !important; align-items: stretch !important; }
+          .sh-search { align-items: stretch !important; }
+          .sh-search > div { max-width: 100% !important; width: 100% !important; }
+          .sh-search > span { text-align: center !important; white-space: normal !important; }
+          .sh-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+          .sh-toolbar-left { justify-content: center !important; }
+          .sh-toolbar-right { display: flex !important; justify-content: center !important; }
+        }
       `}</style>
 
       {/* HEADER */}
       <div
+        className="sh-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "20px",
+          gap: 12,
         }}
       >
         <h1
@@ -767,6 +781,7 @@ const ShoppingsPage = () => {
           Compras
         </h1>
         <div
+          className="sh-search"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -792,6 +807,7 @@ const ShoppingsPage = () => {
 
       {/* TOOLBAR */}
       <div
+        className="sh-toolbar"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -803,7 +819,7 @@ const ShoppingsPage = () => {
         }}
       >
         {/* IZQUIERDA */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div className="sh-toolbar-left" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button
             onClick={() => setDownloadModal(true)}
             title="Exportar compras"
@@ -839,7 +855,9 @@ const ShoppingsPage = () => {
         </div>
 
         {/* DERECHA */}
-        <AddShoppingButton onClick={() => setShowCreateForm(true)} />
+        <div className="sh-toolbar-right">
+          <AddShoppingButton onClick={() => setShowCreateForm(true)} />
+        </div>
       </div>
 
       {/* TABLA */}

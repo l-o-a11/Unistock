@@ -27,6 +27,56 @@ const ddStyle = {
   boxShadow: '0 8px 24px rgba(0,0,0,0.10)', zIndex: 100, maxHeight: 160, overflowY: 'auto', marginTop: 2,
 };
 
+// FIX RESPONSIVE: estilos responsive centralizados vía <style>, ya que el
+// componente usa inline styles y estos no responden a media queries por sí solos.
+const responsiveCss = `
+  .shf-overlay { overflow-y: auto; }
+  .shf-modal { display: flex; }
+  @media (max-width: 900px) {
+    /* align-items: flex-start se mantiene (no "center") a propósito: si el
+       contenido es más alto que la pantalla, centrar verticalmente con
+       overflow-y: auto corta la parte de arriba del modal al hacer scroll
+       — es un bug conocido de flexbox. Lo que cambiamos es que ya no le
+       quitamos el padding al overlay, así el modal conserva el mismo
+       margen externo de 16px que EmployeeForm/UserForm en vez de pegarse
+       a los bordes de la pantalla. */
+    .shf-overlay { align-items: flex-start !important; }
+    .shf-modal {
+      flex-direction: column !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      max-height: calc(100vh - 32px) !important;
+      border-radius: 16px !important;
+    }
+    .shf-left {
+      flex: 1 1 auto !important;
+      width: 100% !important;
+      overflow-y: auto !important;
+      padding: 18px 16px !important;
+    }
+    .shf-right {
+      flex: 1 1 auto !important;
+      min-height: 320px !important;
+      border-left: none !important;
+      border-top: 1px solid #f3f4f6 !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .shf-left { padding: 16px 14px !important; }
+    .shf-right-body { padding: 18px 14px !important; }
+  }
+  @media (max-width: 560px) {
+    .shf-grid3 { grid-template-columns: 1fr 1fr !important; }
+    .shf-grid4 { grid-template-columns: 1fr 1fr !important; }
+    .shf-footer-btns { flex-direction: column-reverse !important; }
+    .shf-footer-btns > button { width: 100% !important; }
+  }
+  @media (max-width: 380px) {
+    .shf-grid3 { grid-template-columns: 1fr !important; }
+  }
+`;
+
 const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   const { suppliers, createSupplier } = useSuppliers();
   const { supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
@@ -103,6 +153,14 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     const { name, value } = e.target;
     setFormData((p) => ({ ...p, [name]: value }));
     validateField(name, value);
+  };
+
+  // FIX: bloquea en el propio input cualquier caracter que no sea dígito
+  // y corta a 4 dígitos máximo, en vez de solo avisar después de escribir.
+  const handleNumeroFacturaChange = (e) => {
+    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setFormData((p) => ({ ...p, numeroFactura: onlyDigits }));
+    validateField('numeroFactura', onlyDigits);
   };
 
   /* Proveedor */
@@ -292,13 +350,25 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
       style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#ff4fd6', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px #FF4FD644' }}>+</button>
   );
 
+  // Fecha máxima seleccionable en el input date = hoy, en formato yyyy-mm-dd
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16 }}>
-        <div style={{ display: 'flex', backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, height: '92vh', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+      {/* FIX RESPONSIVE: media queries para que el modal se apile y no se rompa en móvil */}
+      <style>{responsiveCss}</style>
+
+      <div className="shf-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16 }}>
+        <div className="shf-modal" style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, height: '92vh', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
           {/* ── COLUMNA IZQUIERDA ── */}
-          <div style={{ flex: '0 0 520px', padding: '24px 26px', overflow: 'hidden' }}>
+          <div className="shf-left" style={{ flex: '0 0 520px', padding: '24px 26px', overflow: 'hidden' }}>
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
@@ -317,17 +387,24 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
             {sectionTitle('Datos de la factura')}
 
             {/* Número de factura + Fecha + Sede */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
+            <div className="shf-grid3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label style={labelStyle}>Número de factura <span style={requiredStar}>*</span></label>
                 <input type="text" inputMode="numeric" pattern="[0-9]*" name="numeroFactura" value={formData.numeroFactura}
-                  onChange={handleChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
+                  onChange={handleNumeroFacturaChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
+                  maxLength={4}
                   placeholder="Ej: 0231" style={inp(errors.numeroFactura)} />
-                {errors.numeroFactura && <span style={errMsg}>⚠ {errors.numeroFactura}</span>}
+                {errors.numeroFactura ? (
+                  <span style={errMsg}>⚠ {errors.numeroFactura}</span>
+                ) : (
+                  <span style={{ fontSize: 10, color: '#9ca3af' }}>
+                    {formData.numeroFactura.length}/4 dígitos
+                  </span>
+                )}
               </div>
               <div>
                 <label style={labelStyle}>Fecha de la factura <span style={requiredStar}>*</span></label>
-                <input type="date" name="fecha" value={formData.fecha}
+                <input type="date" name="fecha" value={formData.fecha} max={todayStr}
                   onChange={handleChange} onBlur={(e) => validateField('fecha', e.target.value)}
                   style={inp(errors.fecha)} />
                 {errors.fecha && <span style={errMsg}>⚠ {errors.fecha}</span>}
@@ -350,7 +427,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Proveedor <span style={requiredStar}>*</span></label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                   <input value={proveedorSearch} placeholder="Buscar proveedor..."
                     style={inp(errors.proveedorId)}
                     onChange={(e) => { setProveedorSearch(e.target.value); setShowProveedorDD(true); if (!e.target.value) setFormData((p) => ({ ...p, proveedorId: '', proveedor: '' })); }}
@@ -417,7 +494,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Insumo</label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                   <input value={insumoSearch} placeholder="Buscar insumo existente..."
                     style={inp(false)}
                     onChange={(e) => { setInsumoSearch(e.target.value); setShowInsumoDD(true); }}
@@ -440,7 +517,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
+            <div className="shf-grid4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
               <div>
                 <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
                 <input type="number" name="cantidad" value={detalleActual.cantidad}
@@ -473,8 +550,8 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
           </div>
 
           {/* ── COLUMNA DERECHA ── */}
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#fafafa', borderLeft: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, minHeight: 0, padding: '28px 20px', display: 'flex', flexDirection: 'column' }}>
+          <div className="shf-right" style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#fafafa', borderLeft: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
+            <div className="shf-right-body" style={{ flex: 1, minHeight: 0, padding: '28px 20px', display: 'flex', flexDirection: 'column' }}>
               <p style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#333' }}>
                 Resumen de compra
                 <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', marginLeft: 8 }}>IVA incluido</span>
@@ -537,7 +614,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div className="shf-footer-btns" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <Button type="button" variant="secondary" onClick={handleCancel}>Cancelar</Button>
                 <Button type="button" variant="primary" onClick={handleSubmit}>Guardar Compra</Button>
               </div>

@@ -137,6 +137,12 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
 
     return (
         <>
+            <style>{`
+              @media (max-width: 480px) {
+                .ef-grid { grid-template-columns: 1fr !important; }
+                .ef-body { padding: 20px 18px !important; }
+              }
+            `}</style>
             <Alert
                 isOpen={alertConfig.open} type={alertConfig.type}
                 title={alertConfig.title} message={alertConfig.message}
@@ -144,10 +150,10 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
                 onCancel={() => { closeAlert(); if (alertConfig.type === 'success') onCancel(); }}
             />
 
-            <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
+            <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16, overflowY: 'auto' }}>
                 <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
 
-                    <div style={{ padding: '28px 30px' }}>
+                    <div className="ef-body" style={{ padding: '28px 30px' }}>
                         <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
 
                         {/* Header */}
@@ -168,7 +174,7 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
                         <form onSubmit={handleSubmit} noValidate>
                             {sectionTitle('Datos personales')}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+                            <div className="ef-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                                 <div>
                                     <label style={labelStyle}>Tipo de documento <span style={requiredStar}>*</span></label>
                                     <select
@@ -222,7 +228,7 @@ const EmployeeForm = ({ employee, roles, sedes, onSubmit, onCancel }) => {
 
                             {sectionTitle('Acceso y ubicación')}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+                            <div className="ef-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                                 <div>
                                     <label style={labelStyle}>Rol <span style={requiredStar}>*</span></label>
                                     <select
