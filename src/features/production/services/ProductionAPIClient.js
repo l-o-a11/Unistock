@@ -126,8 +126,11 @@ const toFrontendFormat = (backendData) => {
       ? new Date(backendData.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
       : '',
     fecha_entrega: backendData.fecha_entrega,
-    createdAt: backendData.createdAt,
-    updatedAt: backendData.updatedAt,
+    // El backend de producción usa `fecha_creacion` en lugar de `createdAt`.
+    // Exponer ambos formatos evita que las vistas que agrupan por período
+    // (dashboard, calendario y listados) descarten órdenes válidas.
+    createdAt: backendData.createdAt || backendData.fecha_creacion || backendData.fechaCreacion || null,
+    updatedAt: backendData.updatedAt || backendData.fecha_actualizacion || backendData.fechaActualizacion || backendData.fecha_creacion || null,
     estado: backendData.estado,
     status: backendData.estado,
     producto: backendData.producto || backendData.referencia || null,

@@ -737,7 +737,7 @@ const ShoppingsPage = () => {
 
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px" }}
+      style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px", minHeight: "calc(100vh - 80px)" }}
     >
       <style>{`
         @keyframes shFadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
@@ -842,13 +842,59 @@ const ShoppingsPage = () => {
         <AddShoppingButton onClick={() => setShowCreateForm(true)} />
       </div>
 
-      {/* TABLA */}
-      <ShoppingTable
-        shoppings={paginatedShoppings}
-        getProveedorNombre={getProveedorNombre}
-        onView={handleView}
-        onAnular={handleAnular}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ flex: '1 1 auto' }}>
+          <ShoppingTable
+            shoppings={paginatedShoppings}
+            getProveedorNombre={getProveedorNombre}
+            onView={handleView}
+            onAnular={handleAnular}
+          />
+        </div>
+
+        {filteredShoppings.length > 0 && (
+          <div
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              style={paginationBtn}
+            >
+              ‹
+            </button>
+            {getPageNumbers().map((p, i) =>
+              p === "..." ? (
+                <span key={i} style={{ padding: "6px 10px" }}>
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  style={{
+                    ...paginationBtn,
+                    background: p === currentPage ? "#FF4FD6" : "#fff",
+                    color: p === currentPage ? "#fff" : "#000",
+                  }}
+                >
+                  {p}
+                </button>
+              ),
+            )}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              style={paginationBtn}
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* MODAL CREAR */}
       {showCreateForm && (
@@ -868,50 +914,6 @@ const ShoppingsPage = () => {
           getProveedorNombre={getProveedorNombre}
           onClose={() => setSelectedShopping(null)}
         />
-      )}
-
-      {/* PAGINACIÓN */}
-      {filteredShoppings.length > 0 && (
-        <div
-          style={{
-            marginTop: "20px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "6px",
-          }}
-        >
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            style={paginationBtn}
-          >
-            ‹
-          </button>
-          {getPageNumbers().map((p, i) =>
-            p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>
-                ...
-              </span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                style={{
-                  ...paginationBtn,
-                  background: p === currentPage ? "#FF4FD6" : "#fff",
-                  color: p === currentPage ? "#fff" : "#000",
-                }}
-              >
-                {p}
-              </button>
-            ),
-          )}
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            style={paginationBtn}
-          >
-            ›
-          </button>
-        </div>
       )}
 
       {/* MODAL ANULACIÓN CON MOTIVO */}

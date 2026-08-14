@@ -4,7 +4,6 @@ import { productCategoryAPI } from "../../../productCategories/services/productC
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
 import ImageModal from "../ProductForm/ImageModal";
 import { clientAPI } from "../../../shared/services/clientAPI";
-import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 const normalizeText = (text) =>
   String(text || "")
     .normalize("NFD")
@@ -254,8 +253,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [clientOptions, setClientOptions] = useState([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState(null);
-  const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
+  const [clientDraft, setClientDraft] = useState({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
   const [clientFormError, setClientFormError] = useState('');
+  const [clientErrors, setClientErrors] = useState({});
   const [technicalSheet, setTechnicalSheet] = useState(() => {
     if (!product?.technicalSheet) return null;
     return {
@@ -362,7 +362,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const openCreateClientModal = () => {
     setEditingClientId(null);
-    setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setClientDraft({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
     setClientFormError('');
     setClientFormOpen(true);
   };
@@ -373,6 +373,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     setEditingClientId(client.id || client._id || null);
     setClientDraft({
       nombre: client.nombre || '',
+      tipoDocumento: client.tipoDocumento || 'Cédula de ciudadanía',
       documento: client.documento || '',
       telefono: client.telefono || '',
       correo: client.correo || '',
@@ -384,19 +385,63 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const closeClientModal = () => {
     setClientFormOpen(false);
     setClientFormError('');
+    setClientErrors({});
     setEditingClientId(null);
+  };
+
+  const validateClientField = (name, value) => {
+    let error = '';
+    switch (name) {
+      case 'tipoDocumento':
+        error = validators.required(value);
+        break;
+      case 'nombre':
+        error = validators.required(value);
+        break;
+      case 'documento':
+        error = validators.required(value) || validators.numbers(value);
+        break;
+      case 'telefono':
+        error = validators.telefono(value);
+        break;
+      case 'correo':
+        error = validators.email(value);
+        break;
+      default:
+        break;
+    }
+    setClientErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
+
+  const handleClientBlur = (e) => {
+    validateClientField(e.target.name, e.target.value);
   };
 
   const handleClientCreate = async (e) => {
     e.preventDefault();
-    if (!clientDraft.nombre.trim() || !clientDraft.documento.trim()) {
-      setClientFormError('Nombre y documento son obligatorios');
+    const requiredFields = ['tipoDocumento', 'nombre', 'documento', 'correo'];
+    const newErrors = {};
+    let hasError = false;
+
+    requiredFields.forEach(field => {
+      const error = validateClientField(field, clientDraft[field]);
+      if (error) { newErrors[field] = error; hasError = true; }
+    });
+
+    const phoneError = validateClientField('telefono', clientDraft.telefono);
+    if (phoneError) { newErrors.telefono = phoneError; hasError = true; }
+
+    if (hasError) {
+      setClientErrors(newErrors);
+      setClientFormError('Completa correctamente los campos obligatorios');
       return;
     }
 
     try {
       const payload = {
         nombre: clientDraft.nombre.trim(),
+        tipoDocumento: clientDraft.tipoDocumento.trim(),
         documento: clientDraft.documento.trim(),
         telefono: clientDraft.telefono.trim(),
         correo: clientDraft.correo.trim(),
@@ -407,8 +452,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       const nextClient = saved?.nombre || clientDraft.nombre.trim();
       setTechnicalSheet((prev) => ({ ...(prev || {}), client: nextClient }));
       await loadClients();
-      setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setClientDraft({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
       setEditingClientId(null);
+      setClientErrors({});
       setClientFormError('');
       setClientFormOpen(false);
       onShowAlert?.({ type: 'success', title: 'Cliente guardado', message: 'El cliente fue guardado correctamente.' });
@@ -1794,40 +1840,70 @@ if ((touched[field] || formData[field]) && errors[field]) {
             <form onSubmit={handleClientCreate}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre</label>
-                  <input
-                    value={clientDraft.nombre}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))}
-                    placeholder="Nombre completo"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
-                  />
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Tipo de documento <span style={{ color: "#ff4fd6" }}>*</span></label>
+                  <select
+                    name="tipoDocumento"
+                    value={clientDraft.tipoDocumento}
+                    onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.tipoDocumento; return n; }); setClientDraft(prev => ({ ...prev, tipoDocumento: e.target.value })); }}
+                    onBlur={handleClientBlur}
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.tipoDocumento ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff" }}
+                  >
+                    <option value="Cédula de ciudadanía">Cédula de ciudadanía</option>
+                    <option value="NIT">NIT</option>
+                    <option value="Cédula de extranjería">Cédula de extranjería</option>
+                    <option value="Pasaporte">Pasaporte</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                  {clientErrors.tipoDocumento && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.tipoDocumento}</span>}
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
-                    value={clientDraft.documento}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))}
-                    placeholder="Número de documento"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                    name="nombre"
+                    value={clientDraft.nombre}
+                    onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.nombre; return n; }); setClientDraft(prev => ({ ...prev, nombre: e.target.value })); }}
+                    onBlur={handleClientBlur}
+                    placeholder="Nombre completo"
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.nombre ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
                   />
+                  {clientErrors.nombre && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.nombre}</span>}
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento <span style={{ color: "#ff4fd6" }}>*</span></label>
+                  <input
+                    name="documento"
+                    value={clientDraft.documento}
+                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: e.target.value })); }}
+                    onBlur={handleClientBlur}
+                    placeholder="Número de documento"
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.documento ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                  {clientErrors.documento && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.documento}</span>}
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Teléfono</label>
                   <input
+                    name="telefono"
                     value={clientDraft.telefono}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, telefono: e.target.value }))}
+                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.telefono; return n; }); setClientDraft(prev => ({ ...prev, telefono: e.target.value })); }}
+                    onBlur={handleClientBlur}
                     placeholder="Teléfono"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.telefono ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
                   />
+                  {clientErrors.telefono && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.telefono}</span>}
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
+                    name="correo"
+                    type="email"
                     value={clientDraft.correo}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))}
+                    onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.correo; return n; }); setClientDraft(prev => ({ ...prev, correo: e.target.value })); }}
+                    onBlur={handleClientBlur}
                     placeholder="Correo electrónico"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.correo ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
                   />
+                  {clientErrors.correo && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.correo}</span>}
                 </div>
                 {clientFormError && (
                   <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700 }}>⚠ {clientFormError}</span>

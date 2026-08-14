@@ -263,6 +263,7 @@ const paginationBtn = {
     <div style={{
       position: 'relative',  backgroundColor: '#f5f5f5',
       display: 'flex', flexDirection: 'column',
+      minHeight: 'calc(100vh - 90px)',
       padding: isMobile ? '16px 12px' : '24px 32px',
     }}>
 
@@ -288,46 +289,48 @@ const paginationBtn = {
         <AddProductCategoryButton onClick={handleAdd} />
       </div>
 
-      {/* ── TABLA ── */}
-      <ProductCategoryTable
-        productCategories={paginatedProductCategories}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-      />
-
-      {/* ── PAGINADOR ── */}
-      {filteredProductCategories.length > 0 && (
-        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'center' }}>
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            style={{ ...paginationBtn, color: currentPage === 1 ? '#ccc' : '#333', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
-          >‹</button>
-
-          {getPageNumbers().map((p, i) =>
-            p === '...' ? (
-              <span key={i} style={{ padding: '6px 10px', fontSize: '14px', color: '#999' }}>...</span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                style={{
-                  ...paginationBtn,
-                  backgroundColor: p === currentPage ? '#FF4FD6' : '#fff',
-                  color: p === currentPage ? '#fff' : '#333',
-                  border: p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
-                }}
-              >{p}</button>
-            )
-          )}
-
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            style={{ ...paginationBtn, color: currentPage === totalPages ? '#ccc' : '#333', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
-          >›</button>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ flex: '1 1 auto' }}>
+          <ProductCategoryTable
+            productCategories={paginatedProductCategories}
+            onEdit={handleEdit}
+            onDelete={handleDeleteClick}
+          />
         </div>
-      )}
+
+        {filteredProductCategories.length > 0 && (
+          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'center' }}>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{ ...paginationBtn, color: currentPage === 1 ? '#ccc' : '#333', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+            >‹</button>
+
+            {getPageNumbers().map((p, i) =>
+              p === '...' ? (
+                <span key={i} style={{ padding: '6px 10px', fontSize: '14px', color: '#999' }}>...</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  style={{
+                    ...paginationBtn,
+                    backgroundColor: p === currentPage ? '#FF4FD6' : '#fff',
+                    color: p === currentPage ? '#fff' : '#333',
+                    border: p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
+                  }}
+                >{p}</button>
+              )
+            )}
+
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              style={{ ...paginationBtn, color: currentPage === totalPages ? '#ccc' : '#333', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+            >›</button>
+          </div>
+        )}
+      </div>
 
       {/* ── MODALES ── */}
       {showCreateForm && (

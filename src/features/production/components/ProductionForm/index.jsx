@@ -262,8 +262,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [clientCatalog, setClientCatalog] = useState([]);
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState(null);
-  const [clientDraft, setClientDraft] = useState({ nombre: '', documento: '', telefono: '', correo: '' });
+  const [clientDraft, setClientDraft] = useState({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
   const [clientFormError, setClientFormError] = useState('');
+  const [clientErrors, setClientErrors] = useState({});
   const [designImages, setDesignImages] = useState([]);
   const [terceros, setTerceros] = useState([]);
 
@@ -329,10 +330,11 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const loadProducts = async () => {
     if (productsLoaded || loadingProducts) return;
     setLoadingProducts(true);
-    try {
+try {
       const { productAPI } = await import('../../../products/services/productAPI');
       const data = await productAPI.getSummaries();
-      const normalized = Array.isArray(data) ? data : [];
+      // ✅ Solo mostrar productos activos en el selector al crear producción.
+      const normalized = Array.isArray(data) ? data.filter(p => p.active !== false) : [];
 
       if (normalized.length === 0) {
         console.warn('[ProductionForm] ⚠️ No hay productos cargados');
@@ -455,7 +457,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   const openCreateClientModal = () => {
     setEditingClientId(null);
-    setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setClientDraft({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
     setClientFormError('');
     setClientFormOpen(true);
   };
@@ -466,6 +468,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     setEditingClientId(client.id || client._id || null);
     setClientDraft({
       nombre: client.nombre || '',
+      tipoDocumento: client.tipoDocumento || 'Cédula de ciudadanía',
       documento: client.documento || '',
       telefono: client.telefono || '',
       correo: client.correo || '',
@@ -477,18 +480,63 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const closeClientModal = () => {
     setClientFormOpen(false);
     setClientFormError('');
+    setClientErrors({});
     setEditingClientId(null);
+  };
+
+  const validateClientField = (name, value) => {
+    let error = '';
+    switch (name) {
+      case 'tipoDocumento':
+        error = validators.required(value);
+        break;
+      case 'nombre':
+        error = validators.required(value);
+        break;
+      case 'documento':
+        error = validators.required(value) || validators.numbers(value);
+        break;
+      case 'telefono':
+        error = validators.telefono(value);
+        break;
+      case 'correo':
+        error = validators.email(value);
+        break;
+      default:
+        break;
+    }
+    setClientErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
+
+  const handleClientBlur = (e) => {
+    validateClientField(e.target.name, e.target.value);
   };
 
   const handleClientCreate = async (e) => {
     e.preventDefault();
-    if (!clientDraft.nombre.trim() || !clientDraft.documento.trim()) {
-      setClientFormError('Nombre y documento son obligatorios');
+    const requiredFields = ['tipoDocumento', 'nombre', 'documento', 'correo'];
+    const newErrors = {};
+    let hasError = false;
+
+    requiredFields.forEach(field => {
+      const error = validateClientField(field, clientDraft[field]);
+      if (error) { newErrors[field] = error; hasError = true; }
+    });
+
+    const phoneError = validateClientField('telefono', clientDraft.telefono);
+    if (phoneError) { newErrors.telefono = phoneError; hasError = true; }
+
+    if (hasError) {
+      setClientErrors(newErrors);
+      setClientFormError('Completa correctamente los campos obligatorios');
       return;
     }
+
     try {
       const payload = {
         nombre: clientDraft.nombre.trim(),
+        tipoDocumento: clientDraft.tipoDocumento.trim(),
         documento: clientDraft.documento.trim(),
         telefono: clientDraft.telefono.trim(),
         correo: clientDraft.correo.trim(),
@@ -500,8 +548,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       setFormData(prev => ({ ...prev, cliente: nextClient }));
       if (errors.cliente) setErrors(prev => { const n = { ...prev }; delete n.cliente; return n; });
       await loadClients();
-      setClientDraft({ nombre: '', documento: '', telefono: '', correo: '' });
+      setClientDraft({ nombre: '', tipoDocumento: 'Cédula de ciudadanía', documento: '', telefono: '', correo: '' });
       setEditingClientId(null);
+      setClientErrors({});
       setClientFormError('');
       setClientFormOpen(false);
     } catch (err) {
@@ -558,13 +607,11 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (!formData.fechaSolicitud) {
       newErrors.fechaSolicitud = 'Selecciona una fecha'; missing.push('Fecha de entrega');
     } else {
-      // ✅ Fix: repetir la validación de "mínimo 1 mes" también al enviar,
-      // no solo en el onChange del selector — evita que una fecha inválida
-      // se filtre si el campo se manipula directamente.
-      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-      const minFecha = new Date(hoy); minFecha.setMonth(minFecha.getMonth() + 1);
-      const fechaElegida = new Date(formData.fechaSolicitud + 'T00:00:00');
-      if (fechaElegida < minFecha) {
+      // ✅ Fix: comparar como strings 'YYYY-MM-DD' (mismo formato que produce
+      // getDefaultDeliveryDate() y el input date) evita desfases de zona
+      // horaria que antes hacían saltar la alerta con fechas ya válidas.
+      const minDateStr = getDefaultDeliveryDate();
+      if (formData.fechaSolicitud < minDateStr) {
         newErrors.fechaSolicitud = 'La fecha debe ser al menos 1 mes desde hoy';
         missing.push('Fecha de entrega (mínimo 1 mes)');
       }
@@ -576,6 +623,9 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       if (coe) { newExtraErr[i].color = coe; missing.push(`Artículo #${i + 2} — Color`); }
 
     });
+    if (type === 'diseno' && !hasTechnicalSheetMaterials(techSheetData)) {
+      missing.push('Ficha técnica — completa al menos un material o medida');
+    }
     setErrors(newErrors); setExtraErrors(newExtraErr);
     if (nuevaRefOpen) validateNuevaRef();
     if (missing.length > 0) {
@@ -691,6 +741,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   };
 
   const selectedClient = getSelectedClientObject();
+  const selectedProduct = products.find(p => p.reference === formData.referencia || p.id === formData.referencia);
 
   return (
     <>
@@ -1074,11 +1125,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </label>
                 <input
                   type="date" name="fechaSolicitud" value={formData.fechaSolicitud}
-                  min={(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })()}
+                  min={getDefaultDeliveryDate()}
                   onChange={e => {
-                    const minDate = new Date(); minDate.setMonth(minDate.getMonth() + 1);
-                    const sel = new Date(e.target.value);
-                    if (sel < minDate) {
+                    // ✅ Fix: comparación de fechas como strings 'YYYY-MM-DD'
+                    // (mismo formato que produce getDefaultDeliveryDate() y
+                    // que entrega el input type="date"). Antes se comparaban
+                    // objetos Date construidos de forma inconsistente (uno con
+                    // hora local y otro parseado en UTC), lo que provocaba un
+                    // desfase de zona horaria y la alerta saltaba aunque la
+                    // fecha elegida ya cumpliera el mínimo (y el calendario ya
+                    // la tuviera habilitada vía el atributo min).
+                    const minDateStr = getDefaultDeliveryDate();
+                    if (e.target.value < minDateStr) {
                       setErrors(prev => ({ ...prev, fechaSolicitud: 'La fecha debe ser al menos 1 mes desde hoy' }));
                     } else {
                       setErrors(prev => { const n = { ...prev }; delete n.fechaSolicitud; return n; });
@@ -1259,6 +1317,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 <Button type="button" variant="secondary" onClick={() => setShowTechSheet(false)}>Cerrar</Button>
                 {type === 'diseno' && (
                   <Button type="button" variant="primary" onClick={() => {
+                    if (!hasTechnicalSheetMaterials(techSheetData)) {
+                      setAlertConfig({ open: true, type: 'warning', title: 'Ficha técnica vacía', message: 'Completa al menos un material o medida antes de guardar la ficha.', onConfirm: null });
+                      return;
+                    }
                     setShowTechSheet(false);
                     setAlertConfig({ open: true, type: 'success', title: 'Ficha guardada', message: 'La ficha técnica fue asociada a la orden.', onConfirm: null });
                   }}>
@@ -1277,6 +1339,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
               })}
               isEditing={type === 'diseno'}
               onChange={(data) => { if (type === 'diseno') setTechSheetData(data); }}
+              productName={nuevaRefOpen ? nuevaRef.name : (selectedProduct?.name || formData.producto || '')}
+              categoryDescription={nuevaRefOpen ? nuevaRef.category : (selectedProduct?.category || '')}
+              productRef={nuevaRefOpen ? nuevaRef.reference : formData.referencia}
+              productImage={nuevaRefOpen ? null : (selectedProduct?.image || null)}
             />
           </div>
         </div>
@@ -1366,40 +1432,70 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
             <form onSubmit={handleClientCreate}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre</label>
-                  <input
-                    value={clientDraft.nombre}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, nombre: e.target.value }))}
-                    placeholder="Nombre completo"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
-                  />
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Tipo de documento <span style={{ color: "#ff4fd6" }}>*</span></label>
+                  <select
+                    name="tipoDocumento"
+                    value={clientDraft.tipoDocumento}
+                    onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.tipoDocumento; return n; }); setClientDraft(prev => ({ ...prev, tipoDocumento: e.target.value })); }}
+                    onBlur={handleClientBlur}
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.tipoDocumento ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff" }}
+                  >
+                    <option value="Cédula de ciudadanía">Cédula de ciudadanía</option>
+                    <option value="NIT">NIT</option>
+                    <option value="Cédula de extranjería">Cédula de extranjería</option>
+                    <option value="Pasaporte">Pasaporte</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                  {clientErrors.tipoDocumento && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.tipoDocumento}</span>}
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Nombre <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
-                    value={clientDraft.documento}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, documento: e.target.value }))}
-                    placeholder="Número de documento"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                    name="nombre"
+                    value={clientDraft.nombre}
+                    onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.nombre; return n; }); setClientDraft(prev => ({ ...prev, nombre: e.target.value })); }}
+                    onBlur={handleClientBlur}
+                    placeholder="Nombre completo"
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.nombre ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
                   />
+                  {clientErrors.nombre && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.nombre}</span>}
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Documento <span style={{ color: "#ff4fd6" }}>*</span></label>
+                  <input
+                    name="documento"
+                    value={clientDraft.documento}
+                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: e.target.value })); }}
+                    onBlur={handleClientBlur}
+                    placeholder="Número de documento"
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.documento ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                  />
+                  {clientErrors.documento && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.documento}</span>}
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Teléfono</label>
                   <input
+                    name="telefono"
                     value={clientDraft.telefono}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, telefono: e.target.value }))}
+                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.telefono; return n; }); setClientDraft(prev => ({ ...prev, telefono: e.target.value })); }}
+                    onBlur={handleClientBlur}
                     placeholder="Teléfono"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.telefono ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
                   />
+                  {clientErrors.telefono && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.telefono}</span>}
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block" }}>Correo <span style={{ color: "#ff4fd6" }}>*</span></label>
                   <input
+                    name="correo"
+                    type="email"
                     value={clientDraft.correo}
-                    onChange={(e) => setClientDraft(prev => ({ ...prev, correo: e.target.value }))}
+                    onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.correo; return n; }); setClientDraft(prev => ({ ...prev, correo: e.target.value })); }}
+                    onBlur={handleClientBlur}
                     placeholder="Correo electrónico"
-                    style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", border: clientErrors.correo ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
                   />
+                  {clientErrors.correo && <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700, marginTop: 4, display: "block" }}>⚠ {clientErrors.correo}</span>}
                 </div>
                 {clientFormError && (
                   <span style={{ color: "#ff4fd6", fontSize: 11, fontWeight: 700 }}>⚠ {clientFormError}</span>

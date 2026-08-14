@@ -616,6 +616,7 @@ const ProductsPage = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '0',
+      minHeight: 'calc(100vh - 90px)',
       padding: isMobile ? '16px 12px' : '24px 32px'
     }}>
 
@@ -691,51 +692,10 @@ const ProductsPage = () => {
         products={paginatedProducts}
         onView={handleView}
         onEdit={handleEdit}
-onDelete={handleDeleteClick}
+        onDelete={handleDeleteClick}
         onToggle={handleToggle}
         onStockChange={handleStockChange}
       />
-
-      {showCreateForm && (
-        <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
-          <div className="roles-modal-scroll" style={modalContentStyle}>
-            <ProductForm
-              onSubmit={handleCreateSubmit}
-              onCancel={handleCloseForm}
-              onShowAlert={handleShowAlert}
-              onShowConfirm={handleShowConfirm}
-              existingProducts={products}
-              sedes={sedesPermitidas}
-            />
-          </div>
-        </div>
-      )}
-
-      {showEditForm && editingProduct && (
-        <div style={modalOverlayStyle}>
-          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
-          <div className="roles-modal-scroll" style={modalContentStyle}>
-            <ProductForm
-              product={editingProduct}
-              onSubmit={handleEditSubmit}
-              onCancel={handleCloseForm}
-              onShowAlert={handleShowAlert}
-              onShowConfirm={handleShowConfirm}
-              sedes={sedesPermitidas}
-              existingProducts={products}
-            />
-          </div>
-        </div>
-      )}
-
-      {showTechnicalSheet && (
-        <TechnicalSheetModal
-          product={selectedProductForSheet}
-          onClose={handleCloseTechnicalSheet}
-          onTechnicalSheetChanged={() => refreshProducts()}
-        />
-      )}
 
       {filteredProducts.length > 0 && (
         <div style={{
@@ -788,6 +748,46 @@ onDelete={handleDeleteClick}
             ›
           </button>
         </div>
+      )}
+
+      {showCreateForm && (
+        <div style={modalOverlayStyle}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div className="roles-modal-scroll" style={modalContentStyle}>
+            <ProductForm
+              onSubmit={handleCreateSubmit}
+              onCancel={handleCloseForm}
+              onShowAlert={handleShowAlert}
+              onShowConfirm={handleShowConfirm}
+              existingProducts={products}
+              sedes={sedesPermitidas}
+            />
+          </div>
+        </div>
+      )}
+
+      {showEditForm && editingProduct && (
+        <div style={modalOverlayStyle}>
+          <div style={modalBackgroundStyle} onClick={handleCloseForm} />
+          <div className="roles-modal-scroll" style={modalContentStyle}>
+            <ProductForm
+              product={editingProduct}
+              onSubmit={handleEditSubmit}
+              onCancel={handleCloseForm}
+              onShowAlert={handleShowAlert}
+              onShowConfirm={handleShowConfirm}
+              sedes={sedesPermitidas}
+            />
+          </div>
+        </div>
+      )}
+
+      {showTechnicalSheet && (
+        <TechnicalSheetModal
+          product={selectedProductForSheet}
+          onClose={handleCloseTechnicalSheet}
+          onTechnicalSheetChanged={() => refreshProducts()}
+        />
       )}
 
       {/* Alertas */}

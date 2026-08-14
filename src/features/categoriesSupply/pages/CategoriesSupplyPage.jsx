@@ -6,8 +6,10 @@ import AddCategoryButton from "../components/AddCategorySupplyButton";
 import CategoryForm from "../components/CategoryForm";
 import Alert from "../../shared/components/Alert";
 import { supplyAPI } from "../../supplies/services/supplyAPI";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 
 const CategoriesSupplyPage = () => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const {
     categories,
     loading,
@@ -185,13 +187,13 @@ const CategoriesSupplyPage = () => {
 
   if (loading && categories.length === 0) {
     return (
-      <div style={{ padding: "24px 32px" }}>
+      <div style={{ padding: isMobile ? "16px 12px" : "24px 32px" }}>
         <style>{`
           @keyframes eloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
           @keyframes eskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "12px" : "0", marginBottom: 20 }}>
           <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Categorías de insumos</h1>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <div style={{ width: 400, maxWidth: "100%", height: 38, borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
@@ -217,7 +219,9 @@ const CategoriesSupplyPage = () => {
         backgroundColor: "#f5f5f5",
         display: "flex",
         flexDirection: "column",
-        padding: "24px 32px",
+        minHeight: "calc(100vh - 64px)",
+        padding: isMobile ? "16px 12px" : "24px 32px",
+        boxSizing: "border-box",
       }}
     >
       <div
@@ -225,33 +229,40 @@ const CategoriesSupplyPage = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? "12px" : "0",
           marginBottom: "20px",
         }}
       >
         <h1
           style={{
             margin: 0,
-            fontSize: "26px",
+            fontSize: isMobile ? "22px" : "26px",
             fontWeight: "700",
             color: "#1a1a1a",
+            width: isMobile ? "100%" : "auto",
+            textAlign: isMobile ? "center" : "left",
           }}
         >
           Categorías de insumos
         </h1>
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Buscar"
-          width="400px"
-          maxWidth="400px"
-        />
+        <div style={{ width: isMobile ? "100%" : "400px" }}>
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Buscar"
+            width="100%"
+            maxWidth="100%"
+          />
+        </div>
       </div>
 
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: isMobile ? "center" : "flex-end",
+          flexDirection: isMobile ? "column" : "row",
           backgroundColor: "#ffffff",
           borderRadius: "10px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
@@ -259,15 +270,19 @@ const CategoriesSupplyPage = () => {
           marginBottom: "20px",
         }}
       >
-        <AddCategoryButton onClick={handleAddCategory} />
+        <div style={{ display: "flex", justifyContent: "center", width: isMobile ? "100%" : "auto" }}>
+          <AddCategoryButton onClick={handleAddCategory} />
+        </div>
       </div>
 
-      <CategoryTable
-        categories={paginatedCategories}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        supplyCounts={supplyCounts}
-      />
+      <div style={{ flex: "1 0 auto" }}>
+        <CategoryTable
+          categories={paginatedCategories}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          supplyCounts={supplyCounts}
+        />
+      </div>
 
       {showCreateForm && (
         <div
