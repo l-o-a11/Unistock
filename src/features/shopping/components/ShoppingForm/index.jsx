@@ -599,7 +599,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               ) : (
                 <div style={{ flex: 1, padding: '40px 20px', textAlign: 'center', color: '#d1d5db', fontSize: 13 }}>
                   <div style={{ fontSize: 32, marginBottom: 10 }}>🧾</div>
-                  Los productos agregados aparecerán aquí
+                  Los productos agregados aparecerán aquí.
                 </div>
               )}
             </div>
