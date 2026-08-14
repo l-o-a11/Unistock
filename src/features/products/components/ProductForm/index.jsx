@@ -11,8 +11,8 @@ const normalizeText = (text) =>
     .toLowerCase()
     .trim();
 
-// ✅ USA VARIABLE DE ENTORNO VITE_BACK_URL
-const BACKEND_URL = import.meta.env.VITE_BACK_URL || 'http://localhost:3020';
+// ✅ USA VARIABLE DE ENTORNO VITE_BACK_URL (ahora apunta a la API unificada en :3000)
+const BACKEND_URL = import.meta.env.VITE_BACK_URL || 'http://localhost:3000';
 
 const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory }) => {
   const [open, setOpen] = useState(false);
@@ -843,10 +843,13 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       transition: "border-color 0.15s, background-color 0.15s",
     };
 
-    if ((touched[field] || formData[field]) && errors[field]) {
+if ((touched[field] || formData[field]) && errors[field]) {
+      // ✅ Fix: no mezclar shorthand `border` con `borderColor` (evita el
+      // warning de React "Removing a style property during rerender"). Se
+      // usa el border completo cuando hay error.
       return {
         ...baseStyle,
-        borderColor: "#ff4fd6",
+        border: "1.5px solid #ff4fd6",
       };
     }
     return baseStyle;

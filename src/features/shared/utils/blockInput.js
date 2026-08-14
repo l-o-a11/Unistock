@@ -41,9 +41,9 @@ export const blockInput = {
    * @param {React.ChangeEvent<HTMLInputElement>} e
    * @returns {boolean} true si el valor es válido, false si debe bloquearse
    */
-  nit: (e) => {
+nit: (e) => {
     const value = e.target.value;
-    return value === "" || /^\d{0,12}-?\d?$/.test(value);
+    return value === "" || /^\d{0,20}-?\d?$/.test(value);
   },
 };
 
