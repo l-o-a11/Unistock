@@ -1,5 +1,6 @@
 import React from "react";
 import HoverCard from "../../../shared/components/HoverCart";
+import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 
 const SupplyTable = ({
   supplies = [],
@@ -11,25 +12,45 @@ const SupplyTable = ({
   onToggle,
   startIndex = 0,
 }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   const thStyle = {
-    padding: "14px 16px",
+    padding: isMobile ? "10px 12px" : "14px 20px",
     textAlign: "left",
-    fontSize: "13px",
+    fontSize: isMobile ? "12px" : "13px",
     fontWeight: "500",
     color: "#888",
     borderBottom: "1px solid #f0f0f0",
     backgroundColor: "#f5f5f5",
-    whiteSpace: "nowrap",
+    whiteSpace: isMobile ? "normal" : "nowrap",
+    overflow: isMobile ? "visible" : "hidden",
+    textOverflow: isMobile ? "clip" : "ellipsis",
+    fontFamily: "inherit",
   };
 
   const tdStyle = {
-    padding: "16px 16px",
-    fontSize: "14px",
+    padding: isMobile ? "10px 12px" : "8px 20px",
+    fontSize: isMobile ? "13px" : "14px",
     color: "#333",
-    borderBottom: "1px solid #f1f1f1",
+    borderBottom: "1px solid #f5f5f5",
+    whiteSpace: isMobile ? "normal" : "nowrap",
+    overflow: isMobile ? "visible" : "hidden",
+    textOverflow: isMobile ? "clip" : "ellipsis",
+    fontFamily: "inherit",
+  };
+
+  const tdActionsStyle = {
+    ...tdStyle,
+    overflow: "visible",
+    textOverflow: "clip",
     whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
+  };
+
+  const tdImageStyle = {
+    ...tdStyle,
+    overflow: "visible",
+    textOverflow: "clip",
+    position: "relative",
   };
 
   if (supplies.length === 0) {
@@ -59,8 +80,21 @@ const SupplyTable = ({
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}
     >
-      <div style={{ overflowX: "visible" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <div
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            minWidth: isMobile ? "760px" : "920px",
+            tableLayout: isMobile ? "auto" : "fixed",
+          }}
+        >
           <thead>
             <tr>
               {[
@@ -92,7 +126,7 @@ const SupplyTable = ({
                   }
                 >
                   {/* Imagen */}
-                  <td style={{ ...tdStyle, width: "7%", overflow: "visible" }}>
+                  <td style={tdImageStyle}>
                     <div className="relative group inline-flex">
                       {/* Imagen pequeña */}
                       {supply.imagen ? (
@@ -161,12 +195,13 @@ const SupplyTable = ({
                   >{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
 
                   {/* Acciones */}
-                  <td style={{ ...tdStyle, width: "15%" }}>
+                  <td style={{ ...tdActionsStyle, width: "15%" }}>
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "16px",
+                        gap: "10px",
+                        flexShrink: 0,
                       }}
                     >
                       <button

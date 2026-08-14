@@ -10,6 +10,7 @@ import CreateRolPage from "./CreateRolPage";
 import EditRolPage from "./EditRolPage";
 import Alert from "../../shared/components/Alert";
 import { RolesAPI } from "../services/RolesAPI";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 
 // Roles que no se pueden modificar ni eliminar
 const ROLES_PROTEGIDOS = ["Gerente"];
@@ -20,6 +21,7 @@ const RolesPage = () => {
 
   const { searchTerm, handleSearch } = useRolSearch();
   const { selectedRol, isOpen, openDetail, closeDetail } = useRolDetail();
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [modalType, setModalType] = useState(null);
@@ -35,21 +37,22 @@ const RolesPage = () => {
 
   if (loading && roles.length === 0) {
     return (
-      <div style={{ padding: "24px 32px" }}>
+      <div style={{ padding: isMobile ? "16px 12px" : "24px 32px" }}>
         <style>{`
           @keyframes eloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
           @keyframes eskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Roles</h1>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "12px" : "0px", marginBottom: "20px" }}>
+          <h1 style={{ fontSize: isMobile ? "22px" : "26px", fontWeight: "700", margin: 0, color: "#1a1a1a" }}>Roles</h1>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: "4px" }}>
             <div style={{ width: 400, maxWidth: "100%", height: 38, borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
             <div style={{ width: 260, height: 11, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
           </div>
         </div>
 
-        <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.07)", padding: "12px 20px", marginBottom: 16, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+        <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "12px 20px", marginBottom: "20px", display: "flex", justifyContent: isMobile ? "flex-start" : "space-between", alignItems: "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "10px" : "0px" }}>
+          <div style={{ width: 84, height: 18, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
           <div style={{ width: 168, height: 38, borderRadius: 20, background: "linear-gradient(90deg, #ff8fe0, #FF4FD6)", opacity: 0.4, animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
         </div>
 
@@ -100,7 +103,7 @@ const RolesPage = () => {
   });
 
   // ── Pagination ────────────────────────────────────
-  const itemsPerPage = 5;
+  const itemsPerPage = 7;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRoles.length / itemsPerPage),
@@ -347,43 +350,107 @@ const RolesPage = () => {
   // ── Render ────────────────────────────────────────
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
+      className="roles-page-shell"
+      style={{ position: "relative", backgroundColor: "#f5f5f5", display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)", gap: "0", padding: "24px 32px", width: "100%", maxWidth: "100%", boxSizing: "border-box", fontFamily: "Segoe UI, Arial, sans-serif" }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          .roles-page-shell {
+            padding: 16px 12px !important;
+          }
+          .roles-header {
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .roles-header-actions {
+            width: 100% !important;
+            align-items: stretch !important;
+          }
+          .roles-header-actions > div {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .roles-search-hint {
+            white-space: normal !important;
+            line-height: 1.4 !important;
+          }
+          .roles-action-bar {
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 10px !important;
+            padding: 12px 14px !important;
+          }
+          .roles-page-title,
+          .roles-action-bar > * {
+            width: 100% !important;
+            text-align: center !important;
+          }
+          .roles-modal-overlay {
+            padding: 16px !important;
+          }
+          .roles-modal-dialog {
+            max-height: calc(100dvh - 32px) !important;
+            border-radius: 16px !important;
+          }
+          .roles-modal-scroll {
+            padding: 20px 16px !important;
+            max-height: calc(100dvh - 32px) !important;
+          }
+          .roles-form-actions {
+            flex-direction: column-reverse !important;
+          }
+          .roles-form-actions > * {
+            width: 100% !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <div
+        className="roles-header"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           marginBottom: "20px",
+          gap: "12px",
+          flexWrap: "wrap",
         }}
       >
         <h1
+          className="roles-page-title"
           style={{
             margin: 0,
             fontSize: "26px",
             fontWeight: "700",
             color: "#1a1a1a",
+            fontFamily: "inherit",
+            textAlign: isMobile ? "center" : "left",
           }}
         >
           Roles
         </h1>
         <div
+          className="roles-header-actions"
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "flex-end",
+            alignItems: isMobile ? "stretch" : "flex-end",
             gap: "4px",
+            width: "100%",
+            maxWidth: isMobile ? "100%" : "400px",
           }}
         >
           <SearchInput
             value={searchTerm}
             onChange={handleSearch}
             placeholder="Buscar"
-            width="400px"
-            maxWidth="400px"
+            width={isMobile ? "100%" : "400px"}
+            maxWidth={isMobile ? "100%" : "400px"}
           />
           <span
+            className="roles-search-hint"
             style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
           >
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
@@ -394,65 +461,82 @@ const RolesPage = () => {
 
       {/* Botón */}
       <div
+        className="roles-action-bar"
         style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: isMobile ? "center" : "flex-end",
           alignItems: "center",
           backgroundColor: "#ffffff",
           borderRadius: "10px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
           padding: "12px 20px",
           marginBottom: "20px",
+          width: "100%",
+          gap: "12px",
+          flexWrap: "wrap",
+          boxSizing: "border-box",
         }}
       >
         {/* DERECHA - BOTÓN */}
-        <AddRolButton onClick={handleAddRol} />
+        <div
+          className="roles-toolbar-right"
+          style={{
+            display: "flex",
+            justifyContent: isMobile ? "center" : "flex-end",
+            width: isMobile ? "100%" : "auto",
+          }}
+        >
+          <AddRolButton onClick={handleAddRol} />
+        </div>
       </div>
 
       {/* Tabla */}
-      <RolTable
-        roles={paginatedRoles}
-        onView={handleViewDetails}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
-        startIndex={startIndex}
-      />
+      <div style={{ flex: "1 0 auto" }}>
+        <RolTable
+          roles={paginatedRoles}
+          onView={handleViewDetails}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onToggle={handleToggle}
+          startIndex={startIndex}
+        />
+      </div>
 
       {/* Modal Crear / Editar */}
       {modalType && (
         <div
+          className="roles-modal-overlay"
           onClick={() => {
             setModalType(null);
             setEditingRol(null);
           }}
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.5)",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.45)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1000,
+            padding: "16px",
+            boxSizing: "border-box",
           }}
         >
           <div
+            className="roles-modal-dialog"
             onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: "#fff",
               borderRadius: 16,
               width: "100%",
               maxWidth: 800,
-              maxHeight: "90vh",
+              maxHeight: "calc(100dvh - 32px)",
               overflow: "hidden",
-              boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+              boxShadow: "0 16px 40px rgba(0,0,0,0.22)",
               position: "relative",
             }}
           >
-            <div className="roles-modal-scroll" style={{ padding: "28px 30px", overflowY: "auto", maxHeight: "90vh", boxSizing: "border-box", WebkitOverflowScrolling: "touch" }}>
+            <div className="roles-modal-scroll" style={{ padding: "28px 24px", overflowY: "auto", maxHeight: "calc(100dvh - 32px)", boxSizing: "border-box", WebkitOverflowScrolling: "touch" }}>
               {modalType === "create" && (
                 <CreateRolPage
                   createRol={handleCreateRol}

@@ -326,7 +326,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
         onCancel={closeAlert}
       />
 
-      <form onSubmit={handleSubmit} noValidate>
+      <form className="roles-form" onSubmit={handleSubmit} noValidate>
 
         {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
@@ -496,7 +496,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
 
         {/* AGREGAR MÓDULO */}
         {sectionTitle('Agregar módulo')}
-        <div style={{
+        <div className="roles-form-actions" style={{
           marginBottom: 10,
           background: '#fafafa',
           border: `1.5px dashed ${PINK_BORDER}`,

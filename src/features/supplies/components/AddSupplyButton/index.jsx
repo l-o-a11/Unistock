@@ -1,12 +1,14 @@
 import React from 'react';
 
-const AddSupplyButton = ({ onClick, label = "Agregar" }) => {
+const AddSupplyButton = ({ onClick, label = "Agregar", type = "button" }) => {
   return (
     <button
+      type={type}
       onClick={onClick}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '8px',
         padding: '10px 20px',
         backgroundColor: '#FF4FD6',
@@ -18,6 +20,7 @@ const AddSupplyButton = ({ onClick, label = "Agregar" }) => {
         cursor: 'pointer',
         transition: 'background-color 0.2s ease',
         whiteSpace: 'nowrap',
+        fontFamily: 'inherit',
       }}
       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D93DB8')}
       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FF4FD6')}

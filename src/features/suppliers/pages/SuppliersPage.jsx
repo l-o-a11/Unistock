@@ -247,7 +247,7 @@ const SuppliersPage = () => {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px" }}>
+    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px", minHeight: "calc(100vh - 80px)" }}>
       <style>{`
         .sup-root { padding: 14px; }
         @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }
@@ -317,14 +317,62 @@ const SuppliersPage = () => {
         <AddSupplierButton onClick={handleAddSupplier} />
       </div>
 
-      {/* TABLA */}
-      <SupplierTable
-        suppliers={paginatedSupplier}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ flex: '1 1 auto' }}>
+          <SupplierTable
+            suppliers={paginatedSupplier}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggle={handleToggle}
+          />
+        </div>
+
+        {filteredSuppliers.length > 0 && (
+          <div
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              justifyContent: "center",
+              gap: "6px",
+              alignItems: "center",
+            }}
+          >
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              style={paginationBtn}
+            >
+              ‹
+            </button>
+
+            {getPageNumbers().map((p, i) =>
+              p === "..." ? (
+                <span key={i} style={{ padding: "6px 10px" }}>...</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  style={{
+                    ...paginationBtn,
+                    backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
+                    color: p === currentPage ? "#fff" : "#333",
+                    border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                  }}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              style={paginationBtn}
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* MODAL DETALLE */}
       {isOpen && (
@@ -333,52 +381,6 @@ const SuppliersPage = () => {
           onClose={closeDetail}
           onEdit={handleEdit}
         />
-      )}
-
-      {/* PAGINACIÓN */}
-      {filteredSuppliers.length > 0 && (
-        <div
-          style={{
-            marginTop: "20px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "6px",
-            alignItems: "center",
-          }}
-        >
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            style={paginationBtn}
-          >
-            ‹
-          </button>
-
-          {getPageNumbers().map((p, i) =>
-            p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>...</span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                style={{
-                  ...paginationBtn,
-                  backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
-                  color: p === currentPage ? "#fff" : "#333",
-                  border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
-                }}
-              >
-                {p}
-              </button>
-            )
-          )}
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            style={paginationBtn}
-          >
-            ›
-          </button>
-        </div>
       )}
 
       {/* FORMULARIO */}
