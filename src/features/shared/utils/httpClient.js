@@ -6,8 +6,8 @@
 const BACKEND_API_URL =
   import.meta.env.VITE_BACKEND_API_URL ||
   import.meta.env.VITE_API_URL ||
-  "http://localhost:3000/api";
-const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000/api";
+  "https://api-unistock.onrender.com/";
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || "https://api-unistock.onrender.com/";
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
 const getApiUrl = (endpoint) => (
@@ -90,6 +90,7 @@ export const httpRequest = async (endpoint, options = {}) => {
     headers = {},
     skipAuth = false,
     suppressAutoLogout = false,
+    signal: externalSignal = null,
     ...otherOptions
   } = options;
 
@@ -109,10 +110,29 @@ export const httpRequest = async (endpoint, options = {}) => {
     }
   }
 
+  // 🐛 FIX (rendimiento): `fetch()` nativo NO soporta la opción `timeout`,
+  // así que antes esa config se ignoraba silenciosamente — una petición
+  // colgada podía quedarse viva indefinidamente, consumiendo un slot de
+  // conexión del navegador (que limita ~6 peticiones concurrentes por
+  // dominio) y contribuyendo a la saturación del network. Ahora se
+  // implementa con AbortController real, y además se permite que el
+  // caller pase su propio `signal` (p. ej. para cancelar al desmontar un
+  // componente o al disparar una búsqueda nueva antes de que termine la
+  // anterior).
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), API_TIMEOUT);
+
+  // Si el caller también pasó su propio signal, hay que combinar ambos:
+  // abortar si vence el timeout O si el caller cancela manualmente.
+  if (externalSignal) {
+    if (externalSignal.aborted) timeoutController.abort();
+    else externalSignal.addEventListener("abort", () => timeoutController.abort(), { once: true });
+  }
+
   const requestConfig = {
     method,
     headers: defaultHeaders,
-    timeout: API_TIMEOUT,
+    signal: timeoutController.signal,
     ...otherOptions,
   };
 
@@ -123,6 +143,7 @@ export const httpRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, requestConfig);
+    clearTimeout(timeoutId);
 
 // Manejar respuestas no exitosas
     if (!response.ok) {
@@ -175,6 +196,21 @@ export const httpRequest = async (endpoint, options = {}) => {
     }
     return await response.text();
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    // Distinguir un timeout/cancelación real de un error de negocio.
+    if (error.name === "AbortError") {
+      const wasExternalAbort = externalSignal?.aborted;
+      const abortError = new Error(
+        wasExternalAbort ? "Petición cancelada" : "Tiempo de espera agotado. Verifica tu conexión."
+      );
+      abortError.status = wasExternalAbort ? undefined : 408;
+      abortError.isTimeout = !wasExternalAbort;
+      abortError.isCancelled = !!wasExternalAbort;
+      if (!wasExternalAbort) console.error(`Timeout (${API_TIMEOUT}ms) en petición a ${url}`);
+      throw abortError;
+    }
+
     // FIX: antes se logueaba CUALQUIER error con console.error, incluyendo
     // casos esperados de negocio (ej. credenciales inválidas, validaciones).
     // Ahora solo se loguea si es un error inesperado: sin status (falla de

@@ -329,10 +329,11 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const loadProducts = async () => {
     if (productsLoaded || loadingProducts) return;
     setLoadingProducts(true);
-    try {
+try {
       const { productAPI } = await import('../../../products/services/productAPI');
       const data = await productAPI.getSummaries();
-      const normalized = Array.isArray(data) ? data : [];
+      // ✅ Solo mostrar productos activos en el selector al crear producción.
+      const normalized = Array.isArray(data) ? data.filter(p => p.active !== false) : [];
 
       if (normalized.length === 0) {
         console.warn('[ProductionForm] ⚠️ No hay productos cargados');
@@ -558,13 +559,11 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (!formData.fechaSolicitud) {
       newErrors.fechaSolicitud = 'Selecciona una fecha'; missing.push('Fecha de entrega');
     } else {
-      // ✅ Fix: repetir la validación de "mínimo 1 mes" también al enviar,
-      // no solo en el onChange del selector — evita que una fecha inválida
-      // se filtre si el campo se manipula directamente.
-      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-      const minFecha = new Date(hoy); minFecha.setMonth(minFecha.getMonth() + 1);
-      const fechaElegida = new Date(formData.fechaSolicitud + 'T00:00:00');
-      if (fechaElegida < minFecha) {
+      // ✅ Fix: comparar como strings 'YYYY-MM-DD' (mismo formato que produce
+      // getDefaultDeliveryDate() y el input date) evita desfases de zona
+      // horaria que antes hacían saltar la alerta con fechas ya válidas.
+      const minDateStr = getDefaultDeliveryDate();
+      if (formData.fechaSolicitud < minDateStr) {
         newErrors.fechaSolicitud = 'La fecha debe ser al menos 1 mes desde hoy';
         missing.push('Fecha de entrega (mínimo 1 mes)');
       }
@@ -1074,11 +1073,18 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                 </label>
                 <input
                   type="date" name="fechaSolicitud" value={formData.fechaSolicitud}
-                  min={(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })()}
+                  min={getDefaultDeliveryDate()}
                   onChange={e => {
-                    const minDate = new Date(); minDate.setMonth(minDate.getMonth() + 1);
-                    const sel = new Date(e.target.value);
-                    if (sel < minDate) {
+                    // ✅ Fix: comparación de fechas como strings 'YYYY-MM-DD'
+                    // (mismo formato que produce getDefaultDeliveryDate() y
+                    // que entrega el input type="date"). Antes se comparaban
+                    // objetos Date construidos de forma inconsistente (uno con
+                    // hora local y otro parseado en UTC), lo que provocaba un
+                    // desfase de zona horaria y la alerta saltaba aunque la
+                    // fecha elegida ya cumpliera el mínimo (y el calendario ya
+                    // la tuviera habilitada vía el atributo min).
+                    const minDateStr = getDefaultDeliveryDate();
+                    if (e.target.value < minDateStr) {
                       setErrors(prev => ({ ...prev, fechaSolicitud: 'La fecha debe ser al menos 1 mes desde hoy' }));
                     } else {
                       setErrors(prev => { const n = { ...prev }; delete n.fechaSolicitud; return n; });
