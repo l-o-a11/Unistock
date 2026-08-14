@@ -248,6 +248,31 @@ const ProductsPage = () => {
     setDeleteAlert({ open: true, productId: id, key: Date.now() });
   };
 
+// 🔒 Activar/desactivar producto requiere validar la contraseña del
+  // usuario logueado (igual que la eliminación). El ProductTable envía la
+  // contraseña capturada en su Alert de confirmación.
+  const handleToggle = async (id, nextActive, password) => {
+    try {
+      await AuthAPI.verifyPassword(password);
+      await toggleProduct(id, nextActive);
+      handleShowAlert({
+        type: "success",
+        title: "¡Éxito!",
+        message: nextActive ? "Producto activado correctamente" : "Producto inactivado correctamente"
+      });
+    } catch (error) {
+      const isInvalidPassword =
+        error?.status === 401 || /contraseñ|password/i.test(String(error?.message || ""));
+      handleShowAlert({
+        type: "error",
+        title: isInvalidPassword ? "Contraseña incorrecta" : "¡Error!",
+        message: isInvalidPassword
+          ? "La contraseña no coincide con tu usuario actual."
+          : (error.message || "Error al cambiar el estado del producto")
+      });
+    }
+  };
+
   const handleStockChange = async (id, delta) => {
     const product = productsEnMiSede.find(p => p.id === id);
     if (!product) return;
@@ -529,7 +554,13 @@ const ProductsPage = () => {
         <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
           Productos
         </h1>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: '4px' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isMobile ? 'stretch' : 'flex-end',
+          gap: '4px',
+          width: isMobile ? '100%' : 'auto',
+        }}>
           <div style={{
             width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
             background: '#f3f4f6', border: '1px solid #e5e7eb',
@@ -600,10 +631,17 @@ const ProductsPage = () => {
         <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
           Productos
         </h1>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', gap: '4px' }}>
-          <ProductSearch value={searchTerm} onChange={handleSearch} width="400px" maxWidth="400px" />
-          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: 'nowrap' }}>
-            Escribe <strong>activo</strong> para ver registros activos ·{" "}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isMobile ? 'center' : 'flex-end',
+          gap: '4px',
+          width: '100%',
+        }}>
+          <ProductSearch value={searchTerm} onChange={handleSearch} width="400px" maxWidth="100%" isLoading={loading} />
+          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: isMobile ? 'normal' : 'nowrap', textAlign: isMobile ? 'center' : 'right' }}>
+            Escribe <strong>activo</strong> para ver registros activos ·
+            {isMobile ? <br /> : ' '}
             <strong>inactivo</strong> para ver registros inactivos
           </span>
         </div>
@@ -612,7 +650,7 @@ const ProductsPage = () => {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: isMobile ? 'flex-start' : 'space-between',
+        justifyContent: isMobile ? 'center' : 'flex-end',
         flexDirection: isMobile ? 'column' : 'row',
         width: '100%',
         backgroundColor: '#ffffff',
@@ -620,6 +658,7 @@ const ProductsPage = () => {
         boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
         padding: '12px 20px',
         marginBottom: '20px',
+        gap: isMobile ? '10px' : '16px',
       }}>
         <button
           onClick={handleDownloadExcel}
@@ -649,71 +688,67 @@ const ProductsPage = () => {
         <AddProductButton onClick={handleAddProduct} />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        <div style={{ flex: '1 1 auto' }}>
-          <ProductTable
-            products={paginatedProducts}
-            onView={handleView}
-            onEdit={handleEdit}
-            onDelete={handleDeleteClick}
-            onToggle={toggleProduct}
-            onStockChange={handleStockChange}
-          />
+      <ProductTable
+        products={paginatedProducts}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
+        onToggle={handleToggle}
+        onStockChange={handleStockChange}
+      />
+
+      {filteredProducts.length > 0 && (
+        <div style={{
+          marginTop: "20px",
+          display: "flex",
+          justifyContent: "center",
+          gap: "6px",
+          alignItems: "center",
+        }}>
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            style={{
+              ...paginationBtn,
+              color: currentPage === 1 ? '#ccc' : '#333',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+            }}
+          >
+            ‹
+          </button>
+
+          {getPageNumbers().map((p, i) =>
+            p === "..." ? (
+              <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>...</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                style={{
+                  ...paginationBtn,
+                  backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
+                  color: p === currentPage ? "#fff" : "#333",
+                  border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                }}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            style={{
+              ...paginationBtn,
+              color: currentPage === totalPages ? '#ccc' : '#333',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+            }}
+          >
+            ›
+          </button>
         </div>
-
-        {filteredProducts.length > 0 && (
-          <div style={{
-            marginTop: "20px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "6px",
-            alignItems: "center",
-          }}>
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              style={{
-                ...paginationBtn,
-                color: currentPage === 1 ? '#ccc' : '#333',
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              ‹
-            </button>
-
-            {getPageNumbers().map((p, i) =>
-              p === "..." ? (
-                <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>...</span>
-              ) : (
-                <button
-                  key={p}
-                  onClick={() => setCurrentPage(p)}
-                  style={{
-                    ...paginationBtn,
-                    backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
-                    color: p === currentPage ? "#fff" : "#333",
-                    border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
-                  }}
-                >
-                  {p}
-                </button>
-              )
-            )}
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              style={{
-                ...paginationBtn,
-                color: currentPage === totalPages ? '#ccc' : '#333',
-                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              }}
-            >
-              ›
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       {showCreateForm && (
         <div style={modalOverlayStyle}>

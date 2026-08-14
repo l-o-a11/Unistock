@@ -233,7 +233,7 @@ const paginationBtn = {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: isMobile ? 'center' : 'flex-end',
         width: '100%',
         backgroundColor: '#ffffff',
         borderRadius: '10px',
@@ -276,12 +276,12 @@ const paginationBtn = {
         <h1 style={{ margin: 0, fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#1a1a1a' }}>
           Categorías de productos
         </h1>
-        <SearchInput value={searchTerm} onChange={setSearchTerm} width="400px" maxWidth="400px" />
+        <SearchInput value={searchTerm} onChange={setSearchTerm} width="400px" maxWidth="100%" isLoading={loading} />
       </div>
 
       {/* ── ROW 2: Botón en card ── */}
       <div style={{
-        display: 'flex', justifyContent: isMobile ? 'flex-start' : 'flex-end',
+        display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end',
         width: '100%', backgroundColor: '#ffffff', borderRadius: '10px',
         boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '12px 20px',
         marginBottom: '20px', gap: '10px',
