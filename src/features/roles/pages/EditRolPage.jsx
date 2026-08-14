@@ -1,7 +1,7 @@
 import React from "react";
 import RolForm from "../components/RolForm";
 
-const EditRolPage = ({ rol, updateRol, onClose }) => {
+const EditRolPage = ({ rol, roles = [], updateRol, onClose }) => {
   // ✅ Recibe el rol directo desde RolesPage — sin hook propio
   // Así comparte exactamente el mismo estado que la tabla
 
@@ -15,6 +15,7 @@ const EditRolPage = ({ rol, updateRol, onClose }) => {
   return (
     <RolForm
       rol={rol}
+      roles={roles}
       onSubmit={handleSubmit}
       onCancel={onClose}
     />

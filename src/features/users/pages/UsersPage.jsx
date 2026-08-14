@@ -163,7 +163,7 @@ const UsersPage = () => {
   if (loading) return <TableSkeleton title="Usuarios" />;
 
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: '24px 32px', minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -187,14 +187,39 @@ const UsersPage = () => {
         <AddUserButton onClick={() => setShowCreate(true)} />
       </div>
 
-      <UserTable
-        users={paginatedUsers}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
-        getRolNombre={getRolNombre}
-        getSedeNombre={getSedeNombre}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ flex: '1 1 auto' }}>
+          <UserTable
+            users={paginatedUsers}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggle={handleToggle}
+            getRolNombre={getRolNombre}
+            getSedeNombre={getSedeNombre}
+          />
+        </div>
+
+        {filteredUsers.length > 0 && (
+          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'center' }}>
+            <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
+            {getPageNumbers().map((p, i) =>
+              p === '...' ? (
+                <span key={i} style={{ padding: '6px 10px' }}>...</span>
+              ) : (
+                <button key={p} onClick={() => setCurrentPage(p)} style={{
+                  ...paginationBtn,
+                  backgroundColor: p === currentPage ? '#FF4FD6' : '#fff',
+                  color: p === currentPage ? '#fff' : '#333',
+                  border: p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
+                }}>
+                  {p}
+                </button>
+              ),
+            )}
+            <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={paginationBtn}>›</button>
+          </div>
+        )}
+      </div>
 
       {showCreate && (
         <UserForm
@@ -215,26 +240,6 @@ const UsersPage = () => {
         />
       )}
 
-      {filteredUsers.length > 0 && (
-        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'center' }}>
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={paginationBtn}>‹</button>
-          {getPageNumbers().map((p, i) =>
-            p === '...' ? (
-              <span key={i} style={{ padding: '6px 10px' }}>...</span>
-            ) : (
-              <button key={p} onClick={() => setCurrentPage(p)} style={{
-                ...paginationBtn,
-                backgroundColor: p === currentPage ? '#FF4FD6' : '#fff',
-                color: p === currentPage ? '#fff' : '#333',
-                border: p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
-              }}>
-                {p}
-              </button>
-            ),
-          )}
-          <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={paginationBtn}>›</button>
-        </div>
-      )}
     </div>
   );
 };
