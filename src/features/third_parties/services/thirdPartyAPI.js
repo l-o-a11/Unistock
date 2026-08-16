@@ -12,7 +12,7 @@
  */
 
 import httpClient from '../../shared/utils/httpClient';
-import { withCache, invalidateCacheByPrefix } from '../../shared/utils/apiCache';
+import { withCache, invalidateCacheByPrefix } from '../../shared/utils/apicache';
 
 const CACHE_PREFIX = 'third-parties:';
 

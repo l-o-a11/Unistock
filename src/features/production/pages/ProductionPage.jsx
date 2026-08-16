@@ -1169,6 +1169,10 @@ const ProductionsPage = () => {
 
         .prod-header { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
         @media (min-width:640px) { .prod-header { flex-direction:row; justify-content:space-between; align-items:center; } }
+        @media (max-width:639px) { .prod-header { align-items:center; text-align:center; } }
+
+        .prod-tabs { display:flex; gap:8px; margin-bottom:14px; }
+        @media (max-width:639px) { .prod-tabs { justify-content:center; } }
 
         .prod-filters {
           background:#fff; border-radius:10px; padding:10px 14px;
@@ -1176,10 +1180,15 @@ const ProductionsPage = () => {
           display:flex; flex-direction:column; gap:10px;
         }
         @media (min-width:768px) { .prod-filters { flex-direction:row; align-items:center; justify-content:space-between; } }
+        @media (max-width:767px) { .prod-filters { align-items:center; } }
 
         .prod-filter-left  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; flex:1; }
+        @media (max-width:767px) { .prod-filter-left { justify-content:center; } }
         .prod-filter-right { flex-shrink:0; }
-        @media (max-width:767px) { .prod-filter-right { width:100%; display:flex; justify-content:flex-end; } }
+        @media (max-width:767px) { .prod-filter-right { width:100%; display:flex; justify-content:center; } }
+
+        .prod-filter-right-inner { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+        @media (max-width:767px) { .prod-filter-right-inner { justify-content:center; } }
 
         .prod-select { padding:6px 10px; border-radius:7px; border:1px solid #e5e7eb; background:#fafafa; font-size:12px; cursor:pointer; flex:1; min-width:110px; max-width:160px; }
         @media (max-width:480px) { .prod-select { max-width:none; width:auto; flex:1 1 auto; } }
@@ -1372,7 +1381,7 @@ const ProductionsPage = () => {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        <div className="prod-tabs">
           {(isEmpleado ? ['producciones'] : ['producciones', 'terceros']).map(tab => (
             <button key={tab}
               onClick={() => tab === 'terceros' ? navigate('/Layout/terceros') : setActiveTab(tab)}
@@ -1436,7 +1445,7 @@ const ProductionsPage = () => {
           </div>
 
           <div className="prod-filter-right">
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <div className="prod-filter-right-inner">
               {isGerente && (
                 <button type="button" className="btn-agregar" onClick={() => setShowCreateForm(true)}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

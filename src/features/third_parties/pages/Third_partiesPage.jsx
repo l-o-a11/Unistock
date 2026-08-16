@@ -361,6 +361,32 @@ const Third_partiePage = () => {
           .tp-pg-btn { padding: 5px 8px; font-size: 12px; }
         }
 
+        /* ── Centrado para vistas móviles pequeñas (375 x 667) ── */
+        @media (max-width: 480px) {
+          .tp-header {
+            align-items: center;
+            text-align: center;
+          }
+          .tp-title {
+            width: 100%;
+            text-align: center;
+          }
+          .tp-header-right {
+            width: 100%;
+            align-items: center !important;
+          }
+          .tp-search-wrap {
+            display: flex;
+            justify-content: center;
+          }
+          .tp-tabs {
+            justify-content: center;
+          }
+          .tp-actions-bar {
+            justify-content: center;
+          }
+        }
+
         /* ── "Ver detalle" fab en móvil ──
            Cuando hay un tercero seleccionado y el drawer está cerrado,
            aparece un fab flotante en la esquina inferior derecha           */
@@ -416,6 +442,7 @@ const Third_partiePage = () => {
 
         {/* ── Header ── */}
         <div
+          className="tp-header"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -423,16 +450,16 @@ const Third_partiePage = () => {
             marginBottom: '20px',
           }}
         >
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Terceros</h1>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <h1 className="tp-title" style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Terceros</h1>
+          <div className="tp-header-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <Third_partieSearch
               value={searchTerm}
               onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
               placeholder="Buscar"
-              width="400px"
+              width="100%"
               maxWidth="400px"
             />
-            <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 11, color: '#9ca3af' }}>
               Escribe <strong>activo</strong> para ver registros activos ·{" "}
               <strong>inactivo</strong> para ver registros inactivos
             </span>

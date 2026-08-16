@@ -202,16 +202,31 @@ const SuppliersPage = () => {
   // "salto" visual (título mismo tamaño, buscador mismo ancho/posición,
   // botón dentro de su propia barra blanca).
   if (loading && suppliers.length === 0) return (
-    <div style={{ padding: '24px 32px ' }}>
+    <div className="sup-root">
       <style>{`
         @keyframes uloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
         @keyframes uskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .sup-root { padding: 14px; }
+        @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }
+        @media (min-width: 1024px) { .sup-root { padding: 24px 32px; } }
+
+        .sup-skel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        @media (max-width: 639px) { .sup-skel-header { flex-direction: column; align-items: center; gap: 10px; } }
+        .sup-skel-search-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        @media (max-width: 639px) { .sup-skel-search-col { align-items: center; } }
+        .sup-skel-btn-bar {
+          background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+          padding: 12px 20px; margin-bottom: 16px;
+          display: flex; justify-content: flex-end; align-items: center;
+        }
+        @media (max-width: 639px) { .sup-skel-btn-bar { justify-content: center; } }
       `}</style>
 
       {/* HEADER: título + search — mismo layout que el estado ya cargado */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div className="sup-skel-header">
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <div className="sup-skel-search-col">
           {/* mismo alto/ancho/radio que SearchInput (width="400px") */}
           <div style={{
             width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
@@ -227,11 +242,7 @@ const SuppliersPage = () => {
       </div>
 
       {/* BARRA BLANCA CON BOTÓN — mismo contenedor que AddSupplierButton */}
-      <div style={{
-        background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-        padding: "12px 20px", marginBottom: 16,
-        display: "flex", justifyContent: "flex-end", alignItems: "center",
-      }}>
+      <div className="sup-skel-btn-bar">
         <div style={{
           width: 168, height: 38, borderRadius: 20,
           background: 'linear-gradient(90deg, #ff8fe0, #FF4FD6)',
@@ -247,7 +258,7 @@ const SuppliersPage = () => {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "24px 32px 0px 32px" }}>
+    <div className="sup-root" style={{ display: "flex", flexDirection: "column" }}>
       <style>{`
         .sup-root { padding: 14px; }
         @media (min-width: 640px)  { .sup-root { padding: 20px 24px; } }
@@ -261,6 +272,19 @@ const SuppliersPage = () => {
             flex-direction: row; justify-content: space-between; align-items: center;
           }
         }
+        @media (max-width: 639px) {
+          .sup-header { align-items: center; text-align: center; }
+        }
+
+        .sup-search-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        @media (max-width: 639px) { .sup-search-col { align-items: center; width: 100%; } }
+
+        .sup-btn-bar {
+          background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+          padding: 12px 20px; margin-bottom: 16px;
+          display: flex; justify-content: flex-end; align-items: center;
+        }
+        @media (max-width: 639px) { .sup-btn-bar { justify-content: center; } }
 
         .sup-page-btn {
           padding: 6px 12px; border-radius: 6px;
@@ -279,41 +303,25 @@ const SuppliersPage = () => {
       />
 
       {/* HEADER: título + search */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-        }}
-      >
+      <div className="sup-header" style={{ marginBottom: "20px" }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Proveedores</h1>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <div className="sup-search-col">
           <SearchInput
-            value={searchTerm}
-            onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
-            placeholder="Buscar"
-            width="400px"
-            maxWidth="400px"
-          />
-          <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>
-            Escribe <strong>activo</strong> para ver registros activos ·{" "}
-            <strong>inactivo</strong> para ver registros inactivos
-          </span>
+  value={searchTerm}
+  onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
+  placeholder="Buscar"
+  width="400px"
+  margin="0 0 4px 0"
+/>
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+  Escribe <strong>activo</strong> para ver registros activos ·{" "}
+  <strong>inactivo</strong> para ver registros inactivos
+</span>
         </div>
       </div>
 
       {/* BARRA BLANCA CON BOTÓN */}
-      <div style={{
-        background: "#fff",
-        borderRadius: 10,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-        padding: "12px 20px",
-        marginBottom: 16,
-        display: "flex",
-        justifyContent: "flex-end",
-        alignItems: "center",
-      }}>
+      <div className="sup-btn-bar">
         <AddSupplierButton onClick={handleAddSupplier} />
       </div>
 

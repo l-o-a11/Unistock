@@ -7,7 +7,6 @@ import AddSupplyButton from "../components/AddSupplyButton";
 import SupplyForm from "../components/SupplyForm";
 import SupplyDetail from "../components/SupplyDetail";
 import Alert from "../../shared/components/Alert";
-import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import SupplyCategoriesModal from "../components/SupplyCategoriesModal";
 import CategoryForm from "../../categoriesSupply/components/CategoryForm";
 import { useCategories } from "../../categoriesSupply/hooks/useCategories";
@@ -33,7 +32,6 @@ const SuppliesPage = () => {
 
   const { searchTerm, handleSearch } = useSupplySearch();
   const { createCategory, updateCategory, deleteCategory } = useCategories();
-  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const [selectedSupply, setSelectedSupply] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,42 +55,23 @@ const SuppliesPage = () => {
     onConfirm: null,
   });
 
-  if (loading && supplies.length === 0) {
+  if (loading) {
     return (
-      <div style={{ padding: isMobile ? "16px 12px" : "24px 32px" }}>
+      <div style={{ padding: "24px 32px" }}>
         <style>{`
           @keyframes eloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
           @keyframes eskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
 
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? "12px" : "0px",
-          marginBottom: "20px",
-        }}>
-          <h1 style={{ fontSize: isMobile ? "22px" : "26px", fontWeight: "700", margin: 0, color: "#1a1a1a" }}>Insumos</h1>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: "4px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Insumos</h1>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <div style={{ width: 400, maxWidth: "100%", height: 38, borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
             <div style={{ width: 260, height: 11, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
           </div>
         </div>
 
-        <div style={{
-          background: "#fff",
-          borderRadius: 10,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          padding: "12px 20px",
-          marginBottom: "20px",
-          display: "flex",
-          justifyContent: isMobile ? "flex-start" : "space-between",
-          alignItems: "center",
-          flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? "10px" : "0px",
-        }}>
-          <div style={{ width: 84, height: 18, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
+        <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.07)", padding: "12px 20px", marginBottom: 16, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
           <div style={{ width: 168, height: 38, borderRadius: 20, background: "linear-gradient(90deg, #ff8fe0, #FF4FD6)", opacity: 0.4, animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
         </div>
 
@@ -130,7 +109,7 @@ const SuppliesPage = () => {
     return coincideBusqueda && coincideEstado;
   });
 
-  const itemsPerPage = 7;
+  const itemsPerPage = 5;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredSupplies.length / itemsPerPage),
@@ -994,98 +973,44 @@ const SuppliesPage = () => {
 
   return (
     <div
-      className="supplies-page-shell"
-      style={{
-        position: "relative",
-        backgroundColor: "#f5f5f5",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "calc(100vh - 64px)",
-        gap: "0",
-        padding: "24px 32px",
-        width: "100%",
-        maxWidth: "100%",
-        boxSizing: "border-box",
-        fontFamily: "Segoe UI, Arial, sans-serif",
-      }}
+      style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
     >
-      <style>{`
-        @media (max-width: 768px) {
-          .supplies-page-shell {
-            padding: 16px 12px !important;
-          }
-          .supplies-page-header {
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-          }
-          .supplies-page-toolbar {
-            flex-direction: column !important;
-            align-items: center !important;
-            gap: 10px !important;
-            padding: 12px 14px !important;
-          }
-          .supplies-toolbar-left,
-          .supplies-toolbar-right {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-          .supplies-search-hint {
-            white-space: normal !important;
-            line-height: 1.4 !important;
-          }
-          .supplies-page-title {
-            width: 100% !important;
-            text-align: center !important;
-          }
-        }
-      `}</style>
       {/* HEADER */}
       <div
-        className="supplies-page-header"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           marginBottom: "20px",
-          gap: "12px",
-          flexWrap: "wrap",
         }}
       >
         <h1
-          className="supplies-page-title"
           style={{
             margin: 0,
             fontSize: "26px",
             fontWeight: "700",
             color: "#1a1a1a",
-            fontFamily: "inherit",
-            textAlign: isMobile ? "center" : "left",
           }}
         >
           Insumos
         </h1>
         <div
-          className="supplies-page-actions"
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: isMobile ? "stretch" : "flex-end",
+            alignItems: "flex-end",
             gap: "4px",
-            width: "100%",
-            maxWidth: isMobile ? "100%" : "400px",
           }}
         >
           <SearchInput
             value={searchTerm}
             onChange={handleSearchWithState}
             placeholder="Buscar"
-            width={isMobile ? "100%" : "400px"}
-            maxWidth={isMobile ? "100%" : "400px"}
+            width="400px"
+            maxWidth="400px"
           />
           <span
-            className="supplies-search-hint"
-            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap", fontFamily: "inherit" }}
+            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
           >
             Escribe <strong>activo</strong> para ver registros activos ·{" "}
             <strong>inactivo</strong> para ver registros inactivos
@@ -1095,243 +1020,128 @@ const SuppliesPage = () => {
 
       {/* BARRA DE HERRAMIENTAS */}
       <div
-        className="supplies-page-toolbar"
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: isMobile ? "center" : "space-between",
-          width: "100%",
-          backgroundColor: "#ffffff",
-          borderRadius: "10px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          justifyContent: "space-between",
+          background: "#fff",
           padding: "12px 20px",
+          borderRadius: "10px",
           marginBottom: "20px",
-          gap: "12px",
-          flexWrap: "wrap",
-          boxSizing: "border-box",
+          alignItems: "center",
         }}
       >
-        {isMobile ? (
-          <div
+        {/* IZQUIERDA */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* BOTÓN EXPORTAR (abre modal de elección) */}
+          <button
+            onClick={() => setShowDownloadModal(true)}
+            title="Exportar insumos"
             style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#555",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "12px",
-              flexDirection: "column",
-              width: "100%",
+              padding: "4px",
+              gap: "6px",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar
+          </button>
+
+          {/* BOTÓN CATEGORÍAS 👈 nuevo */}
+          <button
+            onClick={openCategoriesModal}
+            title="Ver categorías de insumos"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#555",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 8px",
+              borderRadius: "6px",
+              fontSize: "13px",
+              fontWeight: 500,
+              transition: "color 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#E91E8C";
+              e.currentTarget.style.background = "#fdf5fb";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#555";
+              e.currentTarget.style.background = "none";
             }}
           >
-            <button
-              onClick={() => setShowDownloadModal(true)}
-              title="Exportar insumos"
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#555",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "4px",
-                gap: "6px",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+            {/* Icono tag/categoría */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Exportar
-            </button>
-
-            <button
-              onClick={openCategoriesModal}
-              title="Ver categorías de insumos"
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#555",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                padding: "4px 8px",
-                borderRadius: "6px",
-                fontSize: "13px",
-                fontWeight: 500,
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#E91E8C";
-                e.currentTarget.style.background = "#fdf5fb";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#555";
-                e.currentTarget.style.background = "none";
-              }}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                <line x1="7" y1="7" x2="7.01" y2="7" />
-              </svg>
-              Categorías
-              {categorias?.length > 0 && (
-                <span
-                  style={{
-                    background: "#FF4FD6",
-                    color: "#fff",
-                    borderRadius: "999px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    padding: "1px 6px",
-                    lineHeight: "1.5",
-                  }}
-                >
-                  {categorias.length}
-                </span>
-              )}
-            </button>
-
-            <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-              <AddSupplyButton onClick={handleAddSupply} />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="supplies-toolbar-left" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              <button
-                onClick={() => setShowDownloadModal(true)}
-                title="Exportar insumos"
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+            Categorías
+            {/* Badge con conteo */}
+            {categorias?.length > 0 && (
+              <span
                 style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#555",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "4px",
-                  gap: "6px",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
-              >
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Exportar
-              </button>
-
-              <button
-                onClick={openCategoriesModal}
-                title="Ver categorías de insumos"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#555",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  transition: "color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#E91E8C";
-                  e.currentTarget.style.background = "#fdf5fb";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#555";
-                  e.currentTarget.style.background = "none";
+                  background: "#FF4FD6",
+                  color: "#fff",
+                  borderRadius: "999px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  padding: "1px 6px",
+                  lineHeight: "1.5",
                 }}
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                  <line x1="7" y1="7" x2="7.01" y2="7" />
-                </svg>
-                Categorías
-                {categorias?.length > 0 && (
-                  <span
-                    style={{
-                      background: "#FF4FD6",
-                      color: "#fff",
-                      borderRadius: "999px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      padding: "1px 6px",
-                      lineHeight: "1.5",
-                    }}
-                  >
-                    {categorias.length}
-                  </span>
-                )}
-              </button>
-            </div>
+                {categorias.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-            <div className="supplies-toolbar-right" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", width: "auto" }}>
-              <AddSupplyButton onClick={handleAddSupply} />
-            </div>
-          </>
-        )}
+        {/* DERECHA */}
+        <AddSupplyButton onClick={handleAddSupply} />
       </div>
 
       {/* TABLA */}
-      <div style={{ flex: "1 0 auto" }}>
-        <SupplyTable
-          supplies={paginatedSupplies}
-          getCategoriaNombre={getCategoriaNombre}
-          getMedidaNombre={getMedidaNombre}
-          onView={handleView}
-          startIndex={startIndex}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onToggle={handleToggle}
-        />
-      </div>
+      <SupplyTable
+        supplies={paginatedSupplies}
+        getCategoriaNombre={getCategoriaNombre}
+        getMedidaNombre={getMedidaNombre}
+        onView={handleView}
+        startIndex={startIndex}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onToggle={handleToggle}
+      />
 
       {/* MODAL DESCARGA — mismo diseño que Compras */}
       {showDownloadModal && (

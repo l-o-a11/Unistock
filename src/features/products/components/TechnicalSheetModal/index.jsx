@@ -7,6 +7,7 @@ import { AuthAPI } from '../../../auth/services/AuthAPI';
 import { useAuthContext } from '../../../shared/AuthContext';
 
 const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
+  const isMobile = window.innerWidth <= 768;
   const { versions, currentVersion, loadVersions, createVersion, deleteLastVersion } = useTechnicalSheet(product?.id);
   // ✅ Se necesita el usuario actual para validar la contraseña al eliminar
   const { user: currentUser } = useAuthContext();
@@ -153,12 +154,14 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
           {/* Header del modal */}
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'center' : 'center',
+            justifyContent: isMobile ? 'center' : 'space-between',
             padding: '24px 32px',
-            borderBottom: '1px solid #eee'
+            borderBottom: '1px solid #eee',
+            gap: '16px'
           }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', textAlign: isMobile ? 'center' : 'left' }}>
               {isEditingMode ? '✏️ Nueva versión de la ficha técnica' : 'Ficha Técnica'}
             </h2>
 
@@ -257,12 +260,20 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
           </div>
 
           {/* Contenido de la ficha técnica */}
-          <div style={{ padding: '24px 32px' }}>
-            <TechnicalSheet
-              sheet={isEditingMode ? (editDraft || {}) : currentVersionObj}
-              isEditing={isEditingMode}
-              onChange={isEditingMode ? setEditDraft : undefined}
-            />
+          <div style={{ 
+            padding: '24px 32px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{ width: '100%', maxWidth: '800px' }}>
+              <TechnicalSheet
+                sheet={isEditingMode ? (editDraft || {}) : currentVersionObj}
+                isEditing={isEditingMode}
+                onChange={isEditingMode ? setEditDraft : undefined}
+              />
+            </div>
           </div>
 
           {/* Botones */}

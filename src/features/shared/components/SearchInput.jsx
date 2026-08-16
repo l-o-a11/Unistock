@@ -6,6 +6,10 @@
  * USO:
  *   import SearchInput from "../../shared/components/SearchInput";
  *   <SearchInput value={term} onChange={setTerm} placeholder="Buscar" />
+ *
+ * NOTA: "width" ahora funciona como ANCHO MÁXIMO (maxWidth real).
+ * El contenedor siempre parte de width: 100% para no desbordar
+ * contenedores angostos, y solo crece hasta el límite indicado.
  */
 import React from "react";
 
