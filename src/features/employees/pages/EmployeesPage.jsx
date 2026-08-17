@@ -254,7 +254,17 @@ const EmployeesPage = () => {
   }
 
   return (
-    <div style={{ padding: "24px 32px" }}>
+    <div className="emp-page" style={{ padding: "24px 32px" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .emp-page { padding: 16px !important; }
+          .emp-header { flex-direction: column !important; align-items: stretch !important; }
+          .emp-search { align-items: stretch !important; }
+          .emp-search > div { max-width: 100% !important; width: 100% !important; }
+          .emp-search > span { text-align: center !important; white-space: normal !important; }
+          .emp-addbar { justify-content: center !important; }
+        }
+      `}</style>
       {/* 🔔 ALERTA GLOBAL (eliminar con contraseña) */}
       <Alert
         isOpen={alertConfig.open}
@@ -267,16 +277,19 @@ const EmployeesPage = () => {
 
       {/* 🔝 Header */}
       <div
+        className="emp-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "20px",
+          gap: 12,
         }}
       >
         <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Empleados</h1>
 
         <div
+          className="emp-search"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -301,6 +314,7 @@ const EmployeesPage = () => {
 
       {/* ➕ Botón agregar */}
       <div
+        className="emp-addbar"
         style={{
           backgroundColor: "#FFFFFF",
           display: "flex",
@@ -352,54 +366,66 @@ const EmployeesPage = () => {
         </div>
       )}
 
-      {/* 📄 Paginación */}
-      {filteredEmployees.length > 0 && (
-        <div
-          style={{
-            marginTop: "20px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "6px",
-            alignItems: "center",
-          }}
-        >
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            style={paginationBtn}
-          >
-            ‹
-          </button>
-
-          {getPageNumbers().map((p, i) =>
-            p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px" }}>
-                ...
-              </span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                style={{
-                  ...paginationBtn,
-                  backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
-                  color: p === currentPage ? "#fff" : "#333",
-                  border:
-                    p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
-                }}
-              >
-                {p}
-              </button>
-            ),
-          )}
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            style={paginationBtn}
-          >
-            ›
-          </button>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+        <div style={{ flex: "1 1 auto" }}>
+          <EmployeeTable
+            employees={paginatedEmployees}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggle={handleToggle}
+            getRoleName={getRoleName}
+            getSedeName={getSedeName}
+          />
         </div>
-      )}
+
+        {filteredEmployees.length > 0 && (
+          <div
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              justifyContent: "center",
+              gap: "6px",
+              alignItems: "center",
+            }}
+          >
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              style={paginationBtn}
+            >
+              ‹
+            </button>
+
+            {getPageNumbers().map((p, i) =>
+              p === "..." ? (
+                <span key={i} style={{ padding: "6px 10px" }}>
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  style={{
+                    ...paginationBtn,
+                    backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
+                    color: p === currentPage ? "#fff" : "#333",
+                    border:
+                      p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                  }}
+                >
+                  {p}
+                </button>
+              ),
+            )}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              style={paginationBtn}
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

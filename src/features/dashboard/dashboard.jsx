@@ -132,7 +132,7 @@ const matchPeriod = (val, mode, monthIdx, year) => {
 
 // ── Componentes base ───────────────────────────────────────────────
 const Card = ({ children, className = '' }) => (
-  <div className={`bg-white rounded-2xl p-5 ${className}`} style={{ border: '1.5px solid #e5e7eb' }}>{children}</div>
+  <div className={`bg-white rounded-2xl p-4 sm:p-5 ${className}`} style={{ border: '1.5px solid #e5e7eb' }}>{children}</div>
 );
 
 function Dropdown({ value, options, onChange }) {
@@ -145,7 +145,7 @@ function Dropdown({ value, options, onChange }) {
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white border border-pink-300 rounded-2xl shadow z-50 py-1 min-w-full max-h-52 overflow-y-auto">
+        <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 bg-white border border-pink-300 rounded-2xl shadow z-50 py-1 min-w-full max-h-52 overflow-y-auto">
           {options.map(opt => (
             <div key={opt} onClick={() => { onChange(opt); setOpen(false); }}
               className={`px-4 py-2 text-sm cursor-pointer hover:bg-pink-50 ${String(opt) === String(value) ? 'text-fuchsia-600 font-semibold' : 'text-gray-700'}`}>
@@ -593,7 +593,7 @@ export default function ProductionDashboard() {
   };
 
   const GlobalTimeFilter = () => (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       {timeView === 'Semana' && <>
         <Dropdown value={selectedMonth} options={MONTHS} onChange={setSelectedMonth} />
         <Dropdown value={selectedYear} options={YEARS} onChange={setSelectedYear} />
@@ -612,9 +612,9 @@ export default function ProductionDashboard() {
   );
 
   return (
-    <div className="min-h-screen p-5" >
+    <div className="min-h-screen p-3 sm:p-5">
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <h1 className="text-xl font-bold text-gray-900" style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: '0' }}>Dashboard</h1>
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm text-gray-500 font-medium">Período:</span>
@@ -630,7 +630,8 @@ export default function ProductionDashboard() {
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            {downloadingExcel ? 'Generando...' : 'Descargar reporte'}
+            <span className="hidden xs:inline sm:inline">{downloadingExcel ? 'Generando...' : 'Descargar reporte'}</span>
+            <span className="inline xs:hidden sm:hidden">{downloadingExcel ? '...' : 'Descargar'}</span>
           </button>
         </div>
       </div>
@@ -648,25 +649,29 @@ export default function ProductionDashboard() {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-3 py-2">
-                <span className="text-xs text-gray-500 font-medium pl-1">Del</span>
-                <input
-                  type="date"
-                  value={modalDateFrom}
-                  max={modalDateTo || undefined}
-                  onChange={(e) => setModalDateFrom(e.target.value)}
-                  className="text-xs text-gray-800 border-none outline-none bg-transparent flex-1"
-                  style={{ colorScheme: 'light' }}
-                />
-                <span className="text-xs text-gray-500 font-medium">al</span>
-                <input
-                  type="date"
-                  value={modalDateTo}
-                  min={modalDateFrom || undefined}
-                  onChange={(e) => setModalDateTo(e.target.value)}
-                  className="text-xs text-gray-800 border-none outline-none bg-transparent flex-1"
-                  style={{ colorScheme: 'light' }}
-                />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-500 font-medium pl-1">Del</span>
+                  <input
+                    type="date"
+                    value={modalDateFrom}
+                    max={modalDateTo || undefined}
+                    onChange={(e) => setModalDateFrom(e.target.value)}
+                    className="text-xs text-gray-800 border-none outline-none bg-transparent flex-1 min-w-0"
+                    style={{ colorScheme: 'light' }}
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-500 font-medium">al</span>
+                  <input
+                    type="date"
+                    value={modalDateTo}
+                    min={modalDateFrom || undefined}
+                    onChange={(e) => setModalDateTo(e.target.value)}
+                    className="text-xs text-gray-800 border-none outline-none bg-transparent flex-1 min-w-0"
+                    style={{ colorScheme: 'light' }}
+                  />
+                </div>
               </div>
               {modalRangeError && (
                 <p style={{ margin: '6px 0 0', fontSize: 11, color: '#dc2626', fontWeight: 500 }}>
@@ -706,7 +711,7 @@ export default function ProductionDashboard() {
       {/* Fila 1: Stats */}
       <Card className="mb-4">
         <h3 className="text-base font-bold text-gray-900 mb-4">Estado general de producción</h3>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             {
               label: 'Producciones actuales', value: stats.current || '—',
@@ -729,22 +734,22 @@ export default function ProductionDashboard() {
               color: 'text-pink-500 bg-pink-50 border-pink-200'
             },
           ].map(({ label, value, icon, color }) => (
-            <div key={label} className="rounded-xl px-4 py-3 bg-white" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div key={label} className="rounded-xl px-3 sm:px-4 py-3 bg-white min-w-0" style={{ border: '1.5px solid #e5e7eb' }}>
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${color}`}>{icon}</div>
-                <p className="text-xs font-medium text-gray-700">{label}</p>
+                <div className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 ${color}`}>{icon}</div>
+                <p className="text-xs font-medium text-gray-700 truncate">{label}</p>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{value}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900">{value}</p>
             </div>
           ))}
         </div>
       </Card>
 
       {/* Fila 2: gráfica + panel */}
-      <div className="flex gap-4 mb-4">
-        <Card className="flex-1">
+      <div className="flex flex-col lg:flex-row gap-4 mb-4">
+        <Card className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Productos asignados a las sedes</h2>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-gray-600">Último mes</span>
               <button onClick={() => setViewMode('Todas')}
@@ -791,7 +796,7 @@ export default function ProductionDashboard() {
           </ResponsiveContainer>
         </Card>
 
-        <div className="w-72 flex flex-col gap-4">
+        <div className="w-full lg:w-72 flex flex-col gap-4">
           <Card className="flex-1">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Estado general de producción</h3>
             <div className="flex items-end justify-around h-48">
@@ -812,8 +817,8 @@ export default function ProductionDashboard() {
             <h3 className="text-sm font-bold text-gray-900 mb-4 text-center">Insumos</h3>
             <div className="space-y-3">
               {/* Por adquisición */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-pink-50 border border-pink-200 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="14" viewBox="0 0 40 25" fill="none">
                       <path d="M38.4998 11.5371C38.5507 11.2879 38.5133 11.035 38.3902 10.795C38.2671 10.555 38.0609 10.3332 37.7853 10.1442C37.5063 9.95377 37.1628 9.80111 36.7778 9.69642C36.3928 9.59174 35.9751 9.53743 35.5523 9.53711H3.57694C3.15421 9.53743 2.73645 9.59174 2.35145 9.69642C1.96644 9.80111 1.62301 9.95377 1.34402 10.1442C1.06833 10.3332 0.862201 10.555 0.739078 10.795C0.615955 11.035 0.578611 11.2879 0.629483 11.5371L2.8624 22.2513C2.95016 22.6869 3.30217 23.0878 3.85128 23.3776C4.4004 23.6675 5.10819 23.8259 5.83963 23.8227H33.3492C34.0806 23.8259 34.7884 23.6675 35.3375 23.3776C35.8866 23.0878 36.2387 22.6869 36.3264 22.2513L38.4998 11.5371Z" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
@@ -822,13 +827,13 @@ export default function ProductionDashboard() {
                       <path d="M25.5181 14.8945V18.4659" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-800 block">Por adquisición</span>
-                    <span className="text-xs text-gray-400">Pendientes de compra</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-gray-800 block truncate">Por adquisición</span>
+                    <span className="text-xs text-gray-400 block truncate">Pendientes de compra</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-12 h-px bg-pink-200 inline-block" />
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-8 sm:w-12 h-px bg-pink-200 inline-block" />
                   <span className={`text-sm font-bold ${supplies.adquisicion > 0 ? 'text-red-500' : 'text-gray-900'}`}>
                     {supplies.adquisicion}
                   </span>
@@ -836,8 +841,8 @@ export default function ProductionDashboard() {
               </div>
 
               {/* Almacenamiento */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-fuchsia-50 border border-fuchsia-200 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="15" viewBox="0 0 44 27" fill="none">
                       <path d="M39.6436 0.607422H3.86044C2.06385 0.607422 0.607422 1.47356 0.607422 2.542V23.8224C0.607422 24.8908 2.06385 25.757 3.86044 25.757H39.6436C41.4402 25.757 42.8966 24.8908 42.8966 23.8224V2.542C42.8966 1.47356 41.4402 0.607422 39.6436 0.607422Z" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
@@ -845,32 +850,32 @@ export default function ProductionDashboard() {
                       <path d="M26.6318 20.9194H34.7644" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-800 block">Almacenamiento</span>
-                    <span className="text-xs text-gray-400">Total de insumos</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-gray-800 block truncate">Almacenamiento</span>
+                    <span className="text-xs text-gray-400 block truncate">Total de insumos</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-12 h-px bg-pink-200 inline-block" />
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-8 sm:w-12 h-px bg-pink-200 inline-block" />
                   <span className="text-sm font-bold text-gray-900">{supplies.almacenamiento}</span>
                 </div>
               </div>
 
               {/* Stock */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-fuchsia-500 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="26" height="17" viewBox="0 0 48 31" fill="none">
                       <path d="M43.0099 7.76605H33.2673V6.61077C33.2673 2.95238 29.6238 0 25.1089 0H22.8119C18.297 0 14.6535 2.95238 14.6535 6.61077V7.76605H4.9901C2.29703 7.76605 0 9.56315 0 11.8095V26.9565C0 29.1387 2.21782 31 4.9901 31H43.0099C45.703 31 48 29.2029 48 26.9565V11.7453C48 9.56315 45.703 7.76605 43.0099 7.76605ZM18.297 6.61077C18.297 4.55694 20.3564 2.8882 22.8911 2.8882H25.1881C27.7228 2.8882 29.7822 4.55694 29.7822 6.61077V7.76605H18.297V6.61077ZM4.9901 10.6542H43.0099C43.802 10.6542 44.4356 11.1677 44.4356 11.8095V15.4037H39.7624V14.1843C39.7624 13.4141 38.9703 12.7081 37.9406 12.7081C36.9109 12.7081 36.1188 13.3499 36.1188 14.1843V15.4037H11.8812V14.1843C11.8812 13.4141 11.0891 12.7081 10.0594 12.7081C9.0297 12.7081 8.23762 13.3499 8.23762 14.1843V15.4037H3.64356V11.8095C3.64356 11.1677 4.19802 10.6542 4.9901 10.6542ZM43.0099 28.0476H4.9901C4.19802 28.0476 3.56436 27.5342 3.56436 26.8923V18.2277H8.23762V19.4472C8.23762 20.2174 9.0297 20.9234 10.0594 20.9234C11.0891 20.9234 11.8812 20.2816 11.8812 19.4472V18.2277H36.1188V19.4472C36.1188 20.2174 36.9109 20.9234 37.9406 20.9234C38.9703 20.9234 39.7624 20.2816 39.7624 19.4472V18.2277H44.4356V26.8923C44.4356 27.5342 43.802 28.0476 43.0099 28.0476Z" fill="white" />
                     </svg>
                   </div>
-                  <div>
-                    <span className="text-sm font-medium text-blanck block">Stock</span>
-                    <span className="text-xs" style={{ color: '#f5d0fe' }}>Unidades totales</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-blanck block truncate">Stock</span>
+                    <span className="text-xs block truncate" style={{ color: '#f5d0fe' }}>Unidades totales</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-12 h-px bg-pink-200 inline-block" />
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-8 sm:w-12 h-px bg-pink-200 inline-block" />
                   <span className="text-sm font-bold text-gray-900">
                     {supplies.stock.toLocaleString('es-CO')}
                   </span>
@@ -883,16 +888,16 @@ export default function ProductionDashboard() {
 
       {/* Fila 3: barras */}
       <Card>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
           <h3 className="text-base font-bold text-gray-900">Estado general de los procesos de producción</h3>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d946ef" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span>Período: <span className="font-semibold text-fuchsia-600">
               {barTimeView === 'Día' ? 'Hoy' : barTimeView === 'Mes' ? `${selectedMonth} ${selectedYear}` : `Año ${selectedYear}`}
             </span></span>
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-0.5 ml-2">
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-0.5 ml-0 sm:ml-2">
               {['Día', 'Mes', 'Año'].map(p => (
                 <button key={p} onClick={() => setBarTimeView(p)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${barTimeView === p ? 'bg-fuchsia-500 text-white' : 'text-gray-500 hover:text-gray-800'}`}>
@@ -902,7 +907,10 @@ export default function ProductionDashboard() {
             </div>
           </div>
         </div>
-        <div className="flex mb-4 pl-14 pr-2">
+        {/* Tira de íconos por proceso — se oculta en móvil porque con 11 columnas
+            queda ilegible en 375px; el nombre de cada proceso ya se ve en el
+            eje X de la gráfica (BarTick parte el texto en varias líneas). */}
+        <div className="hidden sm:flex mb-4 pl-14 pr-2">
           {barIconKeys.map(name => (
             <div key={name} className="flex-1 flex justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -911,21 +919,25 @@ export default function ProductionDashboard() {
             </div>
           ))}
         </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={barData} margin={{ top: 5, right: 10, left: 10, bottom: 60 }} barCategoryGap="28%">
-            <CartesianGrid strokeDasharray="2 4" stroke="#F5D8F5" vertical={false} />
-            <XAxis dataKey="name" tick={<BarTick />} axisLine={false} tickLine={false} interval={0} />
-            <YAxis domain={[0, 55]} ticks={[0, 15, 30, 45, 60]} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false}
-              label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', dx: -2, style: { fontSize: 10, fill: '#d946ef', textAnchor: 'middle' } }} />
-            <Tooltip formatter={v => [v, 'Cantidad']} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, color: '#111827' }} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]} label={{ position: 'top', fontSize: 11, fill: '#374151', fontWeight: 600 }}>
-              {barData.map((entry, i) => {
-                const limit = barTimeView === 'Día' ? 10 : barTimeView === 'Mes' ? 24 : 38;
-                return <Cell key={i} fill={entry.value >= limit ? '#E8B4E8' : '#7BE87B'} />;
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: 560 }}>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={barData} margin={{ top: 5, right: 10, left: 10, bottom: 60 }} barCategoryGap="28%">
+                <CartesianGrid strokeDasharray="2 4" stroke="#F5D8F5" vertical={false} />
+                <XAxis dataKey="name" tick={<BarTick />} axisLine={false} tickLine={false} interval={0} />
+                <YAxis domain={[0, 55]} ticks={[0, 15, 30, 45, 60]} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false}
+                  label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', dx: -2, style: { fontSize: 10, fill: '#d946ef', textAnchor: 'middle' } }} />
+                <Tooltip formatter={v => [v, 'Cantidad']} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, color: '#111827' }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} label={{ position: 'top', fontSize: 11, fill: '#374151', fontWeight: 600 }}>
+                  {barData.map((entry, i) => {
+                    const limit = barTimeView === 'Día' ? 10 : barTimeView === 'Mes' ? 24 : 38;
+                    return <Cell key={i} fill={entry.value >= limit ? '#E8B4E8' : '#7BE87B'} />;
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
         <p className="text-center text-sm font-bold mt-1" style={{ color: '#c026d3' }}>Procesos</p>
         <div className="flex items-center gap-2 mt-3 px-4 py-3 rounded-xl border border-fuchsia-200 bg-fuchsia-50">
           <div className="w-5 h-5 rounded-md shrink-0" style={{ background: '#E8B4E8', border: '1.5px solid #d946ef' }} />

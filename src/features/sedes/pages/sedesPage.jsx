@@ -15,8 +15,10 @@ import AddSedesButton from "../components/AddSedesButton";
 import SearchInput from "../../shared/components/SearchInput";
 import SedeTable from "../components/SedesTable";
 import SedeForm from "../components/SedesForm";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 
 const SedesPage = () => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   // FIX #9: useSedes ahora gestiona paginación server-side
   const {
     sedes,
@@ -28,7 +30,7 @@ const SedesPage = () => {
     toggleSede,
     goToPage,
     applyFilters,
-  } = useSedes({ page: 1, limit: 10 });
+  } = useSedes({ page: 1, limit: 7 });
 
   const [modalType, setModalType] = useState(null); // "create" | "edit"
   const [editingSede, setEditingSede] = useState(null);
@@ -210,15 +212,15 @@ const SedesPage = () => {
 
   if (showInitialLoading) {
     return (
-      <div style={{ padding: "24px 32px" }}>
+      <div style={{ padding: isMobile ? "16px 12px" : "24px 32px" }}>
         <style>{`
           @keyframes eloadbar { 0% { left: -40%; width: 40%; } 50% { left: 30%; width: 50%; } 100% { left: 110%; width: 40%; } }
           @keyframes eskeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Sedes</h1>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "12px" : "0", marginBottom: 20 }}>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Sedes</h1>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 4 }}>
             <div style={{ width: 400, maxWidth: "100%", height: 38, borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
             <div style={{ width: 260, height: 11, borderRadius: 6, background: "#f3f4f6", animation: "eskeleton-pulse 1.6s ease-in-out infinite" }} />
           </div>
@@ -237,7 +239,7 @@ const SedesPage = () => {
 
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", padding: "24px 32px" }}
+      style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)", padding: isMobile ? "16px 12px" : "24px 32px", boxSizing: "border-box", backgroundColor: "#f5f5f5" }}
     >
       {/* Header */}
       <div
@@ -245,15 +247,19 @@ const SedesPage = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? "12px" : "0",
           marginBottom: "20px",
         }}
       >
         <h1
           style={{
             margin: 0,
-            fontSize: "26px",
+            fontSize: isMobile ? "22px" : "26px",
             fontWeight: "700",
             color: "#1a1a1a",
+            width: isMobile ? "100%" : "auto",
+            textAlign: isMobile ? "center" : "left",
           }}
         >
           Sedes
@@ -263,18 +269,19 @@ const SedesPage = () => {
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "flex-end",
+            alignItems: isMobile ? "stretch" : "flex-end",
             gap: "4px",
+            width: isMobile ? "100%" : "auto",
           }}
         >
           <SearchInput
             onChange={handleSearch}
             placeholder="Buscar"
-            width="400px"
-            maxWidth="400px"
+            width={isMobile ? "100%" : "400px"}
+            maxWidth={isMobile ? "100%" : "400px"}
           />
           <span
-            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: "nowrap" }}
+            style={{ fontSize: "11px", color: "#9ca3af", whiteSpace: isMobile ? "normal" : "nowrap", lineHeight: isMobile ? 1.4 : "normal" }}
           >
             Escribe <strong>activo</strong> para ver compras activas ·{" "}
             <strong>anulado</strong> para ver compras anuladas
@@ -287,7 +294,8 @@ const SedesPage = () => {
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: isMobile ? "center" : "flex-end",
+          flexDirection: isMobile ? "column" : "row",
           backgroundColor: "#ffffff",
           borderRadius: "10px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
@@ -295,18 +303,22 @@ const SedesPage = () => {
           marginBottom: "20px",
         }}
       >
-        <AddSedesButton onClick={handleCreate} />
+        <div style={{ display: "flex", justifyContent: "center", width: isMobile ? "100%" : "auto" }}>
+          <AddSedesButton onClick={handleCreate} />
+        </div>
       </div>
 
       {/* Tabla — muestra solo la página actual devuelta por el servidor */}
-      <SedeTable
-        sedes={sedes}
-        loading={loading}
-        onView={(sede) => setSelectedSede(sede)}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
-      />
+      <div style={{ flex: "1 0 auto" }}>
+        <SedeTable
+          sedes={sedes}
+          loading={loading}
+          onView={(sede) => setSelectedSede(sede)}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onToggle={handleToggle}
+        />
+      </div>
 
       {/* Modal Crear / Editar */}
       {modalType && (

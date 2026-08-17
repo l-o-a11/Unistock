@@ -6,7 +6,6 @@
 import React, { useState } from "react";
 import Alert from "../../../shared/components/Alert";
 import Button from "../../../shared/components/Button";
-import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -42,8 +41,6 @@ const SupplyForm = ({
   onCreateCategory = () => {},
 }) => {
   const isEdit = Boolean(supply);
-  const isCompact = useMediaQuery("(max-width: 900px)");
-  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const initialFormData = {
     nombre:         supply?.nombre      || "",
@@ -261,7 +258,7 @@ const SupplyForm = ({
         backgroundColor: "#fff",
         borderRadius: 16,
         width: "100%",
-        maxWidth: isMobile ? 480 : 800,
+        maxWidth: 800,
         maxHeight: "90vh",
         overflow: "hidden",
         boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
@@ -270,22 +267,11 @@ const SupplyForm = ({
         <div className="roles-modal-scroll" style={{ padding: "28px 30px", overflowY: "auto", maxHeight: "90vh", boxSizing: "border-box", WebkitOverflowScrolling: "touch" }}>
 
           {/* ── Header con ícono — patrón ProductionForm ── */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            gap: 10,
-            marginBottom: 20,
-            borderBottom: '1px solid #f3f4f6',
-            paddingBottom: 16,
-            textAlign: "left",
-            width: "100%",
-          }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
               background: "#ff4fd6",
               display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
             }}>
               {/* Ícono: caja / insumo */}
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -295,11 +281,11 @@ const SupplyForm = ({
                 <line x1="12" y1="22.08" x2="12" y2="12"/>
               </svg>
             </div>
-            <div style={{ textAlign: "left" }}>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1f2937", textAlign: "left" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1f2937" }}>
                 {isEdit ? "Editar insumo" : "Nuevo insumo"}
               </h2>
-              <p style={{ margin: 0, fontSize: 11, color: "#9ca3af", textAlign: "left" }}>
+              <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>
                 {isEdit
                   ? `Editando: ${supply?.nombre || "insumo"}`
                   : "Completa todos los campos obligatorios"}
@@ -308,13 +294,7 @@ const SupplyForm = ({
           </div>
 
           {/* ── Layout: dos columnas ── */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isCompact ? "1fr" : "1fr 1fr",
-              gap: isCompact ? 20 : 28,
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
 
             {/* ════════════════════════════════════════
                 COLUMNA IZQUIERDA — campos del insumo
@@ -342,7 +322,7 @@ const SupplyForm = ({
               {/* Categoría + Stock */}
               <div style={{
                 display: "grid",
-                gridTemplateColumns: isCompact ? "1fr" : "1fr auto",
+                gridTemplateColumns: "1fr auto",
                 gap: 14, marginBottom: 14, alignItems: "start",
               }}>
                 <div>
@@ -402,7 +382,7 @@ const SupplyForm = ({
               {/* Medida + Valor medida */}
               <div style={{
                 display: "grid",
-                gridTemplateColumns: isCompact ? "1fr" : "1fr 1fr",
+                gridTemplateColumns: "1fr 1fr",
                 gap: 14, marginBottom: 4,
               }}>
                 <div>
@@ -443,17 +423,9 @@ const SupplyForm = ({
               {sectionTitle("Propiedades")}
 
               {/* Selector + valor + botón agregar */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: isCompact ? "column" : "row",
-                  gap: 8,
-                  marginBottom: 12,
-                  alignItems: isCompact ? "stretch" : "flex-end",
-                }}
-              >
-                <div style={{ flex: 1, width: "100%" }}>
-                  <label style={labelStyle}>Propiedad <span style={requiredStar}>*</span></label>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-end" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Propiedad</label>
                   <select
                     value={propiedadId}
                     onChange={(e) => setPropiedadId(e.target.value)}
@@ -467,8 +439,8 @@ const SupplyForm = ({
                       ))}
                   </select>
                 </div>
-                <div style={{ flex: 1, width: "100%" }}>
-                  <label style={labelStyle}>Valor<span style={requiredStar}>*</span></label>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Valor</label>
                   <input
                     placeholder="Ej: Rojo"
                     value={valorPropiedad}
@@ -481,18 +453,11 @@ const SupplyForm = ({
                   type="button"
                   onClick={agregarPropiedad}
                   style={{
-                    padding: isCompact ? "10px 16px" : "0 16px",
-                    height: isCompact ? 42 : 42,
-                    flexShrink: 0,
-                    background: "#ff4fd6",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 10,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: "pointer",
+                    padding: "0 16px", height: 42, flexShrink: 0,
+                    background: "#ff4fd6", color: "#fff",
+                    border: "none", borderRadius: 10,
+                    fontSize: 13, fontWeight: 700, cursor: "pointer",
                     whiteSpace: "nowrap",
-                    width: isCompact ? "100%" : "auto",
                   }}
                 >
                   + Agregar
@@ -656,12 +621,8 @@ const SupplyForm = ({
 
               {/* ── Botones ── */}
               <div style={{
-                display: "flex",
-                flexDirection: isCompact ? "column-reverse" : "row",
-                justifyContent: "flex-end",
-                gap: 10,
-                paddingTop: 16,
-                marginTop: 20,
+                display: "flex", justifyContent: "flex-end", gap: 10,
+                paddingTop: 16, marginTop: 20,
                 borderTop: "1px solid #f3f4f6",
               }}>
                 <Button type="button" variant="secondary" onClick={handleCancel}>

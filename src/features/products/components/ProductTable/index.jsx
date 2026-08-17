@@ -11,6 +11,25 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
   const [selectedId, setSelectedId] = useState(null);
   const [newStatus, setNewStatus] = useState(null);
 
+  // 🔥 Preview de imagen con posición FIXED para que se sobreponga sobre la
+  // tabla sin ser recortada por el contenedor con overflow:hidden.
+  // Funciona igual cuando hay imagen y cuando no la hay (muestra "Sin imagen").
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const showImagePreview = (e, product) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setImagePreview({
+      src: product.image,
+      name: product.name,
+      hasImage: Boolean(product.image),
+      top: rect.top,
+      left: rect.right + 8,
+      width: rect.width,
+    });
+  };
+
+  const hideImagePreview = () => setImagePreview(null);
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -45,11 +64,21 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
   // ✅ Fix: la columna de Acciones contiene botones/ícono e interruptor, no
   // texto — nunca debe recortarse con overflow:hidden ni heredar un ancho
   // porcentual estricto, o el switch y los íconos se ven cortados.
-  const tdActionsStyle = {
+const tdActionsStyle = {
     ...tdStyle,
     overflow: "visible",
     textOverflow: "clip",
+    whiteSpace: "normal",
+    minWidth: "170px",
+    width: isMobile ? "auto" : "170px",
+    position: "relative",
+  };
+
+  const tdStockStyle = {
+    ...tdStyle,
+    overflow: "visible",
     whiteSpace: "nowrap",
+    minWidth: isMobile ? "110px" : "auto",
   };
 
   // ✅ Fix: la celda de imagen necesita overflow:visible para que el hover
@@ -98,7 +127,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
             style={{
               width: "100%",
               borderCollapse: "collapse",
-              minWidth: "920px",
+              minWidth: isMobile ? "auto" : "920px",
               tableLayout: isMobile ? "auto" : "fixed",
             }}
           >
@@ -110,7 +139,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                 <th style={{ ...thStyle, width: "16%" }}>Categoría</th>
                 <th style={{ ...thStyle, width: "14%" }}>Precio</th>
                 <th style={{ ...thStyle, width: "10%" }}>Stock</th>
-                <th style={{ ...thStyle, width: "170px", overflow: "visible" }}>Acciónes</th>
+                <th style={{ ...thStyle, minWidth: "170px", width: isMobile ? "auto" : "170px", overflow: "visible" }}>Acciónes</th>
               </tr>
             </thead>
             <tbody>
@@ -118,7 +147,7 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                 const isActive = product.active !== false;
 
                 return (
-<tr
+                  <tr
                     key={product.id ?? product.reference ?? product.index}
                     style={{ transition: "background 0.15s" }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
@@ -134,46 +163,17 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                           <img
                             src={product.image}
                             alt={product.name}
+                            onMouseEnter={(e) => showImagePreview(e, product)}
+                            onMouseLeave={hideImagePreview}
                             className="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs cursor-pointer">
-                            🖼️
-                          </div>
-                        )}
-
-                        {/* Hover cuando SÍ hay imagen */}
-                        {product.image && (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="
-                              hidden group-hover:block
-                              absolute left-12 top-0
-                              max-w-60 max-h-60
-                              w-auto h-auto
-                              object-contain
-                              bg-white p-2
-                              rounded-lg border border-gray-200 shadow-lg
-                              pointer-events-none z-50
-                            "
-                          />
-                        )}
-
-                        {/* Hover cuando NO hay imagen */}
-                        {!product.image && (
                           <div
-                            className="
-                              hidden group-hover:flex
-                              absolute left-12 top-0
-                              w-40 h-20
-                              items-center justify-center
-                              bg-white border border-gray-200 rounded-lg shadow-lg
-                              text-gray-500 text-sm
-                              pointer-events-none z-50
-                            "
+                            className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-xs cursor-pointer"
+                            onMouseEnter={(e) => showImagePreview(e, product)}
+                            onMouseLeave={hideImagePreview}
                           >
-                            Sin imagen
+                            🖼️
                           </div>
                         )}
 
@@ -243,71 +243,73 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
                       <span>{formatPrice(product.price)}</span>
                     </td>
 
-                   {/* Stock */}
-                  <td style={tdStyle}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <button
-                        type="button"
-                        onClick={() => onStockChange?.(product.id, -1)}
-                        disabled={Number(product.stock) <= 0}
-                        title="Restar stock"
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          borderRadius: "50%",
-                          border: "1px solid #f9a8d4",
-                          background: "#fff",
-                          color: Number(product.stock) <= 0 ? "#d1d5db" : "#ff4fd6",
-                          fontSize: "14px",
-                          fontWeight: "700",
-                          lineHeight: 1,
-                          cursor: Number(product.stock) <= 0 ? "not-allowed" : "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          transition: "background-color 0.15s",
-                        }}
-                        onMouseEnter={(e) => { if (Number(product.stock) > 0) e.currentTarget.style.backgroundColor = "#fff0fb"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
-                      >
-                        −
-                      </button>
+                    {/* Stock */}
+                    <td style={tdStockStyle}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, minWidth: "88px" }}>
+                        <button
+                          type="button"
+                          onClick={() => onStockChange?.(product.id, -1)}
+                          disabled={Number(product.stock) <= 0}
+                          title="Restar stock"
+                          style={{
+                            width: "22px",
+                            minWidth: "22px",
+                            height: "22px",
+                            minHeight: "22px",
+                            borderRadius: "50%",
+                            border: "1px solid #f9a8d4",
+                            background: "#fff",
+                            color: Number(product.stock) <= 0 ? "#d1d5db" : "#ff4fd6",
+                            fontSize: "14px",
+                            fontWeight: "700",
+                            lineHeight: 1,
+                            cursor: Number(product.stock) <= 0 ? "not-allowed" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            transition: "background-color 0.15s",
+                          }}
+                          onMouseEnter={(e) => { if (Number(product.stock) > 0) e.currentTarget.style.backgroundColor = "#fff0fb"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
+                        >
+                          −
+                        </button>
 
-                      <span style={{ minWidth: "18px", textAlign: "center" }}>{product.stock}</span>
+                        <span style={{ minWidth: "18px", textAlign: "center" }}>{product.stock}</span>
 
-                      <button
-                        type="button"
-                        onClick={() => onStockChange?.(product.id, 1)}
-                        title="Sumar stock"
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          borderRadius: "50%",
-                          border: "1px solid #f9a8d4",
-                          background: "#fff",
-                          color: "#ff4fd6",
-                          fontSize: "14px",
-                          fontWeight: "700",
-                          lineHeight: 1,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          transition: "background-color 0.15s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fff0fb"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </td>
+                        <button
+                          type="button"
+                          onClick={() => onStockChange?.(product.id, 1)}
+                          title="Sumar stock"
+                          style={{
+                            width: "22px",
+                            height: "22px",
+                            borderRadius: "50%",
+                            border: "1px solid #f9a8d4",
+                            background: "#fff",
+                            color: "#ff4fd6",
+                            fontSize: "14px",
+                            fontWeight: "700",
+                            lineHeight: 1,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            transition: "background-color 0.15s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fff0fb"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#fff"; }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
 
                     {/* ACCIONES */}
                     <td style={tdActionsStyle}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+<div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, flexWrap: "nowrap", minWidth: isMobile ? "160px" : 0, maxWidth: "100%", justifyContent: "flex-start", width: "fit-content" }}>
 
                         {/* ⓘ info - VER FICHA TÉCNICA */}
                         <button onClick={() => onView(product)} title="Ver ficha técnica"
@@ -390,6 +392,59 @@ const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onSto
           </table>
         </div>
       </div>
+
+      {/* 🔥 PREVIEW DE IMAGEN CON POSICIÓN FIJA — se sobrepone sobre la tabla
+          sin ser recortada por el contenedor con overflow:hidden. Muestra la
+          imagen si existe, o "Sin imagen" si el producto no tiene imagen. */}
+      {imagePreview && (
+        <div
+          style={{
+            position: "fixed",
+            top: imagePreview.top,
+            left: imagePreview.left,
+            transform: "translate(0, -50%)",
+            zIndex: 9999,
+            pointerEvents: "none",
+            maxWidth: "240px",
+            maxHeight: "240px",
+          }}
+        >
+          {imagePreview.hasImage ? (
+            <img
+              src={imagePreview.src}
+              alt={imagePreview.name}
+              style={{
+                width: "auto",
+                height: "auto",
+                maxWidth: "240px",
+                maxHeight: "240px",
+                objectFit: "contain",
+                backgroundColor: "#fff",
+                padding: "8px",
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                minWidth: "120px",
+                padding: "14px 20px",
+                textAlign: "center",
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                color: "#999",
+                fontSize: "14px",
+              }}
+            >
+              Sin imagen
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ALERTA DE CONFIRMACIÓN DE CAMBIO DE ESTADO */}
       <Alert
