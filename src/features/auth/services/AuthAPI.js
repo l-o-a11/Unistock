@@ -131,11 +131,7 @@ export const authService = {
       }
       return data;
     } catch (err) {
-      const msg = err?.message || err?.data?.message || "No se pudo enviar el código. Intenta nuevamente.";
-      const status = err?.status || err?.data?.status;
-      const finalError = new Error(msg);
-      finalError.status = status;
-      throw finalError;
+      throw err?.data || err;
     }
   },
 
