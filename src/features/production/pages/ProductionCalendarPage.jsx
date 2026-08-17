@@ -8,7 +8,7 @@
  *   - Buscador con filtros por orden y proceso
  *   - Click en fecha → muestra TODOS los eventos/órdenes de ese día
  *   - Botón "Agregar evento" separado en el header
- *   - Google Calendar sincroniza vía backend (mismo flujo que correo)
+ *   - Google Calendar sincroniza vía OAuth 2.0 directo (client-side)
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
@@ -20,6 +20,71 @@ import { useNavigate } from 'react-router-dom';
 import { useProductions } from '../hooks/useProduction';
 
 const LS_EVENTS_KEY = 'production_calendar_events';
+const GOOGLE_CLIENT_ID = import.meta.env?.VITE_GOOGLE_CLIENT_ID || "";
+const GCAL_SCOPES = "https://www.googleapis.com/auth/calendar.events";
+
+const getGoogleToken = () =>
+  new Promise((resolve, reject) => {
+    if (!GOOGLE_CLIENT_ID) {
+      reject(new Error("VITE_GOOGLE_CLIENT_ID no configurado."));
+      return;
+    }
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: window.location.origin,
+      response_type: "token",
+      scope: GCAL_SCOPES,
+      prompt: "select_account",
+    });
+    const popup = window.open(
+      `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
+      "gcal-auth",
+      "width=500,height=600,left=300,top=100"
+    );
+    if (!popup) { reject(new Error("Popup bloqueado. Permite popups para este sitio.")); return; }
+
+    const interval = setInterval(() => {
+      try {
+        const url = new URL(popup.location.href);
+        const hash = new URLSearchParams(url.hash.slice(1));
+        const token = hash.get("access_token");
+        if (token) {
+          clearInterval(interval);
+          popup.close();
+          resolve(token);
+        }
+        if (hash.get("error")) {
+          clearInterval(interval);
+          popup.close();
+          reject(new Error(hash.get("error")));
+        }
+      } catch {
+        /* origen distinto — sigue esperando */
+      }
+      if (popup.closed) { clearInterval(interval); reject(new Error("Popup cerrado sin autorizar")); }
+    }, 300);
+  });
+
+const createGCalEvent = async (token, event) => {
+  const dateStr = event.date;
+  const body = {
+    summary: event.title,
+    description: `Proceso: ${getEventType(event.type).label || event.type}${event.orderId ? ` | Orden #${event.orderNum || event.orderId}` : ''}${event.notes ? `\n${event.notes}` : ''}`,
+    start: { date: dateStr },
+    end: { date: dateStr },
+    location: '',
+  };
+  const res = await fetch(
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }
+  );
+  if (!res.ok) throw new Error(`Error Google Calendar: ${res.status}`);
+  return res.json();
+};
 
 const EVENT_TYPES = {
   creacion: { label: 'Creación de orden', color: '#6366f1', bg: '#eef2ff', border: '#a5b4fc', gcalColor: '9' },
@@ -142,9 +207,9 @@ const ProductionCalendarPage = () => {
   const [searchField, setSearchField] = useState('todos');
   const [sortOrder, setSortOrder] = useState('fecha');
 
-  // Google Calendar (backend)
-  const [gcalConfigured, setGcalConfigured] = useState(false);
-  const [gcalAuthorized, setGcalAuthorized] = useState(false);
+  // Google Calendar (client-side OAuth)
+  const [gcalToken, setGcalToken] = useState(null);
+  const [gcalConnected, setGcalConnected] = useState(false);
   const [gcalLoading, setGcalLoading] = useState(false);
   const [gcalBtnLoading, setGcalBtnLoading] = useState(false);
 
@@ -157,7 +222,7 @@ const ProductionCalendarPage = () => {
   const [dateModal, setDateModal] = useState({ open: false, dateStr: null });
 
   // Auto-generar eventos desde órdenes
-  useEffect(() => { checkGcalBackend(); }, []);
+  useEffect(() => {}, []);
 
   useEffect(() => {
     if (!productions.length) return;
@@ -204,51 +269,37 @@ const ProductionCalendarPage = () => {
     setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 4000);
   }, []);
 
-  const checkGcalBackend = async () => {
+  const connectGoogleCalendar = async () => {
     setGcalLoading(true);
     try {
-      const res = await httpRequest('/calendar/status');
-      setGcalConfigured(res?.data?.configured || false);
-      setGcalAuthorized(res?.data?.authorized || false);
-    } catch {
-      setGcalConfigured(false);
-      setGcalAuthorized(false);
-    } finally {
-      setGcalLoading(false);
-    }
-  };
-
-  const connectGcalBackend = async () => {
-    setGcalLoading(true);
-    try {
-      const res = await httpRequest('/calendar/auth-url');
-      const authUrl = res?.data?.authUrl;
-      if (!authUrl) throw new Error('No se pudo obtener la URL de autorización');
-      window.open(authUrl, 'gcal-auth', 'width=500,height=600,left=300,top=100');
-      showToast('Completa la autorización en la nueva pestaña y luego presiona "Verificar conexión"', 'success');
+      const token = await getGoogleToken();
+      setGcalToken(token);
+      setGcalConnected(true);
+      showToast("¡Google Calendar conectado! Ya puedes agregar eventos.", "success");
     } catch (err) {
-      showToast(err.message || 'Error al conectar con Google Calendar', 'error');
+      showToast(err.message, "error");
     } finally {
       setGcalLoading(false);
     }
   };
 
-  const pushToGcal = async (ev) => {
-    if (!gcalConfigured) { showToast('Google Calendar no está configurado en el servidor', 'warning'); return; }
+  const addToGoogleCalendar = async (ev) => {
+    if (!gcalConnected || !gcalToken) {
+      showToast("Primero conecta tu Google Calendar", "warning");
+      return;
+    }
     setGcalBtnLoading(true);
     try {
-      const dateStr = ev.date;
-      const body = {
-        summary: ev.title,
-        description: `Proceso: ${getEventType(ev.type).label || ev.type}${ev.orderId ? ` | Orden #${ev.orderNum || ev.orderId}` : ''}${ev.notes ? `\n${ev.notes}` : ''}`,
-        start: { date: dateStr },
-        end: { date: dateStr },
-        location: '',
-      };
-      await httpRequest('/calendar/events', { method: 'POST', body });
-      showToast(`"${ev.title}" agregado a Google Calendar ✓`, 'success');
+      await createGCalEvent(gcalToken, ev);
+      showToast(`"${ev.title}" agregado a Google Calendar ✓`, "success");
     } catch (err) {
-      showToast(err.message || 'Error al agregar a Google Calendar', 'error');
+      if (err.message.includes("401")) {
+        setGcalToken(null);
+        setGcalConnected(false);
+        showToast("Sesión expirada. Vuelve a conectar Google Calendar.", "warning");
+      } else {
+        showToast(err.message || "Error al agregar a Google Calendar", "error");
+      }
     } finally {
       setGcalBtnLoading(false);
     }
@@ -260,7 +311,7 @@ const ProductionCalendarPage = () => {
     setEvents(prev => [...prev, ev]);
     setNewEvent({ type: 'creacion', title: '', orderId: '', notes: '' });
     setAddModal({ open: false, dateStr: null });
-    if (gcalAuthorized) pushToGcal(ev);
+    if (gcalConnected) addToGoogleCalendar(ev);
     showToast('Evento creado correctamente', 'success');
   };
 
@@ -367,13 +418,13 @@ const ProductionCalendarPage = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {gcalAuthorized ? (
-                <button onClick={() => pushToGcal(event)} disabled={gcalBtnLoading}
+              {gcalConnected ? (
+                <button onClick={() => addToGoogleCalendar(event)} disabled={gcalBtnLoading}
                   style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', background: gcalBtnLoading ? '#e5e7eb' : 'linear-gradient(135deg,#4285F4,#1a73e8)', color: gcalBtnLoading ? '#9ca3af' : '#fff', cursor: gcalBtnLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
                   {gcalBtnLoading ? <><SpinnerIcon color="#9ca3af" /> Agregando...</> : <><GCalIcon color="#fff" /> Agregar a Google Calendar</>}
                 </button>
               ) : (
-                <button onClick={async () => { onClose(); await connectGcalBackend(); }}
+                <button onClick={async () => { onClose(); await connectGoogleCalendar(); }}
                   style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: '1.5px solid #4285F4', background: '#fff', color: '#4285F4', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
                   <GCalIcon color="#4285F4" /> Conectar Google Calendar
                 </button>
@@ -558,7 +609,7 @@ const ProductionCalendarPage = () => {
                   </div>
                 ))}
               </div>
-              {gcalAuthorized && (
+              {gcalConnected && (
                 <div style={{ padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 11, color: '#1d4ed8', fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
                   <GCalIcon color="#1d4ed8" size={13} /> El evento se agregará a Google Calendar automáticamente
                 </div>
@@ -603,22 +654,19 @@ const ProductionCalendarPage = () => {
             <PlusIcon size={14} /> Agregar evento
           </button>
           {/* Google Calendar */}
-          {gcalConfigured && gcalAuthorized ? (
+          {gcalConnected ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderRadius: 10, border: '1.5px solid #bbf7d0', background: '#f0fdf4' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
               <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>Google Calendar activo</span>
+              <button onClick={() => { setGcalToken(null); setGcalConnected(false); }}
+                style={{ marginLeft: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#16a34a', fontSize: 15, lineHeight: 1, padding: 0, fontWeight: 700 }}
+                title="Desconectar">×</button>
             </div>
-          ) : gcalConfigured ? (
-            <button onClick={connectGcalBackend} disabled={gcalLoading}
+          ) : (
+            <button onClick={connectGoogleCalendar} disabled={gcalLoading}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, border: '1.5px solid #4285F4', background: '#fff', color: '#4285F4', cursor: gcalLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
               {gcalLoading ? <SpinnerIcon color="#4285F4" /> : <GCalIcon color="#4285F4" />}
               {gcalLoading ? 'Conectando...' : 'Conectar Google Calendar'}
-            </button>
-          ) : (
-            <button onClick={checkGcalBackend} disabled={gcalLoading}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, border: '1.5px solid #4285F4', background: '#fff', color: '#4285F4', cursor: gcalLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}>
-              {gcalLoading ? <SpinnerIcon color="#4285F4" /> : <GCalIcon color="#4285F4" />}
-              {gcalLoading ? 'Verificando...' : 'Google Calendar'}
             </button>
           )}
         </div>
@@ -702,28 +750,24 @@ const ProductionCalendarPage = () => {
           {/* Google Calendar card */}
           <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#374151' }}>Google Calendar</h3>
-            {gcalAuthorized ? (
+            {gcalConnected ? (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
-                  <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>Activo (servidor)</span>
+                  <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>Activo</span>
                 </div>
                 <p style={{ margin: '0 0 10px', fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>Los nuevos eventos se agregarán automáticamente al calendario configurado.</p>
-              </div>
-            ) : gcalConfigured ? (
-              <div>
-                <p style={{ margin: '0 0 10px', fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>Conectá tu cuenta para sincronizar eventos desde el servidor.</p>
-                <button onClick={connectGcalBackend} disabled={gcalLoading}
-                  style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: gcalLoading ? '#f3f4f6' : '#4285F4', color: gcalLoading ? '#9ca3af' : '#fff', cursor: gcalLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-                  {gcalLoading ? <><SpinnerIcon color="#9ca3af" size={12} /> Conectando...</> : <><GCalIcon color="#fff" size={14} /> Conectar Google Calendar</>}
+                <button onClick={() => { setGcalToken(null); setGcalConnected(false); }}
+                  style={{ width: '100%', padding: '8px', borderRadius: 10, border: '1px solid #fecaca', background: '#fef2f2', fontSize: 12, color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}>
+                  Desconectar
                 </button>
               </div>
             ) : (
               <div>
-                <p style={{ margin: '0 0 10px', fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>La sincronización con Google Calendar no está disponible.</p>
-                <button onClick={checkGcalBackend} disabled={gcalLoading}
+                <p style={{ margin: '0 0 10px', fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>Conectá tu cuenta para sincronizar eventos desde el servidor.</p>
+                <button onClick={connectGoogleCalendar} disabled={gcalLoading}
                   style={{ width: '100%', padding: '10px', borderRadius: 10, border: 'none', background: gcalLoading ? '#f3f4f6' : '#4285F4', color: gcalLoading ? '#9ca3af' : '#fff', cursor: gcalLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-                  {gcalLoading ? <><SpinnerIcon color="#9ca3af" size={12} /> Verificando...</> : 'Verificar conexión'}
+                  {gcalLoading ? <><SpinnerIcon color="#9ca3af" size={12} /> Conectando...</> : <><GCalIcon color="#fff" size={14} /> Conectar Google Calendar</>}
                 </button>
               </div>
             )}
