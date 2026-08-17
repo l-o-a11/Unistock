@@ -254,7 +254,17 @@ const EmployeesPage = () => {
   }
 
   return (
-    <div style={{ padding: "24px 32px" }}>
+    <div className="emp-page" style={{ padding: "24px 32px" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .emp-page { padding: 16px !important; }
+          .emp-header { flex-direction: column !important; align-items: stretch !important; }
+          .emp-search { align-items: stretch !important; }
+          .emp-search > div { max-width: 100% !important; width: 100% !important; }
+          .emp-search > span { text-align: center !important; white-space: normal !important; }
+          .emp-addbar { justify-content: center !important; }
+        }
+      `}</style>
       {/* 🔔 ALERTA GLOBAL (eliminar con contraseña) */}
       <Alert
         isOpen={alertConfig.open}
@@ -267,16 +277,19 @@ const EmployeesPage = () => {
 
       {/* 🔝 Header */}
       <div
+        className="emp-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "20px",
+          gap: 12,
         }}
       >
         <h1 style={{ fontSize: "26px", fontWeight: 700, margin: 0, color: "#1a1a1a" }}>Empleados</h1>
 
         <div
+          className="emp-search"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -301,6 +314,7 @@ const EmployeesPage = () => {
 
       {/* ➕ Botón agregar */}
       <div
+        className="emp-addbar"
         style={{
           backgroundColor: "#FFFFFF",
           display: "flex",
