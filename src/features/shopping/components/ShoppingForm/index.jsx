@@ -17,7 +17,7 @@ import {
 } from '../../../shared/utils/validationStyles';
 
 const sectionTitle = (t) => (
-  <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '18px 0 10px' }}>{t}</p>
+  <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '10px 0 8px' }}>{t}</p>
 );
 
 const inp = (err) => getInputStyleBox(err);
@@ -26,6 +26,62 @@ const ddStyle = {
   border: '1.5px solid #e5e7eb', borderRadius: 10,
   boxShadow: '0 8px 24px rgba(0,0,0,0.10)', zIndex: 100, maxHeight: 160, overflowY: 'auto', marginTop: 2,
 };
+
+// FIX RESPONSIVE: estilos responsive centralizados vía <style>, ya que el
+// componente usa inline styles y estos no responden a media queries por sí solos.
+const responsiveCss = `
+  .shf-overlay { overflow-y: auto; }
+  .shf-modal { display: flex; }
+  @media (max-width: 900px) {
+    /* align-items: flex-start se mantiene (no "center") a propósito: si el
+       contenido es más alto que la pantalla, centrar verticalmente con
+       overflow-y: auto corta la parte de arriba del modal al hacer scroll
+       — es un bug conocido de flexbox. Lo que cambiamos es que ya no le
+       quitamos el padding al overlay, así el modal conserva el mismo
+       margen externo de 16px que EmployeeForm/UserForm en vez de pegarse
+       a los bordes de la pantalla. */
+    .shf-overlay { align-items: flex-start !important; }
+    .shf-modal {
+      flex-direction: column !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      max-height: calc(100vh - 32px) !important;
+      border-radius: 16px !important;
+    }
+    .shf-left {
+      flex: 1 1 auto !important;
+      width: 100% !important;
+    }
+    .shf-left-scroll {
+      padding: 18px 16px 0 !important;
+      overflow-y: auto !important;
+    }
+    .shf-left-footer {
+      padding: 10px 16px 18px !important;
+    }
+    .shf-right {
+      flex: 1 1 auto !important;
+      min-height: 320px !important;
+      border-left: none !important;
+      border-top: 1px solid #f3f4f6 !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .shf-left-scroll { padding: 16px 14px 0 !important; }
+    .shf-left-footer { padding: 8px 14px 16px !important; }
+    .shf-right-body { padding: 18px 14px !important; }
+  }
+  @media (max-width: 560px) {
+    .shf-grid3 { grid-template-columns: 1fr 1fr !important; }
+    .shf-grid4 { grid-template-columns: 1fr 1fr !important; }
+    .shf-footer-btns { flex-direction: column-reverse !important; }
+    .shf-footer-btns > button { width: 100% !important; }
+  }
+  @media (max-width: 380px) {
+    .shf-grid3 { grid-template-columns: 1fr !important; }
+  }
+`;
 
 const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   const { suppliers, createSupplier } = useSuppliers();
@@ -103,6 +159,14 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     const { name, value } = e.target;
     setFormData((p) => ({ ...p, [name]: value }));
     validateField(name, value);
+  };
+
+  // FIX: bloquea en el propio input cualquier caracter que no sea dígito
+  // y corta a 4 dígitos máximo, en vez de solo avisar después de escribir.
+  const handleNumeroFacturaChange = (e) => {
+    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setFormData((p) => ({ ...p, numeroFactura: onlyDigits }));
+    validateField('numeroFactura', onlyDigits);
   };
 
   /* Proveedor */
@@ -269,18 +333,18 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   };
 
   if (showCreateSupplier) return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <SupplierForm onSubmit={handleCreateSupplierSubmit} onCancel={() => setShowCreateSupplier(false)} />
     </div>
   );
   // FIX 1: CategoryForm se muestra con zIndex más alto que SupplyForm para apilarse encima
   if (showCreateCategory) return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
       <CategoryForm standalone={true} onSubmit={handleCreateCategorySubmit} onCancel={() => setShowCreateCategory(false)} />
     </div>
   );
   if (showCreateSupply) return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <SupplyForm categorias={categorias} medidas={medidas} propiedades={propiedades}
         onSubmit={handleCreateSupplySubmit} onCancel={() => setShowCreateSupply(false)}
         onCreateCategory={() => setShowCreateCategory(true)} />
@@ -292,189 +356,188 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
       style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#ff4fd6', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px #FF4FD644' }}>+</button>
   );
 
+  // Fecha máxima seleccionable en el input date = hoy, en formato yyyy-mm-dd
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16 }}>
-        <div style={{ display: 'flex', backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1100, height: '92vh', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+      {/* FIX RESPONSIVE: media queries para que el modal se apile y no se rompa en móvil */}
+      <style>{responsiveCss}</style>
 
-          {/* ── COLUMNA IZQUIERDA ── */}
-          <div style={{ flex: '0 0 520px', padding: '24px 26px', overflow: 'hidden' }}>
+      <div className="shf-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16 }}>
+        <div className="shf-modal" style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 1140, height: 'auto', maxHeight: 'calc(100vh - 32px)', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid #f3f4f6', paddingBottom: 16 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#ff4fd6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                  <line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
-                </svg>
-              </div>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937' }}>Crear nueva compra</h2>
-                <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>Completa todos los campos obligatorios</p>
-              </div>
-            </div>
+          {/* ── COLUMNA IZQUIERDA ──
+              FIX: se separa en dos zonas — un área que scrollea (shf-left-scroll)
+              y un footer fijo (shf-left-footer) que siempre contiene el botón
+              "Agregar a la compra" completo y visible, sin que el overflow del
+              contenido lo corte. Mismo patrón que ya usa la columna derecha. */}
+          <div className="shf-left" style={{ flex: '0 0 520px', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
-            {sectionTitle('Datos de la factura')}
+            <div className="shf-left-scroll" style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '18px 26px 0' }}>
 
-            {/* Número de factura + Fecha + Sede */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div>
-                <label style={labelStyle}>Número de factura <span style={requiredStar}>*</span></label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*" name="numeroFactura" value={formData.numeroFactura}
-                  onChange={handleChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
-                  placeholder="Ej: 0231" style={inp(errors.numeroFactura)} />
-                {errors.numeroFactura && <span style={errMsg}>⚠ {errors.numeroFactura}</span>}
-              </div>
-              <div>
-                <label style={labelStyle}>Fecha de la factura <span style={requiredStar}>*</span></label>
-                <input type="date" name="fecha" value={formData.fecha}
-                  onChange={handleChange} onBlur={(e) => validateField('fecha', e.target.value)}
-                  style={inp(errors.fecha)} />
-                {errors.fecha && <span style={errMsg}>⚠ {errors.fecha}</span>}
-              </div>
-              <div>
-                <label style={labelStyle}>Sede {isGerente && <span style={requiredStar}>*</span>}</label>
-                {isGerente ? (
-                  <select name="sedeId" value={formData.sedeId} onChange={handleChange} style={inp(errors.sedeId)}>
-                    <option value="">Seleccionar...</option>
-                    {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                  </select>
-                ) : (
-                  <input value={sedes.find((s) => String(s.id) === String(formData.sedeId))?.nombre || '—'}
-                    readOnly style={{ ...inp(false), background: '#f9fafb', color: '#6b7280', cursor: 'default' }} />
-                )}
-              </div>
-            </div>
-
-            {/* Proveedor */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Proveedor <span style={requiredStar}>*</span></label>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <input value={proveedorSearch} placeholder="Buscar proveedor..."
-                    style={inp(errors.proveedorId)}
-                    onChange={(e) => { setProveedorSearch(e.target.value); setShowProveedorDD(true); if (!e.target.value) setFormData((p) => ({ ...p, proveedorId: '', proveedor: '' })); }}
-                    onFocus={() => setShowProveedorDD(true)}
-                    onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)} />
-                  {showProveedorDD && (
-                    <div style={ddStyle}>
-                      {filteredSuppliers.length > 0 ? filteredSuppliers.map((s) => (
-                        <div key={s.id} onMouseDown={() => handleSelectProveedor(s)}
-                          style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', color: '#333', borderBottom: '1px solid #f5f5f5' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = '#fdf0f7')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}>{s.nombreEmpresa}</div>
-                      )) : <div style={{ padding: '10px 12px', fontSize: 12, color: '#9ca3af' }}>Sin resultados</div>}
-                    </div>
-                  )}
-                </div>
-                {plusBtn(() => setShowCreateSupplier(true), 'Nuevo proveedor')}
-              </div>
-              {errors.proveedorId && <span style={errMsg}>⚠ {errors.proveedorId}</span>}
-            </div>
-
-            {/* Observaciones */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Observaciones <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
-              <textarea name="observaciones" value={formData.observaciones}
-                onChange={handleChange} placeholder="Ej. Compra urgente..."
-                rows={3} style={{ ...inp(false), minHeight: 90, resize: 'vertical' }} />
-            </div>
-
-            {/* FIX 4: Foto de factura */}
-            {/*<div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>
-                Foto de factura
-                <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 10 }}>(opcional)</span>
-              </label>
-              <p style={{ margin: '0 0 6px', fontSize: 10, color: '#9ca3af', lineHeight: 1.5 }}>
-                La <strong>fecha</strong> del formulario es de registro en el sistema. Sube la foto para tener la fecha real de la factura física.
-              </p>
-              {fotoPreview ? (
-                <div style={{ border: '1.5px solid #f9a8d4', borderRadius: 10, padding: 10, background: '#fff0fb', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <img src={fotoPreview} alt="Factura" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 12, color: '#374151' }}>{fotoFactura?.name}</div>
-                  <button type="button" onClick={handleRemoveFoto}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff4fd6', fontSize: 18, fontWeight: 700 }}>×</button>
-                </div>
-              ) : (
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1.5px dashed #f9a8d4', background: '#fafafa', cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#fff0fb'; e.currentTarget.style.borderColor = '#ff4fd6'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#fafafa'; e.currentTarget.style.borderColor = '#f9a8d4'; }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4fd6" strokeWidth="2" strokeLinecap="round">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: '#ff4fd6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                    <line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
                   </svg>
-                  <span style={{ fontSize: 12, color: '#ff4fd6', fontWeight: 600 }}>Subir foto de la factura</span>
-                  <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto' }}>JPG, PNG</span>
-                  <input type="file" accept="image/*" onChange={handleFotoFactura} style={{ display: 'none' }} />
-                </label>
-              )}
-            </div>*/}
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1f2937' }}>Crear nueva compra</h2>
+                  <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>Completa todos los campos obligatorios</p>
+                </div>
+              </div>
 
-            {sectionTitle('Detalles de la compra')}
+              {sectionTitle('Datos de la factura')}
 
-            {/* FIX 3: DOS BOTONES — buscar existente vs crear nuevo */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Insumo</label>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <input value={insumoSearch} placeholder="Buscar insumo existente..."
-                    style={inp(false)}
-                    onChange={(e) => { setInsumoSearch(e.target.value); setShowInsumoDD(true); }}
-                    onFocus={() => setShowInsumoDD(true)}
-                    onBlur={() => setTimeout(() => setShowInsumoDD(false), 150)} />
-                  {showInsumoDD && (
-                    <div style={ddStyle}>
-                      {filteredSupplies.length > 0 ? filteredSupplies.map((s) => (
-                        <div key={s.id} onMouseDown={() => handleSelectInsumo(s)}
-                          style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', color: '#333', borderBottom: '1px solid #f5f5f5' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = '#fdf0f7')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}>{s.nombre}</div>
-                      )) : <div style={{ padding: '10px 12px', fontSize: 12, color: '#9ca3af' }}>Sin resultados</div>}
-                    </div>
+              {/* Número de factura + Fecha + Sede */}
+              <div className="shf-grid3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 10 }}>
+                <div>
+                  <label style={labelStyle}>Número de factura <span style={requiredStar}>*</span></label>
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" name="numeroFactura" value={formData.numeroFactura}
+                    onChange={handleNumeroFacturaChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
+                    maxLength={4}
+                    placeholder="Ej: 0231" style={inp(errors.numeroFactura)} />
+                  {errors.numeroFactura ? (
+                    <span style={errMsg}>⚠ {errors.numeroFactura}</span>
+                  ) : (
+                    <span style={{ fontSize: 10, color: '#9ca3af' }}>
+                      {formData.numeroFactura.length}/4 dígitos
+                    </span>
                   )}
                 </div>
-                {/* Botón crear nuevo insumo — mismo círculo que proveedor */}
-                <button type="button" onClick={() => setShowCreateSupply(true)} title="Crear nuevo insumo"
-                  style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#ff4fd6', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px #FF4FD644' }}>+</button>
+                <div>
+                  <label style={labelStyle}>Fecha de la factura <span style={requiredStar}>*</span></label>
+                  <input type="date" name="fecha" value={formData.fecha} max={todayStr}
+                    onChange={handleChange} onBlur={(e) => validateField('fecha', e.target.value)}
+                    style={inp(errors.fecha)} />
+                  {errors.fecha && <span style={errMsg}>⚠ {errors.fecha}</span>}
+                </div>
+                <div>
+                  <label style={labelStyle}>Sede {isGerente && <span style={requiredStar}>*</span>}</label>
+                  {isGerente ? (
+                    <select name="sedeId" value={formData.sedeId} onChange={handleChange} style={inp(errors.sedeId)}>
+                      <option value="">Seleccionar...</option>
+                      {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                    </select>
+                  ) : (
+                    <input value={sedes.find((s) => String(s.id) === String(formData.sedeId))?.nombre || '—'}
+                      readOnly style={{ ...inp(false), background: '#f9fafb', color: '#6b7280', cursor: 'default' }} />
+                  )}
+                </div>
               </div>
+
+              {/* Proveedor */}
+              <div style={{ marginBottom: 10 }}>
+                <label style={labelStyle}>Proveedor <span style={requiredStar}>*</span></label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+                    <input value={proveedorSearch} placeholder="Buscar proveedor..."
+                      style={inp(errors.proveedorId)}
+                      onChange={(e) => { setProveedorSearch(e.target.value); setShowProveedorDD(true); if (!e.target.value) setFormData((p) => ({ ...p, proveedorId: '', proveedor: '' })); }}
+                      onFocus={() => setShowProveedorDD(true)}
+                      onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)} />
+                    {showProveedorDD && (
+                      <div style={ddStyle}>
+                        {filteredSuppliers.length > 0 ? filteredSuppliers.map((s) => (
+                          <div key={s.id} onMouseDown={() => handleSelectProveedor(s)}
+                            style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', color: '#333', borderBottom: '1px solid #f5f5f5' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#fdf0f7')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}>{s.nombreEmpresa}</div>
+                        )) : <div style={{ padding: '10px 12px', fontSize: 12, color: '#9ca3af' }}>Sin resultados</div>}
+                      </div>
+                    )}
+                  </div>
+                  {plusBtn(() => setShowCreateSupplier(true), 'Nuevo proveedor')}
+                </div>
+                {errors.proveedorId && <span style={errMsg}>⚠ {errors.proveedorId}</span>}
+              </div>
+
+              {/* Observaciones */}
+              <div style={{ marginBottom: 10 }}>
+                <label style={labelStyle}>Observaciones <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
+                <textarea name="observaciones" value={formData.observaciones}
+                  onChange={handleChange} placeholder="Ej. Compra urgente..."
+                  rows={2} style={{ ...inp(false), minHeight: 56, resize: 'vertical' }} />
+              </div>
+
+              {sectionTitle('Detalles de la compra')}
+
+              {/* FIX 3: DOS BOTONES — buscar existente vs crear nuevo */}
+              <div style={{ marginBottom: 10 }}>
+                <label style={labelStyle}>Insumo</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+                    <input value={insumoSearch} placeholder="Buscar insumo existente..."
+                      style={inp(false)}
+                      onChange={(e) => { setInsumoSearch(e.target.value); setShowInsumoDD(true); }}
+                      onFocus={() => setShowInsumoDD(true)}
+                      onBlur={() => setTimeout(() => setShowInsumoDD(false), 150)} />
+                    {showInsumoDD && (
+                      <div style={ddStyle}>
+                        {filteredSupplies.length > 0 ? filteredSupplies.map((s) => (
+                          <div key={s.id} onMouseDown={() => handleSelectInsumo(s)}
+                            style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', color: '#333', borderBottom: '1px solid #f5f5f5' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#fdf0f7')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}>{s.nombre}</div>
+                        )) : <div style={{ padding: '10px 12px', fontSize: 12, color: '#9ca3af' }}>Sin resultados</div>}
+                      </div>
+                    )}
+                  </div>
+                  {/* Botón crear nuevo insumo — mismo círculo que proveedor */}
+                  <button type="button" onClick={() => setShowCreateSupply(true)} title="Crear nuevo insumo"
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#ff4fd6', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px #FF4FD644' }}>+</button>
+                </div>
+              </div>
+
+              <div className="shf-grid4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 6 }}>
+                <div>
+                  <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
+                  <input type="number" name="cantidad" value={detalleActual.cantidad}
+                    onChange={handleDetalleChange} style={inp(false)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Valor total <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
+                  <input type="number" name="valorTotal" value={detalleActual.valorTotal}
+                    readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Valor unitario <span style={requiredStar}>*</span></label>
+                  <input type="number" name="valorUnitario" value={detalleActual.valorUnitario}
+                    onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Medida</label>
+                  <select name="medida" value={detalleActual.medida} onChange={handleDetalleChange} style={inp(false)}>
+                    <option value="">Seleccionar...</option>
+                    {medidas.map((m) => <option key={m.valor} value={m.valor}>{m.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
-              <div>
-                <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
-                <input type="number" name="cantidad" value={detalleActual.cantidad}
-                  onChange={handleDetalleChange} style={inp(false)} />
-              </div>
-              <div>
-                <label style={labelStyle}>Valor total <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
-                <input type="number" name="valorTotal" value={detalleActual.valorTotal}
-                  readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
-              </div>
-              <div>
-                <label style={labelStyle}>Valor unitario <span style={requiredStar}>*</span></label>
-                <input type="number" name="valorUnitario" value={detalleActual.valorUnitario}
-                  onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
-              </div>
-              <div>
-                <label style={labelStyle}>Medida</label>
-                <select name="medida" value={detalleActual.medida} onChange={handleDetalleChange} style={inp(false)}>
-                  <option value="">Seleccionar...</option>
-                  {medidas.map((m) => <option key={m.valor} value={m.valor}>{m.label}</option>)}
-                </select>
-              </div>
+            {/* Footer fijo de la columna izquierda: siempre visible, nunca se corta */}
+            <div className="shf-left-footer" style={{ padding: '10px 26px 18px', borderTop: '1px solid #f3f4f6' }}>
+              {/* FIX 3: botón de agregar detalle claramente diferenciado del de "crear nuevo" */}
+              <button type="button" onClick={handleAgregarDetalle}
+                style={{ background: '#ff4fd6', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '9px 14px', width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 2px 8px #ff4fd644' }}>
+                ⊕ Agregar a la compra
+              </button>
             </div>
-
-            {/* FIX 3: botón de agregar detalle claramente diferenciado del de "crear nuevo" */}
-            <button type="button" onClick={handleAgregarDetalle}
-              style={{ background: '#ff4fd6', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: '9px 14px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 2px 8px #ff4fd644' }}>
-              ⊕ Agregar a la compra
-            </button>
           </div>
 
           {/* ── COLUMNA DERECHA ── */}
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#fafafa', borderLeft: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, minHeight: 0, padding: '28px 20px', display: 'flex', flexDirection: 'column' }}>
+          <div className="shf-right" style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#fafafa', borderLeft: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
+            <div className="shf-right-body" style={{ flex: 1, minHeight: 0, padding: '28px 20px', display: 'flex', flexDirection: 'column' }}>
               <p style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#333' }}>
                 Resumen de compra
                 <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', marginLeft: 8 }}>IVA incluido</span>
@@ -522,7 +585,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               ) : (
                 <div style={{ flex: 1, padding: '40px 20px', textAlign: 'center', color: '#d1d5db', fontSize: 13 }}>
                   <div style={{ fontSize: 32, marginBottom: 10 }}>🧾</div>
-                  Los productos agregados aparecerán aquí
+                  Los productos agregados aparecerán aquí.
                 </div>
               )}
             </div>
@@ -537,7 +600,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div className="shf-footer-btns" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <Button type="button" variant="secondary" onClick={handleCancel}>Cancelar</Button>
                 <Button type="button" variant="primary" onClick={handleSubmit}>Guardar Compra</Button>
               </div>

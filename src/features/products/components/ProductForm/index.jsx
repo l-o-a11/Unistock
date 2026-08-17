@@ -4,8 +4,6 @@ import { productCategoryAPI } from "../../../productCategories/services/productC
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
 import ImageModal from "../ProductForm/ImageModal";
 import { clientAPI } from "../../../shared/services/clientAPI";
-import { validators } from "../../../shared/utils/validators";
-import { blockInput } from "../../../shared/utils/blockInput";
 const normalizeText = (text) =>
   String(text || "")
     .normalize("NFD")
@@ -290,10 +288,12 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [showVersions, setShowVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [viewMode, setViewMode] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const loadCategories = async () => {
     try {
@@ -515,12 +515,68 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     return "";
   };
 
+  // Evitar letras en el campo precio (incluida la 'e') y normalizar comas a punto
+  const handlePriceInputChange = (e) => {
+    const raw = String(e.target.value || "");
+    let v = raw.replace(/,/g, '.');
+    v = v.replace(/[^0-9.]/g, '');
+    const parts = v.split('.');
+    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+    setFormData(prev => ({ ...prev, price: v }));
+    validateField('price', v);
+  };
+
+  const handlePriceKeyDown = (e) => {
+    // Bloquear 'e', 'E', '+', '-' y otros caracteres no numéricos relevantes
+    if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+      e.preventDefault();
+    }
+  };
+
+  const handlePricePaste = (e) => {
+    const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
+    const sanitized = paste.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+    const parts = sanitized.split('.');
+    const cleaned = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitized;
+    if (cleaned !== paste) {
+      e.preventDefault();
+      setFormData(prev => ({ ...prev, price: cleaned }));
+      validateField('price', cleaned);
+    }
+  };
+
   const validateStock = (value) => {
     if (!value) return "El stock es obligatorio";
     if (isNaN(value) || Number(value) < 0) return "El stock debe ser un número válido";
     if (Number(value) < 5) return "El stock mínimo es 5 unidades";
     if (Number(value) > 100) return "El stock máximo es 100 unidades";
     return "";
+  };
+
+  // Evitar decimales en stock: solo números enteros, bloquear '.' ',' 'e' y signos
+  const handleStockInputChange = (e) => {
+    const raw = String(e.target.value || "");
+    // eliminar cualquier carácter que no sea dígito
+    const cleaned = raw.replace(/\D+/g, '');
+    setFormData(prev => ({ ...prev, stock: cleaned }));
+    validateField('stock', cleaned);
+  };
+
+  const handleStockKeyDown = (e) => {
+    // bloquear puntos, comas, e, E, signos y otras teclas no numéricas directas
+    if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+      e.preventDefault();
+    }
+  };
+
+  const handleStockPaste = (e) => {
+    const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
+    const cleaned = paste.replace(/\D+/g, '');
+    if (cleaned !== paste) {
+      e.preventDefault();
+      setFormData(prev => ({ ...prev, stock: cleaned }));
+      validateField('stock', cleaned);
+    }
   };
 
   const validateField = (name, value) => {
@@ -618,7 +674,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       .some(hasAnyValue) || hasTechnicalSheetMaterials(sheet);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
     if (currentStep === 1) {
@@ -675,10 +731,18 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       image: imagePreview
     };
 
-    onSubmit({
-      ...formData,
-      technicalSheet: finalTechnicalSheet
-    });
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        ...formData,
+        technicalSheet: finalTechnicalSheet
+      });
+    } catch (err) {
+      onShowAlert?.({ type: 'error', title: '¡Error!', message: err?.message || 'Error al guardar el producto' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDeleteVersion = () => {
@@ -962,7 +1026,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
   const selectedClient = getSelectedClientObject();
 
   return (
-    <div style={{ padding: "36px 40px" }}>
+    <div style={{ padding: isMobile ? '20px' : "36px 40px" }}>
       <div
         style={{
           display: "flex",
@@ -1045,8 +1109,8 @@ if ((touched[field] || formData[field]) && errors[field]) {
 
       {currentStep === 1 ? (
         <>
-          <div style={{ display: "flex", gap: "20px" }}>
-            <div style={{ flex: 2 }}>
+          <div style={{ display: "flex", gap: "20px", flexDirection: isMobile ? 'column' : 'row' }}>
+            <div style={{ flex: isMobile ? 'unset' : 2, width: isMobile ? '100%' : undefined }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <tbody>
                   <tr>
@@ -1132,9 +1196,8 @@ if ((touched[field] || formData[field]) && errors[field]) {
                         />
                         {requiredStar}
                       </div>
-                      {(touched.category || formData.category) && errors.category && (
-                        <span style={errorStyle}>⚠ {errors.category}</span>
-                      )}
+                      {/* Inline category error removed to avoid duplicate validation alerts.
+                          Rely on the global alert for field-level feedback. */}
                     </td>
                   </tr>
 
@@ -1205,13 +1268,15 @@ if ((touched[field] || formData[field]) && errors[field]) {
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                         <input
                           style={getInputStyle("price")}
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={formData.price}
-                          onChange={handleChange}
+                          onChange={handlePriceInputChange}
+                          onKeyDown={handlePriceKeyDown}
+                          onPaste={handlePricePaste}
                           name="price"
                           placeholder="Ej. 40000"
                           onBlur={() => handleBlur("price")}
-                          min="0"
                         />
                         {requiredStar}
                       </div>
@@ -1224,13 +1289,16 @@ if ((touched[field] || formData[field]) && errors[field]) {
                       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                         <input
                           style={getInputStyle("stock")}
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={formData.stock}
-                          onChange={handleChange}
+                          onChange={handleStockInputChange}
+                          onKeyDown={handleStockKeyDown}
+                          onPaste={handleStockPaste}
                           name="stock"
                           placeholder="Ej. 10"
                           onBlur={() => handleBlur("stock")}
-                          min="0"
                         />
                         {requiredStar}
                       </div>
@@ -1244,17 +1312,19 @@ if ((touched[field] || formData[field]) && errors[field]) {
             </div>
 
             {/* GALERÍA CON CLOUDINARY */}
-            <div style={{ flex: 1 }}>
+            {/* GALERÍA CON CLOUDINARY */}
+            <div style={{ flex: isMobile ? 'unset' : 1, width: isMobile ? '100%' : undefined }}>
               <div style={{
                 border: (formData.allImages && formData.allImages.length > 0) ? "1.5px solid #f9a8d4" : "2px dashed #f9a8d4",
                 borderRadius: "12px",
-                padding: "33px",
+                padding: isMobile ? "18px" : "33px",
                 backgroundColor: (formData.allImages && formData.allImages.length > 0) ? "#fff0fb" : "#fafafa",
-                minHeight: "250px",
+                minHeight: isMobile ? "180px" : "250px",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                width: '100%'
               }}>
                 {(() => {
                   const allImages = formData.allImages || [];
@@ -1460,6 +1530,68 @@ if ((touched[field] || formData[field]) && errors[field]) {
                 {product ? "Editar Ficha Técnica" : "Crear Ficha Técnica"}
               </button>
             </div>
+            {/* En mobile, mostrar la ficha técnica abajo para facilitar edición/visualización */}
+            {isMobile && currentStep === 2 && (
+              <>
+                <div style={{ marginTop: 18 }} />
+                <TechnicalSheet
+                  key={selectedVersion || "current-mobile"}
+                  sheet={product && selectedVersion ? { ...product?.technicalSheet, version: selectedVersion } : technicalSheet || product?.technicalSheet}
+                  isEditing={product ? (isLastVersion && !viewMode) : true}
+                  onChange={handleTechnicalSheetChange}
+                  productName={formData.name}
+                  categoryDescription={getSelectedCategoryDescription()}
+                  productRef={formData.reference}
+                  productImage={imagePreview}
+                  productImages={formData.allImages}
+                />
+
+                <div
+                  style={{
+                    marginTop: "24px",
+                    paddingTop: "16px",
+                    borderTop: "1px solid #f3f4f6",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "12px",
+                  }}
+                >
+                  <button type="button" style={btnSecondary} onClick={() => setCurrentStep(1)}>
+                    ← Volver
+                  </button>
+
+                  {product && isLastVersion && !viewMode && (product?.technicalSheetVersions || 1) > 1 && (
+                    <button
+                      type="button"
+                      style={{
+                        ...btnSecondary,
+                        background: "#ff4fd6",
+                        color: "#fff",
+                        borderColor: "#ff4fd6"
+                      }}
+                      onClick={handleDeleteVersionClick}
+                    >
+                      Eliminar versión
+                    </button>
+                  )}
+
+                  {(!product || (isLastVersion && !viewMode)) && (
+                    <button
+                      type="button"
+                      style={{
+                        ...btnPrimary,
+                        opacity: submitting ? 0.6 : 1,
+                        cursor: submitting ? 'not-allowed' : 'pointer'
+                      }}
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                    >
+                      {submitting ? (product ? 'Procesando...' : 'Creando...') : (product ? 'Guardar producto' : 'Crear producto')}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </>
       ) : (
@@ -1569,8 +1701,17 @@ if ((touched[field] || formData[field]) && errors[field]) {
             )}
 
             {(!product || (isLastVersion && !viewMode)) && (
-              <button type="button" style={btnPrimary} onClick={handleSubmit}>
-                {product ? "Guardar producto" : "Crear producto"}
+              <button
+                type="button"
+                style={{
+                  ...btnPrimary,
+                  opacity: submitting ? 0.6 : 1,
+                  cursor: submitting ? 'not-allowed' : 'pointer'
+                }}
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? (product ? 'Procesando...' : 'Creando...') : (product ? 'Guardar producto' : 'Crear producto')}
               </button>
             )}
           </div>

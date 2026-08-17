@@ -36,8 +36,8 @@ const RolTable = ({ roles = [], onView, onEdit, onDelete, onToggle, startIndex =
 
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", minWidth: "640px", borderCollapse: "collapse", tableLayout: "fixed" }}>
           <thead>
             <tr>
               <th style={{ ...thStyle, width: "24%" }}>Nombre del rol</th>
