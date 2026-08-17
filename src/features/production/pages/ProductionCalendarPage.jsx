@@ -212,6 +212,12 @@ const ProductionCalendarPage = () => {
   const [gcalConnected, setGcalConnected] = useState(false);
   const [gcalLoading, setGcalLoading] = useState(false);
   const [gcalBtnLoading, setGcalBtnLoading] = useState(false);
+  const gcalConnectedRef = useRef(gcalConnected);
+  const gcalTokenRef = useRef(gcalToken);
+  const eventsRef = useRef(events);
+  useEffect(() => { gcalConnectedRef.current = gcalConnected; }, [gcalConnected]);
+  useEffect(() => { gcalTokenRef.current = gcalToken; }, [gcalToken]);
+  useEffect(() => { eventsRef.current = events; }, [events]);
 
   // Modales
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -260,6 +266,20 @@ const ProductionCalendarPage = () => {
       });
     });
     setEvents(prev => { const manual = prev.filter(e => !String(e.id).startsWith('auto-')); return [...manual, ...generated]; });
+
+    if (gcalConnectedRef.current && gcalTokenRef.current) {
+      const syncAutoEvents = async () => {
+        for (const ev of generated) {
+          try {
+            await createGCalEvent(gcalTokenRef.current, ev);
+            setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, gcalSynced: true } : e));
+          } catch (err) {
+            console.error('Error syncing auto event', err);
+          }
+        }
+      };
+      syncAutoEvents();
+    }
   }, [productions]);
 
   useEffect(() => { saveManualEvents(events); }, [events]);
@@ -275,7 +295,21 @@ const ProductionCalendarPage = () => {
       const token = await getGoogleToken();
       setGcalToken(token);
       setGcalConnected(true);
-      showToast("¡Google Calendar conectado! Ya puedes agregar eventos.", "success");
+
+      const pending = eventsRef.current.filter(e => !e.gcalSynced);
+      let syncedCount = 0;
+      for (const ev of pending) {
+        try {
+          await createGCalEvent(token, ev);
+          setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, gcalSynced: true } : e));
+          syncedCount++;
+        } catch (err) {
+          console.error('Error syncing event', err);
+        }
+      }
+      if (syncedCount > 0) {
+        showToast(`Sincronizados ${syncedCount} eventos a Google Calendar`, 'success');
+      }
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -305,13 +339,22 @@ const ProductionCalendarPage = () => {
     }
   };
 
-  const addEvent = () => {
+  const addEvent = async () => {
     if (!newEvent.title.trim()) return;
     const ev = { id: Date.now(), date: addModal.dateStr, type: newEvent.type, title: newEvent.title, orderId: newEvent.orderId ? Number(newEvent.orderId) : null, notes: newEvent.notes };
     setEvents(prev => [...prev, ev]);
     setNewEvent({ type: 'creacion', title: '', orderId: '', notes: '' });
     setAddModal({ open: false, dateStr: null });
-    if (gcalConnected) addToGoogleCalendar(ev);
+
+    if (gcalConnectedRef.current && gcalTokenRef.current) {
+      try {
+        await createGCalEvent(gcalTokenRef.current, ev);
+        setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, gcalSynced: true } : e));
+      } catch (err) {
+        showToast(err.message || "Error al agregar a Google Calendar", "error");
+      }
+    }
+
     showToast('Evento creado correctamente', 'success');
   };
 
