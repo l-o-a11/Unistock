@@ -428,4 +428,22 @@ export const ProductionAPIClient = {
     });
     return res?.data || res;
   },
+
+  /**
+   * Sube imágenes a Cloudinary y devuelve las URLs resultantes.
+   * Se usa para evitar guardar Base64 en MongoDB (límite 16MB BSON).
+   */
+  uploadImages: async (files) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    const res = await httpRequest("/upload-multiple", {
+      method: "POST",
+      body: formData,
+    });
+    const data = res?.data || res;
+    if (!data?.success || !Array.isArray(data.images)) {
+      throw new Error(data?.error || "No se pudo subir la imagen");
+    }
+    return data.images.map((img) => img.src);
+  },
 };

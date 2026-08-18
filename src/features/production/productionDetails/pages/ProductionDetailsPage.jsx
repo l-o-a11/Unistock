@@ -16,6 +16,7 @@ import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
 import { useSedeScope } from "../../../shared/hooks/useSedeScope";
 import { useEmployees } from "../../../employees/hooks/mockEmployees";
+import { Spinner } from "../../../shared/components/LoadingState";
 import { blockInput } from "../../../shared/utils/blockInput";
 
 const steps = ["Diseño", "Ficha", "Corte", "Compras", "Producción", "Recepción", "Enviado"];
@@ -404,8 +405,10 @@ const ProductionDetailsPage = () => {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="text-center">
-        <div style={{ width: 40, height: 40, border: "3px solid #FF4FD6", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+      <div style={{ textAlign: "center" }}>
+        <div style={{ margin: "0 auto 12px", width: "fit-content" }}>
+          <Spinner size={40} color="#FF4FD6" trackColor="rgba(255,79,214,0.18)" />
+        </div>
         <p style={{ color: "#9ca3af", fontSize: 13 }}>Cargando orden...</p>
       </div>
     </div>
@@ -1502,13 +1505,13 @@ const ProductionDetailsPage = () => {
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#9333ea" }}>Seleccionar imagen</span>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>JPG, PNG — máx. 5MB</span>
+                <span style={{ fontSize: 11, color: "#9ca3af" }}>JPG, PNG — máx. 10MB</span>
                 <input type="file" accept="image/*" multiple style={{ display: "none" }}
                   onChange={async (e) => {
                     const files = Array.from(e.target.files || []);
                     if (!files.length) return;
-                    const MAX_FILE_SIZE = 5 * 1024 * 1024;
-                    const MAX_TOTAL_SIZE = 18 * 1024 * 1024;
+                    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+                    const MAX_TOTAL_SIZE = 30 * 1024 * 1024;
                     const tooLarge = files.find((file) => file.size > MAX_FILE_SIZE);
                     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
                     if (tooLarge || totalSize > MAX_TOTAL_SIZE) {
@@ -1517,31 +1520,28 @@ const ProductionDetailsPage = () => {
                         type: "error",
                         title: "Imagen demasiado grande",
                         message: tooLarge
-                          ? "Cada imagen debe pesar máximo 5MB."
+                          ? "Cada imagen debe pesar máximo 10MB."
                           : "Selecciona menos imágenes para no superar el límite de carga.",
                       });
                       e.target.value = "";
                       return;
                     }
-                    const toBase64 = (file) => new Promise((res) => { const r = new FileReader(); r.onload = (ev) => res(ev.target.result); r.readAsDataURL(file); });
                     try {
-                      const bases = await Promise.all(files.map(toBase64));
+                      const urls = await ProductionAPIClient.uploadImages(files);
                       const existingFinished = Array.isArray(production.finishedImages) ? production.finishedImages : (production.finishedImageUrl ? [production.finishedImageUrl] : []);
-                      const newFinishedImages = [...existingFinished, ...bases];
-                      // Guardar en el servidor
+                      const newFinishedImages = [...existingFinished, ...urls];
                       await ProductionAPIClient.updateOrder(production.id, {
                         ...production,
                         finishedImages: newFinishedImages,
-                        finishedImageUrl: bases[0]
+                        finishedImageUrl: urls[0]
                       });
-                      // ✅ Solo actualizar las imágenes sin reemplazar todo el estado mapeado
                       setProduction(prev => ({
                         ...prev,
                         finishedImages: newFinishedImages,
-                        finishedImageUrl: bases[0],
+                        finishedImageUrl: urls[0],
                       }));
                       setPendingFinishedImg(null);
-                      setGlobalAlert({ open: true, type: "success", title: "Fotos guardadas", message: `${bases.length} imagen${bases.length !== 1 ? "es" : ""} guardada${bases.length !== 1 ? "s" : ""} correctamente.` });
+                      setGlobalAlert({ open: true, type: "success", title: "Fotos guardadas", message: `${urls.length} imagen${urls.length !== 1 ? "es" : ""} guardada${urls.length !== 1 ? "s" : ""} correctamente.` });
                     } catch {
                       setGlobalAlert({ open: true, type: "error", title: "Error al guardar", message: "No se pudo guardar las imágenes." });
                       setPendingFinishedImg(null);

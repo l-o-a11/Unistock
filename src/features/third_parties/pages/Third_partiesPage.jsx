@@ -585,6 +585,7 @@ const Third_partiePage = () => {
           Third_partie={editingThird_partie}
           onSubmit={handleFormSubmit}
           onCancel={() => setShowForm(false)}
+          allThirdParties={Third_parties}
         />
       )}
     </div>
