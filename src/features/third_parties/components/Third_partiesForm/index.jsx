@@ -7,7 +7,7 @@
  * no lo desmonte/remonte en cada render (lo que causaba pérdida de foco tras
  * escribir un solo carácter).
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Alert from '../../../shared/components/Alert';
 import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
@@ -65,7 +65,7 @@ const Field = ({ label, name, type = 'text', required = false, placeholder = '',
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
-const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
+const Third_partieForm = ({ Third_partie, onSubmit, onCancel, allThirdParties = [] }) => {
   const isEdit   = Boolean(Third_partie);
   const modalRef = useRef(null);
 
@@ -78,6 +78,30 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   const [alertConfig,  setAlertConfig]  = useState({
     open: false, type: 'success', title: '', message: '', onConfirm: null,
   });
+
+  // ── Validación de duplicados ──────────────────────────────────────────────
+  const UNIQUE_FIELDS = useMemo(() => ({
+    nombre:    (s) => (s?.nombreEmpresa || s?.nombre || "").toLowerCase().trim(),
+    direccion: (s) => s?.direccion || "",
+    telefono:  (s) => s?.telefono || "",
+    nit:       (s) => s?.nit || "",
+    correo:    (s) => (s?.correoEmpresa || s?.correo || s?.email || "").toLowerCase().trim(),
+  }), []);
+
+  const isDuplicate = useCallback((name, value) => {
+    if (!value || !String(value).trim()) return false;
+    const getter = UNIQUE_FIELDS[name];
+    if (!getter) return false;
+    const normalized = String(value).trim();
+    return allThirdParties.some((s) => {
+      if (Third_partie && s.id === Third_partie.id) return false;
+      const existing = String(getter(s) || "").trim();
+      if (name === 'nombre' || name === 'correo') {
+        return existing.toLowerCase() === normalized.toLowerCase();
+      }
+      return existing === normalized;
+    });
+  }, [allThirdParties, Third_partie, UNIQUE_FIELDS]);
 
   // ── Cargar datos en modo edición ──────────────────────────────────────────
   useEffect(() => {
@@ -111,12 +135,36 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel }) => {
   const validateField = (name, value) => {
     let error = '';
     switch (name) {
-      case 'nombre':    error = validators.required(value); break;
-      case 'direccion': error = validators.required(value); break;
+      case 'nombre':
+        error = validators.required(value);
+        if (!error && isDuplicate('nombre', value))
+          error = 'Ya existe un tercero con este nombre';
+        break;
+      case 'direccion':
+        error = validators.required(value);
+        if (!error && isDuplicate('direccion', value))
+          error = 'Ya existe un tercero con esta dirección';
+        break;
       case 'contacto':  error = validators.required(value); break;
-      case 'telefono':  error = validators.required(value) || validators.phone(value); break;
-      case 'nit':       if (value) error = validators.nit(value); break;
-      case 'correo':    if (value) error = validators.email(value); break;
+      case 'telefono':
+        error = validators.required(value) || validators.phone(value);
+        if (!error && isDuplicate('telefono', value))
+          error = 'Ya existe un tercero con este teléfono';
+        break;
+      case 'nit':
+        if (value) {
+          error = validators.nit(value);
+          if (!error && isDuplicate('nit', value))
+            error = 'Ya existe un tercero con este NIT';
+        }
+        break;
+      case 'correo':
+        if (value) {
+          error = validators.email(value);
+          if (!error && isDuplicate('correo', value))
+            error = 'Ya existe un tercero con este correo';
+        }
+        break;
       default: break;
     }
     setErrors(prev => ({ ...prev, [name]: error }));
