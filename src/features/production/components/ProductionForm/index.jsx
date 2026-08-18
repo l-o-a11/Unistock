@@ -154,6 +154,132 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, touched
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SUB-COMPONENTE: DROPDOWN DE PRODUCTO CON BÚSQUEDA POR NOMBRE Y CÓDIGO
+// ─────────────────────────────────────────────────────────────────────────────
+const ProductSearchDropdown = ({ products = [], loadingProducts, disabled, nuevaRefOpen, type, value, onSelect, error, onLoad }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const handleToggle = () => {
+    if (!disabled && !loadingProducts) {
+      setOpen((o) => {
+        if (!o && onLoad && products.length === 0) onLoad();
+        return !o;
+      });
+    }
+  };
+
+  const filtered = products.filter(p => {
+    if (!query) return true;
+    const q = normalizeText(query);
+    return normalizeText(p.reference).includes(q) || normalizeText(p.name).includes(q);
+  });
+
+  const selected = products.find(p => (p.reference || p.id) === value) || null;
+
+  const handleSelect = (product) => {
+    onSelect(product);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const displayValue = selected
+    ? `${selected.reference || selected.id} — ${selected.name}`
+    : '';
+
+  return (
+    <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
+      <div
+        onClick={handleToggle}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          minHeight: "42px",
+          boxSizing: "border-box",
+          padding: open ? "10px 14px" : "10px 36px 10px 14px",
+          borderBottom: error ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb",
+          cursor: disabled || loadingProducts ? "not-allowed" : "pointer",
+          fontSize: "14px",
+          color: displayValue ? "#1f2937" : "#9ca3af",
+          userSelect: "none",
+          backgroundColor: error ? "#fff0fb" : (open ? "#fff0fb" : "transparent"),
+          borderRadius: open ? "10px 10px 0 0" : "10px",
+          transition: "background-color 0.15s",
+          opacity: loadingProducts ? 0.7 : 1,
+        }}
+      >
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {displayValue || (loadingProducts ? 'Cargando productos...' : type === 'diseno' && nuevaRefOpen ? '— Nueva referencia —' : 'Seleccionar producto...')}
+        </span>
+        {!disabled && !loadingProducts && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px", position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        )}
+      </div>
+      {open && !disabled && !loadingProducts && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", maxHeight: "300px", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "8px 12px", borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nombre o código..."
+                autoFocus
+                style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+              {filtered.length > 0 ? (
+                filtered.map((p) => {
+                  const isSelected = (p.reference || p.id) === value;
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleSelect(p)}
+                      style={{
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        color: "#1f2937",
+                        cursor: "pointer",
+                        backgroundColor: isSelected ? "#fdf4ff" : "#fff",
+                        borderTop: "1px solid #f3f4f6",
+                        transition: "background-color 0.1s",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span>
+                        <span style={{ fontWeight: 600 }}>{p.reference || p.id}</span>
+                        <span style={{ color: "#9ca3af", marginLeft: 8 }}>— {p.name}</span>
+                      </span>
+                      {isSelected && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF4FD6" strokeWidth="3" strokeLinecap="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: "12px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
+                  Sin resultados
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENTE: FILA DE ARTÍCULO EXTRA
 // ─────────────────────────────────────────────────────────────────────────────
 const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors = [] }) => {
@@ -561,12 +687,16 @@ try {
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
-    if (name === 'referencia') {
-      const sel = products.find(p => p.reference === value || p.id === value);
-      setFormData(prev => ({ ...prev, referencia: value, producto: sel ? sel.name : value }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleProductSelect = (product) => {
+    if (errors.referencia) setErrors(prev => { const n = { ...prev }; delete n.referencia; return n; });
+    setFormData(prev => ({
+      ...prev,
+      referencia: product.reference || product.id,
+      producto: product.name,
+    }));
   };
 
   const addExtraRef = () => { setExtraRefs(p => [...p, { cantidad: '', color: '' }]); setExtraErrors(p => [...p, {}]); };
@@ -991,22 +1121,17 @@ try {
                     {type === 'diseno' && !nuevaRefOpen ? 'Producto / Artículo ' : type === 'diseno' && nuevaRefOpen ? 'Producto base (opcional) ' : 'Producto / Artículo '}
                     {!nuevaRefOpen && <span style={requiredStar}>*</span>}
                   </label>
-                  <select
-                    name="referencia"
-                    value={formData.referencia}
-                    onChange={handleChange}
-                    onFocus={loadProducts}
-                    onClick={loadProducts}
-                    style={{ ...getInputStyle(errors.referencia), opacity: loadingProducts ? 0.7 : 1 }}
+                  <ProductSearchDropdown
+                    products={products}
+                    loadingProducts={loadingProducts}
                     disabled={loadingProducts || (type === 'diseno' && nuevaRefOpen)}
-                  >
-                    <option value="" disabled>
-                      {loadingProducts ? 'Cargando productos...' : type === 'diseno' && nuevaRefOpen ? '— Nueva referencia —' : 'Seleccionar producto...'}
-                    </option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.reference || p.id}>{p.reference} — {p.name}</option>
-                    ))}
-                  </select>
+                    nuevaRefOpen={nuevaRefOpen}
+                    type={type}
+                    value={formData.referencia}
+                    onSelect={handleProductSelect}
+                    error={errors.referencia}
+                    onLoad={loadProducts}
+                  />
                   {errors.referencia && <span style={errMsg}>⚠ {errors.referencia}</span>}
                   {type === 'produccion' && formData.referencia && (
                     <p style={{ margin: '5px 0 0', fontSize: 11, color: loadingSheet ? '#9ca3af' : techSheetPreview ? '#16a34a' : '#f59e0b' }}>
