@@ -140,10 +140,7 @@ const resolveProductPriceByReference = async (reference, details = []) => {
 
   try {
     const { productAPI } = await import("../../../products/services/productAPI");
-    const products = await productAPI.getAll();
-    const product = (Array.isArray(products) ? products : []).find((item) =>
-      String(item.reference || item.referencia || item.id || item._id || "").trim() === ref
-    );
+    const product = await productAPI.getByReference(ref);
     return toMoneyNumber(product?.price ?? product?.precio);
   } catch (err) {
     console.warn("[Producción] No se pudo resolver precio del producto:", err?.message || err);
@@ -258,7 +255,10 @@ const ProductionDetailsPage = () => {
         let terceroMap = {};
         try {
           const { thirdPartyAPI } = await import('../../../third_parties/services/thirdPartyAPI');
-          const terceros = await thirdPartyAPI.getAll({ limit: 500 });
+          const terceroIds = (asignacionesRaw || [])
+            .map((a) => a.id_tercero)
+            .filter(Boolean);
+          const terceros = await thirdPartyAPI.getByIds(terceroIds);
           (Array.isArray(terceros) ? terceros : []).forEach(t => {
             const tid = t._id || t.id;
             if (tid) terceroMap[tid] = t.nombreEmpresa || t.nombre || t.nit || tid;
@@ -392,16 +392,24 @@ const ProductionDetailsPage = () => {
   }, [loadProduction]);
 
   useEffect(() => {
-    // 🐛 FIX: este efecto abría la ventana de "crear/editar ficha técnica"
-    // sin verificar el rol — si por cualquier motivo (historial del
-    // navegador, enlace compartido, etc.) un Empleado llegaba a esta página
-    // con `openTechSheet` en el estado de navegación, igual se le mostraba
-    // la ventana. Ahora se exige explícitamente que NO sea un empleado.
-    if (location.state?.openTechSheet && !isEmpleado) {
-      const t = setTimeout(() => setShowTechSheetForm(true), 600);
-      return () => clearTimeout(t);
-    }
-  }, [location.state?.openTechSheet, isEmpleado]);
+    if (!production || !employees || loading || !isGerente) return;
+    const requiereAsignacion = ETAPAS_ASIGNABLES.includes(production.status);
+    const invalido = requiereAsignacion && production.empleadoAsignadoId
+      ? !employees.find((e) => String(e.id) === String(production.empleadoAsignadoId) && e.estado !== false)
+      : false;
+    if (!invalido) return;
+
+    const timer = setTimeout(() => {
+      openProductionAlert({
+        type: "replaceEmployee",
+        targetStep: production.status,
+        customTitle: "Empleado no disponible",
+        customMessage: `El empleado asignado a "${production.status}" ya no está disponible. Selecciona un reemplazo para continuar.`,
+      });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [production?.empleadoAsignadoId, employees, loading, isGerente]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -531,12 +539,17 @@ const ProductionDetailsPage = () => {
     (e) => String(e.id) === String(production.empleadoAsignadoId)
   );
   const requiereAsignacion = ETAPAS_ASIGNABLES.includes(production.status);
+  const empleadoAsignadoInvalido = requiereAsignacion && production.empleadoAsignadoId
+    ? !employees.find((e) => String(e.id) === String(production.empleadoAsignadoId) && e.estado !== false)
+    : false;
 
   // Solo Gerente puede avanzar etapas — Empleado y Administrador son observadores.
   // 🐛 FIX: Se retiró el botón "Confirmar etapa" del empleado.
   // Ahora solo el Gerente avanza la orden al siguiente estado.
-  const esperandoConfirmacion = false;
-  const puedeAvanzar = isGerente;
+  const esperandoConfirmacion = EMPLOYEE_REQUIRED_STEPS.includes(production.status)
+    && production.empleadoAsignadoId
+    && !production.etapaConfirmada;
+  const puedeAvanzar = isGerente && !esperandoConfirmacion;
 
   const getAlertType = (from, to) => {
     if (from === "Compras" && to === "Producción") return "third";
@@ -649,8 +662,11 @@ const ProductionDetailsPage = () => {
         ProductionAPIClient.getAssignments(orderId).catch(() => []),
         import('../../../third_parties/services/thirdPartyAPI'),
       ]);
+      const terceroIds = (asigs || [])
+        .map((a) => a.id_tercero)
+        .filter(Boolean);
+      const terceros = await thirdPartyAPI.getByIds(terceroIds).catch(() => []);
       let terceroMap = {};
-      const terceros = await thirdPartyAPI.getAll({ limit: 500 }).catch(() => []);
       (Array.isArray(terceros) ? terceros : []).forEach(t => {
         const tid = t._id || t.id;
         if (tid) terceroMap[tid] = t.nombreEmpresa || t.nombre || t.nit || tid;
@@ -800,6 +816,34 @@ const ProductionDetailsPage = () => {
       } catch (err) {
         console.error('[Empleado] Error al asignar:', err?.message || err);
         setGlobalAlert({ open: true, type: "error", title: "Error al asignar empleado", message: "No se pudo asignar el empleado responsable. Intenta de nuevo." });
+      }
+      return;
+    }
+
+    if (type === "replaceEmployee") {
+      try {
+        const { id_empleado, nombre_empleado, motivo: justificacion } = motivo || {};
+        if (!id_empleado) {
+          setGlobalAlert({ open: true, type: "error", title: "Empleado requerido", message: "Debes seleccionar un empleado de reemplazo para continuar." });
+          return;
+        }
+        if (!justificacion) {
+          setGlobalAlert({ open: true, type: "error", title: "Justificación requerida", message: "Debes ingresar una justificación para el cambio." });
+          return;
+        }
+        await ProductionAPIClient.reasignarEmpleado(production.id, id_empleado, justificacion);
+        setProduction((prev) => ({
+          ...prev,
+          empleadoAsignadoId: id_empleado,
+          empleadoAsignaciones: {
+            ...(prev.empleadoAsignaciones || {}),
+            [production.status]: { id_empleado, nombre_empleado, fecha: new Date().toISOString() },
+          },
+        }));
+        setGlobalAlert({ open: true, type: "success", title: "Empleado reemplazado", message: `El empleado fue reemplazado correctamente en "${production.status}".` });
+      } catch (err) {
+        console.error('[Empleado] Error al reemplazar:', err?.message || err);
+        setGlobalAlert({ open: true, type: "error", title: "Error al reemplazar empleado", message: err?.message || "No se pudo reemplazar el empleado. Intenta de nuevo." });
       }
       return;
     }
@@ -1185,6 +1229,7 @@ const ProductionDetailsPage = () => {
           customMessage={productionAlert.customMessage}
           onAccept={handleProductionAlertConfirm}
           onCancel={closeProductionAlert}
+          sedeId={production.rawData?.sedeId || null}
           totalUnidades={totalUnidades}
         />
 
@@ -1829,10 +1874,28 @@ const ProductionDetailsPage = () => {
             </div>
 
             {/* ── Empleado asignado a la etapa actual (compacto, sin caja fija) ── */}
-            {!isAnulada && requiereAsignacion && (isGerente || empleadoAsignado) && (
+            {!isAnulada && requiereAsignacion && (isGerente || empleadoAsignado || empleadoAsignadoInvalido) && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 12, flexWrap: "wrap" }}>
                 <span style={{ color: "#9ca3af" }}>Responsable de "{production.status}":</span>
-                {empleadoAsignado ? (
+                {empleadoAsignadoInvalido ? (
+                  <>
+                    <span style={{ fontWeight: 700, color: "#ef4444" }}>
+                      {empleadoAsignado ? "Empleado inactivo" : "Empleado eliminado"}
+                    </span>
+                    {isGerente && (
+                      <button
+                        onClick={() => openProductionAlert({
+                          type: "replaceEmployee",
+                          targetStep: production.status,
+                          customTitle: "Reemplazar empleado",
+                          customMessage: `El empleado asignado a "${production.status}" ya no está disponible. Selecciona un reemplazo para continuar.`,
+                        })}
+                        style={{ fontSize: 10.5, fontWeight: 700, color: "#fff", background: "#ef4444", padding: "2px 10px", borderRadius: 20, border: "none", cursor: "pointer" }}>
+                        Reemplazar
+                      </button>
+                    )}
+                  </>
+                ) : empleadoAsignado ? (
                   <>
                     <span style={{ fontWeight: 700, color: "#FF4FD6" }}>{empleadoAsignado.nombreCompleto}</span>
                     {production.etapaConfirmada ? (

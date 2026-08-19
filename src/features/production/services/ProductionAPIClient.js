@@ -34,7 +34,7 @@ const getCurrentUserId = () => {
 };
 
 // ─── Mapeo Frontend → Backend ──────────────────────────────────────────────────
-const toBackendFormat = (frontendData) => {
+const toBackendFormat = (frontendData, isCreate = false) => {
   if (!frontendData) return {};
 
   const hasAny = (...keys) => keys.some((key) => Object.prototype.hasOwnProperty.call(frontendData, key));
@@ -94,9 +94,17 @@ const toBackendFormat = (frontendData) => {
   // ✅ Sede dueña de la producción (elegida al crear la orden)
   if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
 
-  if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
-  if (!backendData.cliente) backendData.cliente = 'Cliente sin nombre';
-  if (!backendData.fecha_entrega) backendData.fecha_entrega = new Date().toISOString();
+  // 🐛 FIX: estos valores por defecto SOLO deben aplicarse al CREAR una orden
+  // (POST), nunca al actualizar (PUT parcial). Antes se inyectaban en cada PUT,
+  // por lo que un updateOrder parcial como { terceroAsignaciones } —que no lleva
+  // `cliente`— sobreescribía el nombre del cliente real con "Cliente sin
+  // nombre" al pasar la etapa de producción (y también pisaba fecha_entrega y
+  // id_usuario). La orden ya existe y debe conservar sus valores actuales.
+  if (isCreate) {
+    if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
+    if (!backendData.cliente) backendData.cliente = 'Cliente sin nombre';
+    if (!backendData.fecha_entrega) backendData.fecha_entrega = new Date().toISOString();
+  }
 
   return backendData;
 };
@@ -135,9 +143,9 @@ const toFrontendFormat = (backendData) => {
     status: backendData.estado,
     producto: backendData.producto || backendData.referencia || null,
     referencia: backendData.referencia || backendData.producto || null,
-    cantidad: backendData.cantidad || backendData.quantity || 0,
-    quantity: backendData.quantity || backendData.cantidad || 0,
-    color: backendData.color || '',
+    cantidad: backendData.cantidad || backendData.quantity || backendData.totalQty || 0,
+    quantity: backendData.quantity || backendData.cantidad || backendData.totalQty || 0,
+    color: backendData.color || backendData.firstColor || '',
     detalles: backendData.detalles || [],
     asignaciones: backendData.asignaciones || [],
     terceros: backendData.asignaciones || [],
@@ -173,6 +181,12 @@ const toFrontendFormat = (backendData) => {
     })(),
     // ✅ Sede dueña de la producción
     sedeId: backendData.sedeId || null,
+    // ✅ Resumen de detalles enviado por el backend en el listado para
+    // evitar N+1: detailsCount, totalQty, firstColor, firstRef.
+    detailsCount: backendData.detailsCount || 0,
+    totalQty: backendData.totalQty || 0,
+    firstColor: backendData.firstColor || '',
+    firstRef: backendData.firstRef || '',
     rawData: backendData,
     // ✅ Fix defensivo: también se exponen en el formato enriquecido que usa
     // la vista de detalle ("details"/"history" con sus campos ya mapeados),
@@ -221,7 +235,7 @@ export const ProductionAPIClient = {
   },
 
   createOrder: async (data) => {
-    const backendData = toBackendFormat(data);
+    const backendData = toBackendFormat(data, true);
     const res = await httpRequest("/produccion/ordenes", { method: "POST", body: backendData });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -266,6 +280,17 @@ export const ProductionAPIClient = {
     const res = await httpRequest(`/produccion/ordenes/${id}/asignar-empleado`, {
       method: "PATCH",
       body: { empleadoId },
+    });
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
+  },
+
+  // ✅ Reasigna un empleado a la etapa ACTUAL de la orden, registrando
+  // la justificación del cambio en el historial de la orden.
+  reasignarEmpleado: async (id, empleadoId, motivo) => {
+    const res = await httpRequest(`/produccion/ordenes/${id}/reasignar-empleado`, {
+      method: "PATCH",
+      body: { id_empleado: empleadoId, motivo },
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -360,8 +385,11 @@ export const ProductionAPIClient = {
    * actual. El cargo coincide con el nombre de la etapa (Corte, Compras,
    * Recepción, etc.).
    */
-  getEmployeeWorkload: async (cargo) => {
-    const query = cargo ? `?cargo=${encodeURIComponent(cargo)}` : "";
+  getEmployeeWorkload: async (cargo, sedeId) => {
+    const params = new URLSearchParams();
+    if (cargo) params.set("cargo", cargo);
+    if (sedeId) params.set("sedeId", sedeId);
+    const query = params.toString() ? `?${params.toString()}` : "";
     const res = await httpRequest(`/produccion/empleados/carga${query}`, { method: "GET" });
     const data = res?.data || res;
     return Array.isArray(data) ? data : [];
