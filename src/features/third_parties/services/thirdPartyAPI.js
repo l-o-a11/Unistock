@@ -166,6 +166,22 @@ export const thirdPartyAPI = {
     }, { force });
   },
 
+  async getByIds(ids = []) {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    if (uniqueIds.length === 0) return [];
+    const cacheKey = `${CACHE_PREFIX}getByIds:${uniqueIds.join(',')}`;
+    return withCache(cacheKey, async () => {
+      try {
+        const query = new URLSearchParams({ ids: uniqueIds }).toString();
+        const response = await httpClient.get(`/terceros?${query}`);
+        return extractData(response).map(toFrontend);
+      } catch (err) {
+        console.error('[thirdPartyAPI] getByIds error:', err?.message);
+        throw err;
+      }
+    });
+  },
+
   /** GET /api/terceros/:id */
   async getById(id) {
     try {
