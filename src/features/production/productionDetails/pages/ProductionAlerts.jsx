@@ -109,6 +109,8 @@ const ProductionAlerts = ({
   customMessage,
   onAccept,
   onCancel,
+  // ── NUEVO ── sede de la orden para filtrar empleados disponibles
+  sedeId,
   // ── NUEVO ── total de unidades de la orden (para validar cantidades)
   totalUnidades = 0,
 }) => {
@@ -190,7 +192,7 @@ const ProductionAlerts = ({
   }, [isOpen, type]);
 
   useEffect(() => {
-    if (!isOpen || type !== "assignEmployee") return;
+    if (!isOpen || (type !== "assignEmployee" && type !== "replaceEmployee")) return;
 
     let cancelled = false;
     setLoadingEmployees(true);
@@ -199,7 +201,7 @@ const ProductionAlerts = ({
     (async () => {
       try {
         const { ProductionAPIClient } = await import("../../services/ProductionAPIClient");
-        const data = await ProductionAPIClient.getEmployeeWorkload(targetStep);
+        const data = await ProductionAPIClient.getEmployeeWorkload(targetStep, sedeId);
         const options = (Array.isArray(data) ? data : [])
           .map((e) => ({
             id: e.id || e._id,
@@ -217,7 +219,7 @@ const ProductionAlerts = ({
     })();
 
     return () => { cancelled = true; };
-  }, [isOpen, type, targetStep]);
+  }, [isOpen, type, targetStep, sedeId]);
 
   if (!isOpen) return null;
 
@@ -287,6 +289,11 @@ const ProductionAlerts = ({
       message: customMessage || `Selecciona el empleado responsable de la etapa "${targetStep}". Se muestra cuántas producciones tiene asignadas actualmente.`,
       icon: <IconPerson />, iconBg: "#fdf0fa",
     },
+    replaceEmployee: {
+      title: customTitle || "Reemplazar empleado",
+      message: customMessage || `El empleado asignado a "${targetStep}" ya no está disponible. Selecciona un reemplazo para continuar.`,
+      icon: <IconPerson />, iconBg: "#fdf0fa",
+    },
     confirm: {
       title: customTitle || "Confirmar acción",
       message: customMessage || "¿Deseas continuar con esta acción?",
@@ -317,6 +324,7 @@ const ProductionAlerts = ({
   const canConfirm =
     (isAssign && assignmentsValid) ||
     (type === "assignEmployee" && !!selectedEmployee) ||
+    (type === "replaceEmployee" && !!selectedEmployee && motivo.trim() !== "") ||
     (type === "anular" && motivo.trim() !== "") ||
     (type === "password" && motivo.trim() !== "") ||
     type === "advance" ||
@@ -333,9 +341,13 @@ const ProductionAlerts = ({
     try {
       setConfirming(true);
       if (type === "anular" || type === "password") { await onAccept(motivo.trim()); setMotivo(""); return; }
-      if (type === "assignEmployee") {
+      if (type === "assignEmployee" || type === "replaceEmployee") {
         const emp = employeeOptions.find((e) => e.id === selectedEmployee);
-        await onAccept({ id_empleado: selectedEmployee, nombre_empleado: emp?.nombre || "" });
+        await onAccept({
+          id_empleado: selectedEmployee,
+          nombre_empleado: emp?.nombre || "",
+          ...(type === "replaceEmployee" ? { motivo: motivo.trim() } : {}),
+        });
         return;
       }
       if (isAssign) {
@@ -501,10 +513,10 @@ const ProductionAlerts = ({
         )}
 
         {/* ── Selección de empleado responsable ── */}
-        {type === "assignEmployee" && (
+        {(type === "assignEmployee" || type === "replaceEmployee") && (
           <div style={{ marginBottom: 4 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
-              Empleados disponibles
+              {type === "replaceEmployee" ? "Selecciona un reemplazo" : "Empleados disponibles"}
             </div>
 
             {loadingEmployees && (
@@ -565,6 +577,31 @@ const ProductionAlerts = ({
                   );
                 })}
             </div>
+          </div>
+        )}
+
+        {/* ── Justificación para reemplazo de empleado ── */}
+        {type === "replaceEmployee" && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>
+              Justificación del cambio <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Describe por qué se reemplaza el empleado..."
+              rows={3}
+              style={{
+                width: "100%", border: "1.5px solid #e5e7eb", borderRadius: 10,
+                padding: "9px 12px", fontSize: 13, color: "#374151",
+                outline: "none", resize: "none", boxSizing: "border-box",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#ef4444")}
+              onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+            />
+            {!motivo.trim() && (
+              <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>La justificación es obligatoria para reemplazar el empleado.</p>
+            )}
           </div>
         )}
 

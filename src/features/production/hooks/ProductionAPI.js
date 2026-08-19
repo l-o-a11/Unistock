@@ -141,11 +141,7 @@ export const ProductionAPI = {
   // Trae la ficha técnica del producto (busca en productAPI en tiempo real)
   fetchTechSheetForProduct: async (referencia) => {
     try {
-      const products = await productAPI.getAll();
-
-      const prod = products.find(
-        (p) => p.reference === referencia || p.id === referencia
-      );
+      const prod = await productAPI.getByReference(referencia);
 
       if (prod && prod.technicalSheet) {
         const sheet = deepCopy(prod.technicalSheet);
@@ -208,8 +204,7 @@ export const ProductionAPI = {
       let sheet = null;
       try {
         const { productAPI } = await import('../../products/services/productAPI');
-        const products = await productAPI.getAll();
-        const prod = products.find(p => p.reference === formData.referencia || p.id === formData.referencia);
+        const prod = await productAPI.getByReference(formData.referencia);
         if (prod && prod.technicalSheet) sheet = deepCopy(prod.technicalSheet);
         else if (prod) {
           // Producto sin ficha: construir skeleton

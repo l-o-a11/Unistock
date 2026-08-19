@@ -502,28 +502,6 @@ try {
 
   useEffect(() => {
     (async () => {
-      try {
-        const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
-        const cats = await productCategoryAPI.getAll();
-        console.log('[ProductionForm] Categorías cargadas:', cats?.length || 0, 'items'); // DEBUG
-
-        const categoryNames = (cats || []).map(c => c.name);
-        if (categoryNames.length === 0) {
-          console.warn('[ProductionForm] ⚠️ No hay categorías, usando fallback');
-          setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
-        } else {
-          console.log('[ProductionForm] ✓ Categorías cargadas:', categoryNames);
-          setCategories(categoryNames);
-        }
-      } catch (err) {
-        console.error('[ProductionForm] ❌ Error cargando categorías:', err?.message || err);
-        setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
       if (type !== 'produccion' || !formData.referencia) { return; }
 
       setLoadingSheet(true);
