@@ -859,6 +859,7 @@ const ShoppingsPage = () => {
           <AddShoppingButton onClick={() => setShowCreateForm(true)} />
         </div>
       </div>
+      
 
       {/* TABLA */}
       <ShoppingTable
