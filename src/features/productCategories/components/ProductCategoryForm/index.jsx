@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert, onShowConfirm }) => {
+const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert, onShowConfirm, existingCategories = [] }) => {
   const initialData = {
     nombre: productCategory?.nombre ?? productCategory?.name ?? '',
     descripcion: productCategory?.descripcion ?? productCategory?.description ?? '',
@@ -24,6 +24,13 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
     if (!value.trim()) return "El nombre es obligatorio";
     if (/\d/.test(value)) return "El nombre no puede contener números";
     if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres";
+    const currentId = productCategory?.id ?? productCategory?._id ?? productCategory?.id_categoria_producto ?? productCategory?.id_categorias;
+    const isDuplicate = existingCategories.some((cat) => {
+      const catId = cat.id ?? cat._id ?? cat.id_categoria_producto ?? cat.id_categorias;
+      const catName = cat.name ?? cat.nombre ?? '';
+      return catName.toLowerCase().trim() === value.trim().toLowerCase() && String(catId) !== String(currentId);
+    });
+    if (isDuplicate) return "Ya existe una categoría con ese nombre";
     return "";
   };
 

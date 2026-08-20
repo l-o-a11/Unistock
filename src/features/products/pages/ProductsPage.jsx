@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useProducts } from '../hooks/useProducts';
 import { useProductSearch } from '../hooks/useProductSearch';
@@ -12,6 +13,7 @@ import TechnicalSheetModal from '../components/TechnicalSheetModal';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { useSedes } from '../../sedes/hooks/useSedes';
 import { useSedeScope, isVisibleBySede } from '../../shared/hooks/useSedeScope';
+import { productAPI } from '../services/productAPI';
 
 // 🔥 Importa aquí la URL de tu logo (ajusta la ruta según tu proyecto)
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
@@ -38,6 +40,45 @@ const ProductsPage = () => {
     if (isGerente) return products;
     return products.filter((p) => isVisibleBySede(p, isGerente, sedeId));
   }, [products, isGerente, sedeId]);
+
+  const location = useLocation();
+  const params = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    if (path.endsWith("/productos/crear")) {
+      setShowCreateForm(true);
+      setEditingProduct(null);
+      setShowEditForm(false);
+    } else if (path.includes("/productos/editar/")) {
+      const id = params.id;
+      if (!id) return;
+
+      setShowCreateForm(false);
+      setShowEditForm(false);
+      setEditingProduct(null);
+
+      productAPI
+        .getById(id)
+        .then((product) => {
+          if (product) {
+            setEditingProduct(product);
+            setShowEditForm(true);
+          } else {
+            navigate("/layout/productos", { replace: true });
+          }
+        })
+        .catch(() => {
+          navigate("/layout/productos", { replace: true });
+        });
+    } else {
+      setShowCreateForm(false);
+      setShowEditForm(false);
+      setEditingProduct(null);
+    }
+  }, [location.pathname, params.id, navigate]);
 
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -166,6 +207,10 @@ const ProductsPage = () => {
     setShowCreateForm(false);
     setShowEditForm(false);
     setEditingProduct(null);
+    const path = location.pathname;
+    if (path.endsWith("/productos/crear") || path.includes("/productos/editar/")) {
+      navigate("/layout/productos", { replace: true });
+    }
   };
 
   const handleCreateSubmit = async (productData) => {
@@ -521,15 +566,17 @@ const ProductsPage = () => {
     position: 'absolute',
     top: '50%', left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: '90%',
+    width: '94vw',
     maxWidth: '1000px',
     maxHeight: '90vh',
+    overflowX: 'hidden',
     overflowY: 'auto',
     backgroundColor: '#fff',
     borderRadius: '12px',
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
     zIndex: 1002,
-    pointerEvents: 'auto'
+    pointerEvents: 'auto',
+    boxSizing: 'border-box'
   };
 
   // ── Estado de carga inicial ────────────────────────────────────────────
