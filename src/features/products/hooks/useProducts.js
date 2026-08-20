@@ -106,6 +106,18 @@ export const useProducts = () => {
     }
   };
 
+  const updateProductCategoryName = (categoryId, newName) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        const pCatId = p.categoryId ?? p.id_categoria ?? p.id_categorias;
+        if (String(pCatId) === String(categoryId)) {
+          return { ...p, category: newName };
+        }
+        return p;
+      })
+    );
+  };
+
   return {
     products,
     loading,
@@ -114,6 +126,7 @@ export const useProducts = () => {
     updateProduct,
     deleteProduct,
     toggleProduct,
-    refreshProducts: loadProducts
+    refreshProducts: loadProducts,
+    updateProductCategoryName,
   };
 };

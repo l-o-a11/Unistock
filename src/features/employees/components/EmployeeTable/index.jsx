@@ -59,7 +59,7 @@ const EmployeeTable = ({ employees = [], roles = [], sedes = [], onEdit, onDelet
                             onClick={() => onEdit(employee)}
                             title="Editar empleado"
                             style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
                             onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
