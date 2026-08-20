@@ -120,7 +120,9 @@ export const useProductions = () => {
 
   useEffect(() => { loadProductions(); }, []);
 
-  // ── Carga inicial: órdenes sin detalles para mejorar tiempos de carga ──
+  // ── Carga inicial: el backend ahora devuelve un resumen de detalles
+  // (detailsCount, totalQty, firstColor, firstRef) directamente en el listado,
+  // así no hace falta pedir /detalle-orden por cada orden → sin N+1.
   const loadProductions = async () => {
     try {
       setLoading(true);
@@ -128,7 +130,6 @@ export const useProductions = () => {
 
       const response = await ProductionAPIClient.getOrders({ page: 1, limit: 100 });
 
-      // Normalizar shape de respuesta
       const raw =
         response?.data?.data ??
         response?.data?.orders ??
@@ -138,31 +139,28 @@ export const useProductions = () => {
         [];
       const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
 
-      const producciones = list.map(mapOrder);
-
-      const ordersToEnrich = producciones.filter((order) => {
+      const producciones = list.map((order) => {
+        const base = mapOrder(order);
         const hasDetails = Array.isArray(order.details) && order.details.length > 0;
-        const hasSummary = (order.quantity || order.cantidad) && (order.color || order.color === '');
-        return !hasDetails && !hasSummary;
+        const hasSummary = (order.totalQty || order.cantidad) && (order.firstColor || order.color || order.firstRef || order.referencia);
+
+        if (hasDetails) return base;
+
+        if (!hasDetails && (order.detailsCount > 0 || order.totalQty > 0 || order.firstColor || order.firstRef)) {
+          return {
+            ...base,
+            quantity: Number(order.totalQty) || base.quantity || 0,
+            color: order.firstColor || base.color || '—',
+            referencia: order.firstRef || base.referencia || '',
+            producto: base.producto || order.firstRef || `Orden #${base.orderNumber}`,
+            details: [],
+          };
+        }
+
+        return base;
       });
 
-      if (ordersToEnrich.length > 0) {
-        const enrichedOrders = await Promise.all(
-          ordersToEnrich.map(async (order) => {
-            try {
-              const rawDetails = await ProductionAPIClient.getOrderDetails(order.id);
-              return mergeDetails(order, rawDetails || []);
-            } catch (err) {
-              console.warn(`No se pudieron obtener detalles de la orden ${order.id}:`, err?.message || err);
-              return order;
-            }
-          })
-        );
-        const enrichedMap = new Map(enrichedOrders.map((order) => [order.id, order]));
-        setProductions(producciones.map((order) => enrichedMap.get(order.id) || order));
-      } else {
-        setProductions(producciones);
-      }
+      setProductions(producciones);
     } catch (err) {
       console.error('Error al cargar producciones:', err);
       setError('Error al cargar las órdenes de producción. Verifica la conexión con el servidor.');
@@ -335,10 +333,7 @@ export const useProductions = () => {
             if (!ref || qty <= 0) continue;
             try {
               // Buscamos el producto por referencia para obtener su id y stock actual
-              const todos = await productAPI.getAll();
-              const producto = (Array.isArray(todos) ? todos : []).find(
-                p => p.reference === ref || p.referencia === ref || p.id === ref
-              );
+              const producto = await productAPI.getByReference(ref);
               if (producto) {
                 const nuevoStock = (Number(producto.stock) || 0) + qty;
                 await productAPI.update(producto.id, {
