@@ -37,11 +37,8 @@ import UsersPage from "../features/users/pages/UsersPage.jsx";
 
 // Producciones
 import ProductionsPage from "../features/production/pages/ProductionPage.jsx";
-import ProductForm from "../features/production/components/ProductionForm/index.jsx";
 import ProductionDetailsPage from "../features/production/productionDetails/pages/ProductionDetailsPage.jsx";
 import ProductionCalendarPage from "../features/production/pages/ProductionCalendarPage.jsx";
-
-// Empleados
 import EmployeesPage from "../features/employees/pages/EmployeesPage.jsx";
 
 // Perfil
@@ -117,7 +114,10 @@ export function RouterApp() {
           <PrivateRoute modulo="categorias de productos"><ProductCategoriesPage /></PrivateRoute>
         } />
         <Route path="productos/crear" element={
-          <PrivateRoute modulo="productos"><ProductForm /></PrivateRoute>
+          <PrivateRoute modulo="productos"><ProductsPage /></PrivateRoute>
+        } />
+        <Route path="productos/editar/:id" element={
+          <PrivateRoute modulo="productos"><ProductsPage /></PrivateRoute>
         } />
 
         {/* Producción */}

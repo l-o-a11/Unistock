@@ -4,6 +4,8 @@ import { productCategoryAPI } from "../../../productCategories/services/productC
 import ProductCategoryForm from "../../../productCategories/components/ProductCategoryForm";
 import ImageModal from "../ProductForm/ImageModal";
 import { clientAPI } from "../../../shared/services/clientAPI";
+import { validators } from "../../../shared/utils/validators";
+import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 const normalizeText = (text) =>
   String(text || "")
     .normalize("NFD")
@@ -14,7 +16,7 @@ const normalizeText = (text) =>
 // ✅ USA VARIABLE DE ENTORNO VITE_BACK_URL (ahora apunta a la API unificada en :3000)
 const BACKEND_URL = import.meta.env.VITE_BACK_URL || 'http://localhost:3000';
 
-const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory }) => {
+const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory, isMobile = false }) => {
   const [open, setOpen] = useState(false);
 
   const filteredCategories = categories.filter((cat) => {
@@ -33,7 +35,7 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
+    <div style={{ position: "relative", width: "100%", minWidth: isMobile ? '140px' : "220px" }}>
       <div
         onClick={() => setOpen((o) => !o)}
         style={{
@@ -122,7 +124,7 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
 };
 
 // ✅ Mismo diseño/estilo que CategoryDropdown, adaptado para clientes
-const ClientDropdown = ({ value, onChange, clients = [], onCreateClient }) => {
+const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, isMobile = false }) => {
   const [open, setOpen] = useState(false);
 
   const handleSelect = (client) => {
@@ -131,7 +133,7 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient }) => {
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
+    <div style={{ position: "relative", width: "100%", minWidth: isMobile ? '140px' : "220px" }}>
       <div
         onClick={() => setOpen((o) => !o)}
         style={{
@@ -496,6 +498,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     if (!value.trim()) return "El nombre es obligatorio";
     if (/\d/.test(value)) return "El nombre no puede contener números";
     if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres";
+    const isDuplicate = existingProducts.some(
+      (p) => p.name?.toLowerCase().trim() === value.trim().toLowerCase() && p.id !== product?.id
+    );
+    if (isDuplicate) return "Ya existe un producto con ese nombre";
     return "";
   };
 
@@ -981,7 +987,9 @@ if ((touched[field] || formData[field]) && errors[field]) {
     padding: "8px 12px",
     fontSize: "13px",
     color: "#1f2937",
-    verticalAlign: "top"
+    verticalAlign: "top",
+    wordBreak: "break-word",
+    overflow: "hidden"
   };
 
   const headerCellStyle = {
@@ -990,8 +998,8 @@ if ((touched[field] || formData[field]) && errors[field]) {
     fontWeight: "700",
     fontSize: "12px",
     color: "#1f2937",
-    whiteSpace: "nowrap",
-    width: "100px"
+    whiteSpace: isMobile ? 'normal' : "nowrap",
+    width: isMobile ? 'auto' : "100px"
   };
 
   const requiredStar = <span style={{ color: "#ff4fd6", marginLeft: "2px", display: "inline" }}>*</span>;
@@ -1026,7 +1034,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
   const selectedClient = getSelectedClientObject();
 
   return (
-    <div style={{ padding: isMobile ? '20px' : "36px 40px" }}>
+    <div style={{ padding: isMobile ? '20px' : "36px 40px", overflowX: 'hidden', maxWidth: '100%' }}>
       <div
         style={{
           display: "flex",
@@ -1111,7 +1119,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
         <>
           <div style={{ display: "flex", gap: "20px", flexDirection: isMobile ? 'column' : 'row' }}>
             <div style={{ flex: isMobile ? 'unset' : 2, width: isMobile ? '100%' : undefined }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
                 <tbody>
                   <tr>
                     <td style={headerCellStyle}>Referencia:</td>
@@ -1157,7 +1165,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   <tr>
                     <td style={headerCellStyle}>Categoria:</td>
                     <td style={cellStyle} colSpan={5}>
-                      <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
                         <CategoryDropdown
                           value={formData.category}
                           onChange={(category) => {
@@ -1184,15 +1192,17 @@ if ((touched[field] || formData[field]) && errors[field]) {
                               category: true,
                             }));
 
+                            const categoryError = validateCategory(categoryName);
                             setErrors((prev) => ({
                               ...prev,
-                              category: "",
+                              category: categoryError,
                             }));
                           }}
                           touched={touched.category}
                           error={errors.category}
                           categories={categories}
                           onCreateCategory={() => setShowCategoryForm(true)}
+                          isMobile={isMobile}
                         />
                         {requiredStar}
                       </div>
@@ -1228,7 +1238,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   <tr>
                     <td style={headerCellStyle}>Cliente:</td>
                     <td style={cellStyle} colSpan={5}>
-                      <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) auto", alignItems: "center", gap: "8px", width: "100%" }}>
                         <ClientDropdown
                           value={technicalSheet?.client || ''}
                           clients={clientOptions}
@@ -1237,6 +1247,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                             setTechnicalSheet((prev) => ({ ...(prev || {}), client: clientName }));
                           }}
                           onCreateClient={openCreateClientModal}
+                          isMobile={isMobile}
                         />
                         <button
                           type="button"
@@ -1738,11 +1749,13 @@ if ((touched[field] || formData[field]) && errors[field]) {
             width: "90%",
             maxWidth: "600px",
             maxHeight: "85vh",
+            overflowX: "hidden",
             overflowY: "auto",
             backgroundColor: "#fff",
             borderRadius: "16px",
             boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
-            zIndex: 1201
+            zIndex: 1201,
+            boxSizing: "border-box"
           }}>
             <ProductCategoryForm
               onSubmit={handleCreateCategory}
@@ -1775,6 +1788,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
             width: "90%",
             maxWidth: "480px",
             maxHeight: "85vh",
+            overflowX: "hidden",
             overflowY: "auto",
             backgroundColor: "#fff",
             borderRadius: "16px",
