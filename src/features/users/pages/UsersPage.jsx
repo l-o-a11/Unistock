@@ -251,6 +251,7 @@ const UsersPage = () => {
         <UserForm
           roles={rolesActivos}
           sedes={sedesActivas}
+          allUsers={users}
           onSubmit={handleCreateSubmit}
           onCancel={() => setShowCreate(false)}
         />
@@ -261,6 +262,7 @@ const UsersPage = () => {
           user={editUser}
           roles={rolesActivos}
           sedes={sedesActivas}
+          allUsers={users}
           onSubmit={handleEditSubmit}
           onCancel={() => setEditUser(null)}
         />

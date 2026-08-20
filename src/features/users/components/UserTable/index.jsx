@@ -16,7 +16,7 @@ const UserTable = ({ users = [], getRolNombre, getSedeNombre, onEdit, onDelete, 
 
   const renderRow = (user) => {
     const isActive = user.estado !== false;
-    const rolNombre  = getRolNombre?.(user.rolId)   ?? user.rol  ?? "—";
+    const rolNombre = getRolNombre?.(user.rolId) ?? user.rol ?? "—";
     const sedeNombre = getSedeNombre?.(user.sedeId) ?? user.sede ?? "—";
 
     return (
@@ -30,10 +30,10 @@ const UserTable = ({ users = [], getRolNombre, getSedeNombre, onEdit, onDelete, 
             position="right"
             fields={[
               { label: "Nombre completo", value: user.nombreCompleto, highlight: true },
-              { label: "Documento",       value: `${user.tipoDocumento} ${user.numeroDocumento}`, highlight: true },
-              { label: "Rol",             value: rolNombre,  type: "badge"   },
-              { label: "Sede",            value: sedeNombre                  },
-              { label: "Estado",          value: isActive ? "Activo" : "Inactivo", type: "status" },
+              { label: "Documento", value: `${user.tipoDocumento} ${user.numeroDocumento}`, highlight: true },
+              { label: "Rol", value: rolNombre, type: "badge" },
+              { label: "Sede", value: sedeNombre },
+              { label: "Estado", value: isActive ? "Activo" : "Inactivo", type: "status" },
             ]}
           >
             <span className="font-medium">{truncateName(user.nombreCompleto)}</span>
@@ -51,7 +51,7 @@ const UserTable = ({ users = [], getRolNombre, getSedeNombre, onEdit, onDelete, 
               onClick={() => onEdit(user)}
               title="Editar usuario"
               style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#8b5cf6")}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4fd6")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

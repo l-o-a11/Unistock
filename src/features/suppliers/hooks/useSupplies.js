@@ -170,6 +170,10 @@ export const useSupplies = (initialFilters = {}) => {
   return {
     // Datos
     supplies,
+    // FIX (punto 4): variante filtrada — usada donde se necesita elegir un
+    // insumo (ej. buscador de ShoppingForm). Sin esto, insumos inactivados
+    // seguían apareciendo como opción seleccionable en Compras.
+    suppliesActivos: supplies.filter((s) => s.estado !== false),
     pagination,
     loading,
     error,

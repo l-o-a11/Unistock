@@ -136,6 +136,20 @@ export const userAPI = {
       throw extractError(err);
     }
   },
+  // GET /users/check-document/:numero — validación en tiempo real (punto 1).
+  // excludeId opcional: al editar, para no marcar el propio documento del
+  // usuario como "ya existe".
+  // Devuelve { disponible: boolean }.
+  checkDocument: async (numero, excludeId = null) => {
+    try {
+      const query = excludeId ? `?excludeId=${excludeId}` : "";
+      const res = await get(`/users/check-document/${encodeURIComponent(numero)}${query}`);
+      return res?.data ?? res;
+    } catch (err) {
+      throw extractError(err);
+    }
+  },
+
   // Catálogos usados por useCatalogs / AuthContext
   getRoles: async () => {
     try {
