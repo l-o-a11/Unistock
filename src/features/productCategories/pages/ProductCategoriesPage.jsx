@@ -169,16 +169,17 @@ const ProductCategoriesPage = () => {
   // 🎨 MODAL STYLES
   const modalOverlayStyle = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, pointerEvents: 'none',
+    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1100, pointerEvents: 'none',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   };
-  const modalBackgroundStyle = { position: 'absolute', inset: 0, pointerEvents: 'auto', zIndex: 101 };
+  const modalBackgroundStyle = { position: 'absolute', inset: 0, pointerEvents: 'auto', zIndex: 1101 };
   const modalContentStyle = {
-    position: 'absolute', top: '50%', left: '50%',
-    transform: 'translate(-50%, -50%)',
+    position: 'relative',
     width: '90%', maxWidth: '600px',
     backgroundColor: '#fff', borderRadius: '12px',
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    zIndex: 102, pointerEvents: 'auto',
+    zIndex: 1102, pointerEvents: 'auto',
+    maxHeight: '90vh', overflowY: 'auto',
   };
 
   const getPageNumbers = () => {
@@ -337,12 +338,13 @@ const paginationBtn = {
         <div style={modalOverlayStyle}>
           <div style={modalBackgroundStyle} onClick={handleCloseForm} />
           <div style={modalContentStyle}>
-            <ProductCategoryForm
-              onSubmit={handleCreateSubmit}
-              onCancel={handleCloseForm}
-              onShowAlert={handleShowAlert}
-              onShowConfirm={handleShowConfirm}
-            />
+             <ProductCategoryForm
+               onSubmit={handleCreateSubmit}
+               onCancel={handleCloseForm}
+               onShowAlert={handleShowAlert}
+               onShowConfirm={handleShowConfirm}
+               existingCategories={productCategories}
+             />
           </div>
         </div>
       )}
@@ -357,6 +359,7 @@ const paginationBtn = {
               onCancel={handleCloseForm}
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
+              existingCategories={productCategories}
             />
           </div>
         </div>

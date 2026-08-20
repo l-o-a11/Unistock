@@ -8,7 +8,7 @@ export const useProductCategories = () => {
   const [error, setError] = useState(null);
   
   // ✅ Obtener productos para calcular stock por categoría
-  const { products } = useProducts();
+  const { products, updateProductCategoryName } = useProducts();
 
   const sortCategoriesAsc = (list) => {
     return [...(list || [])].sort((a, b) => {
@@ -24,24 +24,22 @@ export const useProductCategories = () => {
       return categories;
     }
 
-    return categories.map(category => {
-      // Obtener el nombre de la categoría (puede ser "nombre" o "name")
-      const categoryName = category.name ?? category.nombre ?? '';
-      
-      // Sumar todos los stocks de productos en esta categoría
+    return categories.map((category) => {
+      const categoryId =
+        category.id ?? category._id ?? category.id_categoria_producto ?? category.id_categorias ?? category.id_categoria;
+
       const totalStock = products
-        .filter(product => {
-          const productCategory = product.category ?? product.categoria ?? '';
-          return productCategory === categoryName;
+        .filter((product) => {
+          const productCategoryId = product.categoryId ?? product.id_categoria ?? product.id_categorias;
+          return String(productCategoryId) === String(categoryId);
         })
         .reduce((sum, product) => {
           return sum + (parseInt(product.stock) || 0);
         }, 0);
 
-      // ✅ Retornar categoría con productCount actualizado (suma de stocks)
       return {
         ...category,
-        productCount: totalStock // ← Ahora es la suma de stocks
+        productCount: totalStock,
       };
     });
   };
@@ -105,7 +103,19 @@ export const useProductCategories = () => {
   const updateProductCategory = async (id, data) => {
     try {
       setError(null);
+      const oldCategory = productCategories.find((c) =>
+        sameProductCategoryId(getProductCategoryId(c), id)
+      );
+      const oldCategoryId = getProductCategoryId(oldCategory);
+      const oldName = oldCategory?.name ?? oldCategory?.nombre ?? "";
+
       const updated = await productCategoryAPI.update(id, data);
+      const newName = updated?.name ?? updated?.nombre ?? data?.nombre ?? oldName;
+
+      if (oldCategoryId && oldName && newName && oldName !== newName) {
+        updateProductCategoryName(oldCategoryId, newName);
+      }
+
       await refreshProductCategories();
       return updated;
     } catch (err) {
