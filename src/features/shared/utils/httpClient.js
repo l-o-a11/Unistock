@@ -70,17 +70,6 @@ const API_URL =
 
 
 // ============================================================
-// TIMEOUT
-// ============================================================
-
-const API_TIMEOUT =
-  parseInt(
-    import.meta.env.VITE_API_TIMEOUT,
-    10
-  ) || 10000;
-
-
-// ============================================================
 // INFORMACIÓN DEL ENTORNO
 // ============================================================
 
@@ -97,10 +86,6 @@ console.log(
 console.log(
   "Backend:",
   API_URL
-);
-console.log(
-  "Timeout:",
-  API_TIMEOUT
 );
 console.log("====================================");
 
@@ -163,9 +148,6 @@ export const httpRequest = async (endpoint, options = {}) => {
     requestHeaders["Content-Type"] = "application/json";
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-
   let response;
   try {
     response = await fetch(url, {
@@ -179,17 +161,9 @@ export const httpRequest = async (endpoint, options = {}) => {
           : body !== undefined
             ? JSON.stringify(body)
             : undefined,
-      signal: controller.signal,
     });
   } catch (err) {
-    if (err.name === "AbortError") {
-      const error = new Error(`Request timeout after ${API_TIMEOUT}ms`);
-      error.status = 408;
-      throw error;
-    }
     throw err;
-  } finally {
-    clearTimeout(timeoutId);
   }
 
   if (response.status === 204) return null;

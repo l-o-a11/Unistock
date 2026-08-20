@@ -189,7 +189,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     }
   }, [alertConfig.open, pendingClose, onCancel]);
 
-  // ── Cambiar de tipo limpia los campos que no aplican al nuevo tipo ────────
+  // ── Cambiar de tipo solo actualiza el tipo y limpia campos exclusivos ──────
   const handleTipoChange = useCallback((nuevoTipo) => {
     if (nuevoTipo === tipoProveedor) return;
     setTipoProveedor(nuevoTipo);
@@ -197,15 +197,14 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     if (nuevoTipo === "natural") {
       setFormData((prev) => ({
         ...prev,
-        nit: "",
-        tipoDocumento: "",
+        tipoDocumento: "Cédula de ciudadanía",
         sitioWeb: "",
         nombreContacto: "",
         telefonoContacto: "",
         correoContacto: "",
       }));
     } else {
-      setFormData((prev) => ({ ...prev, nit: "", tipoDocumento: "NIT" }));
+      setFormData((prev) => ({ ...prev, tipoDocumento: "NIT" }));
     }
   }, [tipoProveedor]);
 
