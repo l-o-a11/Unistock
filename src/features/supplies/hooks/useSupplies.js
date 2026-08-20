@@ -170,6 +170,7 @@ export const useSupplies = (initialFilters = {}) => {
   return {
     // Datos
     supplies,
+    suppliesActivos: supplies.filter((s) => s.estado !== false),
     pagination,
     loading,
     error,

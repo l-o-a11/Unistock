@@ -84,8 +84,10 @@ const responsiveCss = `
 `;
 
 const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
-  const { suppliers, createSupplier } = useSuppliers();
-  const { supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
+  // FIX (punto 4): solo activos — antes se mostraban proveedores/insumos
+  // inactivados como opción seleccionable en este buscador.
+  const { suppliersActivos: suppliers, createSupplier } = useSuppliers();
+  const { suppliesActivos: supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
   const { sedes } = useSedes();
   const { isGerente, sedeId: miSedeId } = useSedeScope();
 
@@ -133,14 +135,24 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
 
   const vReq = (v) => (!v && v !== 0 ? 'Este campo es obligatorio' : '');
   const vPos = (v) => (isNaN(v) || Number(v) <= 0 ? 'Debe ser mayor a 0' : '');
-  const vInvoice = (v) => (!/^[0-9]{4}$/.test(String(v).trim()) ? 'El número de factura debe tener 4 dígitos' : '');
+  // FIX: numeroFactura ya no exige 4 dígitos numéricos — ahora acepta
+  // cualquier caracter (mayúsculas, minúsculas, números, símbolos), en
+  // cualquier cantidad. Solo sigue siendo obligatorio (vReq).
 
   const validateField = (name, value) => {
     let e = '';
     if (name === 'numeroFactura') {
-      e = vReq(value) || vInvoice(value);
-      if (!e && existingFacturas.some((factura) => String(factura) === String(value).trim())) {
-        e = 'Este número de factura ya está registrado';
+      e = vReq(value);
+      // FIX: el duplicado ahora se compara CONTRA EL MISMO PROVEEDOR — el
+      // mismo número de factura sí puede repetirse si es de otro proveedor.
+      // existingFacturas ahora es [{ numeroFactura, proveedorId }, ...]
+      // (antes era un array plano de solo números, sin proveedor).
+      if (!e && formData.proveedorId) {
+        const yaExiste = existingFacturas.some((f) =>
+          String(f.numeroFactura).trim().toLowerCase() === String(value).trim().toLowerCase()
+          && String(f.proveedorId) === String(formData.proveedorId),
+        );
+        if (yaExiste) e = 'Ya existe una factura con este número para este proveedor';
       }
     }
     if (name === 'proveedorId') e = vReq(value);
@@ -161,14 +173,6 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     validateField(name, value);
   };
 
-  // FIX: bloquea en el propio input cualquier caracter que no sea dígito
-  // y corta a 4 dígitos máximo, en vez de solo avisar después de escribir.
-  const handleNumeroFacturaChange = (e) => {
-    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 4);
-    setFormData((p) => ({ ...p, numeroFactura: onlyDigits }));
-    validateField('numeroFactura', onlyDigits);
-  };
-
   /* Proveedor */
   const filteredSuppliers = useMemo(() => {
     if (!proveedorSearch.trim()) return suppliers;
@@ -181,6 +185,17 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     setShowProveedorDD(false);
     setErrors((p) => ({ ...p, proveedorId: '' }));
   };
+
+  // FIX: el chequeo de "factura duplicada" depende de la combinación
+  // numeroFactura + proveedorId. Si el usuario ya escribió un número de
+  // factura y LUEGO cambia el proveedor (o viceversa), hay que revalidar —
+  // si no, un error de "duplicado" quedaría pegado con el proveedor viejo,
+  // o un duplicado real con el proveedor nuevo no se detectaría hasta el
+  // submit.
+  useEffect(() => {
+    if (formData.numeroFactura) validateField('numeroFactura', formData.numeroFactura);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.proveedorId]);
 
   /* Insumo */
   const filteredSupplies = useMemo(() => {
@@ -402,17 +417,10 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               <div className="shf-grid3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 10 }}>
                 <div>
                   <label style={labelStyle}>Número de factura <span style={requiredStar}>*</span></label>
-                  <input type="text" inputMode="numeric" pattern="[0-9]*" name="numeroFactura" value={formData.numeroFactura}
-                    onChange={handleNumeroFacturaChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
-                    maxLength={4}
-                    placeholder="Ej: 0231" style={inp(errors.numeroFactura)} />
-                  {errors.numeroFactura ? (
-                    <span style={errMsg}>⚠ {errors.numeroFactura}</span>
-                  ) : (
-                    <span style={{ fontSize: 10, color: '#9ca3af' }}>
-                      {formData.numeroFactura.length}/4 dígitos
-                    </span>
-                  )}
+                  <input type="text" name="numeroFactura" value={formData.numeroFactura}
+                    onChange={handleChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
+                    placeholder="Ej: A-0231" style={inp(errors.numeroFactura)} />
+                  {errors.numeroFactura && <span style={errMsg}>⚠ {errors.numeroFactura}</span>}
                 </div>
                 <div>
                   <label style={labelStyle}>Fecha de la factura <span style={requiredStar}>*</span></label>
@@ -505,9 +513,11 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                     onChange={handleDetalleChange} style={inp(false)} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Valor total <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
-                  <input type="number" name="valorTotal" value={detalleActual.valorTotal}
-                    readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
+                  <label style={labelStyle}>Medida</label>
+                  <select name="medida" value={detalleActual.medida} onChange={handleDetalleChange} style={inp(false)}>
+                    <option value="">Seleccionar...</option>
+                    {medidas.map((m) => <option key={m.valor} value={m.valor}>{m.label}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Valor unitario <span style={requiredStar}>*</span></label>
@@ -515,11 +525,9 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                     onChange={handleDetalleChange} placeholder="Ej: 20" style={inp(false)} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Medida</label>
-                  <select name="medida" value={detalleActual.medida} onChange={handleDetalleChange} style={inp(false)}>
-                    <option value="">Seleccionar...</option>
-                    {medidas.map((m) => <option key={m.valor} value={m.valor}>{m.label}</option>)}
-                  </select>
+                  <label style={labelStyle}>Valor total <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>auto</span></label>
+                  <input type="number" name="valorTotal" value={detalleActual.valorTotal}
+                    readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
                 </div>
               </div>
 

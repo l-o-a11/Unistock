@@ -859,6 +859,7 @@ const ShoppingsPage = () => {
           <AddShoppingButton onClick={() => setShowCreateForm(true)} />
         </div>
       </div>
+      
 
       {/* TABLA */}
       <ShoppingTable
@@ -874,8 +875,12 @@ const ShoppingsPage = () => {
           <ShoppingForm
             onSubmit={handleCreateSubmit}
             onCancel={() => setShowCreateForm(false)}
-            existingFacturas={shoppings.map((p) => String(p.numeroFactura).trim()).filter(Boolean)}
-          />
+            existingFacturas={shoppings
+              .filter((p) => p.numeroFactura)
+              .map((p) => ({
+                numeroFactura: String(p.numeroFactura).trim(),
+                proveedorId: String(p.proveedorId ?? ''),
+              }))} />
         </div>
       )}
 

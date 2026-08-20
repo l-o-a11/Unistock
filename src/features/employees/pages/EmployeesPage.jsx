@@ -327,22 +327,13 @@ const EmployeesPage = () => {
         <AddEmployeeButton onClick={() => setShowCreate(true)} />
       </div>
 
-      {/* 📋 Tabla */}
-      <EmployeeTable
-        employees={paginated}
-        roles={roles}
-        sedes={sedes}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggle={handleToggle}
-      />
-
       {/* ➕ Crear — el form maneja su propio overlay y alertas */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-8">
           <EmployeeForm
             roles={rolesDisponibles}
             sedes={sedesPermitidas}
+            allEmployees={employees}
             currentSedeId={sedeId}
             isGerente={isGerente}
             onSubmit={handleCreateSubmit}
@@ -358,6 +349,7 @@ const EmployeesPage = () => {
             employee={editEmployee}
             roles={rolesDisponibles}
             sedes={sedesPermitidas}
+            allEmployees={employees}
             currentSedeId={sedeId}
             isGerente={isGerente}
             onSubmit={handleEditSubmit}
@@ -369,12 +361,12 @@ const EmployeesPage = () => {
       <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
         <div style={{ flex: "1 1 auto" }}>
           <EmployeeTable
-            employees={paginatedEmployees}
+            employees={paginated}
+            roles={roles}
+            sedes={sedes}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onToggle={handleToggle}
-            getRoleName={getRoleName}
-            getSedeName={getSedeName}
           />
         </div>
 
