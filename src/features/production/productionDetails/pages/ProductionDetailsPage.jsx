@@ -349,12 +349,9 @@ const ProductionDetailsPage = () => {
           fromDamaged: data.fromDamaged || false,
           originalOrderNumber: data.originalOrderNumber || null,
           originalOrderStatus: data.originalOrderStatus || null,
-          producto: (data.detalles && data.detalles.length > 0)
-            ? (data.detalles[0].id_producto || 'Orden de producción')
-            : 'Orden de producción',
-          referencia: (data.detalles && data.detalles.length > 0)
-            ? (data.detalles[0].id_producto || '')
-            : '',
+          producto: data.producto || (data.detalles && data.detalles.length > 0 ? data.detalles[0].id_producto : '') || 'Orden de producción',
+          referencia: data.referencia || (data.detalles && data.detalles.length > 0 ? data.detalles[0].id_producto : '') || '',
+          categoria: data.categoria || '',
           productoPrecio,
           productImage,
           status: data.estado,
@@ -390,6 +387,14 @@ const ProductionDetailsPage = () => {
   useEffect(() => {
     loadProduction();
   }, [loadProduction]);
+
+  useEffect(() => {
+    if (!id) return;
+    const interval = setInterval(() => {
+      loadProduction();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [id, loadProduction]);
 
   useEffect(() => {
     if (!production || !employees || loading || !isGerente) return;
@@ -1237,6 +1242,22 @@ const ProductionDetailsPage = () => {
           isOpen={damagedModal.open && isGerente}
           production={damagedModal.production}
           onClose={() => setDamagedModal({ open: false, production: null })}
+          onIgnore={async () => {
+            const source = damagedModal.production;
+            const motivo = pendingCancelMotivo;
+            setDamagedModal({ open: false, production: null });
+            setPendingCancelMotivo('');
+            if (!source) return;
+            await ProductionAPIClient.cancelOrder(source.id, motivo || 'Sin motivo');
+            const freshCancelled = await ProductionAPIClient.getOrderById(source.id);
+            setProduction((prev) => ({
+              ...prev, status: 'Anulada', estado: 'Anulada',
+              statusDate: freshCancelled.updatedAt ? new Date(freshCancelled.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : prev.statusDate,
+              history: (freshCancelled.historial || []).map((h) => ({ status: h.estado, date: h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', user: h.user || h.id_usuario || 'Sistema', motivo: h.motivo })),
+              rawData: freshCancelled,
+            }));
+            setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${source?.orderNumber || ''} fue anulada correctamente.` });
+          }}
           onNewOrder={async (damagedDetails) => {
             const source = damagedModal.production;
             const motivo = pendingCancelMotivo;
@@ -1679,9 +1700,9 @@ const ProductionDetailsPage = () => {
                             ? production.productoPrecio
                             : (Number(techSheetDraft.costPerUnit) || 0);
                           const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: (techSheetDraft.versiones ?? techSheetDraft.version) || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
-                          await ProductionAPIClient.updateOrder(production.id, {
-                            ...production, techSpecification: newSpec
-                          });
+                           await ProductionAPIClient.updateOrder(production.id, {
+                             techSpecification: newSpec
+                           });
                           // ✅ Fix: NO usar directamente la respuesta de updateOrder para
                           // reemplazar todo el estado — esa respuesta no trae deliveryDate
                           // formateado (llega como ISO crudo: "2026-08-11T00:00:00.000Z"),

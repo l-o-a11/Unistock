@@ -71,8 +71,8 @@ const mapOrder = (order) => {
     // Campos de artículo — si `detalles` vienen en la respuesta, se usan aquí
     referencia: order.referencia || '',
     producto: order.producto || order.referencia || '',
-    quantity: Number(order.quantity || order.cantidad || 0),
-    color: order.color || '',
+    quantity: Number(order.totalQty || order.quantity || order.cantidad || 0),
+    color: order.firstColor || order.color || '',
     details: Array.isArray(order.details) ? order.details : [],
     rawData: order,
   };
@@ -120,54 +120,52 @@ export const useProductions = () => {
 
   useEffect(() => { loadProductions(); }, []);
 
-  // ── Carga inicial: el backend ahora devuelve un resumen de detalles
-  // (detailsCount, totalQty, firstColor, firstRef) directamente en el listado,
-  // así no hace falta pedir /detalle-orden por cada orden → sin N+1.
-  const loadProductions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+   // ── Carga inicial: cargar lista y luego completar detalles faltantes
+   // sin depender de que el backend envíe resumen (totalQty/firstColor).
+   const loadProductions = async () => {
+     try {
+       setLoading(true);
+       setError(null);
 
-      const response = await ProductionAPIClient.getOrders({ page: 1, limit: 100 });
+        const response = await ProductionAPIClient.getOrders({ page: 1, limit: 100 });
 
-      const raw =
-        response?.data?.data ??
-        response?.data?.orders ??
-        response?.data ??
-        response?.orders ??
-        response ??
-        [];
-      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+       const raw =
+         response?.data?.data ??
+         response?.data?.orders ??
+         response?.data ??
+         response?.orders ??
+         response ??
+         [];
+        const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
 
-      const producciones = list.map((order) => {
-        const base = mapOrder(order);
-        const hasDetails = Array.isArray(order.details) && order.details.length > 0;
-        const hasSummary = (order.totalQty || order.cantidad) && (order.firstColor || order.color || order.firstRef || order.referencia);
+       const producciones = list.map((order) => {
+         const base = mapOrder(order);
+         const hasDetails = Array.isArray(order.details) && order.details.length > 0;
+          if (hasDetails) return base;
 
-        if (hasDetails) return base;
+         return {
+           ...base,
+           details: [],
+         };
+       });
 
-        if (!hasDetails && (order.detailsCount > 0 || order.totalQty > 0 || order.firstColor || order.firstRef)) {
-          return {
-            ...base,
-            quantity: Number(order.totalQty) || base.quantity || 0,
-            color: order.firstColor || base.color || '—',
-            referencia: order.firstRef || base.referencia || '',
-            producto: base.producto || order.firstRef || `Orden #${base.orderNumber}`,
-            details: [],
-          };
+       setProductions(producciones);
+
+       // Completar detalles faltantes en background para todas las órdenes
+       const missing = producciones.filter((p) => !p.details || p.details.length === 0);
+        if (missing.length > 0) {
+          Promise.allSettled(
+            missing.map((p) =>
+              fetchAndSetDetails(p.id).catch(() => {})
+            )
+          );
         }
-
-        return base;
-      });
-
-      setProductions(producciones);
     } catch (err) {
-      console.error('Error al cargar producciones:', err);
       setError('Error al cargar las órdenes de producción. Verifica la conexión con el servidor.');
-    } finally {
-      setLoading(false);
-    }
-  };
+     } finally {
+       setLoading(false);
+     }
+   };
 
   // ── Crear orden + detalles ────────────────────────────────────────────────
   const createProduction = async (productionData) => {
@@ -222,7 +220,7 @@ export const useProductions = () => {
             id_producto: d.id_producto,
             cantidad: d.cantidad,
             color: d.color,
-          }).catch((err) => { console.error('Error creando detalle:', err); return null; })
+          })            .catch((err) => { return null; })
         )
       );
 
@@ -234,7 +232,6 @@ export const useProductions = () => {
       setProductions((prev) => [newProduction, ...prev]);
       return newProduction;
     } catch (err) {
-      console.error('Error al crear producción:', err);
       setError('Error al crear la orden de producción');
       throw err;
     }
@@ -256,7 +253,6 @@ export const useProductions = () => {
       );
       return updated;
     } catch (err) {
-      console.error('Error al actualizar producción:', err);
       setError('Error al actualizar la orden de producción');
       throw err;
     }
@@ -273,7 +269,6 @@ export const useProductions = () => {
       );
       return updated;
     } catch (err) {
-      console.error('Error al anular producción:', err);
       setError('Error al anular la orden de producción');
       throw err;
     }
@@ -283,23 +278,19 @@ export const useProductions = () => {
   // Ya no es necesario porque loadProductions los carga todos, pero se
   // mantiene para que ProductionTable pueda recargar tras crear nuevos detalles.
   const fetchAndSetDetails = async (productionId) => {
-    try {
-      const existing = Productions.find((p) => p.id === productionId);
-      if (existing && Array.isArray(existing.details) && existing.details.length > 0) {
-        return existing.details;
-      }
-
-      const rawDetails = await ProductionAPIClient.getOrderDetails(productionId);
-      setProductions((prev) =>
-        prev.map((p) =>
-          p.id === productionId ? mergeDetails(p, rawDetails || []) : p
-        )
-      );
-      return rawDetails || [];
-    } catch (err) {
-      console.error('Error al cargar detalles de la orden:', err);
-      throw err;
+    const existing = Productions.find((p) => p.id === productionId);
+    if (existing && Array.isArray(existing.details) && existing.details.length > 0) {
+      return existing.details;
     }
+
+    const rawDetails = await ProductionAPIClient.getOrderDetails(productionId);
+
+    setProductions((prev) =>
+      prev.map((p) =>
+        p.id === productionId ? mergeDetails(p, rawDetails || []) : p
+      )
+    );
+    return rawDetails || [];
   };
 
   // ── Cambiar estado ────────────────────────────────────────────────────────
@@ -340,15 +331,12 @@ export const useProductions = () => {
                   ...producto,
                   stock: nuevoStock,
                 });
-                console.log(`[Producción] Stock de "${ref}" actualizado: +${qty} → ${nuevoStock}`);
               }
             } catch (stockErr) {
-              console.error(`[Producción] Error actualizando stock de "${ref}":`, stockErr?.message);
             }
           }
         }
       } catch (err) {
-        console.error('[Producción] Error en actualización de stock al entregar:', err?.message);
       }
     }
 
