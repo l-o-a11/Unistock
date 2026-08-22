@@ -17,24 +17,8 @@ const getCurrentUserName = () => {
   return 'Admin';
 };
 
-/**
- * Obtiene el ID del usuario actual desde session_user en localStorage.
- * Retorna el MongoDB ObjectId (u.id) necesario para comparar contra
- * campos como empleadoAsignadoId en el backend.
- */
-const getCurrentUserId = () => {
-  try {
-    const raw = localStorage.getItem('session_user');
-    if (raw) {
-      const u = JSON.parse(raw);
-      return u._id || u.id || null;
-    }
-  } catch { }
-  return null;
-};
-
 // ─── Mapeo Frontend → Backend ──────────────────────────────────────────────────
-const toBackendFormat = (frontendData, isCreate = false) => {
+const toBackendFormat = (frontendData) => {
   if (!frontendData) return {};
 
   const hasAny = (...keys) => keys.some((key) => Object.prototype.hasOwnProperty.call(frontendData, key));
@@ -64,16 +48,16 @@ const toBackendFormat = (frontendData, isCreate = false) => {
 
   const backendData = {};
 
-  if (hasAny('cliente', 'client')) backendData.cliente = String(firstValue('cliente', 'client') || '').trim();
+  if (hasAny('cliente', 'client')) backendData.cliente = firstValue('cliente', 'client');
   if (hasAny('fecha_entrega', 'deliveryDate', 'fechaSolicitud')) {
-    const parsedDate = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
-    backendData.fecha_entrega = parsedDate || new Date().toISOString();
+    backendData.fecha_entrega = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
   }
   if (hasAny('id_usuario', 'userId')) backendData.id_usuario = firstValue('id_usuario', 'userId');
   if (hasAny('asignaciones', 'terceros')) backendData.asignaciones = firstValue('asignaciones', 'terceros');
   if (hasAny('tipo', 'type')) backendData.tipo = firstValue('tipo', 'type');
-  if (hasAny('referencia', 'reference')) backendData.referencia = String(firstValue('referencia', 'reference') || '').trim();
-  if (hasAny('producto', 'product')) backendData.producto = String(firstValue('producto', 'product') || '').trim();
+  if (hasAny('referencia', 'reference')) backendData.referencia = firstValue('referencia', 'reference');
+  if (hasAny('producto', 'product')) backendData.producto = firstValue('producto', 'product');
+  if (hasAny('categoria', 'category')) backendData.categoria = firstValue('categoria', 'category');
   if (hasAny('techSpecification', 'techSheet')) backendData.techSpecification = firstValue('techSpecification', 'techSheet');
   if (hasAny('designImages')) backendData.designImages = Array.isArray(frontendData.designImages) ? frontendData.designImages : [];
   if (hasAny('finishedImages')) backendData.finishedImages = Array.isArray(frontendData.finishedImages) ? frontendData.finishedImages : [];
@@ -81,31 +65,13 @@ const toBackendFormat = (frontendData, isCreate = false) => {
   if (hasAny('fromDamaged')) backendData.fromDamaged = frontendData.fromDamaged;
   if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = frontendData.originalOrderNumber;
   if (hasAny('originalOrderStatus')) backendData.originalOrderStatus = frontendData.originalOrderStatus;
-  // ✅ Persistir asignaciones de sede/tercero en la BD (antes solo localStorage)
   if (hasAny('sedeAsignaciones')) backendData.sedeAsignaciones = Array.isArray(frontendData.sedeAsignaciones) ? frontendData.sedeAsignaciones : [];
   if (hasAny('terceroAsignaciones')) backendData.terceroAsignaciones = Array.isArray(frontendData.terceroAsignaciones) ? frontendData.terceroAsignaciones : [];
-  // 🐛 FIX: esta línea faltaba por completo. `empleadoAsignaciones` (objeto
-  // { [etapa]: { id_empleado, nombre_empleado, fecha } }) se construía bien
-  // en el frontend pero nunca viajaba al backend porque toBackendFormat no
-  // lo reconocía como campo válido — el PUT se enviaba sin él y la
-  // asignación se perdía en silencio. Por eso el empleado nunca veía su
-  // orden asignada: en la BD el campo quedaba siempre vacío.
-  if (hasAny('empleadoAsignaciones')) backendData.empleadoAsignaciones = frontendData.empleadoAsignaciones || {};
-  // ✅ Sede dueña de la producción (elegida al crear la orden)
   if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
 
-  // 🐛 FIX: estos valores por defecto SOLO deben aplicarse al CREAR una orden
-  // (POST), nunca al actualizar (PUT parcial). Antes se inyectaban en cada PUT,
-  // por lo que un updateOrder parcial como { terceroAsignaciones } —que no lleva
-  // `cliente`— sobreescribía el nombre del cliente real con "Cliente sin
-  // nombre" al pasar la etapa de producción (y también pisaba fecha_entrega y
-  // id_usuario). La orden ya existe y debe conservar sus valores actuales.
-  if (isCreate) {
-    if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
-    if (!backendData.cliente) backendData.cliente = 'Cliente sin nombre';
-    if (!backendData.fecha_entrega) backendData.fecha_entrega = new Date().toISOString();
-  }
+  if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
 
+  console.log('[toBackendFormat] mapped payload:', backendData);
   return backendData;
 };
 
@@ -134,18 +100,16 @@ const toFrontendFormat = (backendData) => {
       ? new Date(backendData.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
       : '',
     fecha_entrega: backendData.fecha_entrega,
-    // El backend de producción usa `fecha_creacion` en lugar de `createdAt`.
-    // Exponer ambos formatos evita que las vistas que agrupan por período
-    // (dashboard, calendario y listados) descarten órdenes válidas.
-    createdAt: backendData.createdAt || backendData.fecha_creacion || backendData.fechaCreacion || null,
-    updatedAt: backendData.updatedAt || backendData.fecha_actualizacion || backendData.fechaActualizacion || backendData.fecha_creacion || null,
+    createdAt: backendData.createdAt,
+    updatedAt: backendData.updatedAt,
     estado: backendData.estado,
     status: backendData.estado,
     producto: backendData.producto || backendData.referencia || null,
     referencia: backendData.referencia || backendData.producto || null,
-    cantidad: backendData.cantidad || backendData.quantity || backendData.totalQty || 0,
-    quantity: backendData.quantity || backendData.cantidad || backendData.totalQty || 0,
-    color: backendData.color || backendData.firstColor || '',
+    categoria: backendData.categoria || null,
+    cantidad: backendData.cantidad || backendData.quantity || 0,
+    quantity: backendData.quantity || backendData.cantidad || 0,
+    color: backendData.color || '',
     detalles: backendData.detalles || [],
     asignaciones: backendData.asignaciones || [],
     terceros: backendData.asignaciones || [],
@@ -154,39 +118,11 @@ const toFrontendFormat = (backendData) => {
     terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
     historial: backendData.historial || [],
     history: backendData.historial || [],
-    // 🐛 FIX: El backend REAL (Api_Unistock, puerto 3000) guarda la asignación
-    // como un campo plano `empleadoAsignadoId` (ObjectId directo), NO como el
-    // objeto `empleadoAsignaciones`. La derivación desde `empleadoAsignaciones`
-    // siempre devolvía null porque ese objeto no existe en la BD real, lo que
-    // impedía que el filtro "¿esta orden es mía?" en la vista de Producción del
-    // empleado nunca coincidiera con nadie.
-    // Ahora se lee `empleadoAsignadoId` directamente como fuente principal, y
-    // se conserva `empleadoAsignaciones` solo como compatibilidad con el otro
-    // backend (back_unictock, puerto 3020).
-    //
-    // 🐛 FIX adicional: Los ObjectId de MongoDB pueden venir como objetos
-    // (ej. { _id: "..." }) si no se serializan correctamente. Se fuerza la
-    // conversión a string para que la comparación en ProductionPage.jsx
-    // (String(prod?.empleadoAsignadoId) === String(user?.id)) funcione bien.
-    empleadoAsignaciones: backendData.empleadoAsignaciones || {},
-    etapaConfirmada: backendData.etapaConfirmada ?? false,
-    empleadoAsignadoId: (() => {
-      const raw = backendData.empleadoAsignadoId
-        || backendData.empleadoAsignaciones?.[backendData.estado]?.id_empleado
-        || null;
-      if (!raw) return null;
-      // Si es un objeto con _id (ObjectId sin serializar), extraer el string
-      if (typeof raw === 'object' && raw._id) return String(raw._id);
-      return String(raw);
-    })(),
+    // ✅ Empleado responsable de la etapa actual
+    empleadoAsignadoId: backendData.empleadoAsignadoId || null,
+    etapaConfirmada: backendData.etapaConfirmada || false,
     // ✅ Sede dueña de la producción
     sedeId: backendData.sedeId || null,
-    // ✅ Resumen de detalles enviado por el backend en el listado para
-    // evitar N+1: detailsCount, totalQty, firstColor, firstRef.
-    detailsCount: backendData.detailsCount || 0,
-    totalQty: backendData.totalQty || 0,
-    firstColor: backendData.firstColor || '',
-    firstRef: backendData.firstRef || '',
     rawData: backendData,
     // ✅ Fix defensivo: también se exponen en el formato enriquecido que usa
     // la vista de detalle ("details"/"history" con sus campos ya mapeados),
@@ -220,12 +156,7 @@ export const ProductionAPIClient = {
     const endpoint = `/produccion/ordenes${q.toString() ? "?" + q : ""}`;
     const res = await httpRequest(endpoint, { method: "GET" });
     const data = res?.data || res;
-    // 🐛 FIX: el backend devuelve { success: true, data: { data: [...], total, page, ... } }
-    // (formato paginado). Si data es un objeto con propiedad "data" que es un array,
-    // hay que extraer ese array interno. Si data ya es un array directamente, se usa tal cual.
-    // Esto mantiene compatibilidad con ambos formatos de respuesta.
-    const rawOrders = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
-    return rawOrders.map(toFrontendFormat);
+    return Array.isArray(data) ? data.map(toFrontendFormat) : data;
   },
 
   getOrderById: async (id) => {
@@ -235,7 +166,7 @@ export const ProductionAPIClient = {
   },
 
   createOrder: async (data) => {
-    const backendData = toBackendFormat(data, true);
+    const backendData = toBackendFormat(data);
     const res = await httpRequest("/produccion/ordenes", { method: "POST", body: backendData });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -243,8 +174,10 @@ export const ProductionAPIClient = {
 
   updateOrder: async (id, data) => {
     const backendData = toBackendFormat(data);
+    console.log('[ProductionAPIClient] PUT /produccion/ordenes/' + id, 'payload:', backendData);
     const res = await httpRequest(`/produccion/ordenes/${id}`, { method: "PUT", body: backendData });
     const resData = res?.data || res;
+    console.log('[ProductionAPIClient] PUT response:', resData);
     return toFrontendFormat(resData);
   },
 
@@ -259,20 +192,6 @@ export const ProductionAPIClient = {
     return toFrontendFormat(resData);
   },
 
-/**
-   * Confirma la etapa actual por parte del empleado asignado.
-   * Marca `etapaConfirmada: true` en la orden (NO cambia el estado).
-   * Solo el empleado asignado a la etapa actual puede ejecutar esta acción.
-   */
-  confirmarEtapa: async (id) => {
-    const res = await httpRequest(`/produccion/ordenes/${id}/confirmar-etapa`, {
-      method: "PATCH",
-      body: { id_usuario: getCurrentUserId() },
-    });
-    const data = res?.data || res;
-    return toFrontendFormat(data);
-  },
-
   // ✅ Asigna un empleado a la etapa ACTUAL de la orden — valida en el
   // backend que el rol del empleado coincida con el nombre de la etapa,
   // y dispara el correo de aviso al empleado.
@@ -285,12 +204,19 @@ export const ProductionAPIClient = {
     return toFrontendFormat(resData);
   },
 
-  // ✅ Reasigna un empleado a la etapa ACTUAL de la orden, registrando
-  // la justificación del cambio en el historial de la orden.
   reasignarEmpleado: async (id, empleadoId, motivo) => {
     const res = await httpRequest(`/produccion/ordenes/${id}/reasignar-empleado`, {
       method: "PATCH",
       body: { id_empleado: empleadoId, motivo },
+    });
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
+  },
+
+  confirmarEtapa: async (id) => {
+    const res = await httpRequest(`/produccion/ordenes/${id}/confirmar-etapa`, {
+      method: "PATCH",
+      body: { id_usuario: getCurrentUserName(), user: getCurrentUserName() },
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -319,15 +245,6 @@ export const ProductionAPIClient = {
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
-  },
-
-  agregarHistorial: async (id, motivo, estado) => {
-    const res = await httpRequest(`/produccion/ordenes/${id}/historial`, {
-      method: "POST",
-      body: { motivo, estado, user: getCurrentUserName(), id_usuario: getCurrentUserName() },
-    });
-    const data = res?.data || res;
-    return toFrontendFormat(data);
   },
 
   getEstados: async () => {
@@ -385,11 +302,8 @@ export const ProductionAPIClient = {
    * actual. El cargo coincide con el nombre de la etapa (Corte, Compras,
    * Recepción, etc.).
    */
-  getEmployeeWorkload: async (cargo, sedeId) => {
-    const params = new URLSearchParams();
-    if (cargo) params.set("cargo", cargo);
-    if (sedeId) params.set("sedeId", sedeId);
-    const query = params.toString() ? `?${params.toString()}` : "";
+  getEmployeeWorkload: async (cargo) => {
+    const query = cargo ? `?cargo=${encodeURIComponent(cargo)}` : "";
     const res = await httpRequest(`/produccion/empleados/carga${query}`, { method: "GET" });
     const data = res?.data || res;
     return Array.isArray(data) ? data : [];
@@ -455,23 +369,5 @@ export const ProductionAPIClient = {
       method: "DELETE",
     });
     return res?.data || res;
-  },
-
-  /**
-   * Sube imágenes a Cloudinary y devuelve las URLs resultantes.
-   * Se usa para evitar guardar Base64 en MongoDB (límite 16MB BSON).
-   */
-  uploadImages: async (files) => {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-    const res = await httpRequest("/upload-multiple", {
-      method: "POST",
-      body: formData,
-    });
-    const data = res?.data || res;
-    if (!data?.success || !Array.isArray(data.images)) {
-      throw new Error(data?.error || "No se pudo subir la imagen");
-    }
-    return data.images.map((img) => img.src);
   },
 };
