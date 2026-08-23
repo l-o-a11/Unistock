@@ -82,19 +82,7 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
             </tr>
           </thead>
           <tbody>
-            {Third_parties.map((t, idx) => {
-              if (idx === 0) {
-                // Debug: mostrar estructura del primer tercero
-                console.log('[Third_partiesTable] Estructura tercero:', { 
-                  id: t.id, 
-                  codigo: t.codigo, 
-                  nit: t.nit, 
-                  nombreEmpresa: t.nombreEmpresa,
-                  nombre: t.nombre,
-                  estado: t.estado,
-                  keys: Object.keys(t)
-                });
-              }
+            {Third_parties.map((t) => {
               const isActive   = t.estado !== false;
               const isSelected = t.id === selectedId;
 

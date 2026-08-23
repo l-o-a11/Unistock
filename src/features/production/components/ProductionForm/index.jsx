@@ -462,12 +462,6 @@ try {
       // ✅ Solo mostrar productos activos en el selector al crear producción.
       const normalized = Array.isArray(data) ? data.filter(p => p.active !== false) : [];
 
-      if (normalized.length === 0) {
-        console.warn('[ProductionForm] ⚠️ No hay productos cargados');
-      } else {
-        console.log('[ProductionForm] ✓ Productos cargados:', normalized.length);
-      }
-
       setProducts(normalized);
       setProductsLoaded(true);
     } catch (err) {
@@ -483,14 +477,11 @@ try {
       try {
         const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
         const cats = await productCategoryAPI.getAll();
-        console.log('[ProductionForm] Categorías cargadas:', cats?.length || 0, 'items'); // DEBUG
 
         const categoryNames = (cats || []).map(c => c.name);
         if (categoryNames.length === 0) {
-          console.warn('[ProductionForm] ⚠️ No hay categorías, usando fallback');
           setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
         } else {
-          console.log('[ProductionForm] ✓ Categorías cargadas:', categoryNames);
           setCategories(categoryNames);
         }
       } catch (err) {

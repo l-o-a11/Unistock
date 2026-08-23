@@ -68,6 +68,7 @@ const Field = ({ label, name, type = 'text', required = false, placeholder = '',
 const Third_partieForm = ({ Third_partie, onSubmit, onCancel, allThirdParties = [] }) => {
   const isEdit   = Boolean(Third_partie);
   const modalRef = useRef(null);
+  const debounceTimers = useRef({});
 
   const [formData, setFormData] = useState({
     nombre: '', nit: '', direccion: '',
@@ -103,6 +104,21 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel, allThirdParties = 
     });
   }, [allThirdParties, Third_partie, UNIQUE_FIELDS]);
 
+  const getDuplicate = useCallback((name, value) => {
+    if (!value || !String(value).trim()) return null;
+    const getter = UNIQUE_FIELDS[name];
+    if (!getter) return null;
+    const normalized = String(value).trim();
+    return allThirdParties.find((s) => {
+      if (Third_partie && s.id === Third_partie.id) return false;
+      const existing = String(getter(s) || "").trim();
+      if (name === 'nombre' || name === 'correo') {
+        return existing.toLowerCase() === normalized.toLowerCase();
+      }
+      return existing === normalized;
+    }) || null;
+  }, [allThirdParties, Third_partie, UNIQUE_FIELDS]);
+
   // ── Cargar datos en modo edición ──────────────────────────────────────────
   useEffect(() => {
     if (Third_partie) {
@@ -127,6 +143,13 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel, allThirdParties = 
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
   };
@@ -137,8 +160,14 @@ const Third_partieForm = ({ Third_partie, onSubmit, onCancel, allThirdParties = 
     switch (name) {
       case 'nombre':
         error = validators.required(value);
-        if (!error && isDuplicate('nombre', value))
-          error = 'Ya existe un tercero con este nombre';
+        if (!error) {
+          const dup = getDuplicate('nombre', value);
+          if (dup) {
+            const empresa = dup.nombreEmpresa || dup.nombre || value;
+            const dir = dup.direccion || 'Sin dirección';
+            error = `Ya existe un tercero con este nombre: ${empresa}, dirección: ${dir}`;
+          }
+        }
         break;
       case 'direccion':
         error = validators.required(value);
@@ -189,6 +218,14 @@ const handleChange = (e) => {
     }
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    const VALIDATE_ON_TYPE = ['nombre', 'nit', 'direccion', 'telefono', 'correo'];
+    if (VALIDATE_ON_TYPE.includes(name)) {
+      if (debounceTimers.current[name]) clearTimeout(debounceTimers.current[name]);
+      debounceTimers.current[name] = setTimeout(() => {
+        validateField(name, value);
+      }, 400);
+    }
   };
 
   const handleBlur = (e) => validateField(e.target.name, e.target.value);

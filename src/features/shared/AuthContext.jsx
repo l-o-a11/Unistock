@@ -18,45 +18,8 @@ export const ROUTE_MODULE_MAP = {
   "roles": 12,
 };
 
-const ROLES_KEY = "app_roles";
-const ROLES_TTL_MS = 30 * 60 * 1000; // 30 minutos — después se refetch de la API
-
-const getRolesFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(ROLES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    // Soporte para el formato nuevo { roles, savedAt } y el legacy (array directo)
-    if (Array.isArray(parsed)) return parsed; // legacy sin TTL — se refresca igual
-    if (parsed?.roles && parsed?.savedAt) {
-      const age = Date.now() - parsed.savedAt;
-      if (age > ROLES_TTL_MS) {
-        // Cache expirado — forzar refetch de la API
-        localStorage.removeItem(ROLES_KEY);
-        return [];
-      }
-      return parsed.roles;
-    }
-    return [];
-  } catch {
-    return [];
-  }
-};
-
-const saveRolesToStorage = (roles) => {
-  try {
-    localStorage.setItem(ROLES_KEY, JSON.stringify({ roles, savedAt: Date.now() }));
-  } catch { }
-};
-
-// Permite forzar invalidación del cache desde fuera (ej. cuando cambian permisos)
-export const invalidateRolesCache = () => {
-  try { localStorage.removeItem(ROLES_KEY); } catch { }
-};
-
 const normalizeRole = (role) => {
   if (!role) return role;
-  // Ya normalizado
   const normalizeModuloKey = (valor) => {
     const raw =
       typeof valor === "object"
@@ -104,8 +67,6 @@ const normalizeRole = (role) => {
     if (permisosArray.length === 0) return { ...role, modulos: [] };
     const first = permisosArray[0];
 
-    // Formato API real: [{ modulo: "usuarios", privilegios: ["leer"] }]
-    // También soporta modulo: { nombre: "insumos" }
     if (typeof first === "object" && first !== null && "modulo" in first) {
       return {
         ...role,
@@ -120,12 +81,10 @@ const normalizeRole = (role) => {
       };
     }
 
-    // Formato legacy: [{ moduloId: 1, privilegios: [1] }]
     if (typeof first === "object" && first !== null && "moduloId" in first) {
       return { ...role, modulos: permisosArray };
     }
 
-    // Formato legacy: [1, 2, 3]
     if (typeof first === "number" || typeof first === "string") {
       return {
         ...role,
@@ -136,41 +95,6 @@ const normalizeRole = (role) => {
   return role;
 };
 
-const rolesMatchSession = (roles, session) => {
-  if (!session) return false;
-  const exactMatch = roles.some((r) => String(r.id) === String(session.rolId));
-  if (exactMatch) return true;
-  const sessionRolNombre = session.rolNombre?.toString().toLowerCase();
-  if (sessionRolNombre) {
-    return roles.some((r) => String(r.nombre).toLowerCase() === sessionRolNombre);
-  }
-  return false;
-};
-
-const fetchRolesCatalog = async (session) => {
-  let storedRoles = [];
-  try {
-    storedRoles = getRolesFromStorage();
-  } catch { storedRoles = []; }
-
-  if (storedRoles.length > 0 && rolesMatchSession(storedRoles, session)) {
-    return storedRoles.map(normalizeRole);
-  }
-
-  try {
-    const remoteRoles = await userAPI.getRoles();
-    if (Array.isArray(remoteRoles) && remoteRoles.length > 0) {
-      const normalized = remoteRoles.map(normalizeRole);
-      saveRolesToStorage(normalized);
-      return normalized;
-    }
-  } catch (err) {
-    console.error("Error cargando roles desde API:", err);
-  }
-
-  return storedRoles.map(normalizeRole);
-};
-
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -178,60 +102,42 @@ export const AuthProvider = ({ children }) => {
   const [permisos, setPermisos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const cargarPermisos = async (session) => {
+  const cargarPermisos = async () => {
     try {
-      const roles = await fetchRolesCatalog(session);
-      const sessionRolId = session?.rolId;
-      const sessionRolNombre = session?.rolNombre?.toString().toLowerCase();
-
-      const rol = roles.find((r) => {
-        if (String(r.id) === String(sessionRolId)) return true;
-        if (sessionRolNombre && String(r.nombre).toLowerCase() === sessionRolNombre) return true;
-        return false;
-      });
-
-      if (rol) {
-        const ids = rol.modulos?.map((m) => m.moduloId) ?? [];
+      const remotePermisos = await userAPI.getMyPermissions();
+      if (remotePermisos && remotePermisos.permisos) {
+        const rolNormalizado = normalizeRole({
+          id: remotePermisos.rolId,
+          nombre: remotePermisos.rolNombre,
+          permisos: remotePermisos.permisos,
+        });
+        const ids = rolNormalizado.modulos?.map((m) => m.moduloId) ?? [];
         setPermisos(ids);
       } else {
         setPermisos([]);
       }
     } catch (err) {
-      // Si falla la carga de roles (error de red, token inválido, etc.)
-      // no dejar loading=true para siempre — simplemente continuar sin permisos.
       console.error("Error cargando permisos:", err);
       setPermisos([]);
     } finally {
-      // SIEMPRE apagar el loading, sin importar si hubo error
       setLoading(false);
     }
   };
 
-  // Carga sesión inicial desde localStorage
   useEffect(() => {
     const session = AuthAPI.getSession();
     if (session) {
       setUser(session);
-      cargarPermisos(session);
+      cargarPermisos();
     } else {
       setLoading(false);
     }
   }, []);
 
-  // Recarga permisos si otra pestaña actualiza los roles
-  useEffect(() => {
-    const handleStorage = (e) => {
-      if (e.key === ROLES_KEY && user) cargarPermisos(user);
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, [user]);
-
   const login = (session) => {
     setLoading(true);
     setUser(session);
-    invalidateRolesCache();
-    cargarPermisos(session);
+    cargarPermisos();
   };
 
   const logout = () => {
@@ -243,13 +149,7 @@ export const AuthProvider = ({ children }) => {
   const canAccess = (rutaSegmento) => {
     if (!user) return false;
     const rolNombre = (user.rolNombre ?? "").toLowerCase();
-    // Solo "Gerente" tiene acceso total sin mirar permisos. Antes "administrador"
-    // también hacía bypass completo, lo que dejaba ver Usuarios sin importar los
-    // permisos asignados al rol — ahora un admin de sede pasa por la validación
-    // normal de permisos como cualquier otro rol.
     if (rolNombre === "gerente") return true;
-    // Usuarios es exclusivo de Gerente, sin excepción (aunque el rol tenga
-    // el módulo marcado por error al crearlo).
     if (rutaSegmento === "usuarios") return false;
     const moduloId = ROUTE_MODULE_MAP[rutaSegmento];
     if (moduloId === undefined) return true;
@@ -257,10 +157,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refrescarPermisos = () => {
-    if (user) cargarPermisos(user);
+    if (user) cargarPermisos();
   };
 
-  // Devuelve la primera ruta a la que el usuario tiene acceso
   const getFirstAccessibleRoute = (u = user) => {
     if (!u) return "/";
     const rolNombre = (u.rolNombre ?? "").toLowerCase();
@@ -289,7 +188,7 @@ export const AuthProvider = ({ children }) => {
     for (const modulo of ORDER) {
       if (canAccess(modulo)) return ROUTE_MAP[modulo];
     }
-    return "/layout/perfil"; // fallback: solo puede ver su perfil
+    return "/layout/perfil";
   };
 
   return (

@@ -43,6 +43,15 @@ const IconAlert = () => (
   </svg>
 );
 
+const IconReplace = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="17 1 21 5 17 9" />
+    <path d="M4.6 10.5A7.9 7.9 0 0 1 12 4c2.1 0 4 .8 5.4 2.1" />
+    <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2" />
+    <polyline points="17 23 21 19 17 15" />
+  </svg>
+);
+
 // ── Status config ────────────────────────────────────────────────────────────
 const STATUS_MAP = {
   'Diseño': { bg: '#f3e8ff', color: '#7c3aed', dot: '#a855f7' },
@@ -61,6 +70,10 @@ const STATUS_MAP = {
 };
 
 const getStatus = (s) => STATUS_MAP[s] || { bg: '#f3f4f6', color: '#6b7280', dot: '#9ca3af' };
+
+// ✅ Etapas que requieren un empleado asignado — usado para decidir cuándo
+// mostrar el botón "Reasignar" cuando el empleado está anulado (inactivo).
+const ETAPAS_ASIGNABLES = ["Corte", "Compras", "Recepción", "Producción"];
 
 const StatusBadge = ({ status, small }) => {
   const s = getStatus(status);
@@ -87,7 +100,7 @@ const StatusBadge = ({ status, small }) => {
 // refresca la lista), por eso la fila nunca se actualizaba ni se veía
 // ningún mensaje de éxito. El único feedback era un alert() nativo del
 // navegador en caso de error, que además tapaba el flujo.
-const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar }) => {
+const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar, employees = [], onReassignEmployee }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ open: false, prod: null });
@@ -161,6 +174,17 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
               const isOpen = expandedRow === prod.id;
               const isAnulada = prod.status === 'Anulada';
               const rowBg = isOpen ? '#fdf4ff' : (idx % 2 === 0 ? '#fff' : '#fdfcff');
+
+              // ✅ Detectar empleado anulado: la orden está en una etapa que
+              // requiere empleado (Corte/Compras/Recepción/Producción), tiene
+              // un empleado asignado, pero éste está inactivo o fue eliminado.
+              const requiresAssignment = ETAPAS_ASIGNABLES.includes(prod.status);
+              const assignedEmployee = prod.empleadoAsignadoId
+                ? employees.find(e => String(e.id || e._id) === String(prod.empleadoAsignadoId))
+                : null;
+              const empleadoAnulado = requiresAssignment && prod.empleadoAsignadoId
+                ? !assignedEmployee || assignedEmployee.estado === false
+                : false;
 
               return (
                 <React.Fragment key={prod.id}>
@@ -392,6 +416,31 @@ const ProductionTable = ({ productions = [], onCancel, onExpandRow, onConfirmar 
                                 onMouseLeave={(e) => { if (!isAnulada) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; } }}
                               >
                                 <IconBan />
+                              </button>
+                              )}
+
+                            {/* ✅ Reasignar empleado anulado — botón visible solo para
+                                Gerente cuando el empleado asignado está inactivo */}
+                            {isGerente && empleadoAnulado && (
+                              <button
+                                title="Reasignar empleado"
+                                onClick={() => onReassignEmployee?.(prod)}
+                                style={{
+                                  display: 'flex', alignItems: 'center',
+                                  padding: '5px 10px', borderRadius: 7,
+                                  border: '1px solid #fbbf24',
+                                  background: '#fffbeb',
+                                  color: '#92400e',
+                                  cursor: 'pointer',
+                                  fontSize: 10, fontWeight: 700,
+                                  transition: 'all 0.15s',
+                                  flexShrink: 0,
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#fef3c7'; e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.color = '#78350f'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#fffbeb'; e.currentTarget.style.borderColor = '#fbbf24'; e.currentTarget.style.color = '#92400e'; }}
+                              >
+                                <IconReplace />
+                                Reasignar
                               </button>
                             )}
 

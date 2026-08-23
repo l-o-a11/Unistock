@@ -71,7 +71,6 @@ const toBackendFormat = (frontendData) => {
 
   if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
 
-  console.log('[toBackendFormat] mapped payload:', backendData);
   return backendData;
 };
 
@@ -111,8 +110,8 @@ const toFrontendFormat = (backendData) => {
     quantity: backendData.quantity || backendData.cantidad || 0,
     color: backendData.color || '',
     detalles: backendData.detalles || [],
-    asignaciones: backendData.asignaciones || [],
-    terceros: backendData.asignaciones || [],
+    asignaciones: backendData.asignaciones || backendData.terceroAsignaciones || [],
+    terceros: backendData.asignaciones || backendData.terceroAsignaciones || [],
     // ✅ Persistidas en BD — antes solo se guardaban en localStorage
     sedeAsignaciones: Array.isArray(backendData.sedeAsignaciones) ? backendData.sedeAsignaciones : [],
     terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
@@ -155,8 +154,9 @@ export const ProductionAPIClient = {
     if (filters.order) q.append("order", filters.order);
     const endpoint = `/produccion/ordenes${q.toString() ? "?" + q : ""}`;
     const res = await httpRequest(endpoint, { method: "GET" });
-    const data = res?.data || res;
-    return Array.isArray(data) ? data.map(toFrontendFormat) : data;
+    const payload = res?.data || res;
+    const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    return list.map(toFrontendFormat);
   },
 
   getOrderById: async (id) => {
@@ -174,10 +174,8 @@ export const ProductionAPIClient = {
 
   updateOrder: async (id, data) => {
     const backendData = toBackendFormat(data);
-    console.log('[ProductionAPIClient] PUT /produccion/ordenes/' + id, 'payload:', backendData);
     const res = await httpRequest(`/produccion/ordenes/${id}`, { method: "PUT", body: backendData });
     const resData = res?.data || res;
-    console.log('[ProductionAPIClient] PUT response:', resData);
     return toFrontendFormat(resData);
   },
 
@@ -369,5 +367,33 @@ export const ProductionAPIClient = {
       method: "DELETE",
     });
     return res?.data || res;
+  },
+
+  // ── Subida de imágenes (Cloudinary vía /api/upload-multiple) ──────
+  // ✅ FIX: este método no existía, por lo que `ProductionAPIClient
+  // .uploadImages(files)` lanzaba `uploadImages is not a function` y la
+  // subida de imágenes del producto terminado fallaba siempre. Ahora sube
+  // los archivos como multipart/form-data y devuelve un arreglo de URLs
+  // (strings) listo para guardarse en `finishedImages`.
+  uploadImages: async (files) => {
+    const fileList = Array.isArray(files) ? files : [files];
+    if (!fileList.length) return [];
+
+    const formData = new FormData();
+    fileList.forEach((file) => formData.append("files", file));
+
+    // La ruta de upload es pública (no requiere token) → skipAuth: true.
+    const res = await httpRequest("/upload-multiple", {
+      method: "POST",
+      body: formData,
+      skipAuth: true,
+    });
+
+    const payload = res?.data || res;
+    // El backend responde { success, images: [{ src, public_id, ... }] }
+    const images = payload?.images || (Array.isArray(payload) ? payload : []);
+    return images
+      .map((img) => img?.src || img?.url || img?.secure_url)
+      .filter(Boolean);
   },
 };

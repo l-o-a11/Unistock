@@ -37,14 +37,14 @@ export const useSupplies = (initialFilters = {}) => {
   // ── Carga de catálogos (una sola vez al montar) ────────────────────────────
   const loadCatalogos = useCallback(async () => {
     try {
-      const [medidasData, propiedadesData, categoriasData] = await Promise.all([
+      const [medidasData, propiedadesData, categoriasData] = await Promise.allSettled([
         supplyAPI.getMedidas(),
         supplyAPI.getPropiedades(),
         supplyAPI.getCategorias(),
       ]);
-      setMedidas(medidasData);
-      setPropiedades(propiedadesData);
-      setCategorias(categoriasData);
+      setMedidas(medidasData.status === 'fulfilled' ? (medidasData.value || []) : []);
+      setPropiedades(propiedadesData.status === 'fulfilled' ? (propiedadesData.value || []) : []);
+      setCategorias(categoriasData.status === 'fulfilled' ? (categoriasData.value || []) : []);
     } catch (err) {
       console.error("[useSupplies] loadCatalogos:", err);
     }
@@ -65,8 +65,14 @@ export const useSupplies = (initialFilters = {}) => {
         totalPages: result.totalPages,
       });
     } catch (err) {
-      setError(err.message || "Error al cargar insumos");
-      console.error("[useSupplies] loadData:", err);
+      if (err?.status === 403) {
+        setSupplies([]);
+        setPagination({ total: 0, page: 1, limit: 10, totalPages: 1 });
+        setError(null);
+      } else {
+        setError(err.message || "Error al cargar insumos");
+        console.error("[useSupplies] loadData:", err);
+      }
     } finally {
       setLoading(false);
     }

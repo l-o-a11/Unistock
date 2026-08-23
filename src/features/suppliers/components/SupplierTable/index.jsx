@@ -74,13 +74,23 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                   onClick={() => onView?.(supplier)}
                 >
                   <td style={tdStyle}>
-                    {(() => { const { text, truncated } = truncate(supplier.nit); return truncated ? (
-                      <HoverCard content={buildHoverContent([{ label: "NIT", value: supplier.nit, highlight: true }])}>
-                        <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
-                      </HoverCard>
-                    ) : (
-                      <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
-                    ); })()}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {(() => {
+                        const tipo = supplier.tipoDocumento || supplier.tipo_documento || "";
+                        return (
+                          <span style={{ fontSize: 11, color: "#888", fontWeight: 600 }}>
+                            {tipo}
+                          </span>
+                        );
+                      })()}
+                      {(() => { const { text, truncated } = truncate(supplier.nit); return truncated ? (
+                        <HoverCard content={buildHoverContent([{ label: "NIT", value: supplier.nit, highlight: true }])}>
+                          <span style={{ display: "inline-block", whiteSpace: "nowrap", fontSize: 14, color: "#333" }}>{text}</span>
+                        </HoverCard>
+                      ) : (
+                        <span style={{ display: "inline-block", whiteSpace: "nowrap", fontSize: 14, color: "#333" }}>{text}</span>
+                      ); })()}
+                    </div>
                   </td>
                   <td style={tdStyle}>
                     {(() => { const { text, truncated } = truncate(supplier.nombreEmpresa); return truncated ? (

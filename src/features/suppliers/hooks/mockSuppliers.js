@@ -151,6 +151,12 @@ export const useSuppliers = () => {
         const sitio =
           supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb;
 
+        const tipoDocumento =
+          supplier?.tipo_documento ??
+          supplier?.tipoDocumento ??
+          supplier?.tipo_documento_contacto ??
+          supplier?.tipoDocumentoContacto;
+
         return {
           id: supplier._id || supplier.id,
           nit: supplier.nit,
@@ -158,7 +164,9 @@ export const useSuppliers = () => {
           nombre_de_empresa: nombreEmpresa,
           nombreContacto,
           nombre_del_contacto: nombreContacto,
-          correoContacto: correoContacto || '',
+          tipoDocumento,
+          tipo_documento: tipoDocumento,
+          tipoDocumentoContacto: tipoDocumento,
           direccion: supplier.direccion,
           telefono: supplier.telefono,
           email: correo,
@@ -365,6 +373,12 @@ function _mapBackendToFrontend(supplier) {
   const sitio = supplier?.sitio_web ?? supplier?.sitioWeb ?? supplier?.sitioweb ?? '';
   const estado = supplier?.activo ?? supplier?.estado;
 
+  const tipoDocumento =
+    supplier?.tipo_documento ??
+    supplier?.tipoDocumento ??
+    supplier?.tipo_documento_contacto ??
+    supplier?.tipoDocumentoContacto;
+
   return {
     id: supplier._id || supplier.id,
     nit: supplier.nit,
@@ -372,6 +386,9 @@ function _mapBackendToFrontend(supplier) {
     nombre_de_empresa: nombreEmpresa,
     nombreContacto,
     nombre_del_contacto: nombreContacto,
+    tipoDocumento,
+    tipo_documento: tipoDocumento,
+    tipoDocumentoContacto: tipoDocumento,
     direccion: supplier.direccion,
     telefono: supplier.telefono,
     email: correo,
