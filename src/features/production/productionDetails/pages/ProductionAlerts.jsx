@@ -325,7 +325,7 @@ const ProductionAlerts = ({
     (isAssign && assignmentsValid) ||
     (type === "assignEmployee" && !!selectedEmployee) ||
     (type === "replaceEmployee" && !!selectedEmployee && motivo.trim() !== "") ||
-    (type === "anular" && motivo.trim() !== "") ||
+    (type === "anular" && motivo.trim().length >= 5) ||
     (type === "password" && motivo.trim() !== "") ||
     type === "advance" ||
     type === "confirm";
