@@ -14,8 +14,8 @@ const Third_partieTable = ({ Third_parties = [], onView, onEdit, onDelete, onTog
     setToggleAlert({ open: true, thirdId: t.id, isActive: t.estado !== false });
   };
 
-  const confirmToggle = () => {
-    onToggle?.(toggleAlert.thirdId);
+  const confirmToggle = async () => {
+    await onToggle?.(toggleAlert.thirdId);
     setToggleAlert({ open: false, thirdId: null, isActive: false });
   };
 

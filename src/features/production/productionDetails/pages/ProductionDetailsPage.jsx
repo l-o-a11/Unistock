@@ -10,7 +10,7 @@ import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
-import TechnicalSheet from "../../../products/components/TechnicalSheet";
+import TechnicalSheet from "../../../production/components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
@@ -1656,7 +1656,7 @@ const ProductionDetailsPage = () => {
                 </div>
               </div>
               <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-                <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} productImage={production.productImage} />
+                <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} productImage={production.productImage} categoryName={production.categoria || ''} />
               </div>
             </div>
           </div>
@@ -1723,7 +1723,7 @@ const ProductionDetailsPage = () => {
                   </div>
                 </div>
                 <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-                  <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} />
+                  <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} categoryName={production.categoria || ''} />
                 </div>
               </div>
             </div>

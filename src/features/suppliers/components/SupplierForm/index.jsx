@@ -208,7 +208,20 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     }
   }, [tipoProveedor]);
 
+  const isFormBlank = useCallback(() => {
+    const allEmpty = !formData.nombreEmpresa && !formData.nit && !formData.direccion
+      && !formData.correoEmpresa && !formData.sitioWeb && !formData.nombreContacto
+      && !formData.telefono && !formData.telefonoContacto && !formData.correoContacto;
+    if (supplier) {
+      const initial = buildInitialFormData(supplier);
+      const unchanged = Object.keys(initial).every((key) => formData[key] === initial[key]);
+      return unchanged;
+    }
+    return allEmpty;
+  }, [formData, supplier]);
+
   const handleCancelClick = useCallback(() => {
+    if (isFormBlank()) { onCancel(); return; }
     setAlertConfig({
       open: true, type: "confirm",
       title: "Cancelar",
@@ -218,7 +231,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         onCancel();
       },
     });
-  }, [onCancel]);
+  }, [onCancel, isFormBlank]);
 
   // ESC cierra el modal
   useEffect(() => {

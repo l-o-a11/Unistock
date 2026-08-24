@@ -11,7 +11,7 @@ const getCurrentUserName = () => {
     const raw = localStorage.getItem('session_user');
     if (raw) {
       const u = JSON.parse(raw);
-      return u.nombreCompleto || u.nombre || u.username || u.id || 'Admin';
+      return String(u.nombreCompleto || u.nombre || u.username || u.id || 'Admin');
     }
   } catch { }
   return 'Admin';
@@ -52,7 +52,10 @@ const toBackendFormat = (frontendData) => {
   if (hasAny('fecha_entrega', 'deliveryDate', 'fechaSolicitud')) {
     backendData.fecha_entrega = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
   }
-  if (hasAny('id_usuario', 'userId')) backendData.id_usuario = firstValue('id_usuario', 'userId');
+  if (hasAny('id_usuario', 'userId')) {
+    const idUsuarioValue = firstValue('id_usuario', 'userId');
+    backendData.id_usuario = typeof idUsuarioValue === 'number' ? String(idUsuarioValue) : idUsuarioValue;
+  }
   if (hasAny('asignaciones', 'terceros')) backendData.asignaciones = firstValue('asignaciones', 'terceros');
   if (hasAny('tipo', 'type')) backendData.tipo = firstValue('tipo', 'type');
   if (hasAny('referencia', 'reference')) backendData.referencia = firstValue('referencia', 'reference');
@@ -63,11 +66,11 @@ const toBackendFormat = (frontendData) => {
   if (hasAny('finishedImages')) backendData.finishedImages = Array.isArray(frontendData.finishedImages) ? frontendData.finishedImages : [];
   if (hasAny('finishedImageUrl')) backendData.finishedImageUrl = frontendData.finishedImageUrl;
   if (hasAny('fromDamaged')) backendData.fromDamaged = frontendData.fromDamaged;
-  if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = frontendData.originalOrderNumber;
+  if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = typeof frontendData.originalOrderNumber === 'number' ? String(frontendData.originalOrderNumber) : frontendData.originalOrderNumber;
   if (hasAny('originalOrderStatus')) backendData.originalOrderStatus = frontendData.originalOrderStatus;
   if (hasAny('sedeAsignaciones')) backendData.sedeAsignaciones = Array.isArray(frontendData.sedeAsignaciones) ? frontendData.sedeAsignaciones : [];
   if (hasAny('terceroAsignaciones')) backendData.terceroAsignaciones = Array.isArray(frontendData.terceroAsignaciones) ? frontendData.terceroAsignaciones : [];
-  if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
+  if (hasAny('sedeId')) backendData.sedeId = typeof frontendData.sedeId === 'number' ? String(frontendData.sedeId) : frontendData.sedeId;
 
   if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
 
