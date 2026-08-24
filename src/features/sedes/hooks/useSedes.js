@@ -33,8 +33,14 @@ export const useSedes = (initialFilters = {}) => {
         totalPages: result.totalPages,
       });
     } catch (err) {
-      setError(err.message || "Error al cargar sedes");
-      console.error("[useSedes] loadData:", err);
+      if (err?.status === 403) {
+        setSedes([]);
+        setPagination({ total: 0, page: 1, limit: filters.limit || 10, totalPages: 1 });
+        setError(null);
+      } else {
+        setError(err.message || "Error al cargar sedes");
+        console.error("[useSedes] loadData:", err);
+      }
     } finally {
       setLoading(false);
     }

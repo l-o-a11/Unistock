@@ -77,7 +77,7 @@ const Third_partiePage = () => {
 
   const ESTADOS_POST_PRODUCCION = ['Recepción', 'Empaque', 'Enviado', 'Anulada'];
 
-  const handleToggle = (id) => {
+  const handleToggle = async (id) => {
     const t = Third_parties.find(tp => tp.id === id);
     const activas = (t?.producciones || []).filter((p) => {
       const estado = (p?.estado || '').toString();
@@ -87,7 +87,14 @@ const Third_partiePage = () => {
       setErrorAlert({ open: true, message: `Este tercero tiene ${activas.length} producción(es) activa(s). No se puede cambiar su estado.` });
       return;
     }
-    toggleThird_partie?.(id);
+    try {
+      await toggleThird_partie?.(id);
+      const nombre = t?.nombreEmpresa || 'Tercero';
+      const nuevoEstado = t?.estado === false ? 'activado' : 'inactivado';
+      setErrorAlert({ open: true, type: 'success', title: 'Estado actualizado', message: `"${nombre}" fue ${nuevoEstado} correctamente.` });
+    } catch (e) {
+      setErrorAlert({ open: true, message: e?.message || 'No se pudo cambiar el estado del tercero.' });
+    }
   };
 
   const handleDelete = (id) => {
@@ -568,6 +575,7 @@ const Third_partiePage = () => {
           Third_partie={editingThird_partie}
           onSubmit={handleFormSubmit}
           onCancel={() => setShowForm(false)}
+          allThirdParties={Third_parties}
         />
       )}
     </div>

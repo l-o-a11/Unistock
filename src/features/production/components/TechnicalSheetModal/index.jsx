@@ -41,7 +41,6 @@ const TechnicalSheetModal = ({ product, onClose }) => {
     try {
       setLoading(true);
       await deleteLastVersion(currentVersionObj.id);
-      console.log("Versión eliminada:", currentVersionObj.id);
       setDeleteAlert({ open: false });
       if (selectedVersion?.id === currentVersionObj.id) {
         setSelectedVersion(null);

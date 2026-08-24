@@ -25,8 +25,13 @@ export const useRoles = () => {
       const data = await RolesAPI.getAll();
       setRoles(data);
     } catch (err) {
-      setError(err.message ?? "Error al cargar roles");
-      console.error("[useRoles] loadData:", err);
+      if (err?.status === 403) {
+        setRoles([]);
+        setError(null);
+      } else {
+        setError(err.message ?? "Error al cargar roles");
+        console.error("[useRoles] loadData:", err);
+      }
     } finally {
       setLoading(false);
     }
