@@ -4,8 +4,6 @@ import { productCategoryAPI } from "../../productCategories/services/productCate
 
 const PRODUCT_ENDPOINTS = ["/products"];
 const PRODUCT_CATEGORY_ENDPOINTS = ["/product-categories", "/products-categories"];
-// ✅ Solo se usa la API nueva (Api_Unistock, /tecnicas).
-// Se eliminó el respaldo del backend viejo (/technical-sheets).
 const TECHNICAL_SHEET_ENDPOINTS = {
   list: (productId) => `/products/${productId}/tecnicas`,
   get: (productId, sheetId) => `/products/${productId}/tecnicas/${sheetId}`,
@@ -97,10 +95,6 @@ const sendWithPayloadFallback = async (endpoint, method, payloads) => {
 const toDateString = (value) => {
   if (!value) return null;
   const date = new Date(value);
-  // ✅ Fix: si la fecha no es parseable, devolver null (no el valor crudo
-  // sin validar) para que SIEMPRE caiga en el fallback de hoy en toUiSheet.
-  // Antes, un valor inválido pasaba intacto hasta el modal, que al volver
-  // a hacer new Date(...) sobre él mostraba "Invalid Date" en pantalla.
   return Number.isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
 };
 
@@ -186,8 +180,6 @@ const sheetItemsToMaterials = (sheetData = {}) => {
   return materials;
 };
 
-// ✅ CORREGIDO: ahora mapea todos los campos incluyendo
-// ref, measurements, responsable y sus aliases
 const toUiSheet = (raw) => {
   if (!raw) return raw;
   const responsable = raw.responsable ?? raw.createdBy ?? raw.client ?? "Sin responsable";
@@ -195,11 +187,6 @@ const toUiSheet = (raw) => {
     id: raw.id ?? raw._id,
     productId: raw.productId ?? raw.id_producto ?? raw.id_productos,
     version: raw.version ?? raw.versiones ?? 1,
-    // ✅ Fix: priorizar createdAt (timestamp real e inmutable de Mongo por
-    // documento) sobre fecha_inicio. fecha_inicio podía heredar la fecha de
-    // una versión anterior por un bug ya corregido en la creación, pero eso
-    // dejó datos viejos ya guardados con la fecha equivocada — createdAt
-    // siempre fue correcto por documento, sin importar ese bug.
     date: toDateString(raw.createdAt ?? raw.date ?? raw.fecha_inicio) ?? new Date().toISOString().split("T")[0],
     responsable,
     client: raw.client ?? responsable,
@@ -220,7 +207,6 @@ const toUiSheet = (raw) => {
 
 const getCategories = async () => {
   try {
-    // Usar productCategoryAPI que ya sabe a qué puerto apuntar
     const categories = await productCategoryAPI.getAll();
     return Array.isArray(categories) && categories.length > 0 ? categories : Categories;
   } catch {
@@ -423,7 +409,22 @@ export const productAPI = {
     return asArray(response).map((product) => toUiProduct(product, categories));
   },
 
-getById: async (id) => {
+  getByReference: async (referencia) => {
+    if (!referencia) return null;
+    const categories = await getCategories();
+    const response = await requestEndpointFallback(
+      PRODUCT_ENDPOINTS.map((endpoint) => `${endpoint}?search=${encodeURIComponent(String(referencia))}&limit=1`),
+      { method: "GET" }
+    );
+    const products = asArray(response);
+    const product = products.find((p) =>
+      String(p.referencia || p.reference || p.id || p._id || "").trim() === String(referencia).trim()
+    ) || products[0];
+    if (!product) return null;
+    return toUiProduct(product, categories);
+  },
+
+  getById: async (id) => {
     // ✅ Fix: nunca llamar /products/undefined (evita el 404 de GET /api/products/undefined)
     if (!id) return null;
     const categories = await getCategories();

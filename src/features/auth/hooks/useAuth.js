@@ -65,7 +65,15 @@ export const useAuth = () => {
       if (ctxLogin) ctxLogin(session ?? data.user);
 
       showAlert("success", "¡Bienvenido!", `Hola, ${data.user.nombreCompleto}`);
-      if (onSuccess) setTimeout(onSuccess, 1200);
+
+      // IMPORTANTE:
+      // Pasamos la sesión directamente para que la ruta
+      // no dependa de que React haya actualizado el contexto.
+      if (onSuccess) {
+        setTimeout(() => {
+          onSuccess(session ?? data.user);
+        }, 1200);
+      }
     } catch (err) {
       showAlert("error", "Error al iniciar sesión", err.message);
       setError(err.message);

@@ -3,6 +3,7 @@ import Alert from '../../../shared/components/Alert';
 import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
 import { blockInput } from '../../../shared/utils/blockInput';
+import { userAPI } from '../../services/usersAPI';
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -20,7 +21,7 @@ const sectionTitle = (t) => (
 // esto no depende de lo que se cree en el módulo de Roles.
 const CARGOS_DISPONIBLES = ['Corte', 'Compras', 'Recepción', 'Vendedor', 'Bodega'];
 
-const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
+const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCancel }) => {
   const modalRef = useRef(null);
 
   const [formData, setFormData] = useState(() => user ?? {
@@ -30,6 +31,56 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
   const [sending, setSending] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ open: false, type: 'confirm', title: '', message: '', onConfirm: null });
+
+  // FIX (punto 1): validación en tiempo real de documento duplicado.
+  // 'idle' | 'checking' | 'taken' | 'available'
+  const [docCheckStatus, setDocCheckStatus] = useState('idle');
+
+  useEffect(() => {
+    const numero = formData.documentNumber?.toString().trim();
+    // Solo consultar cuando el número ya pasa el formato mínimo — evita
+    // llamadas a la API mientras el usuario apenas empieza a escribir.
+    if (!numero || numero.length < 10) {
+      setDocCheckStatus('idle');
+      return;
+    }
+
+    setDocCheckStatus('checking');
+    // Debounce de 500ms: espera a que el usuario deje de escribir antes de
+    // golpear la API — evita disparar una petición por cada tecla.
+    const timer = setTimeout(async () => {
+      try {
+        const res = await userAPI.checkDocument(numero, user?.id ?? null);
+        const disponible = res?.disponible ?? res?.data?.disponible;
+        setDocCheckStatus(disponible ? 'available' : 'taken');
+        setErrors((p) => ({
+          ...p,
+          documentNumber: disponible ? '' : 'Este número de documento ya está registrado',
+        }));
+      } catch {
+        // Si la verificación falla (red, etc.) no bloqueamos al usuario —
+        // la unicidad se vuelve a validar de todas formas al enviar el
+        // formulario, en el backend (CreateUser/UpdateUser).
+        setDocCheckStatus('idle');
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.documentNumber]);
+
+  // FIX (punto 2): validación en tiempo real de correo duplicado — chequeo
+  // local contra la lista de usuarios ya cargada (sin golpear la API en cada
+  // tecla, como sí se hace con el documento vía backend).
+  const isEmailDuplicate = useCallback((value) => {
+    const correo = value?.toString().trim().toLowerCase();
+    if (!correo) return false;
+    return allUsers.some((u) => {
+      if (user && String(u.id) === String(user.id)) return false;
+      const existente = (u.correo || u.email || '').toString().trim().toLowerCase();
+      return existente === correo;
+    });
+  }, [allUsers, user]);
 
   const closeAlert = useCallback(() => setAlertConfig((p) => ({ ...p, open: false })), []);
 
@@ -76,7 +127,10 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
         error = validators.required(value)
           || (value && value.trim().length < 3 ? 'Mínimo 3 caracteres' : '');
         break;
-      case 'email': error = validators.required(value) || validators.email(value); break;
+      case 'email':
+        error = validators.required(value) || validators.email(value);
+        if (!error && isEmailDuplicate(value)) error = 'Este correo ya está registrado';
+        break;
       case 'role': error = validators.required(value); break;
       case 'sede': error = validators.required(value); break;
       case 'cargos':
@@ -122,6 +176,18 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
       setAlertConfig({ open: true, type: 'warning', title: 'Campos incompletos', message: 'Corrige los campos marcados antes de continuar.', onConfirm: null });
       return;
     }
+    // FIX (punto 1): no dejar enviar mientras la verificación de documento
+    // sigue en curso, ni si ya se confirmó que está duplicado — evita una
+    // condición de carrera donde el usuario le da "Guardar" justo antes de
+    // que responda la validación en tiempo real.
+    if (docCheckStatus === 'checking') {
+      setAlertConfig({ open: true, type: 'warning', title: 'Un momento', message: 'Aún estamos verificando el número de documento.', onConfirm: null });
+      return;
+    }
+    if (docCheckStatus === 'taken') {
+      setAlertConfig({ open: true, type: 'warning', title: 'Documento duplicado', message: 'Ese número de documento ya está registrado.', onConfirm: null });
+      return;
+    }
     const payload = {
       tipoDocumento: formData.documentType,
       numeroDocumento: formData.documentNumber,
@@ -156,6 +222,12 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 480px) {
+          .uf-grid { grid-template-columns: 1fr !important; }
+          .uf-body { padding: 20px 18px !important; }
+        }
+      `}</style>
       <Alert
         isOpen={alertConfig.open} type={alertConfig.type}
         title={alertConfig.title} message={alertConfig.message}
@@ -163,10 +235,10 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
         onCancel={closeAlert}
       />
 
-      <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
+      <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16, overflowY: 'auto' }}>
         <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
 
-          <div style={{ padding: '28px 30px' }}>
+          <div className="uf-body" style={{ padding: '28px 30px' }}>
             {/* Botón cerrar */}
             <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
 
@@ -188,7 +260,7 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
             <form onSubmit={handleSubmit} noValidate>
               {sectionTitle('Datos personales')}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+              <div className="uf-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                 <div>
                   <label style={labelStyle}>Tipo de documento <span style={requiredStar}>*</span></label>
                   <select
@@ -216,7 +288,13 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
                     placeholder="Ej: 1234567890"
                     style={getInputStyleBox(errors.documentNumber)}
                   />
-                  {errors.documentNumber && <span style={errMsg}>⚠ {errors.documentNumber}</span>}
+                  {errors.documentNumber ? (
+                    <span style={errMsg}>⚠ {errors.documentNumber}</span>
+                  ) : docCheckStatus === 'checking' ? (
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>Verificando disponibilidad...</span>
+                  ) : docCheckStatus === 'available' ? (
+                    <span style={{ fontSize: 11, color: '#16a34a' }}>✓ Disponible</span>
+                  ) : null}
                 </div>
               </div>
 
@@ -236,17 +314,21 @@ const UserForm = ({ user, roles = [], sedes = [], onSubmit, onCancel }) => {
                 <label style={labelStyle}>Correo electrónico <span style={requiredStar}>*</span></label>
                 <input
                   type="email" name="email" value={formData.email}
-                  onChange={handleChange}
+                  onChange={(e) => { handleChange(e); validateField('email', e.target.value); }}
                   onBlur={(e) => validateField('email', e.target.value)}
                   placeholder="Ej: carlos@empresa.com"
                   style={getInputStyleBox(errors.email)}
                 />
-                {errors.email && <span style={errMsg}>⚠ {errors.email}</span>}
+                {errors.email ? (
+                  <span style={errMsg}>⚠ {errors.email}</span>
+                ) : formData.email && validators.email(formData.email) === '' ? (
+                  <span style={{ fontSize: 11, color: '#16a34a' }}>✓ Disponible</span>
+                ) : null}
               </div>
 
               {sectionTitle('Acceso y ubicación')}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+              <div className="uf-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                 <div>
                   <label style={labelStyle}>Rol <span style={requiredStar}>*</span></label>
                   <select
