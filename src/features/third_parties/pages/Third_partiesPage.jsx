@@ -75,10 +75,16 @@ const Third_partiePage = () => {
   const handleEdit = (t) => { setEditingThird_partie(t); setShowForm(true); };
   const handleAdd = () => { setEditingThird_partie(null); setShowForm(true); };
 
+  const ESTADOS_POST_PRODUCCION = ['Recepción', 'Empaque', 'Enviado', 'Anulada'];
+
   const handleToggle = (id) => {
     const t = Third_parties.find(tp => tp.id === id);
-    if (t?.producciones?.length > 0) {
-      setErrorAlert({ open: true, message: `Este tercero tiene ${t.producciones.length} producción(es) asignada(s). No se puede cambiar su estado.` });
+    const activas = (t?.producciones || []).filter((p) => {
+      const estado = (p?.estado || '').toString();
+      return estado && !ESTADOS_POST_PRODUCCION.includes(estado);
+    });
+    if (activas.length > 0) {
+      setErrorAlert({ open: true, message: `Este tercero tiene ${activas.length} producción(es) activa(s). No se puede cambiar su estado.` });
       return;
     }
     toggleThird_partie?.(id);
@@ -90,8 +96,12 @@ const Third_partiePage = () => {
       setErrorAlert({ open: true, message: `El tercero "${t.nombreEmpresa}" está activo. Inactívalo primero antes de eliminarlo.` });
       return;
     }
-    if (t?.producciones?.length > 0) {
-      setErrorAlert({ open: true, message: `Este tercero tiene ${t.producciones.length} producción(es) asignada(s) y no puede eliminarse.` });
+    const activas = (t?.producciones || []).filter((p) => {
+      const estado = (p?.estado || '').toString();
+      return estado && !ESTADOS_POST_PRODUCCION.includes(estado);
+    });
+    if (activas.length > 0) {
+      setErrorAlert({ open: true, message: `Este tercero tiene ${activas.length} producción(es) activa(s) y no puede eliminarse.` });
       return;
     }
     setDeleteAlert({ open: true, id, name: t?.nombreEmpresa || '' });
@@ -225,7 +235,7 @@ const Third_partiePage = () => {
   );
 
   return (
-    <div style={{  fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', fontFamily: "'Nunito', sans-serif", overflowX: 'hidden' }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
@@ -361,32 +371,6 @@ const Third_partiePage = () => {
           .tp-pg-btn { padding: 5px 8px; font-size: 12px; }
         }
 
-        /* ── Centrado para vistas móviles pequeñas (375 x 667) ── */
-        @media (max-width: 480px) {
-          .tp-header {
-            align-items: center;
-            text-align: center;
-          }
-          .tp-title {
-            width: 100%;
-            text-align: center;
-          }
-          .tp-header-right {
-            width: 100%;
-            align-items: center !important;
-          }
-          .tp-search-wrap {
-            display: flex;
-            justify-content: center;
-          }
-          .tp-tabs {
-            justify-content: center;
-          }
-          .tp-actions-bar {
-            justify-content: center;
-          }
-        }
-
         /* ── "Ver detalle" fab en móvil ──
            Cuando hay un tercero seleccionado y el drawer está cerrado,
            aparece un fab flotante en la esquina inferior derecha           */
@@ -442,7 +426,6 @@ const Third_partiePage = () => {
 
         {/* ── Header ── */}
         <div
-          className="tp-header"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -450,16 +433,16 @@ const Third_partiePage = () => {
             marginBottom: '20px',
           }}
         >
-          <h1 className="tp-title" style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Terceros</h1>
-          <div className="tp-header-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Terceros</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <Third_partieSearch
               value={searchTerm}
               onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
               placeholder="Buscar"
-              width="100%"
+              width="400px"
               maxWidth="400px"
             />
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>
+            <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>
               Escribe <strong>activo</strong> para ver registros activos ·{" "}
               <strong>inactivo</strong> para ver registros inactivos
             </span>
@@ -585,7 +568,6 @@ const Third_partiePage = () => {
           Third_partie={editingThird_partie}
           onSubmit={handleFormSubmit}
           onCancel={() => setShowForm(false)}
-          allThirdParties={Third_parties}
         />
       )}
     </div>
