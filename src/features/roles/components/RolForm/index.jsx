@@ -130,6 +130,21 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
     return exists ? 'Ya existe un rol con este nombre. Usa otro nombre.' : '';
   };
 
+  const getGerenteAlreadyExistsError = (value) => {
+    if (!value || !value.toString().trim()) return '';
+
+    const normalizedValue = value.toString().trim().toLowerCase();
+    if (normalizedValue !== 'gerente') return '';
+
+    const existingGerente = roles.find((r) => r.nombre?.trim().toLowerCase() === 'gerente');
+    if (!existingGerente) return '';
+
+    const sameRole = rol && String(rol.id) === String(existingGerente.id);
+    if (sameRole) return '';
+
+    return 'Ya existe un rol con el nombre "Gerente". Solo puede haber un rol de Gerente.';
+  };
+
   // ── Validación ────────────────────────────────────
   const validateField = (name, value) => {
     let error = '';
@@ -142,6 +157,9 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
 
       if (!error) {
         error = getDuplicateRoleNameError(value);
+      }
+      if (!error) {
+        error = getGerenteAlreadyExistsError(value);
       }
     }
     if (name === 'descripcion') {
