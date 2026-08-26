@@ -180,20 +180,23 @@ export const supplyAPI = {
     const result = await httpClient.get(`/insumos${qs ? `?${qs}` : ""}`);
     const payload = result?.data ?? result;
 
-    if (Array.isArray(payload)) {
-      return {
-        data: payload.map(normalizeSupply),
-        total: payload.length,
-        page: 1,
-        limit: payload.length,
-        totalPages: 1,
-      };
-    }
+    const dataArray = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.insumos)
+          ? payload.insumos
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.records)
+              ? payload.records
+              : [];
+
     return {
-      data: (payload?.data ?? []).map(normalizeSupply),
-      total: payload?.total ?? 0,
+      data: dataArray.map(normalizeSupply),
+      total: payload?.total ?? dataArray.length,
       page: payload?.page ?? 1,
-      limit: payload?.limit ?? 10,
+      limit: payload?.limit ?? dataArray.length,
       totalPages: payload?.totalPages ?? 1,
     };
   },
