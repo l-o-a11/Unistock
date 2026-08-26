@@ -131,7 +131,9 @@ export const RolesAPI = {
   create: async (rolData) => {
     const body = {
       nombre: rolData.nombre,
-      descripcion: rolData.descripcion,
+      ...(rolData.descripcion !== undefined && rolData.descripcion !== null
+        ? { descripcion: rolData.descripcion.trim() || undefined }
+        : {}),
       estado: rolData.estado ?? true,
       permisos: permisosFrontToBack(rolData.modulos ?? []),
     };
@@ -144,7 +146,9 @@ export const RolesAPI = {
   update: async (id, rolData) => {
     const body = {
       ...(rolData.nombre !== undefined && { nombre: rolData.nombre }),
-      ...(rolData.descripcion !== undefined && { descripcion: rolData.descripcion }),
+      ...(rolData.descripcion !== undefined && {
+        descripcion: typeof rolData.descripcion === 'string' ? rolData.descripcion.trim() || undefined : rolData.descripcion,
+      }),
       ...(rolData.estado !== undefined && { estado: rolData.estado }),
       ...(rolData.modulos !== undefined && {
         permisos: permisosFrontToBack(rolData.modulos),

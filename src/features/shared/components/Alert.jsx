@@ -139,6 +139,11 @@ const Alert = ({
     if (confirming) return; // evita doble clic mientras se procesa
     try {
       setConfirming(true);
+      // Se cierra primero para evitar que la misma instancia del estado de alerta
+      // tape el siguiente toast/error que se abre desde el callback.
+      if (isToast === false && onCancel) {
+        onCancel();
+      }
       // ✅ Fix: el tipo "managerAuth" pide correo + contraseña reales del
       // gerente (no asume que el usuario logueado actualmente lo es).
       if (type === "managerAuth") {
@@ -146,6 +151,8 @@ const Alert = ({
       } else {
         await onConfirm?.(password);
       }
+    } catch (error) {
+      throw error;
     } finally {
       setConfirming(false);
     }

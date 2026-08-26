@@ -3,7 +3,7 @@ import RolesForm from "../components/RolForm";
 
 
 
-const CreateRolPage = ({ onClose, createRol, roles = [] }) => {
+const CreateRolPage = ({ onClose, createRol, roles = [], onDirtyChange }) => {
   const handleSubmit = async (rolData) => {
     await createRol(rolData); // esto actualiza el mismo estado que la tabla
     onClose();
@@ -12,7 +12,8 @@ const CreateRolPage = ({ onClose, createRol, roles = [] }) => {
   return <RolesForm
    roles={roles}
    onSubmit={handleSubmit} 
-   onCancel={onClose} />;
+   onCancel={onClose}
+   onDirtyChange={onDirtyChange} />;
 };
 
 
