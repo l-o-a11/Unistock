@@ -26,6 +26,7 @@ const RolesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [modalType, setModalType] = useState(null);
   const [editingRol, setEditingRol] = useState(null); // objeto completo, no solo ID
+  const [rolesModalDirty, setRolesModalDirty] = useState(false);
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
 
   const [alertConfig, setAlertConfig] = useState({
@@ -65,6 +66,12 @@ const RolesPage = () => {
 
   // ── Alert helpers ─────────────────────────────────
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
+
+  const closeRolesModal = () => {
+    setModalType(null);
+    setEditingRol(null);
+    setRolesModalDirty(false);
+  };
 
   const showAlert = (type, title, message, onConfirm) =>
     setAlertConfig({
@@ -507,8 +514,19 @@ const RolesPage = () => {
         <div
           className="roles-modal-overlay"
           onClick={() => {
-            setModalType(null);
-            setEditingRol(null);
+            if (rolesModalDirty) {
+              showAlert(
+                "confirm",
+                "¿Cancelar?",
+                "Hay cambios sin guardar. Si sales, se perderán.",
+                () => {
+                  closeAlert();
+                  closeRolesModal();
+                }
+              );
+              return;
+            }
+            closeRolesModal();
           }}
           style={{
             position: "fixed",
@@ -541,7 +559,8 @@ const RolesPage = () => {
                 <CreateRolPage
                   createRol={handleCreateRol}
                   roles={roles}
-                  onClose={() => setModalType(null)}
+                  onClose={closeRolesModal}
+                  onDirtyChange={setRolesModalDirty}
                 />
               )}
               {modalType === "edit" && (
@@ -549,10 +568,8 @@ const RolesPage = () => {
                   rol={editingRol}
                   roles={roles}
                   updateRol={handleUpdateRol}
-                  onClose={() => {
-                    setModalType(null);
-                    setEditingRol(null);
-                  }}
+                  onClose={closeRolesModal}
+                  onDirtyChange={setRolesModalDirty}
                 />
               )}
             </div>

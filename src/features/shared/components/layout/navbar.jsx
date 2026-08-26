@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, LogOut, Settings, ChevronUp, ChevronDown } from "lucide-react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
-import { useRoles } from "../../../roles/hooks/useRoles";
-import { useSedes } from "../../../sedes/hooks/useSedes";
 import Alert from "../Alert";
 
 const Navbar = () => {
@@ -12,18 +10,18 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  const session   = AuthAPI.getSession();
-  const { roles } = useRoles();
-  const { sedes } = useSedes();
+  const session = AuthAPI.getSession();
 
-  const roleName = roles.find(r => r.id === session?.rolId)?.nombre ?? "";
-  const sedeName = sedes.find(s => s.id === session?.sedeId)?.nombre ?? "";
-
+  // FIX: rol y sede ya vienen resueltos en el token/sesión (rolNombre,
+  // sedeNombre) desde el login — ya no hace falta pedir /api/roles ni
+  // /api/sites solo para mostrar el nombre en este dropdown. Esas rutas
+  // son administrativas y devuelven 403 para usuarios sin esos permisos
+  // (ej. Empleado), lo que dejaba estos campos siempre vacíos.
   const user = {
     name:  session?.nombre ?? "Usuario",
     email: session?.correo ?? "",
-    rol:   roleName,
-    sede:  sedeName,
+    rol:   session?.rolNombre ?? "",
+    sede:  session?.sedeNombre ?? "",
   };
 
   useEffect(() => {
