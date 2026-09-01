@@ -327,8 +327,11 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    if (name === "telefono") { if (!blockInput.onlyNumbers(e)) return; }
-    else if (name === "nit") {
+    // "telefono" y "telefonoContacto" solo aceptan dígitos: bloquea letras
+    // tanto al escribir como al pegar (paste también dispara onChange).
+    if (name === "telefono" || name === "telefonoContacto") {
+      if (!blockInput.onlyNumbers(e)) return;
+    } else if (name === "nit") {
       // Persona jurídica permite guión (NIT); persona natural solo dígitos (cédula)
       if (esJuridica) { if (!blockInput.nit(e)) return; }
       else { if (!blockInput.onlyNumbers(e)) return; }
