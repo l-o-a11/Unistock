@@ -10,6 +10,8 @@ import Alert from '../../shared/components/Alert';
 import Button from '../../shared/components/Button';
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 import { useSedeScope } from '../../shared/hooks/useSedeScope';
+import { useEmployees } from '../../employees/hooks/mockEmployees';
+import ProductionAlerts from '../productionDetails/pages/ProductionAlerts';
 
 const DAMAGED_TRIGGER_STEPS = ['Corte', 'Producción','Recepción'];
 
@@ -145,10 +147,15 @@ const ProductionsPage = () => {
   const [downloadModal, setDownloadModal] = useState(false);
   const [cancelAlert, setCancelAlert] = useState({ open: false, type: 'success', title: '', message: '' });
   const [isCancelling, setIsCancelling] = useState(false);
+  const [reassignAlert, setReassignAlert] = useState({ open: false, production: null });
 
   // 🔒 Alcance: Gerente y Administrador ven todo (Administrador sin
   // acciones); cualquier otro rol (empleado) solo ve su orden asignada.
   const { isGerente, isAdministrador, isEmpleado, user } = useSedeScope();
+
+  // ✅ Cargar empleados solo para Gerente — necesario para detectar
+  // empleados anulados (inactivos) y para el modal de reasignación.
+  const { employees: employeesList, loading: employeesLoading } = isGerente ? useEmployees() : { employees: [], loading: false };
 
   useEffect(() => {
     // 🐛 FIX: sin verificación de rol, cualquiera que llegara a esta página
@@ -624,6 +631,46 @@ const ProductionsPage = () => {
     } catch (err) {
       console.error('[ProductionsPage] Error confirmando etapa:', err);
       throw err; // Re-lanzar para que ProductionTable lo capture y muestre en el modal
+    }
+  };
+
+  // ── Reasignar empleado anulado (desde la vista de lista) ─────────────────────
+  // ✅ Botón "Reasignar" en ProductionTable: visible para Gerente cuando el
+  // empleado asignado a la orden está inactivo (anulado). Abre el modal de
+  // ProductionAlerts con type "replaceEmployee" para elegir un reemplazo.
+  const openReassignModal = (prod) => {
+    setReassignAlert({ open: true, production: prod });
+  };
+  const closeReassignModal = () => {
+    setReassignAlert({ open: false, production: null });
+  };
+
+  const handleReassignAlertConfirm = async (employeeData) => {
+    const { production } = reassignAlert;
+    if (!production) return;
+    try {
+      await ProductionAPIClient.reasignarEmpleado(
+        production.id,
+        employeeData.id_empleado,
+        employeeData.motivo
+      );
+      await refreshProductions();
+      setCancelAlert({
+        open: true,
+        type: 'success',
+        title: 'Empleado reasignado',
+        message: `Se reasignó a "${employeeData.nombre_empleado}" como responsable de "${production.status}".`,
+      });
+    } catch (err) {
+      console.error('[ProductionPage] Error reasignando empleado:', err);
+      setCancelAlert({
+        open: true,
+        type: 'error',
+        title: 'Error al reasignar',
+        message: err?.message || 'No se pudo reasignar el empleado. Intenta de nuevo.',
+      });
+    } finally {
+      closeReassignModal();
     }
   };
 
@@ -1339,7 +1386,7 @@ const ProductionsPage = () => {
         </div>
       )}
 
-      <DamagedProductsModal
+       <DamagedProductsModal
         isOpen={damagedModal.open && isGerente}
         production={damagedModal.production}
         onClose={() => setDamagedModal({ open: false, production: null })}
@@ -1354,6 +1401,23 @@ const ProductionsPage = () => {
         onNewOrder={handleNewOrderFromDamaged}
         onNewTechSheet={handleNewTechSheetFromDamaged}
         onNewTechSheetOnly={handleNewTechSheetOnlyFromDamaged}
+      />
+
+      {/* ✅ Modal de reasignación de empleado anulado (desde la vista de lista) */}
+      <ProductionAlerts
+        key={reassignAlert.open ? `reassign-${reassignAlert.production?.id}-${Date.now()}` : 'reassign-closed'}
+        isOpen={reassignAlert.open}
+        type="replaceEmployee"
+        targetStep={reassignAlert.production?.status}
+        customTitle="Reemplazar empleado"
+        customMessage={
+          reassignAlert.production
+            ? `El empleado asignado a "${reassignAlert.production.status}" ya no está disponible. Selecciona un reemplazo para continuar.`
+            : ''
+        }
+        onAccept={handleReassignAlertConfirm}
+        onCancel={closeReassignModal}
+        sedeId={reassignAlert.production?.rawData?.sedeId || null}
       />
 
       {damagedOrderForm.open && (
@@ -1480,7 +1544,14 @@ const ProductionsPage = () => {
         )}
 
         <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflowX: 'auto' }}>
-          <ProductionTable productions={paginatedProductions} onCancel={openCancelModal} onExpandRow={fetchAndSetDetails} onConfirmar={handleConfirmarEtapa} />
+          <ProductionTable
+            productions={paginatedProductions}
+            onCancel={openCancelModal}
+            onExpandRow={fetchAndSetDetails}
+            onConfirmar={handleConfirmarEtapa}
+            onReassignEmployee={openReassignModal}
+            employees={employeesList}
+          />
         </div>
 
         {/* Paginación */}

@@ -86,7 +86,7 @@ const onBlurField = (e) => {
 // ─────────────────────────────────────────────────
 // RolForm
 // ─────────────────────────────────────────────────
-const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 }) => {
+const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosEnlazados = 0 }) => {
   const initialFormData = {
     nombre: rol?.nombre || '',
     descripcion: rol?.descripcion || '',
@@ -94,10 +94,16 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
   };
 
   const [formData, setFormData] = useState(initialFormData);
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormData);
+
+  React.useEffect(() => {
+    onDirtyChange?.(hasChanges);
+  }, [hasChanges, onDirtyChange]);
 
   const [errors, setErrors] = useState({});
   const [moduloSeleccionado, setModuloSeleccionado] = useState('');
   const [privilegiosSeleccionados, setPrivilegiosSeleccionados] = useState([]);
+  const [moduleSelectionError, setModuleSelectionError] = useState('');
 
   const [alertConfig, setAlertConfig] = useState({
     open: false, type: 'success', title: '', message: '', onConfirm: null,
@@ -124,6 +130,21 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
     return exists ? 'Ya existe un rol con este nombre. Usa otro nombre.' : '';
   };
 
+  const getGerenteAlreadyExistsError = (value) => {
+    if (!value || !value.toString().trim()) return '';
+
+    const normalizedValue = value.toString().trim().toLowerCase();
+    if (normalizedValue !== 'gerente') return '';
+
+    const existingGerente = roles.find((r) => r.nombre?.trim().toLowerCase() === 'gerente');
+    if (!existingGerente) return '';
+
+    const sameRole = rol && String(rol.id) === String(existingGerente.id);
+    if (sameRole) return '';
+
+    return 'Ya existe un rol con el nombre "Gerente". Solo puede haber un rol de Gerente.';
+  };
+
   // ── Validación ────────────────────────────────────
   const validateField = (name, value) => {
     let error = '';
@@ -137,9 +158,12 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
       if (!error) {
         error = getDuplicateRoleNameError(value);
       }
+      if (!error) {
+        error = getGerenteAlreadyExistsError(value);
+      }
     }
     if (name === 'descripcion') {
-      error = validators.required(value) || validators.maxLength(200)(value);
+      error = validators.maxLength(200)(value);
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
     return error;
@@ -147,7 +171,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
 
   const validateAll = () => {
     const nameError = validateField('nombre', formData.nombre);
-    const descError = validateField('descripcion', formData.descripcion);
+    validateField('descripcion', formData.descripcion);
     let modulosError = '';
     if (formData.modulos.length === 0) {
       modulosError = 'Debes agregar al menos un módulo con sus privilegios';
@@ -155,7 +179,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
     } else {
       setErrors((prev) => ({ ...prev, modulos: '' }));
     }
-    return !nameError && !descError && !modulosError;
+    return !nameError && !modulosError;
   };
 
   // ── Handlers ──────────────────────────────────────
@@ -195,28 +219,53 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
   };
 
   const handleModuloChange = (e) => {
-    setModuloSeleccionado(e.target.value);
+    const value = e.target.value;
+    setModuloSeleccionado(value);
     setPrivilegiosSeleccionados([]);
+    setModuleSelectionError('');
+    if (value) {
+      setErrors((prev) => ({ ...prev, modulos: '' }));
+    }
   };
 
   const handlePrivilegioToggle = (id) => {
-    setPrivilegiosSeleccionados((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    );
+    const next = privilegiosSeleccionados.includes(id)
+      ? privilegiosSeleccionados.filter((p) => p !== id)
+      : [...privilegiosSeleccionados, id];
+
+    setPrivilegiosSeleccionados(next);
+
+    if (moduloSeleccionado && next.length === 0) {
+      setModuleSelectionError('Debes seleccionar al menos un privilegio para este módulo.');
+      setErrors((prev) => ({ ...prev, modulos: 'Debes seleccionar al menos un privilegio para este módulo.' }));
+      return;
+    }
+
+    setModuleSelectionError('');
+    setErrors((prev) => ({ ...prev, modulos: '' }));
   };
 
   const handleAgregarModulo = () => {
     if (!moduloSeleccionado) {
-      showAlert('warning', 'Campo requerido', 'Debes seleccionar un módulo antes de agregarlo.');
+      const message = 'Debes seleccionar un módulo antes de agregarlo.';
+      setModuleSelectionError(message);
+      setErrors((prev) => ({ ...prev, modulos: message }));
+      showAlert('warning', 'Campo requerido', message);
       return;
     }
     if (privilegiosSeleccionados.length === 0) {
-      showAlert('warning', 'Campo requerido', 'Debes seleccionar al menos un privilegio para el módulo.');
+      const message = 'Debes seleccionar al menos un privilegio para el módulo.';
+      setModuleSelectionError(message);
+      setErrors((prev) => ({ ...prev, modulos: message }));
+      showAlert('warning', 'Campo requerido', message);
       return;
     }
     const yaExiste = formData.modulos.find((m) => m.moduloId === parseInt(moduloSeleccionado));
     if (yaExiste) {
-      showAlert('warning', 'Módulo duplicado', 'Este módulo ya está agregado al rol. Edita sus privilegios directamente en la lista.');
+      const message = 'Este módulo ya está agregado al rol. Edita sus privilegios directamente en la lista.';
+      setModuleSelectionError(message);
+      setErrors((prev) => ({ ...prev, modulos: message }));
+      showAlert('warning', 'Módulo duplicado', message);
       return;
     }
     setFormData((prev) => ({
@@ -227,6 +276,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
       ],
     }));
     setErrors((prev) => ({ ...prev, modulos: '' }));
+    setModuleSelectionError('');
     setModuloSeleccionado('');
     setPrivilegiosSeleccionados([]);
   };
@@ -378,9 +428,9 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
         {/* DESCRIPCIÓN */}
         <div style={{ marginBottom: 10 }}>
           <label htmlFor="descripcion" style={labelStyle}>
-            Descripción {req}
+            Descripción
             <span style={{ color: '#9ca3af', fontWeight: 100, marginLeft: 6, fontSize: 11 }}>
-              (máx. 200 caracteres)
+              (opcional · máx. 200 caracteres)
             </span>
           </label>
           <textarea
@@ -557,6 +607,9 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, usuariosEnlazados = 0 })
                 );
               })}
             </div>
+            {moduleSelectionError && (
+              <span style={{ ...errorStyle, marginTop: 8, display: 'block' }}>⚠ {moduleSelectionError}</span>
+            )}
           </div>
 
           <button

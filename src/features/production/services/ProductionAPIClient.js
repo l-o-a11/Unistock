@@ -11,7 +11,7 @@ const getCurrentUserName = () => {
     const raw = localStorage.getItem('session_user');
     if (raw) {
       const u = JSON.parse(raw);
-      return u.nombreCompleto || u.nombre || u.username || u.id || 'Admin';
+      return String(u.nombreCompleto || u.nombre || u.username || u.id || 'Admin');
     }
   } catch { }
   return 'Admin';
@@ -52,7 +52,10 @@ const toBackendFormat = (frontendData) => {
   if (hasAny('fecha_entrega', 'deliveryDate', 'fechaSolicitud')) {
     backendData.fecha_entrega = parseDateInput(firstValue('fecha_entrega', 'deliveryDate', 'fechaSolicitud'));
   }
-  if (hasAny('id_usuario', 'userId')) backendData.id_usuario = firstValue('id_usuario', 'userId');
+  if (hasAny('id_usuario', 'userId')) {
+    const idUsuarioValue = firstValue('id_usuario', 'userId');
+    backendData.id_usuario = typeof idUsuarioValue === 'number' ? String(idUsuarioValue) : idUsuarioValue;
+  }
   if (hasAny('asignaciones', 'terceros')) backendData.asignaciones = firstValue('asignaciones', 'terceros');
   if (hasAny('tipo', 'type')) backendData.tipo = firstValue('tipo', 'type');
   if (hasAny('referencia', 'reference')) backendData.referencia = firstValue('referencia', 'reference');
@@ -63,15 +66,14 @@ const toBackendFormat = (frontendData) => {
   if (hasAny('finishedImages')) backendData.finishedImages = Array.isArray(frontendData.finishedImages) ? frontendData.finishedImages : [];
   if (hasAny('finishedImageUrl')) backendData.finishedImageUrl = frontendData.finishedImageUrl;
   if (hasAny('fromDamaged')) backendData.fromDamaged = frontendData.fromDamaged;
-  if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = frontendData.originalOrderNumber;
+  if (hasAny('originalOrderNumber')) backendData.originalOrderNumber = typeof frontendData.originalOrderNumber === 'number' ? String(frontendData.originalOrderNumber) : frontendData.originalOrderNumber;
   if (hasAny('originalOrderStatus')) backendData.originalOrderStatus = frontendData.originalOrderStatus;
   if (hasAny('sedeAsignaciones')) backendData.sedeAsignaciones = Array.isArray(frontendData.sedeAsignaciones) ? frontendData.sedeAsignaciones : [];
   if (hasAny('terceroAsignaciones')) backendData.terceroAsignaciones = Array.isArray(frontendData.terceroAsignaciones) ? frontendData.terceroAsignaciones : [];
-  if (hasAny('sedeId')) backendData.sedeId = firstValue('sedeId');
+  if (hasAny('sedeId')) backendData.sedeId = typeof frontendData.sedeId === 'number' ? String(frontendData.sedeId) : frontendData.sedeId;
 
   if (!hasAny('id_usuario', 'userId')) backendData.id_usuario = getCurrentUserName();
 
-  console.log('[toBackendFormat] mapped payload:', backendData);
   return backendData;
 };
 
@@ -111,8 +113,8 @@ const toFrontendFormat = (backendData) => {
     quantity: backendData.quantity || backendData.cantidad || 0,
     color: backendData.color || '',
     detalles: backendData.detalles || [],
-    asignaciones: backendData.asignaciones || [],
-    terceros: backendData.asignaciones || [],
+    asignaciones: backendData.asignaciones || backendData.terceroAsignaciones || [],
+    terceros: backendData.asignaciones || backendData.terceroAsignaciones || [],
     // ✅ Persistidas en BD — antes solo se guardaban en localStorage
     sedeAsignaciones: Array.isArray(backendData.sedeAsignaciones) ? backendData.sedeAsignaciones : [],
     terceroAsignaciones: Array.isArray(backendData.terceroAsignaciones) ? backendData.terceroAsignaciones : [],
@@ -155,8 +157,9 @@ export const ProductionAPIClient = {
     if (filters.order) q.append("order", filters.order);
     const endpoint = `/produccion/ordenes${q.toString() ? "?" + q : ""}`;
     const res = await httpRequest(endpoint, { method: "GET" });
-    const data = res?.data || res;
-    return Array.isArray(data) ? data.map(toFrontendFormat) : data;
+    const payload = res?.data || res;
+    const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    return list.map(toFrontendFormat);
   },
 
   getOrderById: async (id) => {
@@ -174,10 +177,8 @@ export const ProductionAPIClient = {
 
   updateOrder: async (id, data) => {
     const backendData = toBackendFormat(data);
-    console.log('[ProductionAPIClient] PUT /produccion/ordenes/' + id, 'payload:', backendData);
     const res = await httpRequest(`/produccion/ordenes/${id}`, { method: "PUT", body: backendData });
     const resData = res?.data || res;
-    console.log('[ProductionAPIClient] PUT response:', resData);
     return toFrontendFormat(resData);
   },
 
@@ -369,5 +370,33 @@ export const ProductionAPIClient = {
       method: "DELETE",
     });
     return res?.data || res;
+  },
+
+  // ── Subida de imágenes (Cloudinary vía /api/upload-multiple) ──────
+  // ✅ FIX: este método no existía, por lo que `ProductionAPIClient
+  // .uploadImages(files)` lanzaba `uploadImages is not a function` y la
+  // subida de imágenes del producto terminado fallaba siempre. Ahora sube
+  // los archivos como multipart/form-data y devuelve un arreglo de URLs
+  // (strings) listo para guardarse en `finishedImages`.
+  uploadImages: async (files) => {
+    const fileList = Array.isArray(files) ? files : [files];
+    if (!fileList.length) return [];
+
+    const formData = new FormData();
+    fileList.forEach((file) => formData.append("files", file));
+
+    // La ruta de upload es pública (no requiere token) → skipAuth: true.
+    const res = await httpRequest("/upload-multiple", {
+      method: "POST",
+      body: formData,
+      skipAuth: true,
+    });
+
+    const payload = res?.data || res;
+    // El backend responde { success, images: [{ src, public_id, ... }] }
+    const images = payload?.images || (Array.isArray(payload) ? payload : []);
+    return images
+      .map((img) => img?.src || img?.url || img?.secure_url)
+      .filter(Boolean);
   },
 };

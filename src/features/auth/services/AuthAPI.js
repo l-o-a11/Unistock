@@ -20,12 +20,15 @@ export const authService = {
       const user = payload?.user ?? payload?.data?.user ?? payload ?? null;
 
       if (token) {
-        // El objeto `user` de BD no incluye rolNombre; viene dentro del JWT.
-        // Lo leemos decodificando el payload (sin verificar firma, solo claims).
+        // El objeto `user` de BD no incluye rolNombre ni sedeNombre; vienen
+        // dentro del JWT. Los leemos decodificando el payload (sin verificar
+        // firma, solo claims).
         let rolNombreFromToken = null;
+        let sedeNombreFromToken = null;
         try {
           const claims = JSON.parse(atob(token.split(".")[1]));
           rolNombreFromToken = claims?.rolNombre ?? null;
+          sedeNombreFromToken = claims?.sedeNombre ?? null;
         } catch { /* token malformado — ignorar */ }
 
         const session = {
@@ -35,6 +38,7 @@ export const authService = {
           rolId: user?.rolId ?? user?.rol_id ?? user?.role ?? null,
           rolNombre: user?.rolNombre ?? rolNombreFromToken ?? null,
           sedeId: user?.sedeId ?? user?.sede_id ?? null,
+          sedeNombre: user?.sedeNombre ?? sedeNombreFromToken ?? null,
           token,
         };
         localStorage.setItem("session_user", JSON.stringify(session));

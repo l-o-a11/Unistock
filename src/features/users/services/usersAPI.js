@@ -165,9 +165,17 @@ export const userAPI = {
   getSedes: async () => {
     try {
       const res = await get("/sites");
-      // La API puede devolver array plano o { data: [...] }
       const payload = res?.data ?? res;
       return Array.isArray(payload) ? payload : (payload?.data ?? []);
+    } catch (err) {
+      throw extractError(err);
+    }
+  },
+  getMyPermissions: async () => {
+    try {
+      const res = await get("/auth/me/permissions");
+      const payload = res?.data ?? res;
+      return payload ?? {};
     } catch (err) {
       throw extractError(err);
     }

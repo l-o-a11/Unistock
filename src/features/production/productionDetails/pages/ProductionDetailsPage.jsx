@@ -10,7 +10,7 @@ import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
-import TechnicalSheet from "../../../products/components/TechnicalSheet";
+import TechnicalSheet from "../../../production/components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
@@ -1656,7 +1656,7 @@ const ProductionDetailsPage = () => {
                 </div>
               </div>
               <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-                <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} productImage={production.productImage} />
+                <TechnicalSheet sheet={production.techSpecification} isEditing={false} productPrice={production.productoPrecio} productImage={production.productImage} categoryName={production.categoria || ''} />
               </div>
             </div>
           </div>
@@ -1723,7 +1723,7 @@ const ProductionDetailsPage = () => {
                   </div>
                 </div>
                 <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-                  <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} />
+                  <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} categoryName={production.categoria || ''} />
                 </div>
               </div>
             </div>
@@ -1916,13 +1916,41 @@ const ProductionDetailsPage = () => {
                       </button>
                     )}
                   </>
-                ) : empleadoAsignado ? (
+                 ) : empleadoAsignado ? (
                   <>
                     <span style={{ fontWeight: 700, color: "#FF4FD6" }}>{empleadoAsignado.nombreCompleto}</span>
                     {production.etapaConfirmada ? (
                       <span style={{ fontSize: 10.5, fontWeight: 700, color: "#16a34a", background: "#dcfce7", padding: "2px 8px", borderRadius: 20 }}>✓ Confirmado</span>
                     ) : (
                       <span style={{ fontSize: 10.5, fontWeight: 700, color: "#c2740a", background: "#fff7ed", padding: "2px 8px", borderRadius: 20 }}>Pendiente de confirmar</span>
+                    )}
+                    {isGerente && (
+                      <button
+                        onClick={() => openProductionAlert({
+                          type: "replaceEmployee",
+                          targetStep: production.status,
+                          customTitle: "Cambiar empleado responsable",
+                          customMessage: `El empleado actual es "${empleadoAsignado.nombreCompleto}". Selecciona un reemplazo para "${production.status}".`,
+                        })}
+                        title="Cambiar empleado responsable"
+                        style={{
+                          display: "inline-flex", alignItems: "center",
+                          fontSize: 10, fontWeight: 700, color: "#6b7280",
+                          padding: "2px 8px", borderRadius: 6,
+                          border: "1px solid #e5e7eb", background: "#fff",
+                          cursor: "pointer", transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#fef4ff"; e.currentTarget.style.borderColor = "#FF4FD6"; e.currentTarget.style.color = "#FF4FD6"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <polyline points="17 1 21 5 17 9" />
+                          <path d="M4.6 10.5A7.9 7.9 0 0 1 12 4c2.1 0 4 .8 5.4 2.1" />
+                          <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2" />
+                           <polyline points="17 23 21 19 17 15" />
+                        </svg>
+                        Cambiar
+                      </button>
                     )}
                   </>
                 ) : (
@@ -2052,14 +2080,13 @@ const ProductionDetailsPage = () => {
                         ))}
                       </div>
                     )}
-                    {/* 🐛 FIX: el modal "Foto del producto terminado" (más abajo,
-                        pendingFinishedImg === "request") existía en el código pero
-                        no tenía ningún botón que lo activara — pendingFinishedImg
-                        nunca se seteaba a "request" en ningún lado, así que era
-                        imposible subir la imagen. Se agrega este botón, habilitado
-                        solo desde la etapa "Recepción" en adelante (después de que
-                        el producto ya fue recibido/terminado). */}
-                    {!isAnulada && (isGerente || isEmpleado) && safeStepIndex >= stepsReal.indexOf("Recepción") && (
+                    {/* 🐛 FIX: antes el botón de subir foto del producto terminado
+                        solo se habilitaba desde la etapa "Recepción" en adelante, por
+                        lo que en Diseño/Ficha/Corte/Compras/Producción era imposible
+                        subir imágenes del producto. Ahora se permite en cualquier
+                        etapa (mientras la orden no esté anulada) para Gerente y
+                        Empleado, así la galería del detalle siempre puede poblarse. */}
+                    {!isAnulada && (isGerente || isEmpleado) && (
                       <button
                         onClick={() => setPendingFinishedImg("request")}
                         style={{

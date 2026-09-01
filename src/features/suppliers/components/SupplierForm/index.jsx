@@ -208,7 +208,20 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
     }
   }, [tipoProveedor]);
 
+  const isFormBlank = useCallback(() => {
+    const allEmpty = !formData.nombreEmpresa && !formData.nit && !formData.direccion
+      && !formData.correoEmpresa && !formData.sitioWeb && !formData.nombreContacto
+      && !formData.telefono && !formData.telefonoContacto && !formData.correoContacto;
+    if (supplier) {
+      const initial = buildInitialFormData(supplier);
+      const unchanged = Object.keys(initial).every((key) => formData[key] === initial[key]);
+      return unchanged;
+    }
+    return allEmpty;
+  }, [formData, supplier]);
+
   const handleCancelClick = useCallback(() => {
+    if (isFormBlank()) { onCancel(); return; }
     setAlertConfig({
       open: true, type: "confirm",
       title: "Cancelar",
@@ -218,7 +231,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         onCancel();
       },
     });
-  }, [onCancel]);
+  }, [onCancel, isFormBlank]);
 
   // ESC cierra el modal
   useEffect(() => {
@@ -314,8 +327,11 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    if (name === "telefono") { if (!blockInput.onlyNumbers(e)) return; }
-    else if (name === "nit") {
+    // "telefono" y "telefonoContacto" solo aceptan dígitos: bloquea letras
+    // tanto al escribir como al pegar (paste también dispara onChange).
+    if (name === "telefono" || name === "telefonoContacto") {
+      if (!blockInput.onlyNumbers(e)) return;
+    } else if (name === "nit") {
       // Persona jurídica permite guión (NIT); persona natural solo dígitos (cédula)
       if (esJuridica) { if (!blockInput.nit(e)) return; }
       else { if (!blockInput.onlyNumbers(e)) return; }

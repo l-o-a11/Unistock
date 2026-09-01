@@ -58,6 +58,7 @@ export const useAuth = () => {
             rolId: data.user?.rolId ?? claims?.rolId,
             rolNombre: claims?.rolNombre ?? null,
             sedeId: data.user?.sedeId ?? claims?.sedeId,
+            sedeNombre: claims?.sedeNombre ?? null,
             token: data.token,
           };
         } catch { session = data.user; }

@@ -181,6 +181,7 @@ export const useProductions = () => {
         tipo,
         referencia,
         producto,
+        categoria: productionData.categoria || productionData.category || '',
         techSpecification: productionData.techSheet || productionData.techSpecification || null,
         techSheet: productionData.techSheet || productionData.techSpecification || null,
         designImages: Array.isArray(productionData.designImages) ? productionData.designImages : [],

@@ -26,6 +26,7 @@ const RolesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [modalType, setModalType] = useState(null);
   const [editingRol, setEditingRol] = useState(null); // objeto completo, no solo ID
+  const [rolesModalDirty, setRolesModalDirty] = useState(false);
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
 
   const [alertConfig, setAlertConfig] = useState({
@@ -65,6 +66,12 @@ const RolesPage = () => {
 
   // ── Alert helpers ─────────────────────────────────
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
+
+  const closeRolesModal = () => {
+    setModalType(null);
+    setEditingRol(null);
+    setRolesModalDirty(false);
+  };
 
   const showAlert = (type, title, message, onConfirm) =>
     setAlertConfig({
@@ -278,6 +285,12 @@ const RolesPage = () => {
   const handleAddRol = () => setModalType("create");
 
   const handleCreateRol = async (data) => {
+    const existingGerente = roles.find((r) => r.nombre?.trim().toLowerCase() === 'gerente');
+    if (existingGerente && data.nombre?.trim().toLowerCase() === 'gerente') {
+      showAlert("error", "Rol protegido", 'Ya existe un rol con el nombre "Gerente". Solo puede haber un rol de Gerente.');
+      return;
+    }
+
     try {
       await createRol(data);
       setModalType(null);
@@ -302,6 +315,13 @@ const RolesPage = () => {
   };
 
   const handleUpdateRol = async (data) => {
+    const existingGerente = roles.find((r) => r.nombre?.trim().toLowerCase() === 'gerente');
+    const editingGerente = editingRol?.nombre?.trim().toLowerCase() === 'gerente';
+    if (existingGerente && !editingGerente && data.nombre?.trim().toLowerCase() === 'gerente') {
+      showAlert("error", "Rol protegido", 'Ya existe un rol con el nombre "Gerente". Solo puede haber un rol de Gerente.');
+      return;
+    }
+
     try {
       await updateRol(editingRol.id, data);
       setModalType(null);
@@ -507,8 +527,19 @@ const RolesPage = () => {
         <div
           className="roles-modal-overlay"
           onClick={() => {
-            setModalType(null);
-            setEditingRol(null);
+            if (rolesModalDirty) {
+              showAlert(
+                "confirm",
+                "¿Cancelar?",
+                "Hay cambios sin guardar. Si sales, se perderán.",
+                () => {
+                  closeAlert();
+                  closeRolesModal();
+                }
+              );
+              return;
+            }
+            closeRolesModal();
           }}
           style={{
             position: "fixed",
@@ -541,7 +572,8 @@ const RolesPage = () => {
                 <CreateRolPage
                   createRol={handleCreateRol}
                   roles={roles}
-                  onClose={() => setModalType(null)}
+                  onClose={closeRolesModal}
+                  onDirtyChange={setRolesModalDirty}
                 />
               )}
               {modalType === "edit" && (
@@ -549,10 +581,8 @@ const RolesPage = () => {
                   rol={editingRol}
                   roles={roles}
                   updateRol={handleUpdateRol}
-                  onClose={() => {
-                    setModalType(null);
-                    setEditingRol(null);
-                  }}
+                  onClose={closeRolesModal}
+                  onDirtyChange={setRolesModalDirty}
                 />
               )}
             </div>

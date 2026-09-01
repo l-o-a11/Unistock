@@ -14,7 +14,7 @@ import Alert from '../../../shared/components/Alert';
 import Button from '../../../shared/components/Button';
 import { validators } from '../../../shared/utils/validators';
 import { blockInput } from '../../../shared/utils/blockInput';
-import TechnicalSheet from '../../../products/components/TechnicalSheet';
+import TechnicalSheet from '../../../production/components/TechnicalSheet';
 import ThirdPartiesSection from './ThirdPartiesSection';
 import { clientAPI } from '../../../shared/services/clientAPI';
 import {
@@ -453,20 +453,13 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const [errors, setErrors] = useState({});
   const [alertConfig, setAlertConfig] = useState({ open: false, type: 'warning', title: '', message: '', onConfirm: null });
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     if (productsLoaded || loadingProducts) return;
     setLoadingProducts(true);
-try {
+    try {
       const { productAPI } = await import('../../../products/services/productAPI');
       const data = await productAPI.getSummaries();
-      // ✅ Solo mostrar productos activos en el selector al crear producción.
       const normalized = Array.isArray(data) ? data.filter(p => p.active !== false) : [];
-
-      if (normalized.length === 0) {
-        console.warn('[ProductionForm] ⚠️ No hay productos cargados');
-      } else {
-        console.log('[ProductionForm] ✓ Productos cargados:', normalized.length);
-      }
 
       setProducts(normalized);
       setProductsLoaded(true);
@@ -476,21 +469,24 @@ try {
     } finally {
       setLoadingProducts(false);
     }
-  };
+  }, [productsLoaded, loadingProducts]);
+
+  useEffect(() => {
+    if (initialData?.referencia && products.length === 0 && !productsLoaded) {
+      loadProducts();
+    }
+  }, [initialData?.referencia, products.length, productsLoaded, loadProducts]);
 
   useEffect(() => {
     (async () => {
       try {
         const { productCategoryAPI } = await import('../../../productCategories/services/productCategoryAPI');
         const cats = await productCategoryAPI.getAll();
-        console.log('[ProductionForm] Categorías cargadas:', cats?.length || 0, 'items'); // DEBUG
 
         const categoryNames = (cats || []).map(c => c.name);
         if (categoryNames.length === 0) {
-          console.warn('[ProductionForm] ⚠️ No hay categorías, usando fallback');
           setCategories(['Crop Top', 'Buzos', 'Body', 'Enterizos', 'Vestidos']);
         } else {
-          console.log('[ProductionForm] ✓ Categorías cargadas:', categoryNames);
           setCategories(categoryNames);
         }
       } catch (err) {
@@ -792,8 +788,12 @@ try {
           productoFinal = created.name || productoFinal;
         } catch (err) {
           console.error('Error creando referencia:', err);
-          setAlertConfig({ open: true, type: 'error', title: 'Error al crear referencia', message: 'No se pudo registrar la nueva referencia. Intenta de nuevo.', onConfirm: null });
+          const message = err?.message || 'No se pudo registrar la nueva referencia. Intenta de nuevo.';
+          setAlertConfig({ open: true, type: 'error', title: 'Error al crear referencia', message, onConfirm: null });
           setShowConfirm(false);
+          setNuevaRefOpen(false);
+          setNuevaRef({ reference: '', name: '', category: '', description: '', price: '' });
+          setNuevaRefErrors({});
           return;
         }
       } else if (shouldCreateReference) {
@@ -804,6 +804,7 @@ try {
       onSubmit({
         tipo: type,
         ...formData,
+        categoria: nuevaRefOpen ? nuevaRef.category : (selectedProduct?.category || ''),
         referencia: referenciaFinal,
         producto: productoFinal,
         referencias: extraRefs,
@@ -1436,7 +1437,7 @@ try {
               sheet={type === 'produccion' ? techSheetPreview : (techSheetData && Object.keys(techSheetData).length > 0 ? techSheetData : {
                 client: formData.cliente || '',
                 ref: nuevaRefOpen ? (nuevaRef.reference || '') : (formData.referencia || ''),
-                type: nuevaRefOpen ? (nuevaRef.name || '') : (formData.producto || ''),
+                type: nuevaRefOpen ? (nuevaRef.category || '') : (selectedProduct?.category || ''),
                 date: new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
                 costPerUnit: 0,
               })}
@@ -1444,6 +1445,7 @@ try {
               onChange={(data) => { if (type === 'diseno') setTechSheetData(data); }}
               productName={nuevaRefOpen ? nuevaRef.name : (selectedProduct?.name || formData.producto || '')}
               categoryDescription={nuevaRefOpen ? nuevaRef.category : (selectedProduct?.category || '')}
+              categoryName={nuevaRefOpen ? nuevaRef.category : (selectedProduct?.category || '')}
               productRef={nuevaRefOpen ? nuevaRef.reference : formData.referencia}
               productImage={nuevaRefOpen ? null : (selectedProduct?.image || null)}
             />
