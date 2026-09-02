@@ -3,7 +3,7 @@ import HoverCard from '../../../shared/components/HoverCart';
 import Alert from '../../../shared/components/Alert'; 
 
 const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
-  // 🔥estado para alerta de eliminación
+  // Estado de la alerta de eliminación.
   const [deleteAlert, setDeleteAlert] = useState({
     open: false,
     step: "confirm",
@@ -19,7 +19,7 @@ const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
     }).format(price);
   };
 
-  // 🔥 función final de eliminar
+  // Ejecuta la eliminación después de la confirmación.
   const handleDelete = () => {
     console.log("Producto eliminado:", product);
     setDeleteAlert({ open: false });
@@ -129,7 +129,6 @@ const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
             </div>
           </div>
 
-          {/* 🔥 ACCIONES */}
           <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200">
             <button
               style={styles.deleteBtn}
@@ -153,7 +152,6 @@ const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
         </div>
       </div>
 
-      {/* 🔥 ALERTAS */}
 
       {/* ALERTA CONFIRMAR */}
       <Alert
@@ -178,7 +176,6 @@ const ProductDetail = ({ product, onClose, onEdit, onViewTechnicalSheet }) => {
   );
 };
 
-// 🔥 ESTILOS 
 const styles = {
   deleteBtn: {
     background: "#ddd",

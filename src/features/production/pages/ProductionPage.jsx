@@ -54,11 +54,14 @@ const ProductionsSkeleton = () => (
       {/* Header: título + buscador — mismo layout que ProductionSearch */}
       <div className="prod-skel-header">
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Orden de producción</h1>
-        <div style={{
-          width: 260, maxWidth: '100%', height: 36, borderRadius: 8,
-          background: '#f3f4f6', border: '1px solid #e5e7eb',
-          animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
-        }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <div style={{
+            width: 400, maxWidth: '100%', height: 38, borderRadius: 10,
+            background: '#f3f4f6', border: '1px solid #e5e7eb',
+            animation: 'uskeleton-pulse 1.6s ease-in-out infinite',
+          }} />
+          <div style={{ width: 260, height: 11, borderRadius: 6, background: '#f3f4f6', animation: 'uskeleton-pulse 1.6s ease-in-out infinite' }} />
+        </div>
       </div>
 
       {/* Tabs: Producciones / Terceros */}
@@ -149,7 +152,7 @@ const ProductionsPage = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [reassignAlert, setReassignAlert] = useState({ open: false, production: null });
 
-  // 🔒 Alcance: Gerente y Administrador ven todo (Administrador sin
+  // Gerente y Administrador ven todo; los demás roles se limitan a su sede.
   // acciones); cualquier otro rol (empleado) solo ve su orden asignada.
   const { isGerente, isAdministrador, isEmpleado, user } = useSedeScope();
 
@@ -158,7 +161,7 @@ const ProductionsPage = () => {
   const { employees: employeesList, loading: employeesLoading } = isGerente ? useEmployees() : { employees: [], loading: false };
 
   useEffect(() => {
-    // 🐛 FIX: sin verificación de rol, cualquiera que llegara a esta página
+    // La página requiere un rol con permisos de producción.
     // con ese estado de navegación (p.ej. un Empleado) podía disparar el
     // formulario de reposición. Se exige explícitamente que sea Gerente.
     if (!location.state?.openNewOrderFromDamaged || !isGerente) return;
@@ -166,7 +169,7 @@ const ProductionsPage = () => {
     if (!source?.details?.length) return;
     const damagedTotal = (damagedDetails || []).reduce((sum, detail) => sum + (Number(detail.quantity) || 0), 0);
     if (damagedTotal <= 0) return;
-    // 🐛 FIX: la ficha técnica (tipo 'diseno') para los productos dañados se
+    // La ficha técnica de los productos dañados se
     // creaba automáticamente en segundo plano — el usuario nunca podía
     // elegir/confirmar el cliente ni la cantidad antes de crearla. Ahora, sea
     // "Nueva producción" (formTipo 'produccion') o la nueva ficha técnica
@@ -190,7 +193,7 @@ const ProductionsPage = () => {
         totalDamagedQty: damagedTotal,
         replacementOrderNumber: replacementOrderNumber || null,
       },
-      // 🐛 FIX: antes abría siempre en modo "Diseño" (defaultType: 'diseno'),
+      // El modo inicial depende del tipo de ficha solicitado.
       // lo cual obligaba a crear una referencia nueva en el catálogo y NO
       // permitía reponer la misma producción que ya existe. Ahora depende de
       // qué se pidió: 'produccion' para reponer con la referencia existente,
@@ -252,7 +255,7 @@ const ProductionsPage = () => {
       matchesDate = inRange(parseDate(prod?.deliveryDate)) || inRange(parseDate(prod?.statusDate));
     }
 
-// 🔒 Alcance de visibilidad:
+// Alcance de visibilidad:
     //  - Gerente y Administrador ven TODAS las órdenes (Administrador es
     //    100% observador, sin botones de acción, pero ve todo — ya no hay
     //    concepto de sede en Producción, se quitó del formulario de crear).
@@ -262,7 +265,7 @@ const ProductionsPage = () => {
     //    el empleado confirma su finalización, la orden desaparece de su
     //    lista porque ya no necesita acción de su parte.
     //
-    // 🐛 FIX: user?.id puede ser undefined si el usuario viene de MongoDB con
+    // El identificador puede venir con cualquiera de las representaciones del usuario.
     // _id en vez de id. Se agrega fallback a user?._id para garantizar que la
     // comparación nunca falle por un campo undefined.
     const userId = String(user?.id || user?._id || '');
@@ -344,7 +347,7 @@ const ProductionsPage = () => {
         producto: source?.producto || '',
         cantidad: String(primary.quantity || ''),
         color: primary.color || '',
-        // 🐛 FIX: solo caía en `source?.client`; si esa propiedad no venía
+        // Acepta las representaciones de cliente utilizadas por la API.
         // poblada (p.ej. viniendo de un objeto parcial) el campo Cliente del
         // formulario quedaba vacío. `cliente` es el campo real que persiste
         // el backend, así que se agrega como respaldo.
@@ -357,7 +360,7 @@ const ProductionsPage = () => {
         damagedCount: damagedDetails.length,
         totalDamagedQty: damagedTotal,
       },
-// 🐛 FIX: antes abría en modo "Diseño" (defaultType: 'diseno'), lo cual
+// El modo inicial se determina según la operación seleccionada.
       // obligaba a crear una referencia nueva en el catálogo y NO permitía
       // reponer la misma producción que ya existe. Ahora abre en modo
       // "Producción" para recrear la misma orden con la referencia existente.
@@ -392,7 +395,7 @@ const ProductionsPage = () => {
     }
     setCreatingNewOrder(true);
     try {
-      // 🐛 FIX: "Crear producción y abrir ficha" debía crear DOS cosas por
+      // "Crear producción y abrir ficha" crea dos recursos relacionados.
       // separado:
       //   1) Una orden de REPOSICIÓN con los MISMOS datos de la producción
       //      que NO se dañó, avanzada directo a "Corte" (ya tiene ficha
@@ -476,7 +479,7 @@ const ProductionsPage = () => {
     }
   };
 
-  // 🐛 FIX: "Solo crear ficha técnica" debe crear ÚNICAMENTE la ficha (tipo
+  // "Solo crear ficha técnica" crea únicamente la ficha solicitada.
   // 'diseno') para documentar los dañados. Ya NO se crea automáticamente en
   // segundo plano: se abre el formulario de tipo "diseño" que ya existe,
   // prellenado con cliente y cantidad (la dañada), para que el usuario lo
@@ -570,7 +573,7 @@ const ProductionsPage = () => {
     return updates;
   };
 
-  // 🐛 FIX: cuando TODAS las unidades resultan dañadas (remaining = 0), la
+  // Cuando todas las unidades resultan dañadas, la
   // orden original debe quedar Anulada de verdad — antes solo se vaciaban
   // los detalles vía updateOriginalOrderWithRemaining y la orden se quedaba
   // "viva" para siempre en su estado anterior (Corte/Producción/Recepción)
@@ -606,7 +609,7 @@ const ProductionsPage = () => {
   };
 
   // ── Confirmar etapa por el empleado asignado ──────────────────────────────
-  // 🐛 FIX: antes se llamaba a `fetchAndSetDetails(productionId)` para
+  // Recarga los detalles de la producción actualizada.
   // refrescar, pero esa función retorna de inmediato la caché local cuando
   // la orden ya tiene `details` cargados (ver useProduction.js) — es decir,
   // NUNCA volvía a pedirle al servidor el `etapaConfirmada` recién
@@ -1214,8 +1217,11 @@ const ProductionsPage = () => {
         @media (min-width:640px)  { .prod-root { padding: 20px 24px; } }
         @media (min-width:1024px) { .prod-root { padding: 24px 32px 0px 32px; } }
 
-        .prod-header { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
-        @media (min-width:640px) { .prod-header { flex-direction:row; justify-content:space-between; align-items:center; } }
+        .prod-header { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+        @media (min-width:640px) { .prod-header { flex-direction:row; justify-content:space-between; align-items:center; gap:12px; } }
+        @media (max-width:639px) { .prod-header { align-items:stretch; } }
+        .prod-search { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+        @media (max-width:639px) { .prod-search { align-items:stretch; } .prod-search > div { width:100% !important; max-width:100% !important; } .prod-search > span { text-align:center; white-space:normal !important; } }
         @media (max-width:639px) { .prod-header { align-items:center; text-align:center; } }
 
         .prod-tabs { display:flex; gap:8px; margin-bottom:14px; }
@@ -1440,8 +1446,17 @@ const ProductionsPage = () => {
       <div className="prod-root">
         {/* Header */}
         <div className="prod-header">
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Orden de producción</h1>
-          <ProductionSearch value={searchTerm} onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }} />
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: '#1a1a1a' }}>Orden de producción</h1>
+          <div className="prod-search">
+            <ProductionSearch
+              value={searchTerm}
+              onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
+              placeholder="Buscar"
+              width="400px"
+              maxWidth="400px"
+            />
+           
+          </div>
         </div>
 
         {/* Tabs */}

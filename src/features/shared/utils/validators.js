@@ -138,12 +138,10 @@ export const validators = {
   },
 };
 
-// 🔥 VALIDAR UN SOLO CAMPO
 export const validateField = (name, value) => {
   return validators[name] ? validators[name](value) : "";
 };
 
-// 🔥 VALIDAR TODO EL FORMULARIO
 export const validateForm = (formData) => {
   const errors = {};
   Object.keys(validators).forEach((field) => {

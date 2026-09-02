@@ -799,8 +799,8 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         formDataUpload.append('files', files[i]);
       }
 
-      // ✅ URL CORREGIDA: /api/upload/upload-multiple (endpoint real del backend)
-      const uploadUrl = `${BACKEND_URL}/api/upload/upload-multiple`;
+      // ✅ URL CORREGIDA: /api/upload-multiple (endpoint real del backend)
+      const uploadUrl = `${BACKEND_URL}/api/upload-multiple`;
       console.log('🔼 Subiendo a:', uploadUrl);
 
       const response = await fetch(uploadUrl, {

@@ -1,4 +1,4 @@
-# 📖 Documentación del Frontend Unistock
+# Documentación del frontend Unistock
 
 > **Frontend de Unistock** — aplicación **React + Vite** (puerto `5173`).
 
@@ -60,9 +60,9 @@ features/<modulo>/
 
 | Tecnología                        | Uso                            |
 | --------------------------------- | ------------------------------ |
-| **React 18**                      | Librería UI                    |
+| **React 19**                      | Librería UI                    |
 | **Vite**                          | Bundler / dev server           |
-| **React Router v6**               | Enrutado (`react-router-dom`)  |
+| **React Router v7**               | Enrutado (`react-router-dom`)  |
 | **Tailwind CSS**                  | Estilos                        |
 | **Fetch API**                     | Cliente HTTP (`httpClient.js`) |
 | **sessionStorage / localStorage** | Persistencia de sesión         |

@@ -285,6 +285,12 @@ const RolesPage = () => {
   const handleAddRol = () => setModalType("create");
 
   const handleCreateRol = async (data) => {
+    const existingGerente = roles.find((r) => r.nombre?.trim().toLowerCase() === 'gerente');
+    if (existingGerente && data.nombre?.trim().toLowerCase() === 'gerente') {
+      showAlert("error", "Rol protegido", 'Ya existe un rol con el nombre "Gerente". Solo puede haber un rol de Gerente.');
+      return;
+    }
+
     try {
       await createRol(data);
       setModalType(null);
@@ -309,6 +315,13 @@ const RolesPage = () => {
   };
 
   const handleUpdateRol = async (data) => {
+    const existingGerente = roles.find((r) => r.nombre?.trim().toLowerCase() === 'gerente');
+    const editingGerente = editingRol?.nombre?.trim().toLowerCase() === 'gerente';
+    if (existingGerente && !editingGerente && data.nombre?.trim().toLowerCase() === 'gerente') {
+      showAlert("error", "Rol protegido", 'Ya existe un rol con el nombre "Gerente". Solo puede haber un rol de Gerente.');
+      return;
+    }
+
     try {
       await updateRol(editingRol.id, data);
       setModalType(null);

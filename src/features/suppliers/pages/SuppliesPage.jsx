@@ -40,7 +40,7 @@ const SuppliesPage = () => {
   const [editingSupply, setEditingSupply] = useState(null);
   const estadoFiltro = "todos"; // Always show all (filter via search)
   const [statusFilter, setStatusFilter] = useState("todos"); // For filtering by estado:
-  const [showCategories, setShowCategories] = useState(false); // 👈 nuevo
+  const [showCategories, setShowCategories] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showCreateCategoryForm, setShowCreateCategoryForm] = useState(false);
@@ -1066,7 +1066,6 @@ const SuppliesPage = () => {
             Exportar
           </button>
 
-          {/* BOTÓN CATEGORÍAS 👈 nuevo */}
           <button
             onClick={openCategoriesModal}
             title="Ver categorías de insumos"
