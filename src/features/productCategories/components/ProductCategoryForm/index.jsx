@@ -100,11 +100,6 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
       return;
     }
     
-    // 🔍 DEBUG: Ver qué se envía
-    console.log('📤 Enviando datos:', formData);
-    console.log('📤 Nombre:', formData.nombre);
-    console.log('📤 Descripción:', formData.descripcion);
-    console.log('📤 Longitud descripción:', formData.descripcion.length);
     
     onSubmit(formData);
   };
@@ -245,7 +240,6 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
           {(touched.descripcion || formData.descripcion) && errors.descripcion && (
             <span style={errorStyle}>⚠ {errors.descripcion}</span>
           )}
-          {/* 🔍 DEBUG: Mostrar longitud */}
           <span style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
             {formData.descripcion.length} caracteres
           </span>

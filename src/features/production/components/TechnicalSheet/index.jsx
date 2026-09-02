@@ -118,7 +118,7 @@ const buildInitialData = (sheet, productName, categoryDescription, productRef, p
     ...initialData,
     date:        hasValue(initialData.date)        ? initialData.date        : today,
     createdBy:   hasValue(initialData.createdBy)   ? initialData.createdBy   : (currentUser?.nombre || ""),
-    // 🐛 FIX: "Tipo de prenda" mostraba el NOMBRE del producto (ej. "Brasier
+    // El tipo de prenda debe usar la categoría del producto, no su nombre.
     // Push Up XYZ") en vez de la CATEGORÍA (ej. "Brasieres"). Antes usaba
     // `productName`; ahora usa `categoryName` (formData.category en
     // ProductForm). `categoryDescription` sigue siendo el texto libre de la

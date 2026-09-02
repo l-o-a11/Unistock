@@ -15,7 +15,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
   const [showVersions, setShowVersions] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // 🔥 IGUAL A TERCEROS: estado para alerta de eliminación
+  // Estado de la alerta de eliminación.
   const [deleteAlert, setDeleteAlert] = useState({
     open: false,
     step: "confirm",
@@ -36,7 +36,7 @@ const TechnicalSheetModal = ({ product, onClose }) => {
     setShowVersions(false);
   };
 
-  // 🔥 IGUAL A TERCEROS: función final de eliminar versión
+  // Elimina definitivamente una versión de la ficha técnica.
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -251,7 +251,6 @@ const TechnicalSheetModal = ({ product, onClose }) => {
         </div>
       </div>
 
-      {/* 🔥 ALERTAS - IGUAL A TERCEROS */}
 
       {/* ALERTA CONFIRMAR */}
       <Alert
@@ -276,7 +275,6 @@ const TechnicalSheetModal = ({ product, onClose }) => {
   );
 };
 
-// 🔥 ESTILOS - IGUAL A TERCEROS
 const styles = {
   deleteBtn: {
     padding: '10px 32px',
