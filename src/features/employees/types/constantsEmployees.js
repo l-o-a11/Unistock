@@ -1,6 +1,6 @@
 // src/feature/employees/types/constantsEmployees.js
 
-// 📄 Tipos de documento
+// Tipos de documento.
 export const EmployeeDocumentTypes = [
   "CC",
   "TI",
@@ -10,8 +10,8 @@ export const EmployeeDocumentTypes = [
   "PPT",
 ];
 
-// 👤 Rol — solo Empleado (fijo, no se muestra selector)
+// El rol es fijo: solo se permite Empleado y no se muestra un selector.
 export const EMPLOYEE_ROLE = "Empleado";
 
-// 🏢 Sedes disponibles
+// Sedes disponibles.
 export const EmployeeSedes = ["Parque Berrio", "Parque de Bello"];

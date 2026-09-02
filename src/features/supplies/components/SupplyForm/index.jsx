@@ -442,7 +442,7 @@ const SupplyForm = ({
               {/* ── Propiedades ── */}
               {sectionTitle("Propiedades")}
 
-              {/* Selector + valor + botón agregar */}
+              {/* Selector + valor (descripcion) + botón agregar */}
               <div
                 style={{
                   display: "flex",
@@ -468,7 +468,7 @@ const SupplyForm = ({
                   </select>
                 </div>
                 <div style={{ flex: 1, width: "100%" }}>
-                  <label style={labelStyle}>Valor<span style={requiredStar}>*</span></label>
+                  <label style={labelStyle}>Descripción<span style={requiredStar}>*</span></label>
                   <input
                     placeholder="Ej: Rojo"
                     value={valorPropiedad}

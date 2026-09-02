@@ -139,7 +139,7 @@ const DamagedProductsModal = ({
 
   // ── Handlers de acción ───────────────────────────────────────────────────
 
-  // 🐛 FIX (Issue 3): se eliminó el `window.confirm()` nativo que se usaba
+  // Se utiliza el modal propio en lugar de `window.confirm()`.
   // para la acción "Nueva ficha técnica". Ahora TODAS las acciones pasan por
   // el paso de confirmación estilizado "confirm" del modal, que muestra un
   // resumen de lo que se hará y pide confirmación con los botones de la app.
@@ -159,7 +159,7 @@ const DamagedProductsModal = ({
     } else if (action === "techsheet") {
       onNewTechSheet(damagedDetails);
     } else if (action === "techsheetOnly") {
-      // 🐛 FIX: "Solo crear ficha técnica" — crea la producción de reemplazo
+      // Esta opción crea la producción de reemplazo y su ficha técnica.
       // y la deja en "Ficha Técnica" lista para pasar a corte, sin abrir el
       // editor (la ficha se hereda del producto original).
       if (typeof onNewTechSheetOnly === "function") onNewTechSheetOnly(damagedDetails);

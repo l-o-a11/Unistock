@@ -432,16 +432,9 @@ const Third_partiePage = () => {
         />
 
         {/* ── Header ── */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px',
-          }}
-        >
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Terceros</h1>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+        <div className="tp-header">
+          <h1 className="tp-title">Terceros</h1>
+          <div className="tp-search-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <Third_partieSearch
               value={searchTerm}
               onChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}

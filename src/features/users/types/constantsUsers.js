@@ -1,14 +1,14 @@
 // src/feature/users/types/constantsUsers.js
 
 
-// 📄 Tipos de documento
+// Tipos de documento.
 export const UsersDocumentTypes = [
     "TI",
     "CC"
 ];
 
 
-// 👤 Rol del contacto
+// Rol del contacto.
 export const USERS_ROLE = [
     "Gerente",
     "Administrador",

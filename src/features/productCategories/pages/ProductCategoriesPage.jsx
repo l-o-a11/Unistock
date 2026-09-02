@@ -51,7 +51,6 @@ const ProductCategoriesPage = () => {
 
   const itemsPerPage = 7;
 
-  // 🔍 FILTRO
   const filteredProductCategories = productCategories.filter(pc => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -61,7 +60,6 @@ const ProductCategoriesPage = () => {
     );
   });
 
-  // 📄 PAGINACIÓN
   const totalPages = Math.max(1, Math.ceil(filteredProductCategories.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProductCategories = filteredProductCategories.slice(
@@ -71,7 +69,6 @@ const ProductCategoriesPage = () => {
 
 
 
-  // 🔔 ALERT HANDLERS
   const handleShowAlert = ({ type, title, message }) => {
     const setter = { success: setSuccessAlert, error: setErrorAlert, warning: setWarningAlert }[type];
     if (!setter) return;
@@ -93,7 +90,6 @@ const ProductCategoriesPage = () => {
     }, 50);
   };
 
-  // 🔥 ACCIONES
   const handleEdit = (pc) => {
     setEditingProductCategory(pc);
     setShowEditForm(true);
@@ -166,7 +162,6 @@ const ProductCategoriesPage = () => {
     }
   };
 
-  // 🎨 MODAL STYLES
   const modalOverlayStyle = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1100, pointerEvents: 'none',
