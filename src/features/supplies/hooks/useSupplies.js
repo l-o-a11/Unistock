@@ -27,7 +27,7 @@ export const useSupplies = (initialFilters = {}) => {
   // server-side, basta con cambiar esto a `{ limit: 10, ...initialFilters }`
   // y conectar goToPage/applyFilters (ya expuestos por este hook) a los
   // controles de la UI.
-  const [filters, setFilters] = useState({ limit: "all", ...initialFilters });
+  const [filters, setFilters] = useState({ limit: "all", sortBy: "createdAt", order: "desc", ...initialFilters });
 
   // ── Catálogos ──────────────────────────────────────────────────────────────
   const [categorias, setCategorias] = useState([]);
@@ -57,7 +57,7 @@ export const useSupplies = (initialFilters = {}) => {
       setError(null);
       const merged = { ...filters, ...overrideFilters };
       const result = await supplyAPI.getAll(merged);
-      setSupplies(result.data);
+      setSupplies([...result.data].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       setPagination({
         total: result.total,
         page: result.page,
@@ -93,6 +93,7 @@ export const useSupplies = (initialFilters = {}) => {
     try {
       setLoading(true);
       const newSupply = await supplyAPI.create(supplyData);
+      setSupplies((prev) => [newSupply, ...prev].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       await loadData(); // recarga para reflejar orden/paginación del servidor
       return newSupply;
     } catch (err) {
