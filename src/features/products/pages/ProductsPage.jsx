@@ -15,7 +15,6 @@ import { useSedes } from '../../sedes/hooks/useSedes';
 import { useSedeScope, isVisibleBySede } from '../../shared/hooks/useSedeScope';
 import { productAPI } from '../services/productAPI';
 
-// 🔥 Importa aquí la URL de tu logo (ajusta la ruta según tu proyecto)
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 
 const ProductsPage = () => {
@@ -24,7 +23,7 @@ const ProductsPage = () => {
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 🔒 Alcance de sede: Gerente ve todos los productos; Administrador solo
+  // El gerente ve todos los productos; los demás roles se limitan a su sede.
   // ve los de su propia sede (y los que aún no tienen sede asignada, para
   // no ocultar productos creados antes de este cambio). Mismo criterio que
   // Empleados y Producción — ver useSedeScope.
@@ -126,7 +125,6 @@ const ProductsPage = () => {
     key: 0
   });
 
-  // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
   const filteredProducts = productsEnMiSede.filter(product => {
     const searchLower = searchTerm.toLowerCase().trim();
 
@@ -293,7 +291,7 @@ const ProductsPage = () => {
     setDeleteAlert({ open: true, productId: id, key: Date.now() });
   };
 
-// 🔒 Activar/desactivar producto requiere validar la contraseña del
+// Activar o desactivar un producto requiere validar la contraseña del
   // usuario logueado (igual que la eliminación). El ProductTable envía la
   // contraseña capturada en su Alert de confirmación.
   const handleToggle = async (id, nextActive, password) => {

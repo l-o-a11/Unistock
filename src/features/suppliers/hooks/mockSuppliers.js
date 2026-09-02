@@ -232,7 +232,7 @@ export const useSuppliers = () => {
       supplierData.sitioWeb || supplierData.sitioweb || supplierData.sitio_web || '',
   });
 
-  // ➕ Crear proveedor
+  //  Crear proveedor
   const createSupplier = async (supplierData) => {
     try {
       const backendData = mapFrontendToBackend(supplierData);
@@ -268,7 +268,7 @@ export const useSuppliers = () => {
     }
   };
 
-  // ✏️ Actualizar proveedor
+  //  Actualizar proveedor
   const updateSupplier = async (id, supplierData) => {
     try {
       const backendData = mapFrontendToBackend(supplierData);
@@ -295,7 +295,7 @@ export const useSuppliers = () => {
     }
   };
 
-  // ❌ Eliminar proveedor
+  //  Eliminar proveedor
   const deleteSupplier = async (id) => {
     try {
       await SuppliersAPIClient.deleteSupplier(id);
@@ -316,7 +316,6 @@ export const useSuppliers = () => {
     }
   };
 
-  // 🔄 Alternar estado del proveedor
   const toggleSupplier = async (id) => {
     try {
       const updated = await SuppliersAPIClient.toggleSupplier(id);

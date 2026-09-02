@@ -59,7 +59,7 @@ const mapOrder = (order) => {
       user: h.id_usuario || 'Sistema',
       motivo: h.motivo,
     })),
-    // 🐛 FIX: faltaban por completo — mapOrder() arma un objeto nuevo campo
+    // Estos campos son necesarios porque mapOrder() construye un objeto nuevo.
     // por campo (no hace spread de `order`), así que cualquier campo no
     // listado explícitamente aquí se perdía. empleadoAsignadoId es el que
     // usa ProductionPage.jsx para decidir "¿esta orden es del empleado que

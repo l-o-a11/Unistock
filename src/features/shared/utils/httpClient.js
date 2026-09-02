@@ -10,22 +10,11 @@
  *   https://api-unistock.onrender.com/api
  */
 
-// ============================================================
-// DETECTAR ENTORNO
-// ============================================================
-
 const hostname = window.location.hostname;
 
 const isLocalhost =
   hostname === "localhost" ||
   hostname === "127.0.0.1";
-
-const isProduction = !isLocalhost;
-
-
-// ============================================================
-// URLS DEL BACKEND
-// ============================================================
 
 const LOCAL_API_URL =
   "http://localhost:3000/api";
@@ -34,10 +23,6 @@ const PRODUCTION_API_URL =
   "https://api-unistock.onrender.com/api";
 
 
-// ============================================================
-// VARIABLES DE ENTORNO
-// ============================================================
-
 const BACKEND_API_URL =
   import.meta.env.VITE_BACKEND_API_URL ||
   import.meta.env.VITE_API_URL ||
@@ -45,10 +30,6 @@ const BACKEND_API_URL =
     ? LOCAL_API_URL
     : PRODUCTION_API_URL);
 
-
-// ============================================================
-// NORMALIZAR URL
-// ============================================================
 
 const normalizeBaseUrl = (url) => {
   if (!url) return "";
@@ -69,12 +50,8 @@ const API_URL =
   normalizeBaseUrl(BACKEND_API_URL);
 
 
-// ============================================================
-// INFORMACIÓN DEL ENTORNO
-// ============================================================
-
 console.log("====================================");
-console.log("🌐 UniStock HTTP Client");
+console.log("UniStock HTTP Client");
 console.log(
   "Entorno:",
   isLocalhost ? "LOCAL" : "PRODUCCIÓN"
@@ -89,10 +66,6 @@ console.log(
 );
 console.log("====================================");
 
-// ============================================================
-// TOKEN
-// ============================================================
-
 const getToken = () => {
   try {
     const raw =
@@ -104,19 +77,11 @@ const getToken = () => {
   }
 };
 
-// ============================================================
-// LOGOUT AUTOMÁTICO
-// ============================================================
-
 const handleAutoLogout = () => {
   localStorage.removeItem("session_user");
   sessionStorage.removeItem("session_user");
   window.location.href = "/login";
 };
-
-// ============================================================
-// HTTP REQUEST
-// ============================================================
 
 export const httpRequest = async (endpoint, options = {}) => {
   const {
@@ -148,23 +113,18 @@ export const httpRequest = async (endpoint, options = {}) => {
     requestHeaders["Content-Type"] = "application/json";
   }
 
-  let response;
-  try {
-    response = await fetch(url, {
-      method,
-      headers: requestHeaders,
-      body:
-        body instanceof FormData ||
-        body instanceof Blob ||
-        body instanceof ArrayBuffer
-          ? body
-          : body !== undefined
-            ? JSON.stringify(body)
-            : undefined,
-    });
-  } catch (err) {
-    throw err;
-  }
+  const response = await fetch(url, {
+    method,
+    headers: requestHeaders,
+    body:
+      body instanceof FormData ||
+      body instanceof Blob ||
+      body instanceof ArrayBuffer
+        ? body
+        : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
+  });
 
   if (response.status === 204) return null;
 
