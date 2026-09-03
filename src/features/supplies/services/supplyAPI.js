@@ -174,8 +174,13 @@ export const supplyAPI = {
    * Soporta: ?search= ?categoria= ?estado= ?page= ?limit= ?sortBy= ?order=
    */
   getAll: async (filters = {}) => {
+    const requestFilters = {
+      sortBy: "createdAt",
+      order: "desc",
+      ...filters,
+    };
     const qs = new URLSearchParams(
-      Object.entries(filters).filter(([, v]) => v !== undefined && v !== ""),
+      Object.entries(requestFilters).filter(([, v]) => v !== undefined && v !== ""),
     ).toString();
     const result = await httpClient.get(`/insumos${qs ? `?${qs}` : ""}`);
     const payload = result?.data ?? result;
