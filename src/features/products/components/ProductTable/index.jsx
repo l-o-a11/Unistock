@@ -308,7 +308,7 @@ const tdActionsStyle = {
 
                     {/* ACCIONES */}
                     <td style={tdActionsStyle}>
-<div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, flexWrap: "nowrap", minWidth: isMobile ? "160px" : 0, maxWidth: "100%", justifyContent: "flex-start", width: "fit-content" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, flexWrap: "nowrap", minWidth: isMobile ? "160px" : 0, maxWidth: "100%", justifyContent: "flex-start", width: "fit-content" }}>
 
                         {/* ⓘ info - VER FICHA TÉCNICA */}
                         <button onClick={() => onView(product)} title="Ver ficha técnica"

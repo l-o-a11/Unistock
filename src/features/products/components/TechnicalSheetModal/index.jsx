@@ -15,6 +15,7 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   const [showVersions, setShowVersions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorAlert, setErrorAlert] = useState({ open: false, message: "" });
+  const [successAlert, setSuccessAlert] = useState({ open: false, message: "" });
 
   // ✅ Edición real de una versión existente — no crea una versión nueva
   const [isEditingMode, setIsEditingMode] = useState(false);
@@ -74,20 +75,32 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   const handleDelete = async (password) => {
     try {
       setLoading(true);
-      // ✅ Fix: AuthAPI.verifyPassword no existe — se valida la contraseña
-      // intentando un login real contra el usuario actualmente autenticado.
       const userIdentifier = currentUser?.correo || currentUser?.username || currentUser?.nombre;
       if (!userIdentifier) {
         throw new Error("No se pudo identificar al usuario actual.");
       }
       await AuthAPI.login({ username: userIdentifier, password });
-      await deleteLastVersion(currentVersionObj.id);
-      console.log("Versión eliminada:", currentVersionObj.id);
+      const deleted = await deleteLastVersion(currentVersionObj.id);
+
+      if (!deleted) {
+        setErrorAlert({
+          open: true,
+          message: "No se pudo eliminar la versión. Verifica e inténtalo de nuevo.",
+        });
+        setDeleteAlert({ open: false });
+        return;
+      }
+
+      await loadVersions();
+      setSuccessAlert({
+        open: true,
+        message: "La versión fue eliminada correctamente.",
+      });
+
       setDeleteAlert({ open: false });
       if (selectedVersion?.id === currentVersionObj.id) {
         setSelectedVersion(null);
       }
-      await loadVersions();
       onTechnicalSheetChanged?.();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -337,6 +350,15 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
         message={errorAlert.message}
         onConfirm={() => setErrorAlert({ open: false, message: "" })}
         onCancel={() => setErrorAlert({ open: false, message: "" })}
+      />
+
+      <Alert
+        isOpen={successAlert.open}
+        type="success"
+        title="Éxito"
+        message={successAlert.message}
+        onConfirm={() => setSuccessAlert({ open: false, message: "" })}
+        onCancel={() => setSuccessAlert({ open: false, message: "" })}
       />
     </>
   );

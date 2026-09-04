@@ -40,45 +40,6 @@ const ProductsPage = () => {
     return products.filter((p) => isVisibleBySede(p, isGerente, sedeId));
   }, [products, isGerente, sedeId]);
 
-  const location = useLocation();
-  const params = useParams();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const path = location.pathname;
-
-    if (path.endsWith("/productos/crear")) {
-      setShowCreateForm(true);
-      setEditingProduct(null);
-      setShowEditForm(false);
-    } else if (path.includes("/productos/editar/")) {
-      const id = params.id;
-      if (!id) return;
-
-      setShowCreateForm(false);
-      setShowEditForm(false);
-      setEditingProduct(null);
-
-      productAPI
-        .getById(id)
-        .then((product) => {
-          if (product) {
-            setEditingProduct(product);
-            setShowEditForm(true);
-          } else {
-            navigate("/layout/productos", { replace: true });
-          }
-        })
-        .catch(() => {
-          navigate("/layout/productos", { replace: true });
-        });
-    } else {
-      setShowCreateForm(false);
-      setShowEditForm(false);
-      setEditingProduct(null);
-    }
-  }, [location.pathname, params.id, navigate]);
-
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -124,6 +85,45 @@ const ProductsPage = () => {
     productId: null,
     key: 0
   });
+
+  const location = useLocation();
+  const params = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    if (path.endsWith("/productos/crear")) {
+      setShowCreateForm(true);
+      setEditingProduct(null);
+      setShowEditForm(false);
+    } else if (path.includes("/productos/editar/")) {
+      const id = params.id;
+      if (!id) return;
+
+      setShowCreateForm(false);
+      setShowEditForm(false);
+      setEditingProduct(null);
+
+      productAPI
+        .getById(id)
+        .then((product) => {
+          if (product) {
+            setEditingProduct(product);
+            setShowEditForm(true);
+          } else {
+            navigate("/layout/productos", { replace: true });
+          }
+        })
+        .catch(() => {
+          navigate("/layout/productos", { replace: true });
+        });
+    } else {
+      setShowCreateForm(false);
+      setShowEditForm(false);
+      setEditingProduct(null);
+    }
+  }, [location.pathname, params.id, navigate, productAPI]);
 
   const filteredProducts = productsEnMiSede.filter(product => {
     const searchLower = searchTerm.toLowerCase().trim();
@@ -242,8 +242,21 @@ const ProductsPage = () => {
       handleCloseForm();
       handleShowAlert({ type: "success", title: "¡Éxito!", message: "Producto actualizado correctamente" });
     } catch (error) {
-      handleCloseForm();
-      handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar producto" });
+      const isDuplicate =
+        error.message?.includes("duplicate key") ||
+        error.message?.includes("E11000") ||
+        error.message?.includes("dup key") ||
+        error.message?.includes("ya existe");
+      if (isDuplicate) {
+        handleShowAlert({
+          type: "error",
+          title: "Producto duplicado",
+          message: "Ya existe un producto con esa referencia o nombre. Por favor usa uno diferente."
+        });
+      } else {
+        handleCloseForm();
+        handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar producto" });
+      }
     }
   };
 
@@ -535,15 +548,6 @@ const ProductsPage = () => {
     return pages;
   };
 
-  const paginationBtn = {
-    padding: "6px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
-    background: "#fff",
-    cursor: "pointer",
-    fontSize: "14px",
-  };
-
   const modalOverlayStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -733,30 +737,37 @@ const ProductsPage = () => {
         <AddProductButton onClick={handleAddProduct} />
       </div>
 
-      <ProductTable
-        products={paginatedProducts}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        onToggle={handleToggle}
-        onStockChange={handleStockChange}
-      />
+      <div style={{ flex: 1, minHeight: 0, overflowX: 'auto' }}>
+        <ProductTable
+          products={paginatedProducts}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+          onToggle={handleToggle}
+          onStockChange={handleStockChange}
+        />
+      </div>
 
       {filteredProducts.length > 0 && (
         <div style={{
-          marginTop: "20px",
+          marginTop: isMobile ? '24px' : 'auto',
+          marginBottom: isMobile ? '16px' : '20px',
           display: "flex",
           justifyContent: "center",
-          gap: "6px",
+          gap: isMobile ? '4px' : '6px',
           alignItems: "center",
         }}>
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             style={{
-              ...paginationBtn,
-              color: currentPage === 1 ? '#ccc' : '#333',
+              padding: isMobile ? '4px 10px' : '6px 12px',
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+              background: "#fff",
               cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              fontSize: isMobile ? '12px' : '14px',
+              color: currentPage === 1 ? '#ccc' : '#333',
             }}
           >
             ‹
@@ -764,16 +775,19 @@ const ProductsPage = () => {
 
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>...</span>
+              <span key={i} style={{ padding: isMobile ? '4px 6px' : '6px 10px', fontSize: isMobile ? '12px' : '14px', color: "#999" }}>...</span>
             ) : (
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
                 style={{
-                  ...paginationBtn,
-                  backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
-                  color: p === currentPage ? "#fff" : "#333",
+                  padding: isMobile ? '4px 10px' : '6px 12px',
+                  borderRadius: "6px",
                   border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                  background: p === currentPage ? "#FF4FD6" : "#fff",
+                  cursor: "pointer",
+                  fontSize: isMobile ? '12px' : '14px',
+                  color: p === currentPage ? "#fff" : "#333",
                 }}
               >
                 {p}
@@ -785,9 +799,13 @@ const ProductsPage = () => {
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             style={{
-              ...paginationBtn,
-              color: currentPage === totalPages ? '#ccc' : '#333',
+              padding: isMobile ? '4px 10px' : '6px 12px',
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+              background: "#fff",
               cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              fontSize: isMobile ? '12px' : '14px',
+              color: currentPage === totalPages ? '#ccc' : '#333',
             }}
           >
             ›
@@ -821,6 +839,7 @@ const ProductsPage = () => {
               onCancel={handleCloseForm}
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
+              existingProducts={products}
               sedes={sedesPermitidas}
             />
           </div>

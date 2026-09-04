@@ -223,6 +223,101 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, isMobil
   );
 };
 
+const SedeDropdown = ({ value, onChange, sedes = [], touched = false, error = "", isMobile = false }) => {
+  const [open, setOpen] = useState(false);
+
+  const filteredSedes = sedes.filter((s) => {
+    return Boolean(s?.id ?? s?._id);
+  });
+
+  const getSelectedSedeName = () => {
+    if (!value) return "Seleccionar sede";
+    const selected = filteredSedes.find((s) => String(s.id ?? s._id) === String(value));
+    return selected?.nombre || "Seleccionar sede";
+  };
+
+  const handleSelect = (sede) => {
+    onChange(sede);
+    setOpen(false);
+  };
+
+  return (
+    <div style={{ position: "relative", width: "100%", minWidth: isMobile ? '140px' : "220px" }}>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          minHeight: "42px",
+          boxSizing: "border-box",
+          padding: "10px 14px",
+          borderBottom: touched && error ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb",
+          cursor: "pointer",
+          fontSize: "14px",
+          color: value ? "#1f2937" : "#9ca3af",
+          userSelect: "none",
+          backgroundColor: touched && error ? "#fff0fb" : (open ? "#fff0fb" : "transparent"),
+          borderRadius: open ? "10px 10px 0 0" : "10px",
+          transition: "background-color 0.15s",
+        }}
+      >
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {getSelectedSedeName()}
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", maxHeight: "260px", overflowY: "auto" }}>
+            <div
+              style={{ padding: "10px 14px", fontSize: "14px", backgroundColor: "#ff4fd6", color: "#fff", fontWeight: "600", cursor: "pointer" }}
+              onClick={() => handleSelect(null)}
+            >
+              Seleccionar sede
+            </div>
+            {filteredSedes.length > 0 ? (
+              filteredSedes.map((s) => {
+                const isSelected = String(value) === String(s.id ?? s._id);
+                return (
+                  <div
+                    key={s.id ?? s._id}
+                    onClick={() => handleSelect(s)}
+                    style={{
+                      padding: "10px 14px",
+                      fontSize: "14px",
+                      color: "#1f2937",
+                      cursor: "pointer",
+                      backgroundColor: isSelected ? "#fdf4ff" : "#fff",
+                      borderTop: "1px solid #f3f4f6",
+                      transition: "background-color 0.1s"
+                    }}
+                  >
+                    {s.nombre}
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
+                Sin sedes disponibles
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      {touched && error && (
+        <span style={{ color: "#ff4fd6", fontSize: "11px", marginLeft: "8px", fontWeight: "700" }}>
+          ⚠ {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, existingProducts = [], sedes = [] }) => {
   // ✅ initialData es el "punto cero" contra el que comparamos para saber si hubo cambios reales
   // Si solo hay una sede permitida (ej. Administrador restringido a la suya),
@@ -261,24 +356,24 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
   const [technicalSheet, setTechnicalSheet] = useState(() => {
     if (!product?.technicalSheet) return null;
     return {
-      client: product.technicalSheet.client ?? "",
-      ref: product.technicalSheet.ref ?? "",
-      type: product.technicalSheet.type ?? "",
-      description: product.technicalSheet.description ?? "",
-      descripciones: product.technicalSheet.descripciones ?? "",
-      observations: product.technicalSheet.observations ?? "",
-      createdBy: product.technicalSheet.createdBy ?? "",
-      responsable: product.technicalSheet.responsable ?? "",
-      image: product.technicalSheet.image ?? null,
-      allImages: product.technicalSheet.allImages ?? [],
-      date: product.technicalSheet.date ?? "",
-      fabrics: product.technicalSheet.fabrics ?? [],
-      cups: product.technicalSheet.cups ?? [],
-      closures: product.technicalSheet.closures ?? [],
-      accessories: product.technicalSheet.accessories ?? [],
-      measurements: product.technicalSheet.measurements ?? [],
-      id: product.technicalSheet.id,
-      version: product.technicalSheet.version,
+      client: product?.technicalSheet?.client ?? "",
+      ref: product?.technicalSheet?.ref ?? "",
+      type: product?.technicalSheet?.type ?? "",
+      description: product?.technicalSheet?.description ?? "",
+      descripciones: product?.technicalSheet?.descripciones ?? "",
+      observations: product?.technicalSheet?.observations ?? "",
+      createdBy: product?.technicalSheet?.createdBy ?? "",
+      responsable: product?.technicalSheet?.responsable ?? "",
+      image: product?.technicalSheet?.image ?? null,
+      allImages: product?.technicalSheet?.allImages ?? [],
+      date: product?.technicalSheet?.date ?? "",
+      fabrics: product?.technicalSheet?.fabrics ?? [],
+      cups: product?.technicalSheet?.cups ?? [],
+      closures: product?.technicalSheet?.closures ?? [],
+      accessories: product?.technicalSheet?.accessories ?? [],
+      measurements: product?.technicalSheet?.measurements ?? [],
+      id: product?.technicalSheet?.id,
+      version: product?.technicalSheet?.version,
     };
   });
 
@@ -488,7 +583,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     if (value.trim().length < 3) return "La referencia debe tener al menos 3 caracteres";
     const isDuplicate = existingProducts.some(
       (p) => p.reference?.toLowerCase().trim() === value.toLowerCase().trim()
-        && p.id !== product?.id
+        && String(p.id ?? p._id ?? "") !== String(product?.id ?? product?._id ?? "")
     );
     if (isDuplicate) return "Ya existe un producto con esa referencia";
     return "";
@@ -499,7 +594,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     if (/\d/.test(value)) return "El nombre no puede contener números";
     if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres";
     const isDuplicate = existingProducts.some(
-      (p) => p.name?.toLowerCase().trim() === value.trim().toLowerCase() && p.id !== product?.id
+      (p) => p.name?.toLowerCase().trim() === value.trim().toLowerCase() && String(p.id ?? p._id ?? "") !== String(product?.id ?? product?._id ?? "")
     );
     if (isDuplicate) return "Ya existe un producto con ese nombre";
     return "";
@@ -731,8 +826,11 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     }
 
     // ✅ SINCRONIZACIÓN: Las imágenes del producto van a la ficha técnica
+    // ✅ La ref de la nueva versión captura la referencia actual del producto,
+    //     mientras que las versiones anteriores conservan su ref original.
     const finalTechnicalSheet = {
       ...technicalSheet,
+      ref: formData.reference,
       allImages: formData.allImages,
       image: imagePreview
     };
@@ -848,23 +946,34 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     }
   };
 
-  const handleDeleteImage = (index) => {
+  const handleDeleteImage = async (index) => {
     const imageToDelete = formData.allImages[index];
+    if (!imageToDelete) return;
 
     // ✅ Eliminar de Cloudinary si tiene public_id
     if (imageToDelete?.public_id) {
-      // ✅ URL CORREGIDA: /api/upload/upload/ (endpoint real del backend)
       const deleteUrl = `${BACKEND_URL}/api/upload/upload/${encodeURIComponent(imageToDelete.public_id)}`;
-      fetch(deleteUrl, {
-        method: 'DELETE'
-      }).catch(err => console.error('Error eliminando de Cloudinary:', err));
+      try {
+        const response = await fetch(deleteUrl, { method: 'DELETE' });
+        if (!response.ok) {
+          throw new Error(`Error al eliminar la imagen (${response.status})`);
+        }
+      } catch (err) {
+        console.error('Error eliminando de Cloudinary:', err);
+        onShowAlert?.({
+          type: 'error',
+          title: 'Error',
+          message: 'No se pudo eliminar la imagen del servidor.',
+        });
+        return;
+      }
     }
 
     const newImages = formData.allImages.filter((_, i) => i !== index);
     setFormData((prev) => ({
       ...prev,
       allImages: newImages,
-      image: newImages[0]?.src || null
+      image: newImages[0]?.src || null,
     }));
     setImagePreview(newImages[0]?.src || null);
 
@@ -874,7 +983,7 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       return {
         ...prev,
         allImages: newImages,
-        image: newImages[0]?.src || null
+        image: newImages[0]?.src || null,
       };
     });
 
@@ -882,35 +991,57 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       setShowImageModal(false);
     } else if (index >= newImages.length) {
       setSelectedImageIdx(newImages.length - 1);
+    } else {
+      onShowAlert?.({
+        type: 'success',
+        title: 'Éxito',
+        message: 'Imagen eliminada correctamente.',
+      });
     }
   };
 
   const handleDeleteAllImages = async () => {
-    // ✅ Eliminar todas de Cloudinary
+    const errors = [];
     for (const img of (formData.allImages || [])) {
       if (img?.public_id) {
-        // ✅ URL CORREGIDA: /api/upload/upload/ (endpoint real del backend)
         const deleteUrl = `${BACKEND_URL}/api/upload/upload/${encodeURIComponent(img.public_id)}`;
-        fetch(deleteUrl, {
-          method: 'DELETE'
-        }).catch(err => console.error('Error eliminando:', err));
+        try {
+          const response = await fetch(deleteUrl, { method: 'DELETE' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        } catch (err) {
+          console.error('Error eliminando:', err);
+          errors.push(err?.message || 'Error de red');
+        }
       }
     }
 
     setImagePreview(null);
     setFormData((prev) => ({ ...prev, image: null, allImages: [] }));
 
-    // ✅ SINCRONIZACIÓN: Limpiar las imágenes de la ficha técnica
     setTechnicalSheet((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         image: null,
-        allImages: []
+        allImages: [],
       };
     });
 
     setShowImageModal(false);
+
+    if (errors.length > 0) {
+      onShowAlert?.({
+        type: 'warning',
+        title: 'Advertencia',
+        message: `Se eliminaron las imágenes del producto, pero ${errors.length} no pudieron borrarse del servidor.`,
+      });
+    } else {
+      onShowAlert?.({
+        type: 'success',
+        title: 'Éxito',
+        message: 'Todas las imágenes eliminadas correctamente.',
+      });
+    }
   };
 
   const handleTechnicalSheetChange = (sheetData) => {
@@ -989,7 +1120,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
     color: "#1f2937",
     verticalAlign: "top",
     wordBreak: "break-word",
-    overflow: "hidden"
+    overflow: "visible"
   };
 
   const headerCellStyle = {
@@ -1214,24 +1345,21 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   <tr>
                     <td style={headerCellStyle}>Sede:</td>
                     <td style={cellStyle} colSpan={5}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <select
-                          style={getInputStyle("sedeId")}
-                          value={formData.sedeId || ""}
-                          onChange={handleChange}
-                          name="sedeId"
-                          onBlur={() => handleBlur("sedeId")}
-                        >
-                          <option value="">Seleccionar sede...</option>
-                          {sedes.map((s) => (
-                            <option key={s.id} value={s.id}>{s.nombre}</option>
-                          ))}
-                        </select>
+                      <SedeDropdown
+                        value={formData.sedeId || ""}
+                        sedes={sedes}
+                        onChange={(sede) => {
+                          const sedeId = sede ? (sede.id ?? sede._id ?? "") : "";
+                          setFormData((prev) => ({ ...prev, sedeId: sedeId }));
+                          setTouched((prev) => ({ ...prev, sedeId: true }));
+                          const sedeError = validateSede(sedeId);
+                          setErrors((prev) => ({ ...prev, sedeId: sedeError }));
+                        }}
+                        touched={touched.sedeId}
+                        error={errors.sedeId}
+                        isMobile={isMobile}
+                      />
                         {requiredStar}
-                      </div>
-                      {(touched.sedeId || formData.sedeId) && errors.sedeId && (
-                        <span style={errorStyle}>⚠ {errors.sedeId}</span>
-                      )}
                     </td>
                   </tr>
 
@@ -1887,7 +2015,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   <input
                     name="documento"
                     value={clientDraft.documento}
-                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: e.target.value })); }}
+                    onChange={(e) => { const cleaned = e.target.value.replace(/\D/g, ''); setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: cleaned })); }}
                     onBlur={handleClientBlur}
                     placeholder="Número de documento"
                     style={{ width: "100%", boxSizing: "border-box", border: clientErrors.documento ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}
@@ -1899,7 +2027,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   <input
                     name="telefono"
                     value={clientDraft.telefono}
-                    onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.telefono; return n; }); setClientDraft(prev => ({ ...prev, telefono: e.target.value })); }}
+                    onChange={(e) => { const cleaned = e.target.value.replace(/\D/g, ''); setClientErrors(prev => { const n = { ...prev }; delete n.telefono; return n; }); setClientDraft(prev => ({ ...prev, telefono: cleaned })); }}
                     onBlur={handleClientBlur}
                     placeholder="Teléfono"
                     style={{ width: "100%", boxSizing: "border-box", border: clientErrors.telefono ? "2px solid #ff4fd6" : "1.5px solid #e5e7eb", padding: "10px 12px", borderRadius: 10, fontSize: 13, outline: "none" }}

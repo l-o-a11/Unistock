@@ -8,13 +8,14 @@ export const useTechnicalSheet = (productId) => {
   const [error, setError] = useState(null);
 
   const loadVersions = async () => {
-    if (!productId) return;
+    if (!productId) return [];
     try {
       setLoading(true);
       setError(null);
       const data = await productAPI.getTechnicalSheetVersions(productId);
       setVersions(data);
       setCurrentVersion(data[0] || null);
+      return data;
     } catch (err) {
       const message = err?.message || 'Error al cargar versiones';
       setError(message);
@@ -58,12 +59,13 @@ export const useTechnicalSheet = (productId) => {
   };
 
   const deleteLastVersion = async (versionId) => {
-    if (versions.length === 0) return;
+    if (versions.length === 0) return false;
     try {
       setError(null);
-      await productAPI.deleteTechnicalSheet(productId, versionId);
+      const result = await productAPI.deleteTechnicalSheet(productId, versionId);
       setVersions([]);
       setCurrentVersion(null);
+      return true;
     } catch (err) {
       const message = err?.message || 'Error al eliminar versión';
       setError(message);

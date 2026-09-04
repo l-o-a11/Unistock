@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { productCategoryAPI } from '../services/productCategoryAPI';
 import { useProducts } from '../../products/hooks/useProducts';
 
+const getProductCategoryId = (category) =>
+  category?.id ?? category?._id ?? category?.id_categoria_producto ?? category?.id_categorias;
+
+const sameProductCategoryId = (left, right) => String(left) === String(right);
+
 export const useProductCategories = () => {
   const [productCategories, setProductCategories] = useState([]);
   const [loading, setLoading] = useState(true);
