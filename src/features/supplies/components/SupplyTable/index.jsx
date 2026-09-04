@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import HoverCard from "../../../shared/components/HoverCart";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 
@@ -13,6 +13,7 @@ const SupplyTable = ({
   startIndex = 0,
 }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const [hoveredSupplyId, setHoveredSupplyId] = useState(null);
 
   const thStyle = {
     padding: isMobile ? "10px 12px" : "14px 20px",
@@ -73,28 +74,27 @@ const SupplyTable = ({
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: "#fff",
-        borderRadius: "12px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-      }}
-    >
+    <>
       <div
         style={{
-          overflowX: "auto",
-          overflowY: "hidden",
-          WebkitOverflowScrolling: "touch",
+          backgroundColor: "#fff",
+          borderRadius: "12px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          minWidth: 0,
         }}
       >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            minWidth: isMobile ? "760px" : "920px",
-            tableLayout: isMobile ? "auto" : "fixed",
-          }}
+        <div
+          className="table-scroll-wrapper"
+          style={{ paddingBottom: "10px", minWidth: 0 }}
         >
+          <table
+            className="responsive-data-table"
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              tableLayout: "auto",
+            }}
+          >
           <thead>
             <tr>
               {[
@@ -127,12 +127,16 @@ const SupplyTable = ({
                 >
                   {/* Imagen */}
                   <td style={tdImageStyle}>
-                    <div className="relative group inline-flex">
-                      {/* Imagen pequeña */}
+                    <div
+                      className="relative inline-flex"
+                      style={{ position: "relative" }}
+                      onMouseEnter={() => setHoveredSupplyId(supply.id)}
+                      onMouseLeave={() => setHoveredSupplyId(null)}
+                    >
                       {supply.imagen ? (
                         <img
                           src={supply.imagen}
-                          alt={supply.name}
+                          alt={supply.nombre}
                           className="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer"
                         />
                       ) : (
@@ -141,41 +145,56 @@ const SupplyTable = ({
                         </div>
                       )}
 
-                      {/* Hover cuando SÍ hay imagen */}
-                      {supply.imagen && (
-                        <img
-                          src={supply.imagen}
-                          className="
-          absolute left-12 -top-2
-         max-w-60 max-h-60
-          w-auto h-auto
-          object-contain
-          bg-white p-2
-          rounded-lg border border-gray-200 shadow-lg
-          opacity-0 scale-95
-          group-hover:opacity-100 group-hover:scale-100
-          transition-all duration-200
-          pointer-events-none z-50
-        "
-                        />
-                      )}
-
-                      {/* Hover cuando NO hay imagen */}
-                      {!supply.imagen && (
+                      {hoveredSupplyId === supply.id && (
                         <div
-                          className="
-          absolute left-12 top-0
-          w-40 h-20
-          flex items-center justify-center
-          bg-white border border-gray-200 rounded-lg shadow-lg
-          text-gray-500 text-sm
-          opacity-0 scale-95
-          group-hover:opacity-100 group-hover:scale-100
-          transition-all duration-200
-          pointer-events-none z-50
-        "
+                          style={{
+                            position: "absolute",
+                            left: "calc(100% + 12px)",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            width: supply.imagen ? 200 : 170,
+                            minHeight: supply.imagen ? 200 : 90,
+                            backgroundColor: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "12px",
+                            boxShadow: "0 12px 32px rgba(15, 23, 42, 0.15)",
+                            padding: supply.imagen ? "10px" : "16px",
+                            zIndex: 40,
+                            pointerEvents: "none",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
-                          Sin imagen
+                          {supply.imagen ? (
+                            <img
+                              src={supply.imagen}
+                              alt={supply.nombre}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                maxHeight: 180,
+                                objectFit: "contain",
+                                borderRadius: "8px",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#6b7280",
+                                fontSize: "14px",
+                                borderRadius: "8px",
+                                backgroundColor: "#f3f4f6",
+                              }}
+                            >
+                              Sin imagen
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -195,7 +214,7 @@ const SupplyTable = ({
                   >{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
 
                   {/* Acciones */}
-                  <td style={{ ...tdActionsStyle, width: "15%" }}>
+                  <td className="table-actions" style={{ ...tdActionsStyle, width: "15%" }}>
                     <div
                       style={{
                         display: "flex",
@@ -349,8 +368,9 @@ const SupplyTable = ({
             })}
           </tbody>
         </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

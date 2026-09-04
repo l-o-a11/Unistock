@@ -364,7 +364,6 @@ const TechnicalSheetModal = ({ product, onClose, onTechnicalSheetChanged }) => {
   );
 };
 
-// 🔥 ESTILOS
 const styles = {
   editBtn: {
     padding: '10px 24px',

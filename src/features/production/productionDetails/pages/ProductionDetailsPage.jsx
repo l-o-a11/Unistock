@@ -156,14 +156,14 @@ const ProductionDetailsPage = () => {
   // ✅ Obtener el usuario actual para validar contraseña y sincronizar calendario
   const { user: currentUser } = useAuthContext();
   const { isGerente, isAdministrador, isEmpleado } = useSedeScope();
-  // 🔒 Metodología de permisos en el detalle de una orden:
+  // El detalle aplica el mismo alcance de permisos que el listado de producción.
   // - Gerente: control total (crea, asigna, avanza, anula, edita).
   // - Administrador: solo observa (sin acciones).
   // - Empleado: vista de solo lectura + único botón habilitado "Siguiente"
   //   para avanzar el estado. El resto de acciones (anular, editar ficha,
   //   asignar, editar/anular referencias, etc.) permanecen ocultas para él.
   const puedeAsignar = isGerente;
-  // 🐛 FIX: Solo cargar la lista de empleados si el usuario es Gerente (el
+  // Solo el gerente necesita cargar la lista completa de empleados.
   // único rol que necesita el catálogo para el modal de asignación).
   // Empleado y Administrador NO pueden asignar a nadie, así que no necesitan
   // hacer GET /api/users — el backend rechaza esa ruta para roles no Gerente/
@@ -211,7 +211,7 @@ const ProductionDetailsPage = () => {
     isOpen: false, type: "advance", targetStep: null,
     tercero: "", sede: "",
     customTitle: undefined, customMessage: undefined, onConfirmOverride: null,
-    // 🐛 FIX (Issue 1): `alertKey` se captura UNA VEZ al abrir el modal y se usa
+    // `alertKey` se captura una vez al abrir el modal y se reutiliza durante la acción.
     // como `key` de <ProductionAlerts>. Antes se usaba `Date.now()` inline en el
     // render, que cambia en CADA re-render del padre mientras el modal está
     // abierto → React remontaba el modal constantemente y se perdía lo que el
@@ -239,7 +239,7 @@ const ProductionDetailsPage = () => {
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [pendingFinishedImg, setPendingFinishedImg] = useState(null);
 
-  // 🐛 FIX: el flujo de dañados llamaba a `loadProduction()` (en
+  // El flujo de productos dañados recarga también los detalles de la orden.
   // updateOriginalOrderWithRemaining) pero esa función no existía — solo
   // había un `load` inline dentro del useEffect. Eso lanzaba un
   // `ReferenceError: loadProduction is not defined` cada vez que se usaba
@@ -471,7 +471,7 @@ const ProductionDetailsPage = () => {
     return updates;
   };
 
-  // 🐛 FIX: cuando TODAS las unidades de la orden resultan dañadas
+  // Cuando todas las unidades de la orden resultan dañadas
   // (remaining = 0), la orden original debe quedar Anulada de verdad. Con
   // daño PARCIAL, la orden NUNCA se anula: solo se descuenta la cantidad
   // dañada (vía updateOriginalOrderWithRemaining) y se deja en el mismo paso
@@ -549,7 +549,7 @@ const ProductionDetailsPage = () => {
     : false;
 
   // Solo Gerente puede avanzar etapas — Empleado y Administrador son observadores.
-  // 🐛 FIX: Se retiró el botón "Confirmar etapa" del empleado.
+  // El empleado no confirma manualmente la etapa desde esta vista.
   // Ahora solo el Gerente avanza la orden al siguiente estado.
   const esperandoConfirmacion = EMPLOYEE_REQUIRED_STEPS.includes(production.status)
     && production.empleadoAsignadoId
@@ -572,7 +572,7 @@ const ProductionDetailsPage = () => {
       setGlobalAlert({ open: true, type: "error", title: "Empleado requerido", message: "Debes seleccionar un empleado responsable para continuar." });
       return;
     }
-    // 🐛 FIX: Primero avanzar la orden al targetStep (applyStepChange cambia
+    // Primero avanza la orden al paso objetivo.
     // el estado vía PATCH /ordenes/:id/cambiar-estado). SOLO DESPUÉS asignar
     // el empleado, porque el endpoint PATCH /ordenes/:id/asignar-empleado
     // valida el CARGO del empleado contra la ETAPA ACTUAL de la orden en la BD.
@@ -596,7 +596,7 @@ const ProductionDetailsPage = () => {
     setProductionAlert({
       isOpen: true, type: "advance", targetStep: null, tercero: "", sede: "",
       customTitle: undefined, customMessage: undefined, onConfirmOverride: null,
-      // 🐛 FIX (Issue 1): `alertKey` se captura UNA VEZ aquí al abrir el modal
+      // `alertKey` se captura una vez al abrir el modal.
       // (en vez de `Date.now()` inline en el render) para que el `key` del
       // <ProductionAlerts> sea estable mientras el modal está abierto y no se
       // remonte en cada re-render perdiendo lo que escribe el usuario.
@@ -744,7 +744,7 @@ const ProductionDetailsPage = () => {
       return;
     }
 
-    // 🐛 FIX: se agregó `await` al onConfirmOverride. Antes la acción se
+    // Espera la confirmación antes de continuar con la operación.
     // lanzaba "fire-and-forget" (sin esperar), de modo que los flujos de
     // anular artículo/agregar artículo no esperaban a que la promesa de la
     // acción terminara: la eliminación/creación SÍ se ejecutaba en el
@@ -1168,6 +1168,12 @@ const ProductionDetailsPage = () => {
 
         .pd-stat-card { border-radius:11px; padding:13px 15px; }
 
+        .pd-tech-content { overflow-x: auto; }
+        @media (max-width: 768px) {
+          .pd-tech-modal { margin: 0 !important; max-height: 94vh !important; border-radius: 10px !important; }
+          .pd-tech-content { padding: 14px 12px !important; }
+        }
+
         .pd-hist-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .pd-hist-th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; padding: 0 8px 8px 0; text-align: left; overflow: hidden; }
         .pd-hist-td { padding: 10px 8px 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
@@ -1279,7 +1285,7 @@ const ProductionDetailsPage = () => {
               setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${source?.orderNumber || ''} fue anulada correctamente.` });
               return;
             }
-            // 🐛 FIX: antes SIEMPRE se llamaba a updateOriginalOrderWithRemaining,
+            // Actualiza la orden original solo cuando quedan unidades.
             // lo que vaciaba los detalles pero nunca marcaba la orden como
             // Anulada cuando el 100% resultaba dañado. Ahora resolveOriginalOrder
             // decide: si TODO se dañó, anula de verdad; si es parcial, la orden
@@ -1313,7 +1319,7 @@ const ProductionDetailsPage = () => {
               return;
             }
             try {
-              // 🐛 FIX: "Crear producción y abrir ficha" crea DOS cosas por
+              // Esta opción crea la producción y la ficha técnica.
               // separado:
               //   1) Una orden de REPOSICIÓN con los MISMOS datos de la
               //      producción que NO se dañó, avanzada directo a "Corte"
@@ -1404,7 +1410,7 @@ const ProductionDetailsPage = () => {
               setGlobalAlert({ open: true, type: 'success', title: 'Orden anulada', message: `La orden #${source?.orderNumber || ''} fue anulada correctamente.` });
               return;
             }
-            // 🐛 FIX: "Solo crear ficha técnica" debe crear ÚNICAMENTE la
+            // Esta opción crea únicamente la ficha técnica.
             // ficha (tipo 'diseno') para documentar los dañados — y ya NO se
             // crea sola en segundo plano. Se navega a abrir el formulario de
             // tipo "diseño" que ya existe, prellenado con cliente y cantidad
@@ -1761,7 +1767,7 @@ const ProductionDetailsPage = () => {
                 type: "anular", customTitle: "Anular orden",
                 customMessage: "¿Deseas anular esta orden de producción? Esta acción no se puede deshacer.",
                 onConfirmOverride: async (motivo) => {
-                  // 🐛 FIX: antes se llamaba a `cancelOrder` de inmediato, sin
+                  // La anulación requiere confirmación explícita.
                   // importar cuántos artículos seguían en buen estado — la
                   // orden quedaba "Anulada" aunque, por ejemplo, 15 de 23
                   // unidades no tuvieran ningún daño. Ahora, para órdenes con
@@ -2080,7 +2086,7 @@ const ProductionDetailsPage = () => {
                         ))}
                       </div>
                     )}
-                    {/* 🐛 FIX: antes el botón de subir foto del producto terminado
+                    {/* La carga de fotos está disponible según el estado de la orden.
                         solo se habilitaba desde la etapa "Recepción" en adelante, por
                         lo que en Diseño/Ficha/Corte/Compras/Producción era imposible
                         subir imágenes del producto. Ahora se permite en cualquier

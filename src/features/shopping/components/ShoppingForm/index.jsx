@@ -55,7 +55,6 @@ const responsiveCss = `
     }
     .shf-left-scroll {
       padding: 18px 16px 0 !important;
-      overflow-y: auto !important;
     }
     .shf-left-footer {
       padding: 10px 16px 18px !important;
@@ -395,7 +394,17 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               contenido lo corte. Mismo patrón que ya usa la columna derecha. */}
           <div className="shf-left" style={{ flex: '0 0 520px', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
-            <div className="shf-left-scroll" style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '18px 26px 0' }}>
+            {/* FIX SCROLL: overflow cambiado de 'hidden' a overflowY: 'auto'.
+                Antes, en pantallas grandes (>900px) este contenedor tenía
+                overflow: 'hidden' por defecto y solo pasaba a 'auto' dentro
+                del media query de 900px. Si el contenido (última fila de
+                Cantidad/Medida/Valor unitario/Valor total) no cabía en el
+                alto disponible del modal, se recortaba en vez de poder
+                scrollear, quedando tapado por el footer fijo y sin poder
+                digitar en el campo Cantidad. Con overflowY: 'auto' siempre
+                activo, el usuario puede scrollear internamente en cualquier
+                tamaño de pantalla y el footer nunca tapa contenido. */}
+            <div className="shf-left-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 26px 0' }}>
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>

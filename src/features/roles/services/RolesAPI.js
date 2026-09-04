@@ -101,6 +101,8 @@ const normalizeRol = (rol) => ({
   descripcion: rol.descripcion ?? "",
   estado: rol.estado ?? true,
   modulos: permisosBackToFront(rol.permisos ?? []),
+  createdAt: rol.createdAt ?? rol.created_at ?? null,
+  updatedAt: rol.updatedAt ?? rol.updated_at ?? null,
 });
 
 // ── API pública ───────────────────────────────────────────────────────────────
@@ -111,8 +113,13 @@ export const RolesAPI = {
 
   // GET /api/roles  — soporta ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
   getAll: async (filters = {}) => {
+    const requestFilters = {
+      sortBy: "createdAt",
+      order: "desc",
+      ...filters,
+    };
     const qs = new URLSearchParams(
-      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+      Object.entries(requestFilters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
     const result = await httpClient.get(`/roles${qs ? `?${qs}` : ""}`);
     const lista = Array.isArray(result) ? result : (result?.data ?? []);
@@ -131,7 +138,9 @@ export const RolesAPI = {
   create: async (rolData) => {
     const body = {
       nombre: rolData.nombre,
-      descripcion: rolData.descripcion,
+      ...(rolData.descripcion !== undefined && rolData.descripcion !== null
+        ? { descripcion: rolData.descripcion.trim() || undefined }
+        : {}),
       estado: rolData.estado ?? true,
       permisos: permisosFrontToBack(rolData.modulos ?? []),
     };
@@ -144,7 +153,9 @@ export const RolesAPI = {
   update: async (id, rolData) => {
     const body = {
       ...(rolData.nombre !== undefined && { nombre: rolData.nombre }),
-      ...(rolData.descripcion !== undefined && { descripcion: rolData.descripcion }),
+      ...(rolData.descripcion !== undefined && {
+        descripcion: typeof rolData.descripcion === 'string' ? rolData.descripcion.trim() || undefined : rolData.descripcion,
+      }),
       ...(rolData.estado !== undefined && { estado: rolData.estado }),
       ...(rolData.modulos !== undefined && {
         permisos: permisosFrontToBack(rolData.modulos),

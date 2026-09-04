@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
+import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 
 const cellStyle = {
   border: "1px solid #e5e7eb",
@@ -118,7 +119,7 @@ const buildInitialData = (sheet, productName, categoryDescription, productRef, p
     ...initialData,
     date:        hasValue(initialData.date)        ? initialData.date        : today,
     createdBy:   hasValue(initialData.createdBy)   ? initialData.createdBy   : (currentUser?.nombre || ""),
-    // 🐛 FIX: "Tipo de prenda" mostraba el NOMBRE del producto (ej. "Brasier
+    // El tipo de prenda debe usar la categoría del producto, no su nombre.
     // Push Up XYZ") en vez de la CATEGORÍA (ej. "Brasieres"). Antes usaba
     // `productName`; ahora usa `categoryName` (formData.category en
     // ProductForm). `categoryDescription` sigue siendo el texto libre de la
@@ -134,6 +135,7 @@ const buildInitialData = (sheet, productName, categoryDescription, productRef, p
 };
 
 const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", categoryDescription = "", productRef = "", productImage = null, categoryName = "" }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [formData, setFormData] = useState(() =>
     buildInitialData(sheet, productName, categoryDescription, productRef, productImage, categoryName)
   );
@@ -285,11 +287,21 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
   const displayClosures     = formData.closures      || [];
 
   return (
-    <div style={{ backgroundColor: "#fff", fontFamily: "sans-serif" }}>
-      <div style={{ display: "flex", gap: "20px" }}>
+    <div className="ts-wrapper" style={{ backgroundColor: "#fff", fontFamily: "sans-serif" }}>
+      <div style={{ display: "flex", gap: "20px", flexDirection: isMobile ? "column" : "row" }}>
+        <style>{`
+          @media (max-width: 768px) {
+            .ts-wrapper { overflow-x: hidden; }
+            .ts-inner { max-width: 100%; overflow-x: hidden; }
+            .ts-table, .ts-table tbody, .ts-table tr, .ts-table td { display: block; width: 100% !important; }
+            .ts-table { border-collapse: collapse; }
+            .ts-table tr { margin-bottom: 8px; border-bottom: 1px solid #f3f4f6; }
+            .ts-table td { box-sizing: border-box; padding: 6px 8px !important; white-space: normal; word-break: break-word; }
+          }
+        `}</style>
         {/* Columna izquierda */}
-        <div style={{ flex: 2 }}>
-          <table style={tableStyle}>
+        <div style={{ flex: 2 }} className="ts-inner">
+          <table style={tableStyle} className="ts-table">
             <tbody>
 
               {/* ── Row 1: Cliente / Fecha / REF ── */}

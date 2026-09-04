@@ -184,7 +184,7 @@ export default function ProductionDashboard() {
   // Datos crudos del backend
   const [orders, setOrders] = useState([]);
   const [sedesNames, setSedesNames] = useState([]);
-  const [supplies, setSupplies] = useState({ adquisicion: 0, almacenamiento: 0, stock: 0 });
+  const [supplies, setSupplies] = useState({ almacenamiento: 0, stock: 0 });
 
   // El catálogo de sedes puede no estar disponible para todos los roles. Las
   // asignaciones ya guardadas en cada orden siguen siendo una fuente válida
@@ -209,7 +209,7 @@ export default function ProductionDashboard() {
         const [ordersRequest, sedesRequest, suppliesRequest] = await Promise.allSettled([
           ProductionAPIClient.getOrders({ limit: 1000 }),
           sedesAPI.getAll({ limit: 100, estado: true }),
-          supplyAPI.getAll({ estado: true, limit: 1000 }),
+          supplyAPI.getAll({ limit: 1000 }),
         ]);
         if (!mounted) return;
 
@@ -225,7 +225,6 @@ export default function ProductionDashboard() {
         const allSupplies = Array.isArray(suppliesResult?.data) ? suppliesResult.data
           : Array.isArray(suppliesResult) ? suppliesResult : [];
         setSupplies({
-          adquisicion: allSupplies.filter(s => (s.stock ?? 0) === 0).length,
           almacenamiento: allSupplies.length,
           stock: allSupplies.reduce((sum, s) => sum + (Number(s.stock) || 0), 0),
         });
@@ -816,30 +815,6 @@ export default function ProductionDashboard() {
           <Card>
             <h3 className="text-sm font-bold text-gray-900 mb-4 text-center">Insumos</h3>
             <div className="space-y-3">
-              {/* Por adquisición */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-pink-50 border border-pink-200 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="14" viewBox="0 0 40 25" fill="none">
-                      <path d="M38.4998 11.5371C38.5507 11.2879 38.5133 11.035 38.3902 10.795C38.2671 10.555 38.0609 10.3332 37.7853 10.1442C37.5063 9.95377 37.1628 9.80111 36.7778 9.69642C36.3928 9.59174 35.9751 9.53743 35.5523 9.53711H3.57694C3.15421 9.53743 2.73645 9.59174 2.35145 9.69642C1.96644 9.80111 1.62301 9.95377 1.34402 10.1442C1.06833 10.3332 0.862201 10.555 0.739078 10.795C0.615955 11.035 0.578611 11.2879 0.629483 11.5371L2.8624 22.2513C2.95016 22.6869 3.30217 23.0878 3.85128 23.3776C4.4004 23.6675 5.10819 23.8259 5.83963 23.8227H33.3492C34.0806 23.8259 34.7884 23.6675 35.3375 23.3776C35.8866 23.0878 36.2387 22.6869 36.3264 22.2513L38.4998 11.5371Z" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M6.16748 9.53595V8.64309C6.16748 6.5119 7.579 4.468 10.0915 2.96102C12.604 1.45403 16.0118 0.607422 19.565 0.607422C23.1182 0.607422 26.5259 1.45403 29.0385 2.96102C31.551 4.468 32.9625 6.5119 32.9625 8.64309V9.53595" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M13.6099 14.8945V18.4659" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M25.5181 14.8945V18.4659" stroke="#e040b8" strokeWidth="1.21519" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-gray-800 block truncate">Por adquisición</span>
-                    <span className="text-xs text-gray-400 block truncate">Pendientes de compra</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="w-8 sm:w-12 h-px bg-pink-200 inline-block" />
-                  <span className={`text-sm font-bold ${supplies.adquisicion > 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                    {supplies.adquisicion}
-                  </span>
-                </div>
-              </div>
-
               {/* Almacenamiento */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">

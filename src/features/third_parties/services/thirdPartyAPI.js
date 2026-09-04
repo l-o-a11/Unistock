@@ -135,7 +135,7 @@ export const thirdPartyAPI = {
   /**
    * GET /api/terceros — lista completa con filtros opcionales
    *
-   * 🐛 FIX (rendimiento): antes se llamaba directo a httpClient cada vez.
+  * Centraliza la petición para evitar llamadas duplicadas al cliente HTTP.
    * Como thirdPartyAPI.getAll() se invoca de forma independiente desde
    * varios componentes (ProductForm, ThirdPartiesSection,
    * ProductionAlerts, ProductionDetailsPage...), montarlos juntos disparaba

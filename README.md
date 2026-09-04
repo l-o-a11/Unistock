@@ -1,4 +1,4 @@
-# 📦 UniStock
+# UniStock
 
 Sistema de gestión de inventario **full-stack** orientado a empresas de producción: maneja insumos, productos, categorías, proveedores, compras, producción, empleados, sedes, terceros, usuarios y roles con privilegios granulares.
 
@@ -6,7 +6,7 @@ Este repositorio contiene el **frontend** de UniStock, construido en React + Vit
 
 ---
 
-## 📑 Tabla de contenidos
+## Tabla de contenidos
 
 - [Descripción general](#-descripción-general)
 - [Stack tecnológico](#-stack-tecnológico)
@@ -27,13 +27,14 @@ Este repositorio contiene el **frontend** de UniStock, construido en React + Vit
 
 ---
 
-## 🧾 Descripción general
+## Descripción general
 
 UniStock centraliza el control de inventario de una empresa de producción: desde el registro de insumos y proveedores, pasando por el proceso de producción de productos terminados, hasta la administración de usuarios, roles y sedes. La aplicación está pensada para ser usada por varios roles (administradores, encargados de producción, compras, etc.), cada uno con acceso restringido a los módulos que le corresponden.
 
-## 🛠 Stack tecnológico
+## Stack tecnológico
 
 **Frontend (este repositorio)**
+
 - [React 19](https://react.dev/) + [Vite 8](https://vitejs.dev/)
 - [React Router DOM 7](https://reactrouter.com/) para el enrutamiento
 - [Tailwind CSS 4](https://tailwindcss.com/) para estilos
@@ -48,30 +49,31 @@ UniStock centraliza el control de inventario de una empresa de producción: desd
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) para soporte PWA
 
 **Backend (repositorio independiente)**
+
 - Node.js + Express
 - MongoDB (Mongoose)
 - Autenticación basada en JWT
 
-## 🧩 Módulos funcionales
+## Módulos funcionales
 
-| Módulo | Descripción |
-|---|---|
-| **Auth / Perfil** | Inicio de sesión, sesión persistida, página de perfil de usuario |
-| **Dashboard** | Panel principal con indicadores generales |
-| **Usuarios** | Gestión (CRUD) de usuarios del sistema |
-| **Roles** | Creación, edición y asignación de roles con privilegios por módulo |
-| **Sedes** | Administración de sedes/ubicaciones de la empresa |
-| **Insumos** | Gestión de insumos con exportación a Excel/PDF |
-| **Categorías de insumos** | Clasificación de insumos, con conteo de insumos por categoría |
-| **Proveedores** | Gestión de proveedores |
-| **Compras** | Registro y control de compras a proveedores |
-| **Productos** | Gestión del catálogo de productos terminados |
-| **Categorías de productos** | Clasificación de productos |
-| **Producción** | Órdenes de producción, detalle de producción y calendario de producción |
-| **Terceros** | Gestión de terceros relacionados con la operación |
-| **Empleados** | Gestión de información de empleados |
+| Módulo                      | Descripción                                                             |
+| --------------------------- | ----------------------------------------------------------------------- |
+| **Auth / Perfil**           | Inicio de sesión, sesión persistida, página de perfil de usuario        |
+| **Dashboard**               | Panel principal con indicadores generales                               |
+| **Usuarios**                | Gestión (CRUD) de usuarios del sistema                                  |
+| **Roles**                   | Creación, edición y asignación de roles con privilegios por módulo      |
+| **Sedes**                   | Administración de sedes/ubicaciones de la empresa                       |
+| **Insumos**                 | Gestión de insumos con exportación a Excel/PDF                          |
+| **Categorías de insumos**   | Clasificación de insumos, con conteo de insumos por categoría           |
+| **Proveedores**             | Gestión de proveedores                                                  |
+| **Compras**                 | Registro y control de compras a proveedores                             |
+| **Productos**               | Gestión del catálogo de productos terminados                            |
+| **Categorías de productos** | Clasificación de productos                                              |
+| **Producción**              | Órdenes de producción, detalle de producción y calendario de producción |
+| **Terceros**                | Gestión de terceros relacionados con la operación                       |
+| **Empleados**               | Gestión de información de empleados                                     |
 
-## 📁 Estructura del proyecto
+## Estructura del proyecto
 
 El proyecto sigue una arquitectura **feature-based** (organizada por dominio de negocio en lugar de por tipo de archivo), donde cada módulo bajo `src/features/` es autocontenido:
 
@@ -114,13 +116,14 @@ src/
 ```
 
 Cada módulo típicamente contiene:
+
 - **`pages/`** — vistas completas (páginas) enrutadas.
 - **`components/`** — piezas de UI específicas del módulo (formularios, tablas, modales).
 - **`hooks/`** — lógica de estado y llamadas a servicios (`useUsers`, `useAuth`, etc.).
 - **`services/`** — funciones que consumen la API (`usersAPI.js`, `productAPI.js`, etc.), con manejo de errores y, en algunos casos, datos mock de respaldo.
 - **`types/`** — definiciones/formas de datos usadas en el módulo.
 
-## 🏗 Arquitectura
+## Arquitectura
 
 El flujo de datos sigue el patrón:
 
@@ -134,13 +137,13 @@ Página (UI) → Hook (estado) → Service/API (petición) → httpClient.js →
 
 Para un diagrama más detallado del flujo de una petición (ej. login) y del manejo de errores, ver [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
-## ✅ Requisitos previos
+## Requisitos previos
 
 - **Node.js** 18 o superior (recomendado 20+)
 - **npm** (incluido con Node.js)
 - Backend de UniStock corriendo (por defecto en `http://localhost:3000`) para funcionalidad completa
 
-## 🚀 Instalación
+## Instalación
 
 ```bash
 # 1. Clonar el repositorio
@@ -150,8 +153,7 @@ cd Unistock
 # 2. Instalar dependencias
 npm install
 
-# 3. Configurar variables de entorno
-cp .env.example .env   # y completar los valores (ver sección siguiente)
+# 3. Crear el archivo .env y completar los valores (ver sección siguiente)
 
 # 4. Levantar el servidor de desarrollo
 npm run dev
@@ -159,7 +161,7 @@ npm run dev
 
 La aplicación quedará disponible en `http://localhost:5173`.
 
-## 🔐 Variables de entorno
+## Variables de entorno
 
 El proyecto usa variables con prefijo `VITE_` (requerido por Vite para exponerlas al cliente). Se definen en un archivo `.env` en la raíz:
 
@@ -174,64 +176,65 @@ VITE_API_TIMEOUT=10000
 VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 ```
 
-> ⚠️ El archivo `.env` no debe subirse al control de versiones (ya está contemplado en `.gitignore`). Cada desarrollador debe crear el suyo localmente.
+> El archivo `.env` no debe subirse al control de versiones. Cada desarrollador debe crear el suyo localmente.
 
-## 📜 Scripts disponibles
+## Scripts disponibles
 
-| Comando | Descripción |
-|---|---|
-| `npm run dev` | Levanta el servidor de desarrollo de Vite con hot-reload |
-| `npm run build` | Genera el build de producción en `dist/` |
+| Comando           | Descripción                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| `npm run dev`     | Levanta el servidor de desarrollo de Vite con hot-reload     |
+| `npm run build`   | Genera el build de producción en `dist/`                     |
 | `npm run preview` | Sirve localmente el build de producción para previsualizarlo |
-| `npm run lint` | Ejecuta ESLint sobre todo el proyecto |
+| `npm run lint`    | Ejecuta ESLint sobre todo el proyecto                        |
 
-## 🧭 Rutas de la aplicación
+## Rutas de la aplicación
 
 Todas las rutas (excepto `/` y `/layout/perfil`) requieren sesión activa y, en la mayoría de los casos, un privilegio de módulo específico:
 
-| Ruta | Módulo requerido | Página |
-|---|---|---|
-| `/` | — (pública) | Login |
-| `/layout` o `/layout/dashboard` | `dashboard` | Dashboard |
-| `/layout/usuarios` | `usuarios` | Gestión de usuarios |
-| `/layout/roles` | `roles` | Listado de roles |
-| `/layout/roles/crear` | `roles` | Crear rol |
-| `/layout/roles/editar/:id` | `roles` | Editar rol |
-| `/layout/sedes` | `sedes` | Gestión de sedes |
-| `/layout/insumos` | `insumos` | Gestión de insumos |
-| `/layout/categorias-insumos` | `categorias de insumos` | Categorías de insumos |
-| `/layout/proveedores` | `proveedores` | Gestión de proveedores |
-| `/layout/compras` | `compras` | Gestión de compras |
-| `/layout/productos` | `productos` | Gestión de productos |
-| `/layout/productos/crear` | `productos` | Crear producto |
-| `/layout/categorias-productos` | `categorias de productos` | Categorías de productos |
-| `/layout/produccion` | `produccion` | Listado de producción |
-| `/layout/produccion/detalle/:id` | `produccion` | Detalle de una producción |
-| `/layout/produccion/calendario` | `produccion` | Calendario de producción |
-| `/layout/terceros` | `terceros` | Gestión de terceros |
-| `/layout/empleados` | `empleados` | Gestión de empleados |
-| `/layout/perfil` | — (siempre accesible con sesión) | Perfil del usuario |
-| `*` | — | Redirige a `/layout` |
+| Ruta                             | Módulo requerido                 | Página                    |
+| -------------------------------- | -------------------------------- | ------------------------- |
+| `/`                              | — (pública)                      | Login                     |
+| `/layout` o `/layout/dashboard`  | `dashboard`                      | Dashboard                 |
+| `/layout/usuarios`               | `usuarios`                       | Gestión de usuarios       |
+| `/layout/roles`                  | `roles`                          | Listado de roles          |
+| `/layout/roles/crear`            | `roles`                          | Crear rol                 |
+| `/layout/roles/editar/:id`       | `roles`                          | Editar rol                |
+| `/layout/sedes`                  | `sedes`                          | Gestión de sedes          |
+| `/layout/insumos`                | `insumos`                        | Gestión de insumos        |
+| `/layout/categorias-insumos`     | `categorias de insumos`          | Categorías de insumos     |
+| `/layout/proveedores`            | `proveedores`                    | Gestión de proveedores    |
+| `/layout/compras`                | `compras`                        | Gestión de compras        |
+| `/layout/productos`              | `productos`                      | Gestión de productos      |
+| `/layout/productos/crear`        | `productos`                      | Crear producto            |
+| `/layout/categorias-productos`   | `categorias de productos`        | Categorías de productos   |
+| `/layout/produccion`             | `produccion`                     | Listado de producción     |
+| `/layout/produccion/detalle/:id` | `produccion`                     | Detalle de una producción |
+| `/layout/produccion/calendario`  | `produccion`                     | Calendario de producción  |
+| `/layout/terceros`               | `terceros`                       | Gestión de terceros       |
+| `/layout/empleados`              | `empleados`                      | Gestión de empleados      |
+| `/layout/perfil`                 | — (siempre accesible con sesión) | Perfil del usuario        |
+| `*`                              | —                                | Redirige a `/layout`      |
 
-## 👤 Autenticación y roles
+## Autenticación y roles
 
 - El inicio de sesión se realiza contra `POST /api/auth/login`; el backend responde con los datos del usuario y un token JWT.
 - La sesión se guarda en `sessionStorage` bajo la clave `session_user` y se limpia al cerrar sesión o si el token es rechazado por el backend.
 - El sistema de **roles y privilegios** permite asignar a cada rol acceso granular a los distintos módulos (`usuarios`, `productos`, `produccion`, etc.); `PrivateRoute` valida ese privilegio antes de renderizar cada página.
 
-## 🌐 Modo offline / fallback
+## Modo offline y fallback
 
 Varios servicios (`usersAPI`, `productAPI`, etc.) están preparados para funcionar aunque el backend no esté disponible: si la petición al backend falla, capturan el error, muestran una advertencia en consola y devuelven datos mock locales para que la interfaz siga siendo funcional durante el desarrollo. Estos datos de respaldo **no persisten** (se pierden al recargar la página) y están pensados solo para desarrollo, no para producción.
 
-## 📊 Exportación de datos
+## Exportación de datos
 
 El módulo de insumos (y otros que lo requieran) permite exportar información a:
+
 - **Excel**, generado con ExcelJS aplicando estilos personalizados.
 - **PDF**, generado abriendo una ventana HTML con jsPDF/jspdf-autotable.
 
 ## 📱 PWA
 
-El proyecto está configurado como **Progressive Web App** mediante `vite-plugin-pwa`, con manifest, íconos y estrategia de *service worker* con auto-actualización (`registerType: 'autoUpdate'`), lo que permite instalar la aplicación y usarla con soporte offline básico para los assets estáticos.
+El proyecto está configurado como **Progressive Web App** mediante `vite-plugin-pwa`, con manifest, íconos y estrategia de _service worker_ con auto-actualización (`registerType: 'autoUpdate'`), lo que permite instalar la aplicación y usarla con soporte offline básico para los assets estáticos.
 
 ## 📚 Documentación adicional
 

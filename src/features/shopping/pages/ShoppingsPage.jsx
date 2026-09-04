@@ -16,7 +16,7 @@ import { useSedeScope, isVisibleBySede } from "../../shared/hooks/useSedeScope";
 const ShoppingsPage = () => {
   const { suppliers } = useSuppliers();
 
-  // ✅ FIX: sin parseInt — proveedorId vendrá como string desde MongoDB
+  //  FIX: sin parseInt — proveedorId vendrá como string desde MongoDB
   const getProveedorNombre = (proveedorId) =>
     suppliers.find((s) => String(s.id) === String(proveedorId))
       ?.nombreEmpresa ?? "—";
@@ -95,7 +95,7 @@ const ShoppingsPage = () => {
       (estadoFiltro === "activos" && !p.anulada) ||
       (estadoFiltro === "inactivos" && p.anulada);
 
-    // 🔒 Alcance de sede: Gerente ve todas las compras;
+    // El gerente ve todas las compras; los demás roles se limitan a su sede.
     // cualquier otro rol ve las compras de su sede y los registros sin sede.
     const coincideSede = isVisibleBySede(p, isGerente, miSedeId);
 

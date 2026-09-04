@@ -15,7 +15,6 @@ import { useSedes } from '../../sedes/hooks/useSedes';
 import { useSedeScope, isVisibleBySede } from '../../shared/hooks/useSedeScope';
 import { productAPI } from '../services/productAPI';
 
-// 🔥 Importa aquí la URL de tu logo (ajusta la ruta según tu proyecto)
 import putongasLogoUrl from '../../shared/assets/putongasLogo.png';
 
 const ProductsPage = () => {
@@ -24,7 +23,7 @@ const ProductsPage = () => {
   const { searchTerm, handleSearch } = useProductSearch();
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 🔒 Alcance de sede: Gerente ve todos los productos; Administrador solo
+  // El gerente ve todos los productos; los demás roles se limitan a su sede.
   // ve los de su propia sede (y los que aún no tienen sede asignada, para
   // no ocultar productos creados antes de este cambio). Mismo criterio que
   // Empleados y Producción — ver useSedeScope.
@@ -126,7 +125,6 @@ const ProductsPage = () => {
     }
   }, [location.pathname, params.id, navigate, productAPI]);
 
-  // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
   const filteredProducts = productsEnMiSede.filter(product => {
     const searchLower = searchTerm.toLowerCase().trim();
 
@@ -306,7 +304,7 @@ const ProductsPage = () => {
     setDeleteAlert({ open: true, productId: id, key: Date.now() });
   };
 
-// 🔒 Activar/desactivar producto requiere validar la contraseña del
+// Activar o desactivar un producto requiere validar la contraseña del
   // usuario logueado (igual que la eliminación). El ProductTable envía la
   // contraseña capturada en su Alert de confirmación.
   const handleToggle = async (id, nextActive, password) => {
@@ -550,15 +548,6 @@ const ProductsPage = () => {
     return pages;
   };
 
-  const paginationBtn = {
-    padding: "6px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
-    background: "#fff",
-    cursor: "pointer",
-    fontSize: "14px",
-  };
-
   const modalOverlayStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -761,20 +750,24 @@ const ProductsPage = () => {
 
       {filteredProducts.length > 0 && (
         <div style={{
-          marginTop: "auto",
-          marginBottom: "20px",
+          marginTop: isMobile ? '24px' : 'auto',
+          marginBottom: isMobile ? '16px' : '20px',
           display: "flex",
           justifyContent: "center",
-          gap: "6px",
+          gap: isMobile ? '4px' : '6px',
           alignItems: "center",
         }}>
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             style={{
-              ...paginationBtn,
-              color: currentPage === 1 ? '#ccc' : '#333',
+              padding: isMobile ? '4px 10px' : '6px 12px',
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+              background: "#fff",
               cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              fontSize: isMobile ? '12px' : '14px',
+              color: currentPage === 1 ? '#ccc' : '#333',
             }}
           >
             ‹
@@ -782,16 +775,19 @@ const ProductsPage = () => {
 
           {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={i} style={{ padding: "6px 10px", fontSize: "14px", color: "#999" }}>...</span>
+              <span key={i} style={{ padding: isMobile ? '4px 6px' : '6px 10px', fontSize: isMobile ? '12px' : '14px', color: "#999" }}>...</span>
             ) : (
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
                 style={{
-                  ...paginationBtn,
-                  backgroundColor: p === currentPage ? "#FF4FD6" : "#fff",
-                  color: p === currentPage ? "#fff" : "#333",
+                  padding: isMobile ? '4px 10px' : '6px 12px',
+                  borderRadius: "6px",
                   border: p === currentPage ? "1px solid #FF4FD6" : "1px solid #ddd",
+                  background: p === currentPage ? "#FF4FD6" : "#fff",
+                  cursor: "pointer",
+                  fontSize: isMobile ? '12px' : '14px',
+                  color: p === currentPage ? "#fff" : "#333",
                 }}
               >
                 {p}
@@ -803,9 +799,13 @@ const ProductsPage = () => {
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             style={{
-              ...paginationBtn,
-              color: currentPage === totalPages ? '#ccc' : '#333',
+              padding: isMobile ? '4px 10px' : '6px 12px',
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+              background: "#fff",
               cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              fontSize: isMobile ? '12px' : '14px',
+              color: currentPage === totalPages ? '#ccc' : '#333',
             }}
           >
             ›

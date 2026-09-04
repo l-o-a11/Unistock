@@ -6,12 +6,11 @@ import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 const ProductTable = ({ products = [], onView, onEdit, onDelete, onToggle, onStockChange }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  /* 🔥 ESTADOS PARA ALERTA DE CAMBIO DE ESTADO */
   const [showToggleAlert, setShowToggleAlert] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [newStatus, setNewStatus] = useState(null);
 
-  // 🔥 Preview de imagen con posición FIXED para que se sobreponga sobre la
+  // La vista previa usa posición fija para superponerse a la tabla.
   // tabla sin ser recortada por el contenedor con overflow:hidden.
   // Funciona igual cuando hay imagen y cuando no la hay (muestra "Sin imagen").
   const [imagePreview, setImagePreview] = useState(null);
@@ -309,7 +308,7 @@ const tdActionsStyle = {
 
                     {/* ACCIONES */}
                     <td style={tdActionsStyle}>
-<div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, flexWrap: "nowrap", minWidth: isMobile ? "160px" : 0, maxWidth: "100%", justifyContent: "flex-start", width: "fit-content" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, flexWrap: "nowrap", minWidth: isMobile ? "160px" : 0, maxWidth: "100%", justifyContent: "flex-start", width: "fit-content" }}>
 
                         {/* ⓘ info - VER FICHA TÉCNICA */}
                         <button onClick={() => onView(product)} title="Ver ficha técnica"
@@ -336,7 +335,7 @@ const tdActionsStyle = {
                           </svg>
                         </button>
 
-                        {/* 🗑️ delete - ELIMINAR PRODUCTO */}
+                        {/* Eliminar producto */}
                         <button onClick={() => onDelete(product.id)} title="Eliminar producto"
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", alignItems: "center", flexShrink: 0 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
@@ -393,7 +392,7 @@ const tdActionsStyle = {
         </div>
       </div>
 
-      {/* 🔥 PREVIEW DE IMAGEN CON POSICIÓN FIJA — se sobrepone sobre la tabla
+      {/* La vista previa usa posición fija para superponerse a la tabla.
           sin ser recortada por el contenedor con overflow:hidden. Muestra la
           imagen si existe, o "Sin imagen" si el producto no tiene imagen. */}
       {imagePreview && (

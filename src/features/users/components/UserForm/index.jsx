@@ -337,7 +337,12 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
                     style={getInputStyleBox(errors.role)}
                   >
                     <option value="">Seleccionar rol...</option>
-                    {roles.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                    {/* El rol "Gerente" no aparece como opción: solo puede existir un
+                        Gerente en el sistema (el que ya viene creado/seedeado), así que
+                        no se debe poder asignar ni al crear ni al editar un usuario. */}
+                    {roles
+                      .filter((r) => r.nombre?.trim().toLowerCase() !== 'gerente')
+                      .map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                   </select>
                   {errors.role && <span style={errMsg}>⚠ {errors.role}</span>}
                 </div>

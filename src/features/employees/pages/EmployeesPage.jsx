@@ -42,7 +42,7 @@ const EmployeesPage = () => {
 
   const { searchTerm, handleSearch } = useEmployeeSearch();
 
-  // 🔒 Alcance de sede: Gerente ve todos los empleados; cualquier otro rol
+  // El gerente ve todos los empleados; los demás roles se limitan a su sede.
   // (ej. Administrador de sede) ve empleados de su sede y también
   // aquellos que aún no tienen sede asignada.
   const employeesEnMiSede = useMemo(() => {
@@ -55,7 +55,6 @@ const EmployeesPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
 
-  // 🔔 ALERTA GLOBAL
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: "password",
@@ -66,7 +65,6 @@ const EmployeesPage = () => {
 
   const closeAlert = () => setAlertConfig((prev) => ({ ...prev, open: false }));
 
-  // 🔎 Filtro
   const filteredEmployees = useMemo(() => {
     const base = employeesEnMiSede;
     const term = searchTerm.toLowerCase().trim();
@@ -100,7 +98,6 @@ const EmployeesPage = () => {
     });
   }, [employeesEnMiSede, searchTerm, roles, sedes]);
 
-  // 📄 Paginación
   const itemsPerPage = 7;
   const totalPages = Math.max(
     1,
@@ -114,7 +111,6 @@ const EmployeesPage = () => {
     startIndex + itemsPerPage,
   );
 
-  // 🎯 Acciones
   const handleEdit = (employee) => {
     setEditEmployee({
       id: employee.id,
@@ -128,7 +124,7 @@ const EmployeesPage = () => {
     });
   };
 
-  // 🗑️ ELIMINAR CON CONTRASEÑA REAL (validada en backend)
+  // La eliminación requiere validar la contraseña en el backend.
   const handleDelete = (id) => {
     setAlertConfig({
       open: true,
@@ -160,7 +156,7 @@ const EmployeesPage = () => {
     });
   };
 
-  // 🔁 ACTIVAR / DESACTIVAR CON CONTRASEÑA REAL
+  // La activación y desactivación requieren validar la contraseña en el backend.
   const handleToggle = (id) => {
     const employee = employees.find((e) => String(e.id) === String(id));
     const isActive = employee?.estado !== false;
@@ -212,7 +208,6 @@ const EmployeesPage = () => {
     setEditEmployee(null);
   };
 
-  // 🔢 Paginación visual
   const getPageNumbers = () => {
     if (totalPages <= 5) return [...Array(totalPages)].map((_, i) => i + 1);
 
@@ -265,7 +260,6 @@ const EmployeesPage = () => {
           .emp-addbar { justify-content: center !important; }
         }
       `}</style>
-      {/* 🔔 ALERTA GLOBAL (eliminar con contraseña) */}
       <Alert
         isOpen={alertConfig.open}
         type={alertConfig.type}
@@ -275,7 +269,6 @@ const EmployeesPage = () => {
         onCancel={closeAlert}
       />
 
-      {/* 🔝 Header */}
       <div
         className="emp-header"
         style={{

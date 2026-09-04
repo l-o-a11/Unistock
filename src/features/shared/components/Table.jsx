@@ -11,7 +11,6 @@
 //        <td ...>{item.campo}</td>
 //      </tr>
 //    )}
-//    emptyIcon="📦"
 //    emptyText="No hay registros"
 //  />
 //
@@ -67,7 +66,7 @@ const BaseTable = ({
                 <table className="w-full border-collapse">
                     <thead>
                         <tr>
-                            {/* ✏️ Los headers los define cada tabla al importar */}
+                            {/*  Los headers los define cada tabla al importar */}
                             {headers.map((header) => (
                                 <th key={header} className={thClass}>
                                     {header}
@@ -76,7 +75,7 @@ const BaseTable = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {/* ✏️ El renderRow lo define cada tabla al importar */}
+                        {/*  El renderRow lo define cada tabla al importar */}
                         {rows.map((item) => renderRow(item))}
                     </tbody>
                 </table>
