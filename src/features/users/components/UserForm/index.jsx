@@ -23,10 +23,11 @@ const CARGOS_DISPONIBLES = ['Corte', 'Compras', 'Recepción', 'Vendedor', 'Bodeg
 
 const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCancel }) => {
   const modalRef = useRef(null);
-
-  const [formData, setFormData] = useState(() => user ?? {
+  const initialFormDataRef = useRef(user ?? {
     documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '', cargos: [],
   });
+
+  const [formData, setFormData] = useState(() => initialFormDataRef.current);
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
@@ -96,8 +97,8 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
   }, [alertConfig.open, pendingClose, onCancel]);
 
   const handleCancelClick = useCallback(() => {
-    const blank = !formData.documentType && !formData.documentNumber && !formData.name && !formData.email && !formData.role && !formData.sede;
-    if (blank) { onCancel(); return; }
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+    if (!hasChanges) { onCancel(); return; }
     setAlertConfig({
       open: true, type: 'confirm', title: 'Cancelar',
       message: '¿Seguro que deseas cancelar? Se perderán los cambios.',
@@ -236,9 +237,9 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
       />
 
       <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16, overflowY: 'auto' }}>
-        <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
+        <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
 
-          <div className="uf-body" style={{ padding: '28px 30px' }}>
+          <div className="roles-modal-scroll uf-body" style={{ padding: '28px 30px', overflowY: 'auto', maxHeight: '90vh', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}>
             {/* Botón cerrar */}
             <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
 

@@ -750,9 +750,10 @@ const ShoppingsPage = () => {
         @media (max-width: 640px) {
           .sh-page { padding: 16px 16px 0px 16px !important; }
           .sh-header { flex-direction: column !important; align-items: stretch !important; }
+          .sh-header h1 { text-align: center !important; }
           .sh-search { align-items: stretch !important; }
           .sh-search > div { max-width: 100% !important; width: 100% !important; }
-          .sh-search > span { text-align: center !important; white-space: normal !important; }
+          .sh-search > span { text-align: left !important; white-space: normal !important; line-height: 1.35 !important; }
           .sh-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
           .sh-toolbar-left { justify-content: center !important; }
           .sh-toolbar-right { display: flex !important; justify-content: center !important; }

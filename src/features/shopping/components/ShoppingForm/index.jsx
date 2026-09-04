@@ -404,7 +404,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                 digitar en el campo Cantidad. Con overflowY: 'auto' siempre
                 activo, el usuario puede scrollear internamente en cualquier
                 tamaño de pantalla y el footer nunca tapa contenido. */}
-            <div className="shf-left-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 26px 0' }}>
+            <div className="roles-modal-scroll shf-left-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 26px 0', scrollbarGutter: 'stable', WebkitOverflowScrolling: 'touch' }}>
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
@@ -561,7 +561,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               </p>
 
               {formData.detalles.length > 0 ? (
-                <div className="roles-modal-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <div className="roles-modal-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarGutter: 'stable', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb' }}>

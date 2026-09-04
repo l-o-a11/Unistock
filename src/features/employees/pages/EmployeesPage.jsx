@@ -254,9 +254,10 @@ const EmployeesPage = () => {
         @media (max-width: 640px) {
           .emp-page { padding: 16px !important; }
           .emp-header { flex-direction: column !important; align-items: stretch !important; }
+          .emp-header h1 { text-align: center !important; }
           .emp-search { align-items: stretch !important; }
           .emp-search > div { max-width: 100% !important; width: 100% !important; }
-          .emp-search > span { text-align: center !important; white-space: normal !important; }
+          .emp-search > span { text-align: left !important; white-space: normal !important; line-height: 1.35 !important; }
           .emp-addbar { justify-content: center !important; }
         }
       `}</style>
