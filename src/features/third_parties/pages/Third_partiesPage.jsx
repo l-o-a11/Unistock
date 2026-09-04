@@ -263,6 +263,13 @@ const Third_partiePage = () => {
 
         /* ── Search: full width en móvil ── */
         .tp-search-wrap { width: 100%; }
+        @media (max-width: 639px) {
+          .tp-header { align-items: stretch; }
+          .tp-title { text-align: center; }
+          .tp-search-wrap { align-items: stretch !important; }
+          .tp-search-wrap > div:first-child { width: 100% !important; max-width: 100% !important; }
+          .tp-search-wrap > span { align-self: flex-start; width: 100%; text-align: left; white-space: normal !important; }
+        }
         @media (min-width: 640px) { .tp-search-wrap { width: 260px; } }
 
         /* ── Barra del botón "Agregar" (separada de la tarjeta de la tabla) ── */

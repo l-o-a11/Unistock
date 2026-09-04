@@ -1207,7 +1207,7 @@ const ProductionsPage = () => {
    * RENDER — idéntico al original
    * ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{  background: '#f6f6f8', fontFamily: 'sans-serif' }}>
+    <div style={{ background: '#f6f6f8', fontFamily: 'sans-serif' }}>
 
       <style>{`
         @keyframes pSpin  { to { transform: rotate(360deg); } }
@@ -1221,11 +1221,12 @@ const ProductionsPage = () => {
         @media (min-width:640px) { .prod-header { flex-direction:row; justify-content:space-between; align-items:center; gap:12px; } }
         @media (max-width:639px) { .prod-header { align-items:stretch; } }
         .prod-search { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
-        @media (max-width:639px) { .prod-search { align-items:stretch; } .prod-search > div { width:100% !important; max-width:100% !important; } .prod-search > span { text-align:center; white-space:normal !important; } }
-        @media (max-width:639px) { .prod-header { align-items:center; text-align:center; } }
+        .prod-search-help { display:none; }
+        @media (max-width:639px) { .prod-search { align-items:stretch; width:100%; } .prod-search > div { width:100% !important; max-width:100% !important; } .prod-search-help { display:block; align-self:flex-start; text-align:left; font-size:11px; color:#9ca3af; white-space:normal; } }
+        @media (max-width:639px) { .prod-header { align-items:stretch; text-align:left; } .prod-header h1 { text-align:center; } }
 
         .prod-tabs { display:flex; gap:8px; margin-bottom:14px; }
-        @media (max-width:639px) { .prod-tabs { justify-content:center; } }
+        @media (max-width:639px) { .prod-tabs { justify-content:flex-start; } }
 
         .prod-filters {
           background:#fff; border-radius:10px; padding:10px 14px;
@@ -1455,7 +1456,7 @@ const ProductionsPage = () => {
               width="400px"
               maxWidth="400px"
             />
-           
+            <span className="prod-search-help">Escribe <strong>activo</strong> para ver registros activos · <strong>inactivo</strong> para ver registros inactivos</span>
           </div>
         </div>
 

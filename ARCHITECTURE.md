@@ -1,283 +1,299 @@
-# 🏗️ Arquitectura Frontend-Backend
+# Arquitectura frontend-backend
 
-> Documento actualizado según el estado real del proyecto (React + Vite + Express + MongoDB).
+## Objetivo
+
+Este documento describe la arquitectura real del proyecto, la forma en que el frontend comunica con el backend y la logica de acceso por modulo.
+
+---
+
+## Arquitectura utilizada
+
+El proyecto aplica dos arquitecturas complementarias:
+
+- Frontend: arquitectura de SPA orientada a features o módulos, con una organizacion por dominio (`src/features/...`). Cada módulo encapsula sus componentes, hooks, servicios, páginas y tipos, lo que facilita mantenimiento y escalabilidad.
+- Backend: arquitectura por capas, inspirada en Clean Architecture, con separacion de responsabilidades en rutas, controladores, casos de uso, repositorios, entidades y modelos de base de datos.
+- Integracion: el frontend consume la API REST del backend a través de un cliente HTTP centralizado (`httpClient`), autenticado con JWT y protegido por rutas privadas y permisos por módulo.
+
+---
+
+## Stack tecnológico y librerías utilizadas
+
+### Frontend
+
+- React 19 para la interfaz de usuario.
+- Vite 8 como bundler y servidor de desarrollo.
+- React Router DOM 7 para el enrutamiento.
+- Tailwind CSS 4 + PostCSS para estilos y diseño visual.
+- ESLint + plugin de React para revisión de calidad del código.
+- Axios para peticiones HTTP.
+- Recharts para gráficos del dashboard.
+- FullCalendar (core, daygrid, timegrid, interaction) para calendarios de producción.
+- ExcelJS y xlsx-js-style para exportación a Excel.
+- jsPDF y jspdf-autotable para exportación a PDF.
+- Cloudinary SDK para manejo de imágenes y uploads.
+- Lucide React para iconografía.
+- @emailjs/browser para envío de correos desde el cliente.
+- vite-plugin-pwa para habilitar soporte PWA.
+- npm como gestor de dependencias y scripts del proyecto.
+
+### Backend
+
+- Node.js como entorno de ejecución.
+- Express 5 para la API REST.
+- MongoDB + Mongoose para persistencia y acceso a datos.
+- JWT (jsonwebtoken) para autenticación basada en tokens.
+- bcryptjs para encriptación de contraseñas.
+- dotenv para variables de entorno.
+- CORS para control de accesos entre frontend y backend.
+- Zod para validación de schemas y datos de entrada.
+- Multer y Cloudinary para subida de archivos e imágenes.
+- Nodemailer para envío de correos.
+- Google APIs (Calendar y Gmail) para integraciones con servicios de Google.
+- Swagger JSdoc + Swagger UI Express para documentación interactiva de la API.
+- nodemon como herramienta de desarrollo para recarga automática.
+- Playwright para pruebas e2e y validaciones automatizadas.
+
+### Herramientas de desarrollo y despliegue
+
+- VS Code como entorno de desarrollo.
+- Git para control de versiones.
+- npm scripts para iniciar, compilar y validar la aplicación.
+- Vite dev server y preview para desarrollo y previsualización del frontend.
+- MongoDB Atlas o servidor MongoDB local para persistencia.
+- Swagger UI para probar endpoints de la API en desarrollo.
+
+---
 
 ## Componentes del sistema
 
-| Componente             | Tecnología                  | Puerto | Descripción                    |
-| ---------------------- | --------------------------- | ------ | ------------------------------ |
-| **Frontend**           | React + Vite                | `5173` | SPA de gestión (Unistock)      |
-| **Backend principal**  | Node.js + Express + MongoDB | `3000` | API REST (Api_Unistock)        |
-| **Backend secundario** | Node.js + Express + MongoDB | `3020` | Backend legado (back_unictock) |
+| Componente | Tecnologia                  | Puerto | Descripcion               |
+| ---------- | --------------------------- | -----: | ------------------------- |
+| Frontend   | React + Vite                |   5173 | Aplicacion principal      |
+| Backend    | Node.js + Express + MongoDB |   3000 | API REST de negocio       |
+| Swagger    | OpenAPI                     |   3000 | Documentacion interactiva |
 
 ---
 
-## Flujo de Comunicación
+## Flujo general de comunicacion
 
+```text
+Frontend (React)
+  -> routes
+  -> features/<modulo>
+  -> hooks
+  -> services
+  -> httpClient
+  -> API REST (/api)
+  -> backend
+  -> MongoDB
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                   FRONTEND (React + Vite)                       │
-│                    http://localhost:5173                        │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Pages / Components                                       │ │
-│  │  (LoginPage, UsersPage, ProductsPage, etc.)              │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  Hooks / Context                                        │ │
-│  │  (useAuth, useUsers, useProducts, etc.)                │ │
-│  │                                                          │ │
-│  │  ├─ AuthContext → Gestiona sesión y permisos           │ │
-│  │  └─ Llama a servicios (APIs)                           │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  Services / APIs (usersAPI, productAPI, etc.)          │ │
-│  │                                                          │ │
-│  │  ├─ Try: httpClient.get/post/put/patch/delete()       │ │
-│  │  │         (Conecta al Backend /api)                   │ │
-│  │  │                                                      │ │
-│  │  └─ Catch: Manejo de errores                           │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  httpClient.js (Cliente HTTP Centralizado)             │ │
-│  │                                                          │ │
-│  │  ✓ GET, POST, PUT, PATCH, DELETE                       │ │
-│  │  ✓ Autenticación con JWT (localStorage/sessionStorage) │ │
-│  │  ✓ Headers: Authorization: Bearer {token}              │ │
-│  │  ✓ URL Base: http://localhost:3000/api                │ │
-│  │  ✓ /auth/* usa AUTH_API_URL, el resto BACKEND_API_URL  │ │
-│  │  ✓ Timeout: VITE_API_TIMEOUT (default 10 seg)          │ │
-│  │  ✓ Manejo de errores robusto + redirección en 401      │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-└─────────────────────┼─────────────────────────────────────────┘
-                      │
-                      │ HTTP/REST
-                      │ Fetch API
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  BACKEND (Api_Unistock)                         │
-│                   http://localhost:3000/api                     │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Express Server                                           │ │
-│  │  CORS habilitado para http://localhost:5173 y 5000        │ │
-│  │  Fail-fast: responde 503 si MongoDB no está conectado     │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  Routes (infrastructure/routes/)                       │ │
-│  │  /api/auth        /api/users      /api/proveedores     │ │
-│  │  /api/terceros    /api/products   /api/product-categories│ │
-│  │  /api/produccion  /api/compras    /api/insumos          │ │
-│  │  /api/roles       /api/sites      /api/categorias-insumos│ │
-│  │  /api/modules     /api/privileges /api/clients          │ │
-│  │  /api/upload      /api/docs (Swagger)                  │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  Controllers (infrastructure/controllers/)             │ │
-│  │  → Traducen HTTP y delegan en use-cases/repositorios   │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  Middlewares                                            │ │
-│  │  ├─ requireAuth (JWT + usuario activo en BD)           │ │
-│  │  ├─ requireRole (Gerente/Administrador)                │ │
-│  │  ├─ validateSchema (Zod)                               │ │
-│  │  └─ CORS / JSON limits                                 │ │
-│  └──────────────────┬──────────────────────────────────────┘ │
-│                     │                                         │
-│  ┌──────────────────▼──────────────────────────────────────┐ │
-│  │  Base de datos (MongoDB / Mongoose)                     │ │
-│  │  Colecciones: users, suppliers, products, production,   │ │
-│  │  purchases, supplies, roles, sites, thirdparties, etc.  │ │
-│  └───────────────────────────────────────────────────────┘ │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+
+Ejemplo:
+
+```text
+LoginPage
+  -> useAuth
+  -> AuthAPI.login()
+  -> httpClient.post('/auth/login')
+  -> backend valida credenciales
+  -> devuelve JWT y usuario
+  -> se guarda session
 ```
 
 ---
 
-## Estructura de Archivos Actualizada
+## Estructura de carpetas
 
-```
-Unistock/
-├── .env ────────────────────────── ✅ Variables de entorno
-│   ├─ VITE_API_URL=http://localhost:3000/api
-│   ├─ VITE_BACKEND_API_URL=http://localhost:3000/api
-│   ├─ VITE_AUTH_API_URL=http://localhost:3000/api
-│   ├─ VITE_API_TIMEOUT=10000
-│   └─ VITE_GOOGLE_CLIENT_ID=xxx
-│
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-├── eslint.config.js
-├── package.json
-│
-└── src/
-    ├── main.jsx                    # Punto de entrada React
-    ├── App.jsx
-    ├── assets/                     # Imágenes e iconos SVG
-    ├── layout/
-    │   └── AppLayout.jsx           # Layout principal (sidebar + navbar)
-    ├── routers/
-    │   └── routers.jsx             # Definición de rutas (React Router v6)
-    └── features/
-        ├── auth/                   # Login, perfil, recuperación
-        │   ├── services/AuthAPI.js
-        │   ├── hooks/useAuth.js
-        │   ├── pages/
-        │   └── components/
-        ├── users/                  # Usuarios
-        ├── employees/              # Empleados
-        ├── roles/                  # Roles y permisos
-        ├── sedes/                  # Sedes
-        ├── supplies/               # Insumos
-        ├── categoriesSupply/       # Categorías de insumos
-        ├── suppliers/              # Proveedores
-        ├── third_parties/          # Terceros
-        ├── products/               # Productos y fichas técnicas
-        ├── productCategories/      # Categorías de productos
-        ├── shopping/               # Compras
-        ├── production/             # Producción
-        ├── dashboard/              # Dashboard
-        └── shared/                 # Compartido
-            ├── AuthContext.jsx
-            ├── PrivateRoute.jsx
-            ├── utils/httpClient.js # Cliente HTTP centralizado
-            ├── components/
-            ├── hooks/
-            └── services/clientAPI.js
-
+```text
+Unistock/src/
+├── App.jsx
+├── main.jsx
+├── layout/
+│   └── AppLayout.jsx
+├── routers/
+│   └── routers.jsx
+├── features/
+│   ├── auth/
+│   ├── users/
+│   ├── roles/
+│   ├── sedes/
+│   ├── supplies/
+│   ├── categoriesSupply/
+│   ├── suppliers/
+│   ├── shopping/
+│   ├── products/
+│   ├── productCategories/
+│   ├── production/
+│   ├── third_parties/
+│   ├── employees/
+│   ├── dashboard/
+│   └── shared/
+│       ├── AuthContext.jsx
+│       ├── PrivateRoute.jsx
+│       └── utils/httpClient.js
+└── assets/
 ```
 
-Cada feature sigue el patrón: `components/`, `hooks/`, `pages/`, `services/`, `types/`.
+Cada feature normalmente incluye:
+
+- components/
+- hooks/
+- pages/
+- services/
+- types/
 
 ---
 
-## Flujo de una Petición HTTP (Ejemplo: Login)
+## Departamento de la sesion y permisos
 
-```
-1. Usuario hace login en LoginForm
-   ├─ Ingresa correo/contraseña
-   └─ Click en "Iniciar Sesión"
+La autenticacion se gestiona desde AuthContext.jsx.
 
-2. Component llama a useAuth hook
-   └─ setLoading(true)
+Responsabilidades:
 
-3. useAuth llama AuthAPI.login()
-   └─ try { httpClient.post("/auth/login", { correo, password }, { skipAuth: true }) }
+- guardar user, permisos y loading
+- cargar permisos con /api/auth/me/permissions
+- identificar si un usuario puede entrar a una ruta
+- decidir la ruta inicial visible segun el rol
 
-4. httpClient.js:
-   ├─ Construye URL: http://localhost:3000/api/auth/login
-   ├─ Headers: { Content-Type: application/json }
-   ├─ Body: { correo: "...", password: "..." }
-   └─ fetch() envía la petición
+La seguridad visual se hace con PrivateRoute.jsx, que verifica:
 
-5. Backend responde:
-   ├─ ✅ 200 OK: { success: true, data: { token, user } }
-   ├─ 401 Unauthorized: { success: false, message: "Credenciales inválidas" }
-   └─ 500 Error: { success: false, message: "Error interno del servidor" }
-
-6. httpClient.js:
-   ├─ ✅ Si 200: Retorna la respuesta parseada
-   ├─ ❌ Si error: Lanza excepción con detalles (status, data)
-
-7. AuthAPI.js:
-   ├─ ✅ Si success: Lee token y decodifica rol del JWT
-   │   └─ localStorage.setItem("session_user", JSON.stringify(session))
-   └─ ❌ Si error: Relanza err.data
-
-8. useAuth retorna:
-   ├─ ✅ { user, error: null }
-   └─ Component actualiza UI
-
-9. Component/Context:
-   ├─ ✅ Si login exitoso: ctxLogin(session) actualiza estado React
-   └─ Redirige a Dashboard
-```
+- si hay sesion activa
+- si el modulo esta permitido para el usuario
+- si la ruta es public o privada
 
 ---
 
-## Autenticación y Control de Acceso
+## Rutas protegidas
 
-### Login
+El acceso esta definido en src/routers/routers.jsx.
 
-```
-1. POST /api/auth/login  →  Backend genera JWT
-   { token: "eyJhb...", user: { id, nombreCompleto, correo, rolId, sedeId } }
-
-2. AuthAPI.javascript guarda en localStorage
-   localStorage.setItem("session_user", JSON.stringify(session))
-
-3. En peticiones posteriores:
-   ├─ httpClient.get() → Lee token de session_user
-   ├─ Agrega header: Authorization: Bearer eyJhb...
-   └─ Backend verifica el token (requireAuth)
-```
-
-### Control de acceso por módulo
-
-El frontend protege cada ruta con `PrivateRoute`:
+Ejemplo:
 
 ```jsx
 <Route
-  path="produccion"
+  path="usuarios"
   element={
-    <PrivateRoute modulo="produccion">
-      <ProductionsPage />
+    <PrivateRoute modulo="usuarios">
+      <UsersPage />
     </PrivateRoute>
   }
 />
 ```
 
-- **`PrivateRoute`**: verifica sesión activa y que el usuario tenga permiso al módulo indicado.
-- **`AuthContext`**: provee `user`, `permisos` y `logout` a toda la app.
-- **Módulos disponibles:** `dashboard`, `usuarios`, `roles`, `sedes`, `insumos`, `categorias de insumos`, `proveedores`, `compras`, `productos`, `categorias de productos`, `produccion`, `terceros`, `empleados`.
+Esto significa que aunque el usuario conozca la URL, la vista solo se mostrara si el backend y el contexto de permisos lo permiten.
 
 ---
 
-## Manejo de Errores
+## Flujo de uso con el backend
 
+### Login
+
+```text
+1. LoginPage hace submit
+2. AuthAPI.login() usa httpClient.post('/auth/login')
+3. Backend valida credenciales y firma JWT
+4. El frontend guarda la sesion
+5. El contexto carga permisos del usuario
+6. El router envia a la ruta autorizada
 ```
-┌────────────────────────────────────────────┐
-│  Backend retorna error                     │
-│  Response: { success: false, message, ... }│
+
+### Consulta de datos
+
+```text
+1. El usuario entra a una pagina
+2. El hook del modulo dispara la llamada al service
+3. El service usa httpClient.get/post/put/delete
+4. El backend responde en JSON
+5. El componente actualiza tablas, formularios y estados
+```
+
+---
+
+## Reglas de negocio del sistema
+
+### Regla 1: permisos reales
+
+La fuente de verdad de permisos es el backend. El frontend solo representa el estado y bloquea interfaces, pero el backend debe validar cada accion sensible.
+
+### Regla 2: roles por modulo
+
+Cada rol puede tener permisos sobre modulos como:
+
+- dashboard
+- usuarios
+- roles
+- sedes
+- insumos
+- proveedores
+- compras
+- productos
+- produccion
+- terceros
+- empleados
+
+### Regla 3: sesion no basta para operar
+
+Un usuario autenticado sigue sin poder usar un modulo si no tiene el privilegio asignado.
+
+### Regla 4: datos mock solo para desarrollo
+
+En algunos servicios existen datos de respaldo para no bloquear desarrollo local. Eso no sustituye al backend ni debe usarse como fuente de verdad productiva.
+
+---
+
+## TODO y pendientes documentados
+
+- Homogeneizar nombres de modulos y rutas entre backend y frontend.
+- Revisar endpoints legacy o alias duplicados.
+- Completar la documentacion de modulos secundarios.
+- Alinear pruebas e2e con flujos criticos del negocio.
+- Mantener la semilla de permisos sin drift con la UI.
+
+---
+
+## Resumen final
+
+La aplicacion sigue una arquitectura cliente-servidor clara:
+
+- frontend = experiencia de usuario, rutas, permisos y consumo de API
+- backend = autenticacion, validacion, reglas del negocio y persistencia
+- MongoDB = ubicacion de los datos reales
+
+La secuencia correcta es:
+
+```text
+Ruta protegida
+  -> PrivateRoute
+  -> service
+  -> httpClient
+  -> backend
+  -> MongoDB
+  -> respuesta JSON
+  -> UI
+```
+
+Esto es el flujo con el que se usa la app en desarrollo y en produccion.
+│ campo (Zod) │
 └──────────────┬───────────────────────────┘
-               │
-               ▼
+│
+▼
 ┌────────────────────────────────────────────┐
-│  httpClient.js detecta !response.ok         │
-│  → Lanza Error personalizado                │
-│  → error.message: "..."                    │
-│  → error.status: 4xx/5xx                   │
-│  → error.data: { message, errors, ... }    │
-│  → Si errors[] existen, los formatea por    │
-│    campo (Zod)                             │
+│ 401 y !suppressAutoLogout │
+│ → clearSessionAndRedirect() │
+│ → Limpia session_user │
+│ → Muestra toast "Sesión finalizada" │
+│ → Redirige a /login (3s) │
 └──────────────┬───────────────────────────┘
-               │
-               ▼
+│
+▼
 ┌────────────────────────────────────────────┐
-│  401 y !suppressAutoLogout                 │
-│  → clearSessionAndRedirect()               │
-│  → Limpia session_user                     │
-│  → Muestra toast "Sesión finalizada"       │
-│  → Redirige a /login (3s)                  │
-└──────────────┬───────────────────────────┘
-               │
-               ▼
-┌────────────────────────────────────────────┐
-│  Service (usersAPI, productAPI, etc.)      │
-│  → try/catch                               │
-│  → Relanza error para que el hook/UI lo    │
-│    muestre al usuario                      │
+│ Service (usersAPI, productAPI, etc.) │
+│ → try/catch │
+│ → Relanza error para que el hook/UI lo │
+│ muestre al usuario │
 └──────────────────────────────────────────┘
-```
+
+````
 
 > **Nota:** A diferencia de versiones anteriores, los servicios ya no dependen de `console.warn` + fallback mock en todos los casos. La mayoría usa la API real; solo algunos módulos (producción/empleados en modo demo) conservan datos mock locales.
 
@@ -296,7 +312,7 @@ VITE_API_TIMEOUT=10000
 
 # Google OAuth (opcional)
 VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
-```
+````
 
 ### Backend `.env` (Api_Unistock)
 
