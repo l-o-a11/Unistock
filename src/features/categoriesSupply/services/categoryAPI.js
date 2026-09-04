@@ -27,8 +27,13 @@ export const categoryAPI = {
    * Devuelve: { data: Category[], total, page, limit, totalPages }
    */
   getAll: async (filters = {}) => {
+    const requestFilters = {
+      sortBy: "createdAt",
+      order: "desc",
+      ...filters,
+    };
     const qs = new URLSearchParams(
-      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+      Object.entries(requestFilters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
     const result = await httpClient.get(`/categorias-insumos${qs ? `?${qs}` : ""}`);
     const payload = result?.data ?? result;

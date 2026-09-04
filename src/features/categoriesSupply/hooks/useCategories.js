@@ -18,7 +18,7 @@ export const useCategories = (initialFilters = {}) => {
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ limit: 50, ...initialFilters });
+  const [filters, setFilters] = useState({ limit: 50, sortBy: "createdAt", order: "desc", ...initialFilters });
 
   // ── Carga paginada ─────────────────────────────────────────────────────────
   const loadCategories = useCallback(async (overrideFilters = {}) => {
@@ -27,7 +27,7 @@ export const useCategories = (initialFilters = {}) => {
       setError(null);
       const merged = { ...filters, ...overrideFilters };
       const result = await categoryAPI.getAll(merged);
-      setCategories(result.data);
+      setCategories([...result.data].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       setPagination({
         total: result.total,
         page: result.page,
@@ -55,6 +55,7 @@ export const useCategories = (initialFilters = {}) => {
   const createCategory = async (categoryData) => {
     try {
       const newCategory = await categoryAPI.create(categoryData);
+      setCategories((prev) => [newCategory, ...prev].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       await loadCategories();
       return newCategory;
     } catch (err) {
