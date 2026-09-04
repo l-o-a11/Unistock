@@ -683,12 +683,12 @@ const ProductsPage = () => {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: isMobile ? 'flex-start' : 'flex-end',
+          alignItems: isMobile ? 'center' : 'flex-end',
           gap: '4px',
           width: '100%',
         }}>
           <ProductSearch value={searchTerm} onChange={handleSearch} width="400px" maxWidth="100%" isLoading={loading} />
-          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: isMobile ? 'normal' : 'nowrap', textAlign: isMobile ? 'left' : 'right' }}>
+          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: isMobile ? 'normal' : 'nowrap', textAlign: isMobile ? 'left' : 'right', display: 'block', width: '400px', maxWidth: '100%' }}>
             Escribe <strong>activo</strong> para ver registros activos · <strong>inactivo</strong> para ver registros inactivos
           </span>
         </div>
@@ -697,7 +697,7 @@ const ProductsPage = () => {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: isMobile ? 'center' : 'flex-end',
+        justifyContent: isMobile ? 'center' : 'space-between',
         flexDirection: isMobile ? 'column' : 'row',
         width: '100%',
         backgroundColor: '#ffffff',
@@ -705,35 +705,37 @@ const ProductsPage = () => {
         boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
         padding: '12px 20px',
         marginBottom: '20px',
-        gap: isMobile ? '10px' : '16px',
+        gap: isMobile ? '12px' : '0px',
       }}>
-        <button
-          onClick={handleDownloadExcel}
-          title="Exportar"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#555',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '4px 8px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          <span style={{ fontSize: '14px', fontWeight: '500' }}>Exportar</span>
-        </button>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+           <button
+             onClick={handleDownloadExcel}
+             title="Exportar"
+             style={{
+               background: 'none',
+               border: 'none',
+               cursor: 'pointer',
+               color: '#555',
+               display: 'flex',
+               alignItems: 'center',
+               gap: '8px',
+               padding: '4px 8px',
+             }}
+             onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
+             onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+           >
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+               <polyline points="7 10 12 15 17 10" />
+               <line x1="12" y1="15" x2="12" y2="3" />
+             </svg>
+             <span style={{ fontSize: '14px', fontWeight: '500' }}>Exportar</span>
+           </button>
+         </div>
 
-        <AddProductButton onClick={handleAddProduct} />
-      </div>
+         <AddProductButton onClick={handleAddProduct} />
+       </div>
 
       <div style={{ flex: 1, minHeight: 0, overflowX: 'auto' }}>
         <ProductTable
