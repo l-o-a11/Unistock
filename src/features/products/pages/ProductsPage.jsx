@@ -683,15 +683,13 @@ const ProductsPage = () => {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: isMobile ? 'center' : 'flex-end',
+          alignItems: 'flex-start',
           gap: '4px',
           width: '100%',
         }}>
           <ProductSearch value={searchTerm} onChange={handleSearch} width="400px" maxWidth="100%" isLoading={loading} />
-          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: isMobile ? 'normal' : 'nowrap', textAlign: isMobile ? 'center' : 'right' }}>
-            Escribe <strong>activo</strong> para ver registros activos ·
-            {isMobile ? <br /> : ' '}
-            <strong>inactivo</strong> para ver registros inactivos
+          <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: isMobile ? 'normal' : 'nowrap', textAlign: 'left' }}>
+            Escribe <strong>activo</strong> para ver registros activos · <strong>inactivo</strong> para ver registros inactivos
           </span>
         </div>
       </div>
