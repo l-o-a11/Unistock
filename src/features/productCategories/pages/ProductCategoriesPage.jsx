@@ -30,9 +30,12 @@ const ProductCategoriesPage = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProductCategory, setEditingProductCategory] = useState(null);
 
-  const [successAlert, setSuccessAlert] = useState({ open: false, title: '', message: '' });
-  const [errorAlert,   setErrorAlert]   = useState({ open: false, title: '', message: '' });
-  const [warningAlert, setWarningAlert] = useState({ open: false, title: '', message: '' });
+  const [mainAlert, setMainAlert] = useState({ open: false, type: 'success', title: '', message: '' });
+
+  const showAlert = (type, title, message) => {
+    setMainAlert({ open: false });
+    setTimeout(() => setMainAlert({ open: true, type, title, message }), 50);
+  };
 
   const [confirmAlert, setConfirmAlert] = useState({
     open: false,
@@ -69,12 +72,7 @@ const ProductCategoriesPage = () => {
 
 
 
-  const handleShowAlert = ({ type, title, message }) => {
-    const setter = { success: setSuccessAlert, error: setErrorAlert, warning: setWarningAlert }[type];
-    if (!setter) return;
-    setter({ open: false });
-    setTimeout(() => setter({ open: true, title, message }), 50);
-  };
+  const handleShowAlert = ({ type, title, message }) => showAlert(type, title, message);
 
   const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
     setConfirmAlert({ open: false });
@@ -376,27 +374,18 @@ const ProductCategoriesPage = () => {
         </div>
       )}
 
-      {/* ── ALERTAS (SIN KEYS - No son listas dinámicas) ── */}
-      
-      {/* ✅ Success Alert */}
+      {/* ── ALERTAS ── */}
+
+      {/* ✅ Main Alert (success / error / warning) — patrón ProductionPage */}
       <Alert
-        isOpen={successAlert.open} type="success"
-        title={successAlert.title} message={successAlert.message}
-        onConfirm={() => setSuccessAlert(prev => ({ ...prev, open: false }))}
-        onCancel={() => setSuccessAlert(prev => ({ ...prev, open: false }))}
+        isOpen={mainAlert.open}
+        type={mainAlert.type}
+        title={mainAlert.title}
+        message={mainAlert.message}
+        onConfirm={() => setMainAlert(p => ({ ...p, open: false }))}
+        onCancel={() => setMainAlert(p => ({ ...p, open: false }))}
       />
-      <Alert
-        isOpen={errorAlert.open} type="error"
-        title={errorAlert.title} message={errorAlert.message}
-        onConfirm={() => setErrorAlert(prev => ({ ...prev, open: false }))}
-        onCancel={() => setErrorAlert(prev => ({ ...prev, open: false }))}
-      />
-      <Alert
-        isOpen={warningAlert.open} type="warning"
-        title={warningAlert.title} message={warningAlert.message}
-        onConfirm={() => setWarningAlert(prev => ({ ...prev, open: false }))}
-        onCancel={() => setWarningAlert(prev => ({ ...prev, open: false }))}
-      />
+
       <Alert
         isOpen={confirmAlert.open} type="confirm"
         title={confirmAlert.title} message={confirmAlert.message}
