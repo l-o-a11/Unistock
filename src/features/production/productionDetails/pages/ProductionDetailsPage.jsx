@@ -1168,6 +1168,12 @@ const ProductionDetailsPage = () => {
 
         .pd-stat-card { border-radius:11px; padding:13px 15px; }
 
+        .pd-tech-content { overflow-x: auto; }
+        @media (max-width: 768px) {
+          .pd-tech-modal { margin: 0 !important; max-height: 94vh !important; border-radius: 10px !important; }
+          .pd-tech-content { padding: 14px 12px !important; }
+        }
+
         .pd-hist-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .pd-hist-th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; padding: 0 8px 8px 0; text-align: left; overflow: hidden; }
         .pd-hist-td { padding: 10px 8px 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
