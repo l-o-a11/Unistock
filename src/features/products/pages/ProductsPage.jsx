@@ -41,45 +41,6 @@ const ProductsPage = () => {
     return products.filter((p) => isVisibleBySede(p, isGerente, sedeId));
   }, [products, isGerente, sedeId]);
 
-  const location = useLocation();
-  const params = useParams();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const path = location.pathname;
-
-    if (path.endsWith("/productos/crear")) {
-      setShowCreateForm(true);
-      setEditingProduct(null);
-      setShowEditForm(false);
-    } else if (path.includes("/productos/editar/")) {
-      const id = params.id;
-      if (!id) return;
-
-      setShowCreateForm(false);
-      setShowEditForm(false);
-      setEditingProduct(null);
-
-      productAPI
-        .getById(id)
-        .then((product) => {
-          if (product) {
-            setEditingProduct(product);
-            setShowEditForm(true);
-          } else {
-            navigate("/layout/productos", { replace: true });
-          }
-        })
-        .catch(() => {
-          navigate("/layout/productos", { replace: true });
-        });
-    } else {
-      setShowCreateForm(false);
-      setShowEditForm(false);
-      setEditingProduct(null);
-    }
-  }, [location.pathname, params.id, navigate]);
-
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -125,6 +86,45 @@ const ProductsPage = () => {
     productId: null,
     key: 0
   });
+
+  const location = useLocation();
+  const params = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    if (path.endsWith("/productos/crear")) {
+      setShowCreateForm(true);
+      setEditingProduct(null);
+      setShowEditForm(false);
+    } else if (path.includes("/productos/editar/")) {
+      const id = params.id;
+      if (!id) return;
+
+      setShowCreateForm(false);
+      setShowEditForm(false);
+      setEditingProduct(null);
+
+      productAPI
+        .getById(id)
+        .then((product) => {
+          if (product) {
+            setEditingProduct(product);
+            setShowEditForm(true);
+          } else {
+            navigate("/layout/productos", { replace: true });
+          }
+        })
+        .catch(() => {
+          navigate("/layout/productos", { replace: true });
+        });
+    } else {
+      setShowCreateForm(false);
+      setShowEditForm(false);
+      setEditingProduct(null);
+    }
+  }, [location.pathname, params.id, navigate, productAPI]);
 
   // 🔥 FILTRO MEJORADO - busca en TODOS los campos INCLUYENDO ESTADO
   const filteredProducts = productsEnMiSede.filter(product => {
@@ -244,8 +244,21 @@ const ProductsPage = () => {
       handleCloseForm();
       handleShowAlert({ type: "success", title: "¡Éxito!", message: "Producto actualizado correctamente" });
     } catch (error) {
-      handleCloseForm();
-      handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar producto" });
+      const isDuplicate =
+        error.message?.includes("duplicate key") ||
+        error.message?.includes("E11000") ||
+        error.message?.includes("dup key") ||
+        error.message?.includes("ya existe");
+      if (isDuplicate) {
+        handleShowAlert({
+          type: "error",
+          title: "Producto duplicado",
+          message: "Ya existe un producto con esa referencia o nombre. Por favor usa uno diferente."
+        });
+      } else {
+        handleCloseForm();
+        handleShowAlert({ type: "error", title: "¡Error!", message: error.message || "Error al actualizar producto" });
+      }
     }
   };
 
@@ -735,18 +748,21 @@ const ProductsPage = () => {
         <AddProductButton onClick={handleAddProduct} />
       </div>
 
-      <ProductTable
-        products={paginatedProducts}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        onToggle={handleToggle}
-        onStockChange={handleStockChange}
-      />
+      <div style={{ flex: 1, minHeight: 0, overflowX: 'auto' }}>
+        <ProductTable
+          products={paginatedProducts}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+          onToggle={handleToggle}
+          onStockChange={handleStockChange}
+        />
+      </div>
 
       {filteredProducts.length > 0 && (
         <div style={{
-          marginTop: "20px",
+          marginTop: "auto",
+          marginBottom: "20px",
           display: "flex",
           justifyContent: "center",
           gap: "6px",
@@ -823,6 +839,7 @@ const ProductsPage = () => {
               onCancel={handleCloseForm}
               onShowAlert={handleShowAlert}
               onShowConfirm={handleShowConfirm}
+              existingProducts={products}
               sedes={sedesPermitidas}
             />
           </div>
