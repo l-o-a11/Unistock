@@ -312,6 +312,7 @@ const SuppliersPage = () => {
   onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
   placeholder="Buscar"
   width="400px"
+  maxWidth="400px"
   margin="0 0 4px 0"
 />
           <span style={{ fontSize: 11, color: "#9ca3af" }}>
