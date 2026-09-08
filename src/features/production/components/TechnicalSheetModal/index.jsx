@@ -5,7 +5,7 @@
 // y usa el hook roto production/hooks/useTechnicalSheet.js (import inválido
 // a productAPI). Se recomienda eliminar esta carpeta completa.
 import React, { useEffect, useState } from 'react';
-import TechnicalSheet from '../TechnicalSheet';
+import TechnicalSheet from '../../../products/components/TechnicalSheet';
 import { useTechnicalSheet } from '../../hooks/useTechnicalSheet';
 import Alert from '../Alert';
 
