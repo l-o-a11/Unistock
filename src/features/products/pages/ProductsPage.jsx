@@ -707,35 +707,35 @@ const ProductsPage = () => {
         marginBottom: '20px',
         gap: isMobile ? '12px' : '0px',
       }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-           <button
-             onClick={handleDownloadExcel}
-             title="Exportar"
-             style={{
-               background: 'none',
-               border: 'none',
-               cursor: 'pointer',
-               color: '#555',
-               display: 'flex',
-               alignItems: 'center',
-               gap: '8px',
-               padding: '4px 8px',
-             }}
-             onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
-             onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
-           >
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-               <polyline points="7 10 12 15 17 10" />
-               <line x1="12" y1="15" x2="12" y2="3" />
-             </svg>
-             <span style={{ fontSize: '14px', fontWeight: '500' }}>Exportar</span>
-           </button>
-         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={handleDownloadExcel}
+            title="Exportar"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#555',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px 8px',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#E91E8C')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>Exportar</span>
+          </button>
+        </div>
 
-         <AddProductButton onClick={handleAddProduct} />
-       </div>
+        <AddProductButton onClick={handleAddProduct} />
+      </div>
 
       <div style={{ flex: 1, minHeight: 0, overflowX: 'auto' }}>
         <ProductTable
@@ -750,8 +750,8 @@ const ProductsPage = () => {
 
       {filteredProducts.length > 0 && (
         <div style={{
-          marginTop: isMobile ? '24px' : 'auto',
-          marginBottom: isMobile ? '16px' : '20px',
+           marginTop: '20px',
+           marginBottom: '20px',
           display: "flex",
           justifyContent: "center",
           gap: isMobile ? '4px' : '6px',

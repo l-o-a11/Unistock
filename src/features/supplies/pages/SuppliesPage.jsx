@@ -315,6 +315,7 @@ const SuppliesPage = () => {
       async (pwd) => {
         try {
           await deleteSupply(id, pwd);
+          setSelectedSupply((current) => current?.id === id ? null : current);
           showAlert(
             "success",
             "Insumo eliminado",
@@ -341,7 +342,8 @@ const SuppliesPage = () => {
       `Para ${accion} "${supply?.nombre}" confirma tu contraseña de administrador.`,
       async (pwd) => {
         try {
-          await toggleSupply(id, pwd);
+          const updatedSupply = await toggleSupply(id, pwd);
+          setSelectedSupply((current) => current?.id === id ? updatedSupply : current);
           showAlert(
             "success",
             `Insumo ${accion === "activar" ? "activado" : "inactivado"}`,
@@ -379,7 +381,8 @@ const SuppliesPage = () => {
 
   const handleEditSubmit = async (supplyData) => {
     try {
-      await updateSupply(editingSupply.id, supplyData);
+      const updatedSupply = await updateSupply(editingSupply.id, supplyData);
+      setSelectedSupply((current) => current?.id === updatedSupply.id ? updatedSupply : current);
       handleCloseForm();
       showAlert(
         "success",
@@ -393,6 +396,30 @@ const SuppliesPage = () => {
         error.message || "No se pudo actualizar el insumo.",
       );
     }
+  };
+
+  const handleStockChange = async (id, stock) => {
+    const supply = supplies.find((item) => item.id === id);
+    try {
+      await updateSupply(id, { stock });
+      showAlert(
+        "success",
+        "Stock actualizado",
+        `El stock de "${supply?.nombre}" se redujo correctamente.`,
+      );
+      return true;
+    } catch (error) {
+      showAlert(
+        "error",
+        "Error al actualizar stock",
+        error.message || "No se pudo actualizar el stock.",
+      );
+      return false;
+    }
+  };
+
+  const handleStockError = (message) => {
+    showAlert("error", "Stock no válido", message);
   };
 
   const handleCancelCreate = () => handleCloseForm();
@@ -1330,6 +1357,8 @@ const SuppliesPage = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onToggle={handleToggle}
+          onStockChange={handleStockChange}
+          onStockError={handleStockError}
         />
       </div>
 

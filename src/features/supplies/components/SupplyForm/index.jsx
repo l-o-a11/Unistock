@@ -78,10 +78,11 @@ const SupplyForm = ({
   const validators = {
     required:       (v) => (!v && v !== 0 ? "Este campo es obligatorio" : ""),
     positiveNumber: (v) => isNaN(v) || Number(v) <= 0 ? "Debe ser un número mayor a 0" : "",
-    cannotDecreaseStock: (v) =>
-      isEdit && supply?.stock !== undefined && Number(v) < Number(supply.stock)
-        ? "No puedes disminuir el stock al editar el insumo"
+    cannotIncreaseStock: (v) =>
+      isEdit && supply?.stock !== undefined && Number(v) > Number(supply.stock)
+        ? "No puedes aumentar el stock al editar el insumo"
         : "",
+    nonNegativeNumber: (v) => isNaN(v) || Number(v) < 0 ? "Debe ser un número mayor o igual a 0" : "",
     nombreValido:   (v) => v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v) ? "El nombre contiene caracteres no permitidos" : "",
     minLength:      (v) => v && v.trim().length < 3 ? "Mínimo 3 caracteres" : "",
     maxLength:      (v) => v && v.trim().length > 100 ? "Máximo 100 caracteres" : "",
@@ -99,9 +100,12 @@ const SupplyForm = ({
         break;
       case "stock":
       case "valorMedida":
-        error = validators.required(value) || validators.positiveNumber(value);
         if (name === "stock") {
-          error = error || validators.cannotDecreaseStock(value);
+          error = validators.required(value) || (isEdit
+            ? validators.nonNegativeNumber(value) || validators.cannotIncreaseStock(value)
+            : validators.positiveNumber(value));
+        } else {
+          error = validators.required(value) || validators.positiveNumber(value);
         }
         break;
       default: break;
@@ -388,7 +392,8 @@ const SupplyForm = ({
                 </label>
                 <input
                   type="number" name="stock"
-                  min={isEdit ? supply?.stock : 1}
+                  min={isEdit ? 0 : 1}
+                  max={isEdit ? supply?.stock : undefined}
                   step="1"
                   value={formData.stock}
                   onChange={handleChange}
