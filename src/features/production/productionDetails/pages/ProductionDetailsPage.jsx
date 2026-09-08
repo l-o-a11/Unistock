@@ -10,7 +10,7 @@ import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
-import TechnicalSheet from "../../../production/components/TechnicalSheet";
+import TechnicalSheet from "../../../products/components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
