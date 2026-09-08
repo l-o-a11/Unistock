@@ -824,7 +824,6 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         return;
       }
     }
-
     // ✅ SINCRONIZACIÓN: Las imágenes del producto van a la ficha técnica
     // ✅ La ref de la nueva versión captura la referencia actual del producto,
     //     mientras que las versiones anteriores conservan su ref original.
@@ -835,12 +834,25 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       image: imagePreview
     };
 
+    // ✅ Fix: no crear una nueva versión de la ficha técnica si no hay
+    // cambios reales en ella (ni campos editados ni campos autocompletados
+    // desde el producto como ref, allImages o image).
+    const initialSheet = initialTechnicalSheetRef.current;
+    const hasTechSheetRealChanges = !initialSheet
+      ? true
+      : JSON.stringify(finalTechnicalSheet) !== JSON.stringify(initialSheet);
+
+    const submitTechnicalSheet = product
+      ? (hasTechSheetRealChanges ? finalTechnicalSheet : undefined)
+      : finalTechnicalSheet;
+
     if (submitting) return;
     setSubmitting(true);
     try {
       await onSubmit({
         ...formData,
-        technicalSheet: finalTechnicalSheet
+        technicalSheet: submitTechnicalSheet
+
       });
     } catch (err) {
       onShowAlert?.({ type: 'error', title: '¡Error!', message: err?.message || 'Error al guardar el producto' });

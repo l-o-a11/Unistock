@@ -592,14 +592,16 @@ export default function ProductionDashboard() {
   };
 
   const GlobalTimeFilter = () => (
-    <div className="flex items-center gap-2 flex-wrap">
-      {timeView === 'Semana' && <>
-        <Dropdown value={selectedMonth} options={MONTHS} onChange={setSelectedMonth} />
-        <Dropdown value={selectedYear} options={YEARS} onChange={setSelectedYear} />
-      </>}
-      {timeView === 'Mes' && <Dropdown value={selectedMonth} options={MONTHS} onChange={setSelectedMonth} />}
-      {timeView === 'Año' && <Dropdown value={selectedYear} options={YEARS} onChange={setSelectedYear} />}
-      <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-0.5">
+    <div className="dashboard-time-filter flex items-center gap-2">
+      <div className="dashboard-period-selectors flex items-center gap-2">
+        {timeView === 'Semana' && <>
+          <Dropdown value={selectedMonth} options={MONTHS} onChange={setSelectedMonth} />
+          <Dropdown value={selectedYear} options={YEARS} onChange={setSelectedYear} />
+        </>}
+        {timeView === 'Mes' && <Dropdown value={selectedMonth} options={MONTHS} onChange={setSelectedMonth} />}
+        {timeView === 'Año' && <Dropdown value={selectedYear} options={YEARS} onChange={setSelectedYear} />}
+      </div>
+      <div className="dashboard-mode-selector flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-0.5">
         {['Semana', 'Mes', 'Año'].map(p => (
           <button key={p} onClick={() => setTimeView(p)}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${timeView === p ? 'bg-fuchsia-500 text-white' : 'text-gray-500 hover:text-gray-800'}`}>
@@ -611,11 +613,40 @@ export default function ProductionDashboard() {
   );
 
   return (
-    <div className="min-h-screen p-3 sm:p-5">
+    <div className="dashboard-page min-h-screen p-3 sm:p-5">
+      <style>{`
+        .dashboard-page { overflow-x: hidden; }
+        .dashboard-header-controls { min-width: 0; }
+        .dashboard-time-filter { min-width: 0; }
+        .dashboard-process-scroll { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+        .dashboard-process-chart { min-width: 680px; }
+        @media (max-width: 640px) {
+          .dashboard-page { padding: 12px !important; }
+          .dashboard-header-controls { width: 100%; flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+          .dashboard-header-controls > span { text-align: left; font-size: 12px; }
+          .dashboard-time-filter { width: 100%; justify-content: space-between; gap: 6px !important; }
+          .dashboard-period-selectors { flex-shrink: 1; min-width: 0; }
+          .dashboard-period-selectors > div { min-width: 0; }
+          .dashboard-period-selectors button { padding-inline: 10px; }
+          .dashboard-mode-selector { flex-shrink: 0; }
+          .dashboard-mode-selector button { padding-inline: 10px; }
+          .dashboard-page .rounded-2xl { border-radius: 14px; }
+          .dashboard-page .overflow-x-auto { margin-left: -4px; margin-right: -4px; padding-inline: 4px; }
+        }
+        @media (max-width: 380px) {
+          .dashboard-time-filter { align-items: stretch; flex-direction: column; }
+          .dashboard-period-selectors { justify-content: flex-start; }
+          .dashboard-mode-selector { justify-content: space-between; }
+          .dashboard-mode-selector button { flex: 1; }
+        }
+        @media (min-width: 641px) {
+          .dashboard-process-chart { min-width: 0; }
+        }
+      `}</style>
       {/* Encabezado */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <h1 className="text-xl font-bold text-gray-900" style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: '0' }}>Dashboard</h1>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="dashboard-header-controls flex items-center gap-3 flex-wrap">
           <span className="text-sm text-gray-500 font-medium">Período:</span>
           <GlobalTimeFilter />
 
@@ -894,8 +925,8 @@ export default function ProductionDashboard() {
             </div>
           ))}
         </div>
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: 560 }}>
+        <div className="dashboard-process-scroll">
+          <div className="dashboard-process-chart">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={barData} margin={{ top: 5, right: 10, left: 10, bottom: 60 }} barCategoryGap="28%">
                 <CartesianGrid strokeDasharray="2 4" stroke="#F5D8F5" vertical={false} />
