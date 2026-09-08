@@ -630,6 +630,7 @@ export default function ProductionDashboard() {
           .dashboard-period-selectors button { padding-inline: 10px; }
           .dashboard-mode-selector { flex-shrink: 0; }
           .dashboard-mode-selector button { padding-inline: 10px; }
+          .dashboard-download-button { justify-content: center; }
           .dashboard-page .rounded-2xl { border-radius: 14px; }
           .dashboard-page .overflow-x-auto { margin-left: -4px; margin-right: -4px; padding-inline: 4px; }
         }
@@ -654,7 +655,7 @@ export default function ProductionDashboard() {
           <button
             onClick={() => { setModalDateFrom(''); setModalDateTo(''); setShowDownloadModal(true); }}
             disabled={downloadingExcel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-white transition-opacity"
+            className="dashboard-download-button flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-white transition-opacity"
             style={{ background: '#FF4FD6', opacity: downloadingExcel ? 0.6 : 1, cursor: downloadingExcel ? 'not-allowed' : 'pointer' }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
