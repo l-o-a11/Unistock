@@ -86,7 +86,14 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
   // FIX (punto 4): solo activos — antes se mostraban proveedores/insumos
   // inactivados como opción seleccionable en este buscador.
   const { suppliersActivos: suppliers, createSupplier } = useSuppliers();
-  const { suppliesActivos: supplies, medidas, propiedades, categorias, createSupply } = useSupplies();
+  const {
+    suppliesActivos: supplies,
+    medidas,
+    propiedades,
+    categorias,
+    createSupply,
+    refreshCatalogos,
+  } = useSupplies();
   const { sedes } = useSedes();
   const { isGerente, sedeId: miSedeId } = useSedeScope();
 
@@ -274,29 +281,24 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     setFormData((p) => ({ ...p, detalles: p.detalles.filter((d) => d.id !== id) }));
 
   const handleCreateSupplierSubmit = async (data) => {
-    try {
-      const s = await createSupplier(data);
-      handleSelectProveedor(s);
-      setShowCreateSupplier(false);
-      showAlert('success', 'Proveedor creado', `"${s.nombreEmpresa}" fue creado y seleccionado.`);
-    } catch (e) { showAlert('error', 'Error', e.message || 'No se pudo crear el proveedor.'); }
+    const s = await createSupplier(data);
+    handleSelectProveedor(s);
+    setShowCreateSupplier(false);
+    showAlert('success', 'Proveedor creado', `"${s.nombreEmpresa}" fue creado y seleccionado.`);
   };
 
   const handleCreateSupplySubmit = async (data) => {
-    try {
-      const s = await createSupply(data);
-      handleSelectInsumo(s);
-      setShowCreateSupply(false);
-      showAlert('success', 'Insumo creado', `"${s.nombre}" fue creado y seleccionado.`);
-    } catch (e) { showAlert('error', 'Error', e.message || 'No se pudo crear el insumo.'); }
+    const s = await createSupply(data);
+    handleSelectInsumo(s);
+    setShowCreateSupply(false);
+    showAlert('success', 'Insumo creado', `"${s.nombre}" fue creado y seleccionado.`);
   };
 
   // FIX 1: Crear categoría desde dentro del SupplyForm anidado
   const handleCreateCategorySubmit = async (data) => {
     try {
       const cat = await categoryAPI.create(data);
-      // Refrescar el catálogo de categorías en useSupplies
-      await categorias; // el hook ya lo tiene; se agrega optimistamente
+      await refreshCatalogos();
       setShowCreateCategory(false);
       showAlert('success', 'Categoría creada', `"${cat.nombre}" fue creada. Selecciónala en el formulario de insumo.`);
     } catch (e) { showAlert('error', 'Error', e.message || 'No se pudo crear la categoría.'); }
@@ -346,6 +348,14 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     showAlert('confirm', '¿Cancelar?', 'Los datos ingresados se perderán.', () => { closeAlert(); onCancel?.(); });
   };
 
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
   if (showCreateSupplier) return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <SupplierForm onSubmit={handleCreateSupplierSubmit} onCancel={() => setShowCreateSupplier(false)} />
@@ -369,15 +379,6 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
     <button type="button" onClick={onClick} title={title}
       style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#ff4fd6', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px #FF4FD644' }}>+</button>
   );
-
-  // Fecha máxima seleccionable en el input date = hoy, en formato yyyy-mm-dd
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  }, []);
 
   return (
     <>
@@ -404,7 +405,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                 digitar en el campo Cantidad. Con overflowY: 'auto' siempre
                 activo, el usuario puede scrollear internamente en cualquier
                 tamaño de pantalla y el footer nunca tapa contenido. */}
-            <div className="shf-left-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 26px 0' }}>
+            <div className="roles-modal-scroll shf-left-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 26px 0', scrollbarGutter: 'stable', WebkitOverflowScrolling: 'touch' }}>
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
@@ -561,7 +562,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               </p>
 
               {formData.detalles.length > 0 ? (
-                <div className="roles-modal-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <div className="roles-modal-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarGutter: 'stable', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e5e7eb' }}>

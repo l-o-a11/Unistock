@@ -19,9 +19,10 @@ const responsiveCss = `
   @media (max-width: 640px) {
     .up-page { padding: 16px !important; }
     .up-header { flex-direction: column !important; align-items: stretch !important; }
+    .up-header h1 { text-align: center !important; }
     .up-search { align-items: stretch !important; }
     .up-search > div { max-width: 100% !important; width: 100% !important; }
-    .up-search > span { text-align: center !important; white-space: normal !important; }
+    .up-search > span { text-align: left !important; white-space: normal !important; line-height: 1.35 !important; }
     .up-addbar { justify-content: center !important; }
   }
 `;

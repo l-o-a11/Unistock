@@ -28,10 +28,11 @@ const CARGOS_DISPONIBLES = ['Corte', 'Compras', 'Recepción', 'Vendedor', 'Bodeg
 
 const EmployeeForm = ({ employee, roles, sedes, allEmployees = [], onSubmit, onCancel }) => {
     const modalRef = useRef(null);
-
-    const [formData, setFormData] = useState(() => employee ?? {
+    const initialFormDataRef = useRef(employee ?? {
         documentType: '', documentNumber: '', name: '', email: '', role: '', sede: '', cargos: [],
     });
+
+    const [formData, setFormData] = useState(() => initialFormDataRef.current);
     const [errors, setErrors] = useState({});
     const [sending, setSending] = useState(false);
     const [alertConfig, setAlertConfig] = useState({ open: false, type: 'success', title: '', message: '', onConfirm: null });
@@ -87,8 +88,8 @@ const EmployeeForm = ({ employee, roles, sedes, allEmployees = [], onSubmit, onC
     };
 
     const handleCancelClick = useCallback(() => {
-        const blank = !formData.documentType && !formData.documentNumber && !formData.name && !formData.email && !formData.role && !formData.sede;
-        if (blank) { onCancel(); return; }
+        const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+        if (!hasChanges) { onCancel(); return; }
         setAlertConfig({
             open: true, type: 'confirm', title: 'Cancelar',
             message: '¿Seguro que deseas cancelar? Se perderán los cambios.',
@@ -212,9 +213,9 @@ const EmployeeForm = ({ employee, roles, sedes, allEmployees = [], onSubmit, onC
             />
 
             <div onClick={handleOverlayClick} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, padding: 16, overflowY: 'auto' }}>
-                <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
+                <div ref={modalRef} style={{ backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative' }}>
 
-                    <div className="ef-body" style={{ padding: '28px 30px' }}>
+                    <div className="roles-modal-scroll ef-body" style={{ padding: '28px 30px', overflowY: 'auto', maxHeight: '90vh', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}>
                         <button onClick={handleCancelClick} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', fontSize: 14, zIndex: 1 }}>✕</button>
 
                         {/* Header */}
