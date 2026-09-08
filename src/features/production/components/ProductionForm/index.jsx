@@ -162,10 +162,9 @@ const ProductSearchDropdown = ({ products = [], loadingProducts, disabled, nueva
 
   const handleToggle = () => {
     if (!disabled && !loadingProducts) {
-      setOpen((o) => {
-        if (!o && onLoad && products.length === 0) onLoad();
-        return !o;
-      });
+      const nextOpen = !open;
+      if (nextOpen && onLoad && products.length === 0) onLoad();
+      setOpen(nextOpen);
     }
   };
 
@@ -727,9 +726,6 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
       if (coe) { newExtraErr[i].color = coe; missing.push(`Artículo #${i + 2} — Color`); }
 
     });
-    if (type === 'diseno' && !hasTechnicalSheetMaterials(techSheetData)) {
-      missing.push('Ficha técnica — completa al menos un material o medida');
-    }
     setErrors(newErrors); setExtraErrors(newExtraErr);
     if (nuevaRefOpen) validateNuevaRef();
     if (missing.length > 0) {
