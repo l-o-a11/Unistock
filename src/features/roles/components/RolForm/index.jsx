@@ -15,6 +15,8 @@ const validators = {
     v && v.trim().length > max ? `Máximo ${max} caracteres` : '',
   noNumbers: (v) =>
     /\d/.test(v) ? 'No debe contener números' : '',
+  onlyLettersAndSpaces: (v) =>
+    /[^\p{L} ]/u.test(v) ? 'El nombre solo puede contener letras y espacios' : '',
 };
 
 // ─────────────────────────────────────────────────
@@ -151,7 +153,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
     if (name === 'nombre') {
       error =
         validators.required(value) ||
-        validators.noNumbers(value) ||
+        validators.onlyLettersAndSpaces(value) ||
         validators.minLength(3)(value) ||
         validators.maxLength(50)(value);
 
@@ -185,7 +187,9 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
   // ── Handlers ──────────────────────────────────────
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const nextValue = value;
+    const nextValue = name === 'nombre'
+      ? value.replace(/[^\p{L} ]/gu, '')
+      : value;
 
     setFormData((prev) => ({ ...prev, [name]: nextValue }));
 

@@ -94,7 +94,7 @@ export const useSupplies = (initialFilters = {}) => {
       setLoading(true);
       const newSupply = await supplyAPI.create(supplyData);
       setSupplies((prev) => [newSupply, ...prev].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
-      await loadData(); // recarga para reflejar orden/paginación del servidor
+      setPagination((prev) => ({ ...prev, total: prev.total + 1 }));
       return newSupply;
     } catch (err) {
       const msg = err.data?.error || err.message || "Error al crear el insumo";
@@ -109,7 +109,9 @@ export const useSupplies = (initialFilters = {}) => {
     try {
       setLoading(true);
       const updated = await supplyAPI.update(id, supplyData);
-      await loadData();
+      setSupplies((prev) => prev.map((supply) => (
+        supply.id === String(id) ? updated : supply
+      )));
       return updated;
     } catch (err) {
       const msg = err.data?.error || err.message || "Error al actualizar el insumo";
@@ -124,11 +126,14 @@ export const useSupplies = (initialFilters = {}) => {
     try {
       setLoading(true);
       await supplyAPI.delete(id, managerPassword);
-      // Si la página actual queda vacía, retroceder una página
-      const newTotal = pagination.total - 1;
-      const maxPage = Math.max(1, Math.ceil(newTotal / pagination.limit));
-      const targetPage = Math.min(pagination.page, maxPage);
-      await loadData({ page: targetPage });
+      setSupplies((prev) => prev.filter((supply) => supply.id !== String(id)));
+      setPagination((prev) => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1),
+        totalPages: Number.isFinite(Number(prev.limit))
+          ? Math.max(1, Math.ceil(Math.max(0, prev.total - 1) / Number(prev.limit)))
+          : prev.totalPages,
+      }));
     } catch (err) {
       const msg = err.data?.error || err.message || "Error al eliminar el insumo";
       setError(msg);
