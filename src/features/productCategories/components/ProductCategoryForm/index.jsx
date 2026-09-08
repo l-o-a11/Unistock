@@ -250,18 +250,18 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
             type="button"
             onClick={handleCancelClick}
             style={{
-              padding: '10px 24px',
-              backgroundColor: '#f3f4f6',
-              border: '1.5px solid #e5e7eb',
-              borderRadius: '10px',
-              fontSize: '14px',
+              padding: '8px 16px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              background: '#fff',
+              fontSize: '13px',
               fontWeight: '600',
-              color: '#374151',
+              color: '#555',
               cursor: 'pointer',
-              transition: 'background-color 0.2s',
+              transition: 'border-color 0.15s, background 0.15s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.background = '#f9fafb'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = '#fff'; }}
           >
             Cancelar
           </button>
@@ -269,19 +269,24 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
           <button
             type="submit"
             style={{
-              padding: '10px 24px',
-              backgroundColor: '#ff4fd6',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '700',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              backgroundColor: '#FF4FD6',
               color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '600',
               cursor: 'pointer',
-              transition: 'background-color 0.2s',
+              boxShadow: '0 2px 8px rgba(255,79,214,0.3)',
+              transition: 'background 0.15s, box-shadow 0.15s',
               opacity: (errors.nombre || errors.descripcion) ? 0.7 : 1,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#C9187A')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ff4fd6')}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e040c0'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,79,214,0.4)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#FF4FD6'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(255,79,214,0.3)'; }}
             disabled={errors.nombre || errors.descripcion}
           >
             {productCategory ? 'Guardar Categoría' : 'Guardar Categoría'}

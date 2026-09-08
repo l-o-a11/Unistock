@@ -7,24 +7,25 @@ const AddProductCategoryButton = ({ onClick, label = 'Agregar' }) => {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '8px',
-        padding: '10px 20px',
+        gap: '6px',
+        padding: '8px 16px',
         backgroundColor: '#FF4FD6',
         color: '#fff',
         border: 'none',
         borderRadius: '8px',
-        fontSize: '14px',
+        fontSize: '13px',
         fontWeight: '600',
         cursor: 'pointer',
-        transition: 'background-color 0.2s ease',
+        boxShadow: '0 2px 8px rgba(255,79,214,0.3)',
+        transition: 'background 0.15s, box-shadow 0.15s',
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D93DB8')}
-      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FF4FD6')}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e040c0'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,79,214,0.4)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#FF4FD6'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(255,79,214,0.3)'; }}
     >
       <svg
-        width="18"
-        height="18"
+        width="16"
+        height="16"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

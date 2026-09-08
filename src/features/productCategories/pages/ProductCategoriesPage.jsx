@@ -30,9 +30,12 @@ const ProductCategoriesPage = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProductCategory, setEditingProductCategory] = useState(null);
 
-  const [successAlert, setSuccessAlert] = useState({ open: false, title: '', message: '' });
-  const [errorAlert,   setErrorAlert]   = useState({ open: false, title: '', message: '' });
-  const [warningAlert, setWarningAlert] = useState({ open: false, title: '', message: '' });
+  const [mainAlert, setMainAlert] = useState({ open: false, type: 'success', title: '', message: '' });
+
+  const showAlert = (type, title, message) => {
+    setMainAlert({ open: false });
+    setTimeout(() => setMainAlert({ open: true, type, title, message }), 50);
+  };
 
   const [confirmAlert, setConfirmAlert] = useState({
     open: false,
@@ -69,12 +72,7 @@ const ProductCategoriesPage = () => {
 
 
 
-  const handleShowAlert = ({ type, title, message }) => {
-    const setter = { success: setSuccessAlert, error: setErrorAlert, warning: setWarningAlert }[type];
-    if (!setter) return;
-    setter({ open: false });
-    setTimeout(() => setter({ open: true, title, message }), 50);
-  };
+  const handleShowAlert = ({ type, title, message }) => showAlert(type, title, message);
 
   const handleShowConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
     setConfirmAlert({ open: false });
@@ -187,15 +185,6 @@ const ProductCategoriesPage = () => {
     return pages;
   };
 
-const paginationBtn = {
-    padding: "6px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
-    background: "#fff",
-    cursor: "pointer",
-    fontSize: "14px",
-  };
-
   // ── Estado de carga inicial ────────────────────────────────────────────
   // Skeleton que replica el layout del header, buscador y barra de acciones
   // para evitar el "salto" visual cuando los datos ya cargaron.
@@ -295,25 +284,42 @@ const paginationBtn = {
         </div>
 
         {filteredProductCategories.length > 0 && (
-          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'center' }}>
+          <div style={{
+            marginTop: isMobile ? '28px' : '20px',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: isMobile ? '4px' : '6px',
+            alignItems: 'center',
+          }}>
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              style={{ ...paginationBtn, color: currentPage === 1 ? '#ccc' : '#333', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+              style={{
+                padding: isMobile ? '4px 10px' : '6px 12px',
+                borderRadius: "6px",
+                border: "1px solid #ddd",
+                background: "#fff",
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                fontSize: isMobile ? '12px' : '14px',
+                color: currentPage === 1 ? '#ccc' : '#333',
+              }}
             >‹</button>
 
             {getPageNumbers().map((p, i) =>
               p === '...' ? (
-                <span key={i} style={{ padding: '6px 10px', fontSize: '14px', color: '#999' }}>...</span>
+                <span key={i} style={{ padding: isMobile ? '4px 6px' : '6px 10px', fontSize: isMobile ? '12px' : '14px', color: '#999' }}>...</span>
               ) : (
                 <button
                   key={p}
                   onClick={() => setCurrentPage(p)}
                   style={{
-                    ...paginationBtn,
-                    backgroundColor: p === currentPage ? '#FF4FD6' : '#fff',
-                    color: p === currentPage ? '#fff' : '#333',
+                    padding: isMobile ? '4px 10px' : '6px 12px',
+                    borderRadius: "6px",
                     border: p === currentPage ? '1px solid #FF4FD6' : '1px solid #ddd',
+                    background: p === currentPage ? '#FF4FD6' : '#fff',
+                    cursor: 'pointer',
+                    fontSize: isMobile ? '12px' : '14px',
+                    color: p === currentPage ? '#fff' : '#333',
                   }}
                 >{p}</button>
               )
@@ -322,7 +328,15 @@ const paginationBtn = {
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              style={{ ...paginationBtn, color: currentPage === totalPages ? '#ccc' : '#333', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+              style={{
+                padding: isMobile ? '4px 10px' : '6px 12px',
+                borderRadius: "6px",
+                border: "1px solid #ddd",
+                background: "#fff",
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                fontSize: isMobile ? '12px' : '14px',
+                color: currentPage === totalPages ? '#ccc' : '#333',
+              }}
             >›</button>
           </div>
         )}
@@ -360,27 +374,18 @@ const paginationBtn = {
         </div>
       )}
 
-      {/* ── ALERTAS (SIN KEYS - No son listas dinámicas) ── */}
-      
-      {/* ✅ Success Alert */}
+      {/* ── ALERTAS ── */}
+
+      {/* ✅ Main Alert (success / error / warning) — patrón ProductionPage */}
       <Alert
-        isOpen={successAlert.open} type="success"
-        title={successAlert.title} message={successAlert.message}
-        onConfirm={() => setSuccessAlert(prev => ({ ...prev, open: false }))}
-        onCancel={() => setSuccessAlert(prev => ({ ...prev, open: false }))}
+        isOpen={mainAlert.open}
+        type={mainAlert.type}
+        title={mainAlert.title}
+        message={mainAlert.message}
+        onConfirm={() => setMainAlert(p => ({ ...p, open: false }))}
+        onCancel={() => setMainAlert(p => ({ ...p, open: false }))}
       />
-      <Alert
-        isOpen={errorAlert.open} type="error"
-        title={errorAlert.title} message={errorAlert.message}
-        onConfirm={() => setErrorAlert(prev => ({ ...prev, open: false }))}
-        onCancel={() => setErrorAlert(prev => ({ ...prev, open: false }))}
-      />
-      <Alert
-        isOpen={warningAlert.open} type="warning"
-        title={warningAlert.title} message={warningAlert.message}
-        onConfirm={() => setWarningAlert(prev => ({ ...prev, open: false }))}
-        onCancel={() => setWarningAlert(prev => ({ ...prev, open: false }))}
-      />
+
       <Alert
         isOpen={confirmAlert.open} type="confirm"
         title={confirmAlert.title} message={confirmAlert.message}

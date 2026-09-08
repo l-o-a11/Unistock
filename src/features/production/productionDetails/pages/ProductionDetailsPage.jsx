@@ -10,7 +10,7 @@ import { ProductionAPI } from "../../services/ProductionAPI";
 import { ProductionAPIClient } from "../../services/ProductionAPIClient";
 import Button from "../../../shared/components/Button";
 import Alert from "../../../shared/components/Alert";
-import TechnicalSheet from "../../../production/components/TechnicalSheet";
+import TechnicalSheet from "../../../products/components/TechnicalSheet";
 import AlertEditProduction from "./AlertEditProduction";
 import ProductionAlerts from "./ProductionAlerts";
 import { useAuthContext } from "../../../shared/AuthContext";
@@ -1167,6 +1167,12 @@ const ProductionDetailsPage = () => {
         .pd-input:focus { border-color:#FF4FD6; box-shadow:0 0 0 3px rgba(255,79,214,0.1); }
 
         .pd-stat-card { border-radius:11px; padding:13px 15px; }
+
+        .pd-tech-content { overflow-x: auto; }
+        @media (max-width: 768px) {
+          .pd-tech-modal { margin: 0 !important; max-height: 94vh !important; border-radius: 10px !important; }
+          .pd-tech-content { padding: 14px 12px !important; }
+        }
 
         .pd-hist-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .pd-hist-th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; padding: 0 8px 8px 0; text-align: left; overflow: hidden; }
