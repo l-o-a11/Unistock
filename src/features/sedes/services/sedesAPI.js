@@ -18,6 +18,8 @@ const normalizeSede = (raw) => ({
   direccion: raw.direccion ?? "",
   telefono: String(raw.telefono ?? ""),
   estado: raw.estado ?? true,
+  createdAt: raw.createdAt ?? raw.created_at ?? null,
+  updatedAt: raw.updatedAt ?? raw.updated_at ?? null,
 });
 
 export const sedesAPI = {
@@ -29,8 +31,13 @@ export const sedesAPI = {
    * Ahora devuelve: { data: Sede[], total, page, limit, totalPages }
    */
   getAll: async (filters = {}) => {
+    const requestFilters = {
+      sortBy: "createdAt",
+      order: "desc",
+      ...filters,
+    };
     const qs = new URLSearchParams(
-      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+      Object.entries(requestFilters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
 
     const result = await httpClient.get(`/sites${qs ? `?${qs}` : ""}`);

@@ -22,8 +22,8 @@ export const useRoles = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await RolesAPI.getAll();
-      setRoles(data);
+      const data = await RolesAPI.getAll({ sortBy: "createdAt", order: "desc" });
+      setRoles([...data].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
     } catch (err) {
       if (err?.status === 403) {
         setRoles([]);
@@ -50,7 +50,7 @@ export const useRoles = () => {
       setLoading(true);
       setError(null);
       const newRol = await RolesAPI.create(rolData);
-      setRoles((prev) => [...prev, newRol]);
+      setRoles((prev) => [newRol, ...prev].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       return newRol;
     } catch (err) {
       const msg = err.message ?? "Error al crear el rol";

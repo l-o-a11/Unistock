@@ -101,6 +101,8 @@ const normalizeRol = (rol) => ({
   descripcion: rol.descripcion ?? "",
   estado: rol.estado ?? true,
   modulos: permisosBackToFront(rol.permisos ?? []),
+  createdAt: rol.createdAt ?? rol.created_at ?? null,
+  updatedAt: rol.updatedAt ?? rol.updated_at ?? null,
 });
 
 // ── API pública ───────────────────────────────────────────────────────────────
@@ -111,8 +113,13 @@ export const RolesAPI = {
 
   // GET /api/roles  — soporta ?search= ?estado= ?page= ?limit= ?sortBy= ?order=
   getAll: async (filters = {}) => {
+    const requestFilters = {
+      sortBy: "createdAt",
+      order: "desc",
+      ...filters,
+    };
     const qs = new URLSearchParams(
-      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+      Object.entries(requestFilters).filter(([, v]) => v !== undefined && v !== "")
     ).toString();
     const result = await httpClient.get(`/roles${qs ? `?${qs}` : ""}`);
     const lista = Array.isArray(result) ? result : (result?.data ?? []);

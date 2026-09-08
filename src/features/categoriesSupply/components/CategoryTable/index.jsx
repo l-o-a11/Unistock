@@ -42,17 +42,16 @@ const CategoryTable = ({ categories = [], onEdit, onDelete, supplyCounts = {}, }
       backgroundColor: '#fff',
       borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-      // overflow: 'hidden',  // ← ELIMINADO
+      overflow: 'hidden',
+      minWidth: 0,
     }}>
-      <div style={{ 
-        overflowX: 'visible'  // ← AGREGADO para permitir que el hover sobresalga
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-scroll-wrapper" style={{ minWidth: 0 }}>
+        <table className="responsive-data-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
           <thead>
             <tr>
               <th style={thStyle}>Nombre</th>
               <th style={thStyle}>Cantidad de insumos</th>
-              <th style={thStyle}>Acciones</th>
+              <th className="table-actions" style={thStyle}>Acciones</th>
             </tr>
           </thead>
           <tbody>

@@ -16,7 +16,7 @@ export const useSedes = (initialFilters = {}) => {
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ limit: 10, ...initialFilters });
+  const [filters, setFilters] = useState({ limit: 10, sortBy: "createdAt", order: "desc", ...initialFilters });
 
   // ── Carga (server-side) ────────────────────────────────────────────────────
   const loadData = useCallback(async (overrideFilters = {}) => {
@@ -25,7 +25,7 @@ export const useSedes = (initialFilters = {}) => {
       setError(null);
       const merged = { ...filters, ...overrideFilters };
       const result = await sedesAPI.getAll(merged);
-      setSedes(result.data);
+      setSedes([...result.data].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       setPagination({
         total: result.total,
         page: result.page,

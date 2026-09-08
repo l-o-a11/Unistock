@@ -273,11 +273,12 @@ const SuppliersPage = () => {
           }
         }
         @media (max-width: 639px) {
-          .sup-header { align-items: center; text-align: center; }
+          .sup-header { align-items: stretch; text-align: left; }
+          .sup-header h1 { text-align: center; }
         }
 
         .sup-search-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        @media (max-width: 639px) { .sup-search-col { align-items: center; width: 100%; } }
+        @media (max-width: 639px) { .sup-search-col { align-items: stretch; width: 100%; } .sup-search-col > div { width: 100% !important; max-width: 100% !important; } .sup-search-col > span { align-self: flex-start; width: 100%; text-align: left; white-space: normal !important; } }
 
         .sup-btn-bar {
           background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
@@ -311,6 +312,7 @@ const SuppliersPage = () => {
   onChange={(v) => { handleSearch(v); setCurrentPage(1); }}
   placeholder="Buscar"
   width="400px"
+  maxWidth="400px"
   margin="0 0 4px 0"
 />
           <span style={{ fontSize: 11, color: "#9ca3af" }}>

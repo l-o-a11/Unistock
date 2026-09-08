@@ -38,9 +38,9 @@ const SedeTable = ({
   }
 
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden", minWidth: 0 }}>
+      <div className="table-scroll-wrapper" style={{ minWidth: 0 }}>
+        <table className="responsive-data-table" style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
           <thead>
             <tr>
               {[ 
@@ -49,9 +49,9 @@ const SedeTable = ({
                 { label: "Barrio", width: "14%" },
                 { label: "Dirección", width: "28%" },
                 { label: "Teléfono", width: "12%" },
-                { label: "Acciones", width: "14%" },
+                { label: "Acciones", width: "14%", className: "table-actions" },
               ].map((h) => (
-                <th key={h.label} style={{ ...thStyle, width: h.width }}>{h.label}</th>
+                <th key={h.label} className={h.className} style={{ ...thStyle, width: h.width }}>{h.label}</th>
               ))}
             </tr>
           </thead>
@@ -76,7 +76,7 @@ const SedeTable = ({
                   <td style={{ ...tdStyle, width: "12%" }}>{sede.telefono}</td>
 
                   {/* Acciones */}
-                  <td style={{ ...tdStyle, width: "14%" }}>
+                  <td className="table-actions" style={{ ...tdStyle, width: "14%" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
 
                      

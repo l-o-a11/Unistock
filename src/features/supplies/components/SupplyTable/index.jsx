@@ -80,23 +80,19 @@ const SupplyTable = ({
           backgroundColor: "#fff",
           borderRadius: "12px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          minWidth: 0,
         }}
       >
         <div
-          style={{
-            position: "relative",
-            overflowX: "visible",
-            overflowY: "visible",
-            WebkitOverflowScrolling: "touch",
-            paddingBottom: "10px",
-          }}
+          className="table-scroll-wrapper"
+          style={{ paddingBottom: "10px", minWidth: 0 }}
         >
           <table
+            className="responsive-data-table"
             style={{
               width: "100%",
               borderCollapse: "collapse",
-              minWidth: isMobile ? "760px" : "920px",
-              tableLayout: isMobile ? "auto" : "fixed",
+              tableLayout: "auto",
             }}
           >
           <thead>
@@ -218,7 +214,7 @@ const SupplyTable = ({
                   >{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
 
                   {/* Acciones */}
-                  <td style={{ ...tdActionsStyle, width: "15%" }}>
+                  <td className="table-actions" style={{ ...tdActionsStyle, width: "15%" }}>
                     <div
                       style={{
                         display: "flex",
