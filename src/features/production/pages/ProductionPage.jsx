@@ -416,7 +416,7 @@ const ProductionsPage = () => {
         cantidad: String(primary.quantity || ''),
         color: primary.color || '',
         cliente: clienteFinal,
-        fechaSolicitud: '',
+        fechaSolicitud: source.rawData?.fecha_entrega || source.fecha_entrega || source.deliveryDate || new Date().toISOString().slice(0, 10),
         referencias: damagedDetails.slice(1).map(d => ({ cantidad: String(d.quantity || ''), color: d.color || '' })),
         fromDamaged: true,
         originalOrderNumber: source.orderNumber,
@@ -565,9 +565,10 @@ const ProductionsPage = () => {
           cantidad: remainingQty,
           color: detail.color || '',
           id_producto: detail.ref || detail.refCorte || detail.id_producto || source.referencia || '',
+          ajusteDanio: true,
         });
       }
-      return ProductionAPIClient.deleteOrderDetail(detailId);
+      return ProductionAPIClient.deleteOrderDetail(detailId, { ajusteDanio: true });
     }));
     await refreshProductions();
     return updates;
@@ -1412,7 +1413,7 @@ const ProductionsPage = () => {
 
       {/* ✅ Modal de reasignación de empleado anulado (desde la vista de lista) */}
       <ProductionAlerts
-        key={reassignAlert.open ? `reassign-${reassignAlert.production?.id}-${Date.now()}` : 'reassign-closed'}
+        key={reassignAlert.open ? `reassign-${reassignAlert.production?.id || 'unknown'}` : 'reassign-closed'}
         isOpen={reassignAlert.open}
         type="replaceEmployee"
         targetStep={reassignAlert.production?.status}

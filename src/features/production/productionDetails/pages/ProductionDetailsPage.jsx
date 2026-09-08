@@ -115,6 +115,23 @@ const toMoneyNumber = (value) => {
 const sumDetailQty = (details = []) =>
   (details || []).reduce((sum, detail) => sum + (Number(detail.quantity ?? detail.cantidad) || 0), 0);
 
+const buildDraftFromProduction = (production, totalUnidades = 0) => ({
+  client: production?.client || production?.cliente || production?.rawData?.cliente || '',
+  ref: production?.referencia || production?.reference || '',
+  type: production?.categoria || production?.category || '',
+  description: production?.producto || production?.name || production?.referencia || '',
+  createdBy: production?.createdBy || '',
+  date: new Date().toISOString().split('T')[0],
+  image: production?.productImage || production?.imagen || null,
+  fabrics: [],
+  cups: [],
+  closures: [],
+  accessories: [],
+  measurements: [],
+  observations: '',
+  _totalQty: totalUnidades,
+});
+
 const recalcTechSpecCost = (techSpec, details, productPrice) => {
   if (!techSpec) return techSpec;
   const costPerUnit = toMoneyNumber(productPrice) || toMoneyNumber(techSpec.costPerUnit);
@@ -463,9 +480,10 @@ const ProductionDetailsPage = () => {
           cantidad: remainingQty,
           color: detail.color || '',
           id_producto: detail.ref || detail.refCorte || detail.id_producto || source.referencia || '',
+          ajusteDanio: true,
         });
       }
-      return ProductionAPIClient.deleteOrderDetail(detailId);
+      return ProductionAPIClient.deleteOrderDetail(detailId, { ajusteDanio: true });
     }));
     await loadProduction();
     return updates;
@@ -1241,6 +1259,7 @@ const ProductionDetailsPage = () => {
           onAccept={handleProductionAlertConfirm}
           onCancel={closeProductionAlert}
           sedeId={production.rawData?.sedeId || null}
+          currentEmployeeId={production.empleadoAsignadoId}
           totalUnidades={totalUnidades}
         />
 
@@ -1336,7 +1355,7 @@ const ProductionDetailsPage = () => {
 
               const replacementOrder = await ProductionAPIClient.createOrder({
                 cliente: clienteFinal,
-                fecha_entrega: '',
+                fecha_entrega: source.rawData?.fecha_entrega || source.fecha_entrega || source.deliveryDate || new Date().toISOString(),
                 tipo: 'produccion',
                 referencia: source.referencia || '',
                 producto: source.producto || '',
@@ -1436,7 +1455,7 @@ const ProductionDetailsPage = () => {
           onCancel={() => setEditAlert({ isOpen: false, detail: null })}
         />
         <Alert
-          key={globalAlert.open ? 'open-' + Date.now() : 'closed'}
+          key={globalAlert.open ? 'global-alert-open' : 'global-alert-closed'}
           isOpen={globalAlert.open}
           type={globalAlert.type}
           title={globalAlert.title}
@@ -1649,7 +1668,11 @@ const ProductionDetailsPage = () => {
                     <button
                       onClick={() => {
                         // ✅ Pre-cargar el draft con la ficha existente para editarla
-                        setTechSheetDraft({ ...production.techSpecification, _totalQty: totalUnidades });
+                        setTechSheetDraft(
+                          production.techSpecification
+                            ? { ...production.techSpecification, _totalQty: totalUnidades }
+                            : buildDraftFromProduction(production, totalUnidades)
+                        );
                         setShowTechSheet(false);
                         setShowTechSheetForm(true);
                       }}
@@ -1696,7 +1719,9 @@ const ProductionDetailsPage = () => {
                       style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#555", cursor: "pointer", fontSize: 12 }}>Cancelar</button>
                     <button className="pd-btn-primary"
                       onClick={async () => {
-                        if (!techSheetDraft) { setGlobalAlert({ open: true, type: "warning", title: "Ficha vacía", message: "Completa al menos los datos básicos de la ficha antes de guardar." }); return; }
+                        const readyDraft = techSheetDraft || buildDraftFromProduction(production, totalUnidades);
+                        setTechSheetDraft(readyDraft);
+                        if (!readyDraft) { setGlobalAlert({ open: true, type: "warning", title: "Ficha vacía", message: "Completa al menos los datos básicos de la ficha antes de guardar." }); return; }
                         try {
                           // ✅ Fix: el costo unitario SIEMPRE viene del precio guardado en
                           // el producto (catálogo), no del valor manual que el usuario haya
@@ -1705,7 +1730,7 @@ const ProductionDetailsPage = () => {
                           const costPerUnit = (production.productoPrecio > 0)
                             ? production.productoPrecio
                             : (Number(techSheetDraft.costPerUnit) || 0);
-                          const newSpec = { ...techSheetDraft, name: techSheetDraft.type || "Ficha técnica", version: (techSheetDraft.versiones ?? techSheetDraft.version) || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
+                          const newSpec = { ...readyDraft, name: readyDraft.type || "Ficha técnica", version: (readyDraft.versiones ?? readyDraft.version) || "1", costPerUnit, totalCost: costPerUnit * totalUnidades, completed: true };
                            await ProductionAPIClient.updateOrder(production.id, {
                              techSpecification: newSpec
                            });
@@ -1729,7 +1754,17 @@ const ProductionDetailsPage = () => {
                   </div>
                 </div>
                 <div style={{ overflowY: "auto", padding: "20px 24px", flex: 1 }}>
-                  <TechnicalSheet sheet={{ ...(techSheetDraft || {}), _totalQty: totalUnidades }} isEditing={true} onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })} productPrice={production.productoPrecio} productImage={production.productImage} categoryName={production.categoria || ''} />
+                  <TechnicalSheet
+                    sheet={{ ...(techSheetDraft || buildDraftFromProduction(production, totalUnidades)), _totalQty: totalUnidades }}
+                    isEditing={true}
+                    onChange={(data) => setTechSheetDraft({ ...data, _totalQty: totalUnidades })}
+                    productName={production.producto || production.name || production.referencia || ''}
+                    categoryDescription={production.categoria || production.category || ''}
+                    productRef={production.referencia || ''}
+                    productPrice={production.productoPrecio}
+                    productImage={production.productImage}
+                    categoryName={production.categoria || production.category || ''}
+                  />
                 </div>
               </div>
             </div>
@@ -2311,7 +2346,10 @@ const ProductionDetailsPage = () => {
                     {isOnFichaStep ? "Requerida para continuar." : "Disponible en el paso correspondiente."}
                   </p>
                   {!isEmpleado && !isAnulada && (
-                    <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => setShowTechSheetForm(true)}>
+                    <button className="pd-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => {
+                      setTechSheetDraft(buildDraftFromProduction(production, totalUnidades));
+                      setShowTechSheetForm(true);
+                    }}>
                       + Crear ficha técnica
                     </button>
                   )}
