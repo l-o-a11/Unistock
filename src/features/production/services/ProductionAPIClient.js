@@ -231,10 +231,14 @@ export const ProductionAPIClient = {
     return res?.data || res;
   },
 
-  deleteOrderDetail: async (id) => {
+  deleteOrderDetail: async (id, options = {}) => {
     const res = await httpRequest(`/produccion/detalle-orden/${id}`, {
       method: "DELETE",
-      body: { id_usuario: getCurrentUserName(), user: getCurrentUserName() },
+      body: {
+        id_usuario: getCurrentUserName(),
+        user: getCurrentUserName(),
+        ...(options.ajusteDanio === true && { ajusteDanio: true }),
+      },
     });
     return res?.data || res;
   },
@@ -243,6 +247,19 @@ export const ProductionAPIClient = {
     const res = await httpRequest(`/produccion/ordenes/${id}/anular`, {
       method: "PATCH",
       body: { motivo, id_usuario: getCurrentUserName() },
+    });
+    const resData = res?.data || res;
+    return toFrontendFormat(resData);
+  },
+
+  agregarHistorial: async (id, motivo, estado) => {
+    const res = await httpRequest(`/produccion/ordenes/${id}/historial`, {
+      method: "POST",
+      body: {
+        motivo,
+        estado,
+        id_usuario: getCurrentUserName(),
+      },
     });
     const resData = res?.data || res;
     return toFrontendFormat(resData);
@@ -303,8 +320,11 @@ export const ProductionAPIClient = {
    * actual. El cargo coincide con el nombre de la etapa (Corte, Compras,
    * Recepción, etc.).
    */
-  getEmployeeWorkload: async (cargo) => {
-    const query = cargo ? `?cargo=${encodeURIComponent(cargo)}` : "";
+  getEmployeeWorkload: async (cargo, sedeId) => {
+    const params = new URLSearchParams();
+    if (cargo) params.set("cargo", cargo);
+    if (sedeId) params.set("sedeId", sedeId);
+    const query = params.toString() ? `?${params.toString()}` : "";
     const res = await httpRequest(`/produccion/empleados/carga${query}`, { method: "GET" });
     const data = res?.data || res;
     return Array.isArray(data) ? data : [];

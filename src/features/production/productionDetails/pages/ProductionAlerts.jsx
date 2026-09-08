@@ -111,6 +111,8 @@ const ProductionAlerts = ({
   onCancel,
   // ── NUEVO ── sede de la orden para filtrar empleados disponibles
   sedeId,
+  // Empleado actualmente asignado; no puede elegirse como reemplazo.
+  currentEmployeeId,
   // ── NUEVO ── total de unidades de la orden (para validar cantidades)
   totalUnidades = 0,
 }) => {
@@ -208,7 +210,7 @@ const ProductionAlerts = ({
             nombre: e.nombreCompleto || e.nombre || e.correo || "Sin nombre",
             producciones: Number(e.produccionesAsignadas ?? e.totalAsignadas ?? 0),
           }))
-          .filter((e) => e.id);
+          .filter((e) => e.id && String(e.id) !== String(currentEmployeeId || ""));
         if (!cancelled) setEmployeeOptions(options);
       } catch (err) {
         console.error("Error cargando empleados:", err);
@@ -219,7 +221,7 @@ const ProductionAlerts = ({
     })();
 
     return () => { cancelled = true; };
-  }, [isOpen, type, targetStep, sedeId]);
+  }, [isOpen, type, targetStep, sedeId, currentEmployeeId]);
 
   if (!isOpen) return null;
 
@@ -324,7 +326,7 @@ const ProductionAlerts = ({
   const canConfirm =
     (isAssign && assignmentsValid) ||
     (type === "assignEmployee" && !!selectedEmployee) ||
-    (type === "replaceEmployee" && !!selectedEmployee && motivo.trim() !== "") ||
+    (type === "replaceEmployee" && !!selectedEmployee && motivo.trim().length >= 5) ||
     (type === "anular" && motivo.trim().length >= 5) ||
     (type === "password" && motivo.trim() !== "") ||
     type === "advance" ||
@@ -342,6 +344,7 @@ const ProductionAlerts = ({
       setConfirming(true);
       if (type === "anular" || type === "password") { await onAccept(motivo.trim()); setMotivo(""); return; }
       if (type === "assignEmployee" || type === "replaceEmployee") {
+        if (type === "replaceEmployee" && motivo.trim().length < 5) return;
         const emp = employeeOptions.find((e) => e.id === selectedEmployee);
         await onAccept({
           id_empleado: selectedEmployee,
@@ -599,8 +602,10 @@ const ProductionAlerts = ({
               onFocus={(e) => (e.target.style.borderColor = "#ef4444")}
               onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
             />
-            {!motivo.trim() && (
-              <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>La justificación es obligatoria para reemplazar el empleado.</p>
+            {motivo.trim().length < 5 && (
+              <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>
+                La justificación debe tener al menos 5 caracteres.
+              </p>
             )}
           </div>
         )}
