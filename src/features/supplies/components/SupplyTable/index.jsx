@@ -10,10 +10,58 @@ const SupplyTable = ({
   onEdit,
   onDelete,
   onToggle,
+  onStockChange,
+  onStockError,
   startIndex = 0,
 }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [hoveredSupplyId, setHoveredSupplyId] = useState(null);
+  const [stockDrafts, setStockDrafts] = useState({});
+
+  const getStockDraft = (supply) =>
+    Object.prototype.hasOwnProperty.call(stockDrafts, supply.id)
+      ? stockDrafts[supply.id]
+      : supply.stock ?? 0;
+
+  const commitStock = async (supply) => {
+    const rawValue = getStockDraft(supply);
+    if (rawValue === "") {
+      setStockDrafts((current) => ({ ...current, [supply.id]: supply.stock ?? 0 }));
+      return;
+    }
+
+    const nextStock = Number(rawValue);
+    const currentStock = Number(supply.stock) || 0;
+    if (nextStock > currentStock) {
+      onStockError?.("El stock solo puede disminuirse, no aumentarse.");
+      setStockDrafts((current) => ({ ...current, [supply.id]: currentStock }));
+      return;
+    }
+    if (!Number.isInteger(nextStock) || nextStock < 0) {
+      setStockDrafts((current) => ({ ...current, [supply.id]: currentStock }));
+      return;
+    }
+
+    if (nextStock !== currentStock) {
+      const updated = await onStockChange?.(supply.id, nextStock);
+      if (updated === false) {
+        setStockDrafts((current) => ({ ...current, [supply.id]: currentStock }));
+        return;
+      }
+    }
+    setStockDrafts((current) => ({ ...current, [supply.id]: nextStock }));
+  };
+
+  const decreaseStock = async (supply) => {
+    const currentStock = Number(supply.stock) || 0;
+    if (currentStock <= 0) return;
+
+    const nextStock = currentStock - 1;
+    const updated = await onStockChange?.(supply.id, nextStock);
+    if (updated !== false) {
+      setStockDrafts((current) => ({ ...current, [supply.id]: nextStock }));
+    }
+  };
 
   const thStyle = {
     padding: isMobile ? "10px 12px" : "14px 20px",
@@ -75,6 +123,16 @@ const SupplyTable = ({
 
   return (
     <>
+      <style>{`
+        .stock-table-input::-webkit-inner-spin-button,
+        .stock-table-input::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .stock-table-input {
+          -moz-appearance: textfield;
+        }
+      `}</style>
       <div
         style={{
           backgroundColor: "#fff",
@@ -208,7 +266,74 @@ const SupplyTable = ({
                   <td style={{ ...tdStyle, width: "20%" }}>
                     {getCategoriaNombre(supply.categoriaId)}
                   </td>
-                  <td style={{ ...tdStyle, width: "10%" }}>{supply.stock}</td>
+                  <td style={{ ...tdStyle, width: "10%" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => decreaseStock(supply)}
+                        disabled={(Number(supply.stock) || 0) <= 0}
+                        title="Disminuir stock"
+                        style={{
+                          width: "22px",
+                          minWidth: "22px",
+                          height: "22px",
+                          minHeight: "22px",
+                          borderRadius: "50%",
+                          border: "1px solid #f9a8d4",
+                          background: "#fff",
+                          color: (Number(supply.stock) || 0) <= 0 ? "#d1d5db" : "#ff4fd6",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          lineHeight: 1,
+                          cursor: (Number(supply.stock) || 0) > 0 ? "pointer" : "not-allowed",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          transition: "background-color 0.15s",
+                        }}
+                        onMouseEnter={(event) => {
+                          if ((Number(supply.stock) || 0) > 0) event.currentTarget.style.backgroundColor = "#fff0fb";
+                        }}
+                        onMouseLeave={(event) => {
+                          event.currentTarget.style.backgroundColor = "#fff";
+                        }}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        className="stock-table-input"
+                        min="0"
+                        max={Number(supply.stock) || 0}
+                        step="1"
+                        value={getStockDraft(supply)}
+                        aria-label={`Stock de ${supply.nombre}`}
+                        onChange={(event) =>
+                          setStockDrafts((current) => ({
+                            ...current,
+                            [supply.id]: event.target.value,
+                          }))
+                        }
+                        onBlur={() => commitStock(supply)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        style={{
+                          width: "58px",
+                          padding: "4px 5px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "5px",
+                          textAlign: "center",
+                          font: "inherit",
+                          appearance: "textfield",
+                          WebkitAppearance: "none",
+                        }}
+                      />
+                    </div>
+                  </td>
                   <td
                     style={{ ...tdStyle, width: "12%" }}
                   >{`${supply.valorMedida ?? ""} ${getMedidaNombre(supply.medidaId)}`}</td>
