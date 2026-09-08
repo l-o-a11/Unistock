@@ -57,12 +57,13 @@ const onBlurField = (e) => {
 // ─────────────────────────────────────────────────
 // CategoryForm
 // ─────────────────────────────────────────────────
-const CategoryForm = ({ category, onSubmit, onCancel }) => {
+const CategoryForm = ({ category, onSubmit, onCancel, standalone = false }) => {
   const initialFormData = {
     nombre: category?.nombre || '',
   };
 
   const [formData, setFormData] = useState(initialFormData);
+  const [error, setError] = useState('');
   const [alertConfig, setAlertConfig] = useState({
     open: false,
     type: 'success',
@@ -78,7 +79,7 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
+    if (name === 'nombre' && value.trim()) setError('');
   };
 
   const handleSubmit = (e) => {
@@ -123,10 +124,22 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
         }}
         onCancel={closeAlert}
       />
-      <form onSubmit={handleSubmit} noValidate style={{ padding: '28px 30px', boxSizing: 'border-box' }}>
+      <form onSubmit={handleSubmit} noValidate style={{
+        ...(standalone ? {
+          background: '#fff',
+          borderRadius: 16,
+          width: '100%',
+          maxWidth: 420,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+        } : {}),
+        padding: '28px 30px',
+        boxSizing: 'border-box',
+      }}>
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, minWidth: 0 }}>
         <div style={{
           width: 38, height: 38, borderRadius: 10, background: PINK,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -136,8 +149,8 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
             <circle cx="16.5" cy="8.5" r="1.2" fill="#fff" stroke="none" />
           </svg>
         </div>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937' }}>
+        <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937', overflowWrap: 'anywhere' }}>
             {category ? 'Editar categoría' : 'Crear nueva categoría'}
           </h2>
           <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>
@@ -185,20 +198,6 @@ const CategoryForm = ({ category, onSubmit, onCancel }) => {
     </>
   );
 
-  // Modo standalone: envuelve en su propia card
-  if (standalone) {
-    return (
-      <div style={{
-        backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 420,
-        boxShadow: '0 8px 40px rgba(0,0,0,0.18)', position: 'relative', padding: '28px 30px',
-      }}>
-        {formContent}
-      </div>
-    );
-  }
-
-  // Modo legacy: solo el contenido, sin card (la página ya provee el contenedor)
-  return <div style={{ padding: '32px' }}>{formContent}</div>;
 };
 
 export default CategoryForm;
