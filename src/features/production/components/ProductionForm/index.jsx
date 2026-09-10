@@ -741,6 +741,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const hasTechnicalSheetMaterials = (sheet) => {
     if (!sheet) return false;
     const items = [
+      ...(sheet.materiales || []),
       ...(sheet.fabrics || []),
       ...(sheet.cups || []),
       ...(sheet.closures || []),
