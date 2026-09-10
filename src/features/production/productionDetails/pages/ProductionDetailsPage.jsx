@@ -142,13 +142,18 @@ const recalcTechSpecCost = (techSpec, details, productPrice) => {
 const getPriceFromOrderDetails = (details = []) => {
   for (const detail of details || []) {
     const product = detail?.producto;
-    const price = toMoneyNumber(product?.precio ?? product?.price);
+    const price = toMoneyNumber(
+      product?.precio ?? product?.price ?? detail?.precio ?? detail?.price ?? detail?.productoPrecio
+    );
     if (price > 0) return price;
   }
   return 0;
 };
 
-const resolveProductPriceByReference = async (reference, details = []) => {
+const resolveProductPriceByReference = async (reference, details = [], storedPrice = 0) => {
+  const persistedPrice = toMoneyNumber(storedPrice);
+  if (persistedPrice > 0) return persistedPrice;
+
   const detailPrice = getPriceFromOrderDetails(details);
   if (detailPrice > 0) return detailPrice;
 
@@ -335,7 +340,11 @@ const ProductionDetailsPage = () => {
           ? new Date(data.updatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
           : (data.createdAt ? new Date(data.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '');
 
-        const productoPrecio = await resolveProductPriceByReference(data.referencia, data.detalles || []);
+        const productoPrecio = await resolveProductPriceByReference(
+          data.referencia || data.producto,
+          data.detalles || [],
+          data.productoPrecio || data.precioProducto || data.productPrice
+        );
         const mappedDetails = (data.detalles || []).map((d) => ({
           id: d.id || d._id,
           refCorte: d.refCorte || d.id_producto || '',
@@ -1597,7 +1606,7 @@ const ProductionDetailsPage = () => {
                 </svg>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#9333ea" }}>Seleccionar imagen</span>
                 <span style={{ fontSize: 11, color: "#9ca3af" }}>JPG, PNG — máx. 10MB</span>
-                <input type="file" accept="image/*" multiple style={{ display: "none" }}
+                <input type="file" accept="image/jpeg,image/png" multiple style={{ display: "none" }}
                   onChange={async (e) => {
                     const files = Array.from(e.target.files || []);
                     if (!files.length) return;

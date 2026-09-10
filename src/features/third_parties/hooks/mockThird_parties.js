@@ -72,14 +72,14 @@ export const useThird_parties = () => {
   }, []);
 
   // Eliminar
-  const deleteThird_partie = useCallback(async (id) => {
-    await thirdPartyAPI.delete(id);
+  const deleteThird_partie = useCallback(async (id, password) => {
+    await thirdPartyAPI.delete(id, password);
     setThird_parties(prev => prev.filter(t => t.id !== id));
   }, []);
 
   // Activar / Inactivar
-  const toggleThird_partie = useCallback(async (id) => {
-    const updated = await thirdPartyAPI.toggle(id);
+  const toggleThird_partie = useCallback(async (id, password) => {
+    const updated = await thirdPartyAPI.toggle(id, password);
     setThird_parties(prev => {
       const next = enrichWithLocalProductions(prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
       saveCachedThirdParties(next);
