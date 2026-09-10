@@ -38,7 +38,7 @@ const sectionTitle = (text) => (
 // FIELD — definido fuera del componente para que React no lo desmonte en cada
 // render. Recibe formData, errors y handlers como props explícitas.
 // ─────────────────────────────────────────────────────────────────────────────
-const Field = ({ label, name, type = 'text', required = false, placeholder = '', hint = null, formData, errors, onChange, onBlur }) => (
+const Field = ({ label, name, type = 'text', required = false, placeholder = '', hint = null, maxLength = 100, formData, errors, onChange, onBlur }) => (
   <div>
     <label style={labelStyle}>
       {label}
@@ -53,6 +53,7 @@ const Field = ({ label, name, type = 'text', required = false, placeholder = '',
       value={formData[name]}
       onChange={onChange}
       onBlur={onBlur}
+      maxLength={maxLength}
       placeholder={placeholder}
       autoComplete="off"
       style={getInputStyle(errors[name])}
@@ -424,7 +425,7 @@ const handleChange = (e) => {
               }}>
                 <Field label="Nombre empresa" name="nombre" required placeholder="Ej: Confecciones López S.A.S."
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
-<Field label="NIT" name="nit" placeholder="Ej: 900123456-7"
+<Field label="NIT" name="nit" maxLength={12} placeholder="Ej: 900123456-7"
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 
@@ -442,7 +443,7 @@ const handleChange = (e) => {
               }}>
                 <Field label="Contacto principal" name="contacto" required placeholder="Ej: María González"
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
-                <Field label="Teléfono" name="telefono" required placeholder="Ej: 3001234567" hint="Exactamente 10 dígitos"
+                <Field label="Teléfono" name="telefono" maxLength={12} required placeholder="Ej: 3001234567" hint="Exactamente 10 dígitos"
                   formData={formData} errors={errors} onChange={handleChange} onBlur={handleBlur} />
               </div>
 

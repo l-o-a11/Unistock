@@ -295,7 +295,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors
       <div style={{ flex: 1, marginTop: 20 }}>
         <label style={labelStyle}>Cantidad <span style={requiredStar}>*</span></label>
         <input
-          type="text" inputMode="numeric" value={data.cantidad}
+          type="text" inputMode="numeric" value={data.cantidad} maxLength={100}
           onChange={e => { if (!blockInput.onlyNumbers(e)) return; if (e.target.value === "0") return; onChange(index, 'cantidad', e.target.value); }}
           style={getInputStyle(errors.cantidad)} placeholder="Ej: 100"
         />
@@ -304,7 +304,7 @@ const ExtraRefRow = ({ index, data, onChange, onRemove, errors = {}, savedColors
       <div style={{ flex: 1, marginTop: 20, position: 'relative' }}>
         <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
         <input
-          type="text" value={data.color}
+          type="text" value={data.color} maxLength={100}
           onChange={e => { if (!blockInput.onlyLetters(e)) return; onChange(index, 'color', e.target.value); setColorOpen(false); }}
           onFocus={() => savedColors.length > 0 && setColorOpen(true)}
           style={getInputStyle(errors.color)} placeholder="Ej: Rojo"
@@ -596,7 +596,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
         error = validators.required(value)
           || validators.numbers(value)
           || validators.minLength(6)(value)
-          || validators.maxLength(10)(value);
+          || validators.maxLength(12)(value);
         break;
       case 'telefono':
         error = validators.telefono(value);
@@ -1004,6 +1004,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
                               value={nuevaRef.reference}
+                              maxLength={100}
                               readOnly
                               style={{ ...getInputStyle(false), background: '#f3f4f6', color: '#6b7280', cursor: 'default', flex: 1 }}
                               placeholder="Se generará al guardar"
@@ -1025,6 +1026,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                           <label style={labelStyle}>Nombre del producto <span style={requiredStar}>*</span></label>
                           <input
                             value={nuevaRef.name}
+                            maxLength={100}
                             onChange={e => {
                               const nombre = e.target.value;
                               const ts = Date.now().toString().slice(-5);
@@ -1057,6 +1059,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                         <label style={labelStyle}>Descripción <span style={{ color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
                         <textarea
                           value={nuevaRef.description}
+                          maxLength={1000}
                           onChange={e => setNuevaRef(p => ({ ...p, description: e.target.value }))}
                           placeholder="Describe brevemente el nuevo diseño..."
                           rows={2}
@@ -1129,7 +1132,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     <span style={requiredStar}> *</span>
                   </label>
                   <input
-                    name="cantidad" type="text" inputMode="numeric"
+                    name="cantidad" type="text" inputMode="numeric" maxLength={100}
                     value={formData.cantidad}
                     onChange={e => {
                       if (!blockInput.onlyNumbers(e)) return;
@@ -1147,7 +1150,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   <label style={labelStyle}>Color <span style={requiredStar}>*</span></label>
                   <div ref={colorRef} style={{ position: 'relative' }}>
                     <input
-                      name="color" value={formData.color}
+                      name="color" value={formData.color} maxLength={100}
                       onChange={e => { if (!blockInput.onlyLetters(e)) return; handleChange(e); setColorAccordionOpen(false); }}
                       onFocus={() => savedColors.length > 0 && setColorAccordionOpen(true)}
                       style={getInputStyle(errors.color)} placeholder="Ej: Negro, Blanco..."
@@ -1558,6 +1561,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   <input
                     name="nombre"
                     value={clientDraft.nombre}
+                    maxLength={100}
                     onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.nombre; return n; }); setClientDraft(prev => ({ ...prev, nombre: e.target.value })); }}
                     onBlur={handleClientBlur}
                     placeholder="Nombre completo"
@@ -1571,7 +1575,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     name="documento"
                     value={clientDraft.documento}
                     minLength={6}
-                    maxLength={10}
+                    maxLength={12}
                     onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: e.target.value })); }}
                     onBlur={handleClientBlur}
                     placeholder="Número de documento"
@@ -1584,6 +1588,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   <input
                     name="telefono"
                     value={clientDraft.telefono}
+                    maxLength={12}
                     onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.telefono; return n; }); setClientDraft(prev => ({ ...prev, telefono: e.target.value })); }}
                     onBlur={handleClientBlur}
                     placeholder="Teléfono"
@@ -1597,6 +1602,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                     name="correo"
                     type="email"
                     value={clientDraft.correo}
+                    maxLength={100}
                     onChange={(e) => { setClientErrors(prev => { const n = { ...prev }; delete n.correo; return n; }); setClientDraft(prev => ({ ...prev, correo: e.target.value })); }}
                     onBlur={handleClientBlur}
                     placeholder="Correo electrónico"
