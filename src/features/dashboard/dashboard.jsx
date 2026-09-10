@@ -210,7 +210,21 @@ export default function ProductionDashboard() {
         if (!mounted) return;
 
         if (ordersRequest.status === 'fulfilled') {
-          setOrders(Array.isArray(ordersRequest.value) ? ordersRequest.value : []);
+          const apiOrders = Array.isArray(ordersRequest.value) ? ordersRequest.value : [];
+          const ordersWithLegacySedeAssignments = apiOrders.map((order) => {
+            if ((order.sedeAsignaciones || order.sede_asignaciones || []).length > 0) return order;
+
+            try {
+              const raw = localStorage.getItem(`app_prod_sedes_${order.id}`);
+              const legacyAssignments = raw ? JSON.parse(raw) : [];
+              return Array.isArray(legacyAssignments) && legacyAssignments.length > 0
+                ? { ...order, sedeAsignaciones: legacyAssignments }
+                : order;
+            } catch {
+              return order;
+            }
+          });
+          setOrders(ordersWithLegacySedeAssignments);
         } else {
           console.error('[Dashboard] No se pudieron cargar las producciones:', ordersRequest.reason);
         }
