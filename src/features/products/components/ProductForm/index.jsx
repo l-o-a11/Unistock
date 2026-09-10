@@ -14,7 +14,16 @@ const normalizeText = (text) =>
     .trim();
 
 // ✅ USA VARIABLE DE ENTORNO VITE_BACK_URL (ahora apunta a la API unificada en :3000)
-const BACKEND_URL = import.meta.env.VITE_BACK_URL || 'http://localhost:3000';
+const configuredBackendUrl =
+  import.meta.env.VITE_BACK_URL ||
+  import.meta.env.VITE_BACKEND_API_URL ||
+  import.meta.env.VITE_API_URL;
+
+const BACKEND_URL = configuredBackendUrl
+  ? configuredBackendUrl.replace(/\/+$/, '').replace(/\/api$/, '')
+  : ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:3000'
+    : 'https://api-unistock.onrender.com';
 
 const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory, isMobile = false }) => {
   const [open, setOpen] = useState(false);
@@ -496,7 +505,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
         error = validators.required(value);
         break;
       case 'documento':
-        error = validators.required(value) || validators.numbers(value);
+        error = validators.required(value)
+          || validators.numbers(value)
+          || validators.minLength(6)(value)
+          || validators.maxLength(10)(value);
         break;
       case 'telefono':
         error = validators.telefono(value);
@@ -919,7 +931,10 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       });
 
       if (!response.ok) {
-        throw new Error(`Error al subir imágenes. Status: ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.error || `Error al subir imágenes. Status: ${response.status}`
+        );
       }
 
       const data = await response.json();
@@ -1612,10 +1627,10 @@ if ((touched[field] || formData[field]) && errors[field]) {
                           <p style={{ margin: "10px 0 0 0", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
                             <span style={{ color: "#ff4fd6", fontWeight: 700 }}>Sube una imagen</span><br />o arrastra y suelta
                           </p>
-                          <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#9ca3af" }}>PNG, JPG, GIF hasta 10MB</p>
+                          <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#9ca3af" }}>JPG/JPEG o PNG hasta 10 MB</p>
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/jpeg,image/png"
                             multiple
                             onChange={handleImageUpload}
                             disabled={uploading}
@@ -2027,6 +2042,8 @@ if ((touched[field] || formData[field]) && errors[field]) {
                   <input
                     name="documento"
                     value={clientDraft.documento}
+                    minLength={6}
+                    maxLength={10}
                     onChange={(e) => { const cleaned = e.target.value.replace(/\D/g, ''); setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: cleaned })); }}
                     onBlur={handleClientBlur}
                     placeholder="Número de documento"

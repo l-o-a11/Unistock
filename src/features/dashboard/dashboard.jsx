@@ -12,18 +12,17 @@ const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 
 const YEARS = [2022, 2023, 2024, 2025, 2026];
 
 const BAR_PROCESSES = [
-  'En espera', 'Tráfico entre sedes', 'Ficha técnica', 'Corte', 'Diseño',
-  'En producción', 'Bodega', 'Mercadeo', 'Cancelado', 'Compras', 'Recepción',
+  'Diseño', 'Ficha técnica', 'Corte', 'Compras', 'En producción',
+  'Recepción', 'Enviado', 'Cancelado',
 ];
 
 // Mapeo estado backend → proceso barra
 const ESTADO_TO_PROCESO = {
-  'En espera': 'En espera', 'Diseño': 'Diseño',
+  'Diseño': 'Diseño',
   'Ficha Técnica': 'Ficha técnica', 'Ficha tecnica': 'Ficha técnica',
   'Corte': 'Corte', 'Producción': 'En producción', 'En producción': 'En producción',
-  'Compras': 'Compras', 'Empaque': 'Bodega', 'Enviado': 'Recepción',
-  'Anulada': 'Cancelado', 'Tráfico entre sedes': 'Tráfico entre sedes',
-  'Mercadeo': 'Mercadeo',
+  'Compras': 'Compras', 'Recepción': 'Recepción', 'Enviado': 'Enviado',
+  'Anulada': 'Cancelado',
 };
 
 // ✅ El backend guarda el estado "en producción" con dos nombres distintos
@@ -33,17 +32,14 @@ const ESTADO_TO_PROCESO = {
 const ESTADOS_EN_PRODUCCION = ['Producción', 'En producción'];
 
 const barIcons = {
-  'En espera': 'M12 2a10 10 0 1 0 4.95 18.66M12 6v6l3 1.5',
-  'Tráfico entre sedes': 'M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 19a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm13 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
   'Ficha técnica': 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8',
   'Corte': 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 12a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12',
   'Diseño': 'M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z',
   'En producción': 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12',
-  'Bodega': 'M2 20h20M4 20V10l8-6 8 6v10M10 20v-6h4v6',
-  'Mercadeo': 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10',
+  'Recepción': 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
+  'Enviado': 'M5 12h14M13 6l6 6-6 6',
   'Cancelado': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM15 9l-6 6M9 9l6 6',
   'Compras': 'M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0',
-  'Recepción': 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
 };
 const barIconKeys = Object.keys(barIcons);
 
@@ -214,7 +210,21 @@ export default function ProductionDashboard() {
         if (!mounted) return;
 
         if (ordersRequest.status === 'fulfilled') {
-          setOrders(Array.isArray(ordersRequest.value) ? ordersRequest.value : []);
+          const apiOrders = Array.isArray(ordersRequest.value) ? ordersRequest.value : [];
+          const ordersWithLegacySedeAssignments = apiOrders.map((order) => {
+            if ((order.sedeAsignaciones || order.sede_asignaciones || []).length > 0) return order;
+
+            try {
+              const raw = localStorage.getItem(`app_prod_sedes_${order.id}`);
+              const legacyAssignments = raw ? JSON.parse(raw) : [];
+              return Array.isArray(legacyAssignments) && legacyAssignments.length > 0
+                ? { ...order, sedeAsignaciones: legacyAssignments }
+                : order;
+            } catch {
+              return order;
+            }
+          });
+          setOrders(ordersWithLegacySedeAssignments);
         } else {
           console.error('[Dashboard] No se pudieron cargar las producciones:', ordersRequest.reason);
         }

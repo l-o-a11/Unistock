@@ -708,8 +708,8 @@ const TechnicalSheet = ({ sheet, isEditing = false, onChange, productName = "", 
                 </p>
                 {isEditing && (
                   <>
-                    <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#9ca3af" }}>PNG, JPG, GIF hasta 10MB</p>
-                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} id="image-upload" />
+                    <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#9ca3af" }}>JPG/JPEG o PNG hasta 10 MB</p>
+                    <input type="file" accept="image/jpeg,image/png" onChange={handleImageUpload} style={{ display: "none" }} id="image-upload" />
                     <label htmlFor="image-upload" style={{
                       marginTop: "10px",
                       padding: "6px 16px",

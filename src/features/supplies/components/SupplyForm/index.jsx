@@ -637,12 +637,12 @@ const SupplyForm = ({
                       Subir imagen del insumo
                     </p>
                     <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9ca3af" }}>
-                      PNG, JPG, GIF — hasta 5 MB
+                      JPG/JPEG o PNG — hasta 5 MB
                     </p>
                   </div>
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    accept="image/jpeg,image/png"
                     onChange={handleImageUpload}
                     style={{ display: "none" }}
                   />

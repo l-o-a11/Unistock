@@ -77,7 +77,7 @@ const Third_partiePage = () => {
 
   const ESTADOS_POST_PRODUCCION = ['Recepción', 'Empaque', 'Enviado', 'Anulada'];
 
-  const handleToggle = async (id) => {
+  const handleToggle = async (id, password) => {
     const t = Third_parties.find(tp => tp.id === id);
     const activas = (t?.producciones || []).filter((p) => {
       const estado = (p?.estado || '').toString();
@@ -88,7 +88,7 @@ const Third_partiePage = () => {
       return;
     }
     try {
-      await toggleThird_partie?.(id);
+      await toggleThird_partie?.(id, password);
       const nombre = t?.nombreEmpresa || 'Tercero';
       const nuevoEstado = t?.estado === false ? 'activado' : 'inactivado';
       setErrorAlert({ open: true, type: 'success', title: 'Estado actualizado', message: `"${nombre}" fue ${nuevoEstado} correctamente.` });
@@ -114,10 +114,10 @@ const Third_partiePage = () => {
     setDeleteAlert({ open: true, id, name: t?.nombreEmpresa || '' });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async (password) => {
     const name = deleteAlert.name;
     try {
-      deleteThird_partie(deleteAlert.id);
+      await deleteThird_partie(deleteAlert.id, password);
       if (selectedThird_partie?.id === deleteAlert.id) {
         setSelectedThird_partie(null);
         setShowDetailPanel(false);

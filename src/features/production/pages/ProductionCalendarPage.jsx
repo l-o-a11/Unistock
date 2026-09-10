@@ -340,6 +340,10 @@ const ProductionCalendarPage = () => {
   };
 
   const addEvent = async () => {
+    if (addModal.dateStr < todayISO) {
+      showToast('No puedes agregar eventos en fechas anteriores a hoy', 'warning');
+      return;
+    }
     if (!newEvent.title.trim()) return;
     const ev = { id: Date.now(), date: addModal.dateStr, type: newEvent.type, title: newEvent.title, orderId: newEvent.orderId ? Number(newEvent.orderId) : null, notes: newEvent.notes };
     setEvents(prev => [...prev, ev]);
@@ -379,7 +383,9 @@ const ProductionCalendarPage = () => {
     return r;
   }, [events, filterType, searchQuery, searchField]);
 
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const isAllowedDate = (dateStr) => dateStr >= todayISO;
 
   const upcomingEvents = useMemo(() => {
     return [...filteredEvents]
@@ -496,7 +502,14 @@ const ProductionCalendarPage = () => {
   // Modal de eventos de una fecha
   const DateEventsModal = ({ dateStr, onClose }) => {
     const evs = dateEvents;
-    const openAdd = () => { onClose(); setAddModal({ open: true, dateStr }); setNewEvent({ type: 'creacion', title: '', notes: '' }); };
+    const allowedDate = isAllowedDate(dateStr);
+    const openAdd = () => {
+      if (!allowedDate) {
+        showToast('No puedes agregar eventos en fechas anteriores a hoy', 'warning');
+        return;
+      }
+      onClose(); setAddModal({ open: true, dateStr }); setNewEvent({ type: 'creacion', title: '', notes: '' });
+    };
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
         <div style={{ background: '#f6f6f8', borderRadius: 20, width: 'calc(100vw - 24px)', maxWidth: 580, maxHeight: '85vh', boxShadow: '0 24px 60px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
@@ -516,7 +529,8 @@ const ProductionCalendarPage = () => {
                 </div>
               </div>
               <button onClick={openAdd}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 12, border: 'none', background: '#FF4FD6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, boxShadow: '0 4px 14px rgba(255,79,214,0.35)', flexShrink: 0 }}>
+                disabled={!allowedDate}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 12, border: 'none', background: allowedDate ? '#FF4FD6' : '#e5e7eb', color: allowedDate ? '#fff' : '#9ca3af', cursor: allowedDate ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, boxShadow: allowedDate ? '0 4px 14px rgba(255,79,214,0.35)' : 'none', flexShrink: 0 }}>
                 <PlusIcon size={13} /> Agregar evento
               </button>
             </div>
@@ -530,7 +544,8 @@ const ProductionCalendarPage = () => {
                 <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#374151' }}>Sin eventos en este día</p>
                 <p style={{ margin: '6px 0 20px', fontSize: 13, color: '#9ca3af' }}>¿Quieres registrar algo para esta fecha?</p>
                 <button onClick={openAdd}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: 'none', background: '#FF4FD6', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, boxShadow: '0 4px 12px rgba(255,79,214,0.3)' }}>
+                  disabled={!allowedDate}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, border: 'none', background: allowedDate ? '#FF4FD6' : '#e5e7eb', color: allowedDate ? '#fff' : '#9ca3af', cursor: allowedDate ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, boxShadow: allowedDate ? '0 4px 12px rgba(255,79,214,0.3)' : 'none' }}>
                   <PlusIcon size={13} /> Agregar primer evento
                 </button>
               </div>
