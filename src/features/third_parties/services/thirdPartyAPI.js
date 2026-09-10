@@ -218,24 +218,34 @@ export const thirdPartyAPI = {
   },
 
   /** DELETE /api/terceros/:id */
-  async delete(id) {
+  async delete(id, password) {
+    if (!password?.trim()) {
+      throw new Error('Se requiere la contraseña del usuario para eliminar el tercero.');
+    }
     try {
-      const result = await httpClient.delete(`/terceros/${id}`);
+      const result = await httpClient.delete(`/terceros/${id}`, { body: { password } });
       invalidateCacheByPrefix(CACHE_PREFIX);
       return result;
     } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error('Contraseña del usuario incorrecta.');
       console.error('[thirdPartyAPI] delete error:', err?.message);
       throw err;
     }
   },
 
   /** PATCH /api/terceros/:id/toggle — activa o inactiva */
-  async toggle(id) {
+  async toggle(id, password) {
+    if (!password?.trim()) {
+      throw new Error('Se requiere la contraseña del usuario para cambiar el estado del tercero.');
+    }
     try {
-      const response = await httpClient.patch(`/terceros/${id}/toggle`, {});
+      const response = await httpClient.patch(`/terceros/${id}/toggle`, { password });
       invalidateCacheByPrefix(CACHE_PREFIX);
       return toFrontend(extractOne(response));
     } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 403) throw new Error('Contraseña del usuario incorrecta.');
       console.error('[thirdPartyAPI] toggle error:', err?.message);
       throw err;
     }
@@ -250,7 +260,7 @@ export const thirdPartyAPI = {
       );
       invalidateCacheByPrefix(CACHE_PREFIX);
       return toFrontend(extractOne(response));
-    } catch (err) {
+    } catch {
       // Endpoint puede no existir aún en backend — error silencioso
       return null;
     }

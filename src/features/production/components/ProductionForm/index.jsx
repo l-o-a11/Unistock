@@ -593,7 +593,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
         error = validators.required(value);
         break;
       case 'documento':
-        error = validators.required(value) || validators.numbers(value);
+        error = validators.required(value)
+          || validators.numbers(value)
+          || validators.minLength(6)(value)
+          || validators.maxLength(10)(value);
         break;
       case 'telefono':
         error = validators.telefono(value);
@@ -1300,7 +1303,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                       </svg>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#ff4fd6' }}>Subir imágenes del diseño</span>
                       <span style={{ fontSize: 11, color: '#ff4fd6' }}>JPG, PNG — múltiples archivos permitidos</span>
-                      <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                      <input type="file" accept="image/jpeg,image/png" multiple style={{ display: 'none' }}
                         onChange={e => {
                           const files = Array.from(e.target.files || []);
                           files.forEach(file => {
@@ -1335,7 +1338,7 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                           </svg>
                           <span style={{ fontSize: 9, color: '#ff4fd6', fontWeight: 700 }}>Más</span>
-                          <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                          <input type="file" accept="image/jpeg,image/png" multiple style={{ display: 'none' }}
                             onChange={e => {
                               const files = Array.from(e.target.files || []);
                               files.forEach(file => {
@@ -1566,6 +1569,8 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
                   <input
                     name="documento"
                     value={clientDraft.documento}
+                    minLength={6}
+                    maxLength={10}
                     onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; setClientErrors(prev => { const n = { ...prev }; delete n.documento; return n; }); setClientDraft(prev => ({ ...prev, documento: e.target.value })); }}
                     onBlur={handleClientBlur}
                     placeholder="Número de documento"

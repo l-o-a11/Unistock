@@ -1597,7 +1597,7 @@ const ProductionDetailsPage = () => {
                 </svg>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#9333ea" }}>Seleccionar imagen</span>
                 <span style={{ fontSize: 11, color: "#9ca3af" }}>JPG, PNG — máx. 10MB</span>
-                <input type="file" accept="image/*" multiple style={{ display: "none" }}
+                <input type="file" accept="image/jpeg,image/png" multiple style={{ display: "none" }}
                   onChange={async (e) => {
                     const files = Array.from(e.target.files || []);
                     if (!files.length) return;
