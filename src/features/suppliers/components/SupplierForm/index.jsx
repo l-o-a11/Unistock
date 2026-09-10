@@ -71,6 +71,7 @@ const Field = React.memo(({
   label, name, type = "text", required = false,
   disabled = false, hint = null, placeholder = "",
   value, onChange, onBlur, error,
+  maxLength = 100,
 }) => {
   const inputStyle = useMemo(() => getInputStyle(error), [error]);
   return (
@@ -88,6 +89,7 @@ const Field = React.memo(({
         value={value}
         onChange={disabled ? undefined : onChange}
         onBlur={disabled ? undefined : onBlur}
+        maxLength={maxLength}
         disabled={disabled}
         placeholder={placeholder}
         autoComplete="off"
@@ -627,6 +629,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                     <input
                       type="text" name="nit"
                       value={formData.nit}
+                      maxLength={12}
                       onChange={nitBloqueado ? undefined : handleChange}
                       onBlur={nitBloqueado ? undefined : handleBlur}
                       disabled={nitBloqueado}
@@ -679,7 +682,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                   error={errors.correoEmpresa}
                 />
                 <Field
-                  label="Teléfono" name="telefono"
+                  label="Teléfono" name="telefono" maxLength={12}
                   required placeholder="Ej: 3001234567"
                   hint="Exactamente 10 dígitos, sin espacios ni guiones"
                   value={formData.telefono}
@@ -736,7 +739,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                       error={errors.nombreContacto}
                     />
                     <Field
-                      label="Teléfono del contacto" name="telefonoContacto"
+                      label="Teléfono del contacto" name="telefonoContacto" maxLength={12}
                       placeholder="Ej: 3001234567"
                       hint="Solo números"
                       value={formData.telefonoContacto}
