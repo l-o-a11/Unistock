@@ -1,6 +1,6 @@
 # UniStock
 
-Sistema de gestión de inventario **full-stack** orientado a empresas de producción: maneja insumos, productos, categorías, proveedores, compras, producción, empleados, sedes, terceros, usuarios y roles con privilegios granulares.
+Sistema de gestión de stock **full-stack** orientado a empresas de producción: maneja insumos, productos, categorías, proveedores, compras, producción, empleados, sedes, terceros, usuarios y roles con privilegios granulares.
 
 Este repositorio contiene el **frontend** de UniStock, construido en React + Vite, que se conecta a una API REST (Node.js/Express/MongoDB) desarrollada en un repositorio backend independiente.
 
