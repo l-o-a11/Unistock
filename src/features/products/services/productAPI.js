@@ -152,7 +152,15 @@ const hasValue = (value) => {
 };
 
 const sheetItemsToMaterials = (sheetData = {}) => {
-  const materials = [];
+  const materials = Array.isArray(sheetData.materiales)
+    ? sheetData.materiales
+      .filter((item) => item && hasValue(item))
+      .map((item) => ({
+        ...item,
+        nombre: item.nombre || item.name || "Material ficha tecnica",
+        cantidades: item.cantidades ?? item.cantidad ?? "1",
+      }))
+    : [];
 
   (sheetData.fabrics || []).forEach((item, index) => {
     if (hasValue(item)) {
