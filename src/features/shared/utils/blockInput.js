@@ -35,6 +35,8 @@ export const blockInput = {
     return value === "" || /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(value);
   },
 
+  limitValue: (value, maxLength) => String(value ?? "").slice(0, maxLength),
+
   /**
    * Permite dígitos y un guion opcional al final para formato NIT colombiano.
    * Ej: "900123456-7"

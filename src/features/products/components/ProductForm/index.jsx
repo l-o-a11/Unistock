@@ -586,9 +586,27 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     );
   };
 
-  const hasTechnicalSheetChanges = () => {
-    return JSON.stringify(technicalSheet) !== JSON.stringify(initialTechnicalSheetRef.current);
+  const normalizeTechnicalSheetForComparison = (value) => {
+    if (Array.isArray(value)) {
+      return value.map(normalizeTechnicalSheetForComparison);
+    }
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [
+          key,
+          normalizeTechnicalSheetForComparison(entry),
+        ])
+      );
+    }
+    return typeof value === 'string' ? value.trim() : value;
   };
+
+  const technicalSheetsAreEqual = (left, right) =>
+    JSON.stringify(normalizeTechnicalSheetForComparison(left)) ===
+    JSON.stringify(normalizeTechnicalSheetForComparison(right));
+
+  const hasTechnicalSheetChanges = () =>
+    !technicalSheetsAreEqual(technicalSheet, initialTechnicalSheetRef.current);
 
   const validateReference = (value) => {
     if (!value.trim()) return "La referencia es obligatoria";
@@ -850,13 +868,14 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     // cambios reales en ella (ni campos editados ni campos autocompletados
     // desde el producto como ref, allImages o image).
     const initialSheet = initialTechnicalSheetRef.current;
+    const normalizedFinalTechnicalSheet = removeWhitespaceOnlyValues(finalTechnicalSheet);
     const hasTechSheetRealChanges = !initialSheet
       ? true
-      : JSON.stringify(finalTechnicalSheet) !== JSON.stringify(initialSheet);
+      : !technicalSheetsAreEqual(normalizedFinalTechnicalSheet, initialSheet);
 
     const submitTechnicalSheet = product
-      ? (hasTechSheetRealChanges ? finalTechnicalSheet : undefined)
-      : finalTechnicalSheet;
+      ? (hasTechSheetRealChanges ? normalizedFinalTechnicalSheet : undefined)
+      : normalizedFinalTechnicalSheet;
 
     if (submitting) return;
     setSubmitting(true);
@@ -1071,11 +1090,27 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
     }
   };
 
+  const removeWhitespaceOnlyValues = (value) => {
+    if (Array.isArray(value)) {
+      return value.map(removeWhitespaceOnlyValues);
+    }
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [
+          key,
+          removeWhitespaceOnlyValues(entry),
+        ])
+      );
+    }
+    return typeof value === 'string' && value.trim() === '' ? '' : value;
+  };
+
   const handleTechnicalSheetChange = (sheetData) => {
     setTechnicalSheet(prev => {
       const base = prev || {};
+      const normalizedSheetData = removeWhitespaceOnlyValues(sheetData || {});
       const safeUpdates = Object.fromEntries(
-        Object.entries(sheetData || {}).filter(([, v]) => v !== undefined)
+        Object.entries(normalizedSheetData).filter(([, v]) => v !== undefined)
       );
       return { ...base, ...safeUpdates };
     });
