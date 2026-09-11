@@ -61,7 +61,34 @@ const orderDate = (o) => {
 
 // Suma de productos (detalles.cantidad) de una orden
 const totalProductos = (o) =>
-  (o.detalles || []).reduce((s, d) => s + (Number(d.cantidad) || 0), 0);
+  (o.detalles || []).reduce((s, d) => s + (Number(d.cantidad) || 0), 0) || Number(o.cantidad || o.quantity) || 0;
+
+const getSedeAssignments = (order) => {
+  const sources = [
+    order.sedeAsignaciones,
+    order.sede_asignaciones,
+    order.rawData?.sedeAsignaciones,
+    order.rawData?.sede_asignaciones,
+  ];
+  const raw = sources.find((source) => Array.isArray(source) && source.length > 0)
+    || sources.find(Array.isArray)
+    || [];
+  return (Array.isArray(raw) ? raw : [])
+    .map((assignment) => ({
+      option: String(assignment?.option || assignment?.sede || assignment?.nombreSede || assignment?.nombre_sede || '').trim(),
+      cantidad: Number(assignment?.cantidad || assignment?.quantity || 0),
+    }))
+    .filter((assignment) => assignment.option && assignment.cantidad > 0);
+
+};
+
+const getLatestOrderDate = (order) => {
+  const values = [order.createdAt, order.updatedAt, ...(order.historial || []).map((item) => item?.fecha)]
+    .filter(Boolean)
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()));
+  return values.length ? new Date(Math.max(...values.map((date) => date.getTime()))) : null;
+};
 
 const calcAvgDays = (orders) => {
   const done = orders.filter(o => o.estado === 'Enviado');
@@ -188,8 +215,8 @@ export default function ProductionDashboard() {
   const sedeSeriesNames = useMemo(() => {
     const names = new Set(sedesNames.filter(Boolean));
     orders.forEach((order) => {
-      (order.sedeAsignaciones || order.sede_asignaciones || []).forEach((assignment) => {
-        if (assignment?.option) names.add(assignment.option);
+      getSedeAssignments(order).forEach((assignment) => {
+        names.add(assignment.option);
       });
     });
     return [...names];
@@ -212,7 +239,7 @@ export default function ProductionDashboard() {
         if (ordersRequest.status === 'fulfilled') {
           const apiOrders = Array.isArray(ordersRequest.value) ? ordersRequest.value : [];
           const ordersWithLegacySedeAssignments = apiOrders.map((order) => {
-            if ((order.sedeAsignaciones || order.sede_asignaciones || []).length > 0) return order;
+            if (getSedeAssignments(order).length > 0) return order;
 
             try {
               const raw = localStorage.getItem(`app_prod_sedes_${order.id}`);
@@ -353,16 +380,10 @@ export default function ProductionDashboard() {
   const lineData = useMemo(() => {
     if (!orders.length) return [];
 
-    const refDate = (o) => {
-      const last = (o.historial || []).slice(-1)[0];
-      const d = last?.fecha || o.updatedAt || o.createdAt;
-      return d ? new Date(d) : null;
-    };
-
     const matchPoint = (d, pointIndex) => {
       if (!d) return false;
       if (timeView === 'Año') return d.getMonth() === pointIndex && d.getFullYear() === selectedYear;
-      if (timeView === 'Mes') return Math.ceil(d.getDate() / 7) === pointIndex + 1 && d.getMonth() === monthIdx && d.getFullYear() === new Date().getFullYear();
+      if (timeView === 'Mes') return Math.ceil(d.getDate() / 7) === pointIndex + 1 && d.getMonth() === monthIdx && d.getFullYear() === selectedYear;
       if (timeView === 'Semana') {
         const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
         return dow === pointIndex && d.getMonth() === monthIdx && d.getFullYear() === selectedYear;
@@ -385,7 +406,7 @@ export default function ProductionDashboard() {
       point.terceros = 0;
 
       orders.forEach(o => {
-        const d = refDate(o);
+        const d = getLatestOrderDate(o);
         if (!matchPoint(d, i)) return;
 
         const qty = totalProductos(o);
@@ -394,14 +415,12 @@ export default function ProductionDashboard() {
           point.terceros += qty || 1;
         }
 
-        const asigsSede = o.sedeAsignaciones || o.sede_asignaciones || [];
+        const asigsSede = getSedeAssignments(o);
         // La gráfica representa productos asignados, no únicamente órdenes
         // finalizadas. En cuanto se guarda una asignación válida debe verse.
         if (o.estado !== 'Anulada' && asigsSede.length > 0) {
           asigsSede.forEach(a => {
-            if (a?.option) {
-              point[a.option] = (point[a.option] || 0) + (Number(a.cantidad) || 0);
-            }
+            point[a.option] = (point[a.option] || 0) + a.cantidad;
           });
         }
       });
