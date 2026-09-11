@@ -41,7 +41,7 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
     const numero = formData.documentNumber?.toString().trim();
     // Solo consultar cuando el número ya pasa el formato mínimo — evita
     // llamadas a la API mientras el usuario apenas empieza a escribir.
-    if (!numero || numero.length < 10) {
+    if (!numero || numero.length < 6) {
       setDocCheckStatus('idle');
       return;
     }
@@ -122,7 +122,7 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
       case 'documentType': error = validators.required(value); break;
       case 'documentNumber':
         error = validators.required(value)
-          || (value && value.toString().trim().length < 10 ? 'Mínimo 10 dígitos' : '');
+          || (value && value.toString().trim().length < 6 ? 'Mínimo 6 dígitos' : '');
         break;
       case 'name':
         error = validators.required(value)

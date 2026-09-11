@@ -43,7 +43,7 @@ const EmployeeForm = ({ employee, roles, sedes, allEmployees = [], onSubmit, onC
 
     useEffect(() => {
         const numero = formData.documentNumber?.toString().trim();
-        if (!numero || numero.length < 10) {
+        if (!numero || numero.length < 6) {
             setDocCheckStatus('idle');
             return;
         }
@@ -113,7 +113,7 @@ const EmployeeForm = ({ employee, roles, sedes, allEmployees = [], onSubmit, onC
             case 'documentType': error = validators.required(value); break;
             case 'documentNumber':
                 error = validators.required(value)
-                    || (value && value.toString().trim().length < 10 ? 'Mínimo 10 dígitos' : '');
+                    || (value && value.toString().trim().length < 6 ? 'Mínimo 6 dígitos' : '');
                 break;
             case 'name':
                 error = validators.required(value)
