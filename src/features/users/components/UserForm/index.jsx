@@ -122,14 +122,16 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
       case 'documentType': error = validators.required(value); break;
       case 'documentNumber':
         error = validators.required(value)
-          || (value && value.toString().trim().length < 6 ? 'Mínimo 6 dígitos' : '');
+          || (value && value.toString().trim().length < 6 ? 'Mínimo 6 dígitos' : '')
+          || (value && value.toString().trim().length > 20 ? 'Máximo 20 dígitos' : '');
         break;
       case 'name':
         error = validators.required(value)
-          || (value && value.trim().length < 3 ? 'Mínimo 3 caracteres' : '');
+          || (value && value.trim().length < 3 ? 'Mínimo 3 caracteres' : '')
+          || validators.maxLength(100)(value);
         break;
       case 'email':
-        error = validators.required(value) || validators.email(value);
+        error = validators.required(value) || validators.maxLength(100)(value) || validators.email(value);
         if (!error && isEmailDuplicate(value)) error = 'Este correo ya está registrado';
         break;
       case 'role': error = validators.required(value); break;
@@ -284,6 +286,7 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
                   <input
                     type="text" inputMode="numeric" name="documentNumber"
                     value={formData.documentNumber}
+                    minLength={6} maxLength={20}
                     onChange={(e) => { if (!blockInput.onlyNumbers(e)) return; handleChange(e); }}
                     onBlur={(e) => validateField('documentNumber', e.target.value)}
                     placeholder="Ej: 1234567890"
@@ -303,6 +306,7 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
                 <label style={labelStyle}>Nombre completo <span style={requiredStar}>*</span></label>
                 <input
                   name="name" value={formData.name}
+                  maxLength={100}
                   onChange={(e) => { if (!blockInput.onlyLetters(e)) return; handleChange(e); }}
                   onBlur={(e) => validateField('name', e.target.value)}
                   placeholder="Ej: Carlos Ramírez"
@@ -315,6 +319,7 @@ const UserForm = ({ user, roles = [], sedes = [], allUsers = [], onSubmit, onCan
                 <label style={labelStyle}>Correo electrónico <span style={requiredStar}>*</span></label>
                 <input
                   type="email" name="email" value={formData.email}
+                  maxLength={100}
                   onChange={(e) => { handleChange(e); validateField('email', e.target.value); }}
                   onBlur={(e) => validateField('email', e.target.value)}
                   placeholder="Ej: carlos@empresa.com"

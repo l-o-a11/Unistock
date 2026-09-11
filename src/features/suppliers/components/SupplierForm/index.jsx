@@ -71,7 +71,7 @@ const Field = React.memo(({
   label, name, type = "text", required = false,
   disabled = false, hint = null, placeholder = "",
   value, onChange, onBlur, error,
-  maxLength = 100,
+  minLength, maxLength = 100,
 }) => {
   const inputStyle = useMemo(() => getInputStyle(error), [error]);
   return (
@@ -89,6 +89,7 @@ const Field = React.memo(({
         value={value}
         onChange={disabled ? undefined : onChange}
         onBlur={disabled ? undefined : onBlur}
+        minLength={minLength}
         maxLength={maxLength}
         disabled={disabled}
         placeholder={placeholder}
@@ -305,8 +306,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         break;
       case "telefono":
         error = validators.required(value) || validators.numbers(value);
-        if (!error && String(value).trim().length !== 10)
-          error = "Debe tener exactamente 10 dígitos";
+        if (!error && !/^\d{10,12}$/.test(String(value).trim()))
+          error = "Debe tener entre 10 y 12 dígitos";
         if (!error && isDuplicate("telefono", value))
           error = "El proveedor ya se encuentra registrado";
         break;
@@ -314,7 +315,8 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
         if (esJuridica) error = validators.required(value);
         break;
       case "telefonoContacto":
-        if (esJuridica && value) error = validators.telefono(value);
+        if (esJuridica && value && !/^\d{10,12}$/.test(String(value).trim()))
+          error = "Debe tener entre 10 y 12 dígitos";
         break;
       case "correoContacto":
         error = value ? validators.email(value) : "";
@@ -629,7 +631,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                     <input
                       type="text" name="nit"
                       value={formData.nit}
-                      maxLength={12}
+                      minLength={6} maxLength={20}
                       onChange={nitBloqueado ? undefined : handleChange}
                       onBlur={nitBloqueado ? undefined : handleBlur}
                       disabled={nitBloqueado}
@@ -682,9 +684,9 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                   error={errors.correoEmpresa}
                 />
                 <Field
-                  label="Teléfono" name="telefono" maxLength={12}
+                  label="Teléfono" name="telefono" minLength={10} maxLength={12}
                   required placeholder="Ej: 3001234567"
-                  hint="Exactamente 10 dígitos, sin espacios ni guiones"
+                  hint="Entre 10 y 12 dígitos, sin espacios ni guiones"
                   value={formData.telefono}
                   onChange={handleChange}
                   onBlur={handleBlur}
@@ -739,7 +741,7 @@ const SupplierForm = ({ supplier, onSubmit, onCancel, allSuppliers = [] }) => {
                       error={errors.nombreContacto}
                     />
                     <Field
-                      label="Teléfono del contacto" name="telefonoContacto" maxLength={12}
+                      label="Teléfono del contacto" name="telefonoContacto" minLength={10} maxLength={12}
                       placeholder="Ej: 3001234567"
                       hint="Solo números"
                       value={formData.telefonoContacto}
