@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { blockInput } from '../../../shared/utils/blockInput';
+
+const MAX_TEXT_LENGTH = 100;
 
 const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert, onShowConfirm, existingCategories = [] }) => {
   const initialData = {
-    nombre: productCategory?.nombre ?? productCategory?.name ?? '',
-    descripcion: productCategory?.descripcion ?? productCategory?.description ?? '',
+    nombre: blockInput.limitValue(productCategory?.nombre ?? productCategory?.name ?? '', MAX_TEXT_LENGTH),
+    descripcion: blockInput.limitValue(productCategory?.descripcion ?? productCategory?.description ?? '', MAX_TEXT_LENGTH),
   };
 
   const [formData, setFormData] = useState(initialData);
@@ -14,8 +17,8 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
   const [touched, setTouched] = useState({});
 
   const hasChanges = () => {
-    const initialNombre = productCategory?.nombre ?? productCategory?.name ?? '';
-    const initialDescripcion = productCategory?.descripcion ?? productCategory?.description ?? '';
+    const initialNombre = blockInput.limitValue(productCategory?.nombre ?? productCategory?.name ?? '', MAX_TEXT_LENGTH);
+    const initialDescripcion = blockInput.limitValue(productCategory?.descripcion ?? productCategory?.description ?? '', MAX_TEXT_LENGTH);
 
     return formData.nombre !== initialNombre || formData.descripcion !== initialDescripcion;
   };
@@ -51,8 +54,9 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    validateField(name, value);
+    const limitedValue = blockInput.limitValue(value, MAX_TEXT_LENGTH);
+    setFormData(prev => ({ ...prev, [name]: limitedValue }));
+    validateField(name, limitedValue);
   };
 
   const handleBlur = (field) => {
@@ -213,6 +217,7 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
             onChange={handleChange}
             onBlur={() => handleBlur('nombre')}
             placeholder="Ej. Camiseta"
+            maxLength={MAX_TEXT_LENGTH}
             style={getInputStyle('nombre')}
             onFocus={(e) => !errors.nombre && (e.target.style.borderColor = '#ff4fd6')}
           />
@@ -229,6 +234,7 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
             onChange={handleChange}
             onBlur={() => handleBlur('descripcion')}
             placeholder="Ej. Un jersey negro de cuello redondo hecho de algodón suave y cómodo"
+            maxLength={MAX_TEXT_LENGTH}
             style={{
               ...getInputStyle('descripcion'),
               minHeight: '100px',
@@ -240,9 +246,6 @@ const ProductCategoryForm = ({ productCategory, onSubmit, onCancel, onShowAlert,
           {(touched.descripcion || formData.descripcion) && errors.descripcion && (
             <span style={errorStyle}>⚠ {errors.descripcion}</span>
           )}
-          <span style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
-            {formData.descripcion.length} caracteres
-          </span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
