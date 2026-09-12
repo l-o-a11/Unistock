@@ -175,8 +175,10 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
-    validateField(name, value);
+    const maxLength = name === 'observaciones' ? 1000 : 100;
+    const limitedValue = value.slice(0, maxLength);
+    setFormData((p) => ({ ...p, [name]: limitedValue }));
+    validateField(name, limitedValue);
   };
 
   /* Proveedor */
@@ -217,10 +219,11 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
 
   const handleDetalleChange = (e) => {
     const { name, value } = e.target;
+    const limitedValue = value.slice(0, name === 'descripcionAdicional' ? 1000 : 100);
     setDetalleActual((p) => {
-      const updated = { ...p, [name]: value };
-      const qty = parseFloat(name === 'cantidad' ? value : p.cantidad) || 0;
-      const unitPrice = parseFloat(name === 'valorUnitario' ? value : p.valorUnitario) || 0;
+      const updated = { ...p, [name]: limitedValue };
+      const qty = parseFloat(name === 'cantidad' ? limitedValue : p.cantidad) || 0;
+      const unitPrice = parseFloat(name === 'valorUnitario' ? limitedValue : p.valorUnitario) || 0;
 
       if (name === 'cantidad' || name === 'valorUnitario') {
         updated.valorTotal = qty > 0 && unitPrice > 0 ? (qty * unitPrice).toFixed(2) : '';
@@ -428,6 +431,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                 <div>
                   <label style={labelStyle}>Número de factura <span style={requiredStar}>*</span></label>
                   <input type="text" name="numeroFactura" value={formData.numeroFactura}
+                    maxLength={100}
                     onChange={handleChange} onBlur={(e) => validateField('numeroFactura', e.target.value)}
                     placeholder="Ej: A-0231" style={inp(errors.numeroFactura)} />
                   {errors.numeroFactura && <span style={errMsg}>⚠ {errors.numeroFactura}</span>}
@@ -460,7 +464,8 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                   <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                     <input value={proveedorSearch} placeholder="Buscar proveedor..."
                       style={inp(errors.proveedorId)}
-                      onChange={(e) => { setProveedorSearch(e.target.value); setShowProveedorDD(true); if (!e.target.value) setFormData((p) => ({ ...p, proveedorId: '', proveedor: '' })); }}
+                      maxLength={100}
+                      onChange={(e) => { setProveedorSearch(e.target.value.slice(0, 100)); setShowProveedorDD(true); if (!e.target.value) setFormData((p) => ({ ...p, proveedorId: '', proveedor: '' })); }}
                       onFocus={() => setShowProveedorDD(true)}
                       onBlur={() => setTimeout(() => setShowProveedorDD(false), 150)} />
                     {showProveedorDD && (
@@ -483,6 +488,7 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
               <div style={{ marginBottom: 10 }}>
                 <label style={labelStyle}>Observaciones <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 10 }}>(opcional)</span></label>
                 <textarea name="observaciones" value={formData.observaciones}
+                  maxLength={1000}
                   onChange={handleChange} placeholder="Ej. Compra urgente..."
                   rows={2} style={{ ...inp(false), minHeight: 56, resize: 'vertical' }} />
               </div>
@@ -496,7 +502,8 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                   <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                     <input value={insumoSearch} placeholder="Buscar insumo existente..."
                       style={inp(false)}
-                      onChange={(e) => { setInsumoSearch(e.target.value); setShowInsumoDD(true); }}
+                      maxLength={100}
+                      onChange={(e) => { setInsumoSearch(e.target.value.slice(0, 100)); setShowInsumoDD(true); }}
                       onFocus={() => setShowInsumoDD(true)}
                       onBlur={() => setTimeout(() => setShowInsumoDD(false), 150)} />
                     {showInsumoDD && (
@@ -539,6 +546,14 @@ const ShoppingForm = ({ onSubmit, onCancel, existingFacturas = [] }) => {
                   <input type="number" name="valorTotal" value={detalleActual.valorTotal}
                     readOnly placeholder="0.00" style={{ ...inp(false), background: '#f9fafb', color: '#9ca3af', cursor: 'default' }} />
                 </div>
+              </div>
+
+              <div style={{ marginBottom: 10 }}>
+                <label style={labelStyle}>Detalle / observación del insumo</label>
+                <textarea name="descripcionAdicional" value={detalleActual.descripcionAdicional}
+                  maxLength={1000}
+                  onChange={handleDetalleChange} placeholder="Ej. Color, presentación o especificación..."
+                  rows={2} style={{ ...inp(false), minHeight: 56, resize: 'vertical' }} />
               </div>
 
             </div>
