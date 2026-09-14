@@ -33,8 +33,6 @@ const MONTHS = [
   "Noviembre",
   "Diciembre",
 ];
-const YEARS = [2022, 2023, 2024, 2025, 2026];
-
 const BAR_PROCESSES = [
   "Diseño",
   "Ficha técnica",
@@ -233,6 +231,28 @@ function Dropdown({ value, options, onChange }) {
         </div>
       )}
     </div>
+  );
+}
+
+function YearPicker({ value, onChange }) {
+  return (
+    <label className="flex items-center gap-2 border border-pink-300 rounded-xl px-3 py-1 text-sm font-medium text-gray-800 bg-white">
+      <span className="text-xs text-gray-500">Año</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min="1"
+        max="9999"
+        step="1"
+        value={value}
+        onChange={(event) => {
+          const nextYear = event.target.value;
+          if (/^\d{1,4}$/.test(nextYear)) onChange(Number(nextYear));
+        }}
+        className="w-16 bg-transparent text-sm font-semibold outline-none"
+        aria-label="Seleccionar año"
+      />
+    </label>
   );
 }
 
@@ -930,9 +950,8 @@ export default function ProductionDashboard() {
               options={MONTHS}
               onChange={setSelectedMonth}
             />
-            <Dropdown
+            <YearPicker
               value={selectedYear}
-              options={YEARS}
               onChange={setSelectedYear}
             />
           </>
@@ -945,9 +964,8 @@ export default function ProductionDashboard() {
           />
         )}
         {timeView === "Año" && (
-          <Dropdown
+          <YearPicker
             value={selectedYear}
-            options={YEARS}
             onChange={setSelectedYear}
           />
         )}
