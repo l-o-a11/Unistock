@@ -1162,6 +1162,9 @@ const SuppliesPage = () => {
                 justifyContent: "center",
                 padding: "4px",
                 gap: "6px",
+                fontSize: "13px",
+                fontWeight: 500,
+                fontFamily: "inherit",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
@@ -1260,6 +1263,9 @@ const SuppliesPage = () => {
                   alignItems: "center",
                   padding: "4px",
                   gap: "6px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  fontFamily: "inherit",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#E91E8C")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
