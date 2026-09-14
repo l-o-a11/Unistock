@@ -3,7 +3,7 @@
  * @description Formulario modal para crear o editar un insumo.
  *              Estilo visual alineado con ProductionForm (UniStock design system).
  */
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Alert from "../../../shared/components/Alert";
 import Button from "../../../shared/components/Button";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
@@ -18,6 +18,17 @@ import {
 // ESTILOS LOCALES
 // ─────────────────────────────────────────────────────────────────────────────
 const getInputStyle = (err) => getInputStyleBox(err);
+const getSelectStyle = (err) => ({
+  ...getInputStyle(err),
+  appearance: "none",
+  WebkitAppearance: "none",
+  cursor: "pointer",
+  backgroundColor: "#fff",
+  boxSizing: "border-box",
+});
+const MAX_SUPPLY_NAME_LENGTH = 50;
+const MAX_SUPPLY_NUMBER_VALUE = 999999;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const sectionTitle = (text) => (
   <p style={{
@@ -28,6 +39,83 @@ const sectionTitle = (text) => (
     {text}
   </p>
 );
+
+const StyledDropdown = ({ value, options, placeholder, error, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const selectedOption = options.find((option) => String(option.value) === String(value));
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!dropdownRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        style={{
+          ...getSelectStyle(error),
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          textAlign: "left",
+        }}
+      >
+        <span style={{ color: selectedOption ? "#444" : "#9ca3af" }}>
+          {selectedOption?.label || placeholder}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+            background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 100,
+            maxHeight: 180, overflowY: "auto", padding: 4,
+          }}
+        >
+          <div
+            role="option"
+            aria-selected={!value}
+            onMouseDown={() => { onChange(""); setIsOpen(false); }}
+            style={{ padding: "9px 10px", borderRadius: 7, fontSize: 13, color: "#9ca3af", cursor: "pointer" }}
+            onMouseEnter={(event) => { event.currentTarget.style.background = "#fff0fb"; }}
+            onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+          >
+            {placeholder}
+          </div>
+          {options.map((option) => (
+            <div
+              key={option.value}
+              role="option"
+              aria-selected={String(option.value) === String(value)}
+              onMouseDown={() => { onChange(option.value); setIsOpen(false); }}
+              style={{
+                padding: "9px 10px", borderRadius: 7, fontSize: 13,
+                color: "#374151", cursor: "pointer",
+                background: String(option.value) === String(value) ? "#fff0fb" : "transparent",
+                fontWeight: String(option.value) === String(value) ? 700 : 400,
+              }}
+              onMouseEnter={(event) => { event.currentTarget.style.background = "#fff0fb"; }}
+              onMouseLeave={(event) => { event.currentTarget.style.background = String(option.value) === String(value) ? "#fff0fb" : "transparent"; }}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
@@ -83,15 +171,20 @@ const SupplyForm = ({
         ? "No puedes aumentar el stock al editar el insumo"
         : "",
     nonNegativeNumber: (v) => isNaN(v) || Number(v) < 0 ? "Debe ser un número mayor o igual a 0" : "",
+    maxNumber: (v) => Number(v) > MAX_SUPPLY_NUMBER_VALUE ? `Máximo ${MAX_SUPPLY_NUMBER_VALUE}` : "",
     nombreValido:   (v) => v && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ0-9\s\-/#.,']+$/.test(v) ? "El nombre contiene caracteres no permitidos" : "",
     minLength:      (v) => v && v.trim().length < 3 ? "Mínimo 3 caracteres" : "",
-    maxLength:      (v) => v && v.trim().length > 100 ? "Máximo 100 caracteres" : "",
+    maxLength:      (v) => v && v.trim().length > MAX_SUPPLY_NAME_LENGTH ? `Máximo ${MAX_SUPPLY_NAME_LENGTH} caracteres` : "",
   };
 
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
       case "nombre":
+        if (value && value.length >= MAX_SUPPLY_NAME_LENGTH) {
+          error = `Máximo ${MAX_SUPPLY_NAME_LENGTH} caracteres`;
+          break;
+        }
         error = validators.required(value) || validators.nombreValido(value) || validators.minLength(value) || validators.maxLength(value);
         break;
       case "categoriaId":
@@ -100,12 +193,16 @@ const SupplyForm = ({
         break;
       case "stock":
       case "valorMedida":
+        if (value !== "" && Number(value) > MAX_SUPPLY_NUMBER_VALUE) {
+          error = `Máximo ${MAX_SUPPLY_NUMBER_VALUE}`;
+          break;
+        }
         if (name === "stock") {
           error = validators.required(value) || (isEdit
-            ? validators.nonNegativeNumber(value) || validators.cannotIncreaseStock(value)
-            : validators.positiveNumber(value));
+            ? validators.nonNegativeNumber(value) || validators.maxNumber(value) || validators.cannotIncreaseStock(value)
+            : validators.positiveNumber(value) || validators.maxNumber(value));
         } else {
-          error = validators.required(value) || validators.positiveNumber(value);
+          error = validators.required(value) || validators.positiveNumber(value) || validators.maxNumber(value);
         }
         break;
       default: break;
@@ -116,8 +213,29 @@ const SupplyForm = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    let nextValue = value;
+
     validateField(name, value);
+
+    if (name === "nombre") {
+      if (value.length > MAX_SUPPLY_NAME_LENGTH) {
+        nextValue = value.slice(0, MAX_SUPPLY_NAME_LENGTH);
+      }
+    }
+
+    if (name === "valorPropiedad" && value.length > MAX_SUPPLY_NAME_LENGTH) {
+      nextValue = value.slice(0, MAX_SUPPLY_NAME_LENGTH);
+    }
+
+    if (name === "stock" || name === "valorMedida") {
+      const maxAllowed = MAX_SUPPLY_NUMBER_VALUE;
+
+      if (value !== "" && Number(value) > maxAllowed) {
+        nextValue = String(maxAllowed);
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
   const handleBlur = (e) => validateField(e.target.name, e.target.value);
@@ -142,6 +260,20 @@ const SupplyForm = ({
     }));
     setPropiedadId("");
     setValorPropiedad("");
+    setErrors((prev) => ({ ...prev, valorPropiedad: "" }));
+  };
+
+  const handlePropertyDescriptionChange = (e) => {
+    const value = e.target.value;
+    const nextValue = value.slice(0, MAX_SUPPLY_NAME_LENGTH);
+
+    setValorPropiedad(nextValue);
+    setErrors((prev) => ({
+      ...prev,
+      valorPropiedad: value.length >= MAX_SUPPLY_NAME_LENGTH
+        ? `Máximo ${MAX_SUPPLY_NAME_LENGTH} caracteres`
+        : "",
+    }));
   };
 
   const eliminarPropiedad = (pid) =>
@@ -154,6 +286,11 @@ const SupplyForm = ({
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > MAX_IMAGE_SIZE) {
+      e.target.value = "";
+      showAlert("warning", "Imagen demasiado grande", "La imagen no puede superar los 5 MB.");
+      return;
+    }
     if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
     setImagePreview(URL.createObjectURL(file));
     setFormData((prev) => ({ ...prev, imageFile: file, eliminarImagen: false }));
@@ -354,18 +491,15 @@ const SupplyForm = ({
                     Categoría <span style={requiredStar}>*</span>
                   </label>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <select
-                      name="categoriaId"
-                      value={formData.categoriaId}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ ...getInputStyle(errors.categoriaId), flex: 1 }}
-                    >
-                      <option value="">Seleccionar categoría...</option>
-                      {categorias.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                      ))}
-                    </select>
+                    <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+                      <StyledDropdown
+                        value={formData.categoriaId}
+                        placeholder="Seleccionar categoría..."
+                        error={errors.categoriaId}
+                        options={categorias.map((cat) => ({ value: cat.id, label: cat.nombre }))}
+                        onChange={(value) => handleChange({ target: { name: "categoriaId", value } })}
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={onCreateCategory}
@@ -393,7 +527,7 @@ const SupplyForm = ({
                 <input
                   type="number" name="stock"
                   min={isEdit ? 0 : 1}
-                  max={isEdit ? supply?.stock : undefined}
+                  max={MAX_SUPPLY_NUMBER_VALUE}
                   step="1"
                   value={formData.stock}
                   onChange={handleChange}
@@ -414,18 +548,13 @@ const SupplyForm = ({
                   <label style={labelStyle}>
                     Medida <span style={requiredStar}>*</span>
                   </label>
-                  <select
-                    name="medidaId"
+                  <StyledDropdown
                     value={formData.medidaId}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    style={getInputStyle(errors.medidaId)}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {medidas.map((m) => (
-                      <option key={m.id} value={m.id}>{m.nombre}</option>
-                    ))}
-                  </select>
+                    placeholder="Seleccionar..."
+                    error={errors.medidaId}
+                    options={medidas.map((medida) => ({ value: medida.id, label: medida.nombre }))}
+                    onChange={(value) => handleChange({ target: { name: "medidaId", value } })}
+                  />
                   {errors.medidaId && <span style={errMsg}>⚠ {errors.medidaId}</span>}
                 </div>
                 <div>
@@ -434,6 +563,8 @@ const SupplyForm = ({
                   </label>
                   <input
                     type="number" name="valorMedida"
+                    min="0.01"
+                    max={MAX_SUPPLY_NUMBER_VALUE}
                     value={formData.valorMedida}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -459,28 +590,25 @@ const SupplyForm = ({
               >
                 <div style={{ flex: 1, width: "100%" }}>
                   <label style={labelStyle}>Propiedad <span style={requiredStar}>*</span></label>
-                  <select
+                  <StyledDropdown
                     value={propiedadId}
-                    onChange={(e) => setPropiedadId(e.target.value)}
-                    style={getInputStyle(false)}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {propiedades
+                    placeholder="Seleccionar..."
+                    options={propiedades
                       .filter((p) => !formData.propiedades.find((fp) => String(fp.propiedadId) === String(p.id)))
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>{p.nombre}</option>
-                      ))}
-                  </select>
+                      .map((propiedad) => ({ value: propiedad.id, label: propiedad.nombre }))}
+                    onChange={setPropiedadId}
+                  />
                 </div>
                 <div style={{ flex: 1, width: "100%" }}>
                   <label style={labelStyle}>Descripción<span style={requiredStar}>*</span></label>
                   <input
                     placeholder="Ej: Rojo"
                     value={valorPropiedad}
-                    onChange={(e) => setValorPropiedad(e.target.value)}
+                    onChange={handlePropertyDescriptionChange}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), agregarPropiedad())}
-                    style={getInputStyle(false)}
+                    style={getInputStyle(errors.valorPropiedad)}
                   />
+                  {errors.valorPropiedad && <span style={errMsg}>⚠ {errors.valorPropiedad}</span>}
                 </div>
                 <button
                   type="button"

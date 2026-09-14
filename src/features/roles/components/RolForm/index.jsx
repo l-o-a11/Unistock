@@ -74,6 +74,8 @@ const sectionTitle = (text) => (
 );
 
 const req = <span style={{ color: PINK }}> *</span>;
+const MAX_ROLE_NAME_LENGTH = 50;
+const MAX_ROLE_DESCRIPTION_LENGTH = 200;
 
 // Handlers de focus/blur sin cambiar el fondo (fondo siempre blanco)
 const onFocusField = (e) => {
@@ -322,7 +324,10 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
       return;
     }
 
-    const dataNormalizada = {
+    const MAX_ROLE_NAME_LENGTH = 50;
+const MAX_ROLE_DESCRIPTION_LENGTH = 200;
+
+const dataNormalizada = {
       ...formData,
       nombre: formData.nombre.trim()
         ? formData.nombre.trim().charAt(0).toUpperCase() + formData.nombre.trim().slice(1).toLowerCase()
@@ -420,6 +425,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
             id="nombre"
             name="nombre"
             value={formData.nombre}
+            maxLength={MAX_ROLE_NAME_LENGTH}
             onChange={handleChange}
             onBlur={(e) => { handleBlur(e); onBlurField(e); }}
             style={fieldStyle(!!errors.nombre)}
@@ -441,6 +447,7 @@ const RolForm = ({ rol, roles = [], onSubmit, onCancel, onDirtyChange, usuariosE
             id="descripcion"
             name="descripcion"
             value={formData.descripcion}
+            maxLength={MAX_ROLE_DESCRIPTION_LENGTH}
             onChange={handleChange}
             onBlur={(e) => { handleBlur(e); onBlurField(e); }}
             rows={3}
