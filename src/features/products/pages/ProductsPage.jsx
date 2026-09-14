@@ -349,7 +349,17 @@ const ProductsPage = () => {
     }
 
     try {
-      await updateProduct(id, { ...product, stock: newStock });
+      await updateProduct(id, {
+        reference: product.reference,
+        name: product.name,
+        category: product.category,
+        categoryId: product.categoryId,
+        sedeId: product.sedeId,
+        price: product.price,
+        stock: newStock,
+        image: product.image,
+        allImages: product.allImages || [],
+      });
 
       // ✅ Mostrar alerta según el nuevo stock
       if (newStock === 5) {
