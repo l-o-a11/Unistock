@@ -754,7 +754,32 @@ const ProductionDetailsPage = () => {
       }
       try {
         await applyStepChange(targetStep, { force: true });
-        setGlobalAlert({ open: true, type: "success", title: "Estado retrocedido", message: `La orden retrocedió al estado "${targetStep}" correctamente.` });
+        if (EMPLOYEE_REQUIRED_STEPS.includes(targetStep)) {
+          setTimeout(() => {
+            openProductionAlert({
+              type: "assignEmployee",
+              targetStep,
+              customTitle: `Asignar empleado responsable de "${targetStep}"`,
+              customMessage: `La orden retrocedió a "${targetStep}". Selecciona el nuevo empleado responsable.`,
+              onConfirmOverride: async (empleado) => {
+                const { id_empleado, nombre_empleado } = empleado || {};
+                if (!id_empleado) throw new Error("Empleado requerido");
+                await ProductionAPIClient.asignarEmpleado(production.id, id_empleado);
+                setProduction((prev) => ({
+                  ...prev,
+                  empleadoAsignadoId: id_empleado,
+                  empleadoAsignaciones: {
+                    ...(prev.empleadoAsignaciones || {}),
+                    [targetStep]: { id_empleado, nombre_empleado, fecha: new Date().toISOString() },
+                  },
+                }));
+                setGlobalAlert({ open: true, type: "success", title: "Etapa y empleado actualizados", message: `La orden retrocedió a "${targetStep}" y el nuevo empleado quedó asignado correctamente.` });
+              },
+            });
+          }, 300);
+        } else {
+          setGlobalAlert({ open: true, type: "success", title: "Estado retrocedido", message: `La orden retrocedió al estado "${targetStep}" correctamente.` });
+        }
       } catch {
         setGlobalAlert({ open: true, type: "error", title: "Error al retroceder", message: "No se pudo retroceder el estado. Intenta de nuevo." });
       }

@@ -1,6 +1,61 @@
 import React, { useState, useEffect } from "react";
 import { useMediaQuery } from "../../../shared/hooks/useMediaQuery";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
+import { blockInput } from "../../../shared/utils/blockInput";
+
+const MAX_TEXT_LENGTH = 100;
+const MAX_NUMBER_LENGTH = 12;
+
+const TEXT_FIELDS = new Set([
+  'client',
+  'date',
+  'ref',
+  'type',
+  'description',
+  'descripciones',
+  'observations',
+  'createdBy',
+  'responsable',
+  'name',
+  'nombre',
+  'unidad',
+]);
+const NUMBER_FIELDS = new Set(['consumption', 'pieces', 'talla', 'cantidades']);
+const ARRAY_FIELDS = new Set(['fabrics', 'materiales', 'cups', 'closures', 'accessories', 'measurements']);
+
+const limitSheetValue = (field, value) => {
+  if (typeof value !== 'string' || field === 'image') return value;
+  return blockInput.limitValue(value, NUMBER_FIELDS.has(field) ? MAX_NUMBER_LENGTH : MAX_TEXT_LENGTH);
+};
+
+const sanitizeSheetItem = (item = {}) => {
+  const sanitized = { ...item };
+  Object.entries(item || {}).forEach(([field, value]) => {
+    if (field === 'values' && Array.isArray(value)) {
+      sanitized[field] = value.map((entry) => limitSheetValue(field, entry));
+    } else {
+      sanitized[field] = limitSheetValue(field, value);
+    }
+  });
+  return sanitized;
+};
+
+const sanitizeTechnicalSheet = (sheet = {}) => {
+  const sanitized = { ...sheet };
+  Object.entries(sheet || {}).forEach(([field, value]) => {
+    if (!ARRAY_FIELDS.has(field)) {
+      sanitized[field] = limitSheetValue(field, value);
+    }
+  });
+
+  sanitized.fabrics = (sheet?.fabrics || []).map(sanitizeSheetItem);
+  sanitized.materiales = (sheet?.materiales || []).map(sanitizeSheetItem);
+  sanitized.cups = (sheet?.cups || []).map(sanitizeSheetItem);
+  sanitized.closures = (sheet?.closures || []).map(sanitizeSheetItem);
+  sanitized.accessories = (sheet?.accessories || []).map(sanitizeSheetItem);
+  sanitized.measurements = (sheet?.measurements || []).map(sanitizeSheetItem);
+  return sanitized;
+};
 
 const cellStyle = {
   border: "1px solid #e5e7eb",

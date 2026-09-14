@@ -68,9 +68,7 @@ console.log("====================================");
 
 const getToken = () => {
   try {
-    const raw =
-      localStorage.getItem("session_user") ||
-      sessionStorage.getItem("session_user");
+    const raw = sessionStorage.getItem("session_user");
     return raw ? JSON.parse(raw).token : null;
   } catch {
     return null;

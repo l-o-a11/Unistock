@@ -132,6 +132,17 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
+
+    const handlePageShow = () => {
+      if (!AuthAPI.getSession()) {
+        setUser(null);
+        setPermisos([]);
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
   const login = (session) => {

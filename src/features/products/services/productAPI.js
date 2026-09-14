@@ -488,13 +488,13 @@ create: async (productData) => {
   },
 
   update: async (id, updatedData) => {
-    const { technicalSheet } = updatedData || {};
-    const payloads = await buildProductPayloads(updatedData);
+    const { technicalSheet: technicalSheetFromUpdate, ...cleanUpdatedData } = updatedData || {};
+    const payloads = await buildProductPayloads(cleanUpdatedData);
     const response = await sendWithPayloadFallback(`${PRODUCT_ENDPOINTS[0]}/${id}`, "PUT", payloads);
     const updated = toUiProduct(unwrapResponse(response), await getCategories());
 
-    if (technicalSheet) {
-      const updatedSheet = await productAPI.updateTechnicalSheet(id, technicalSheet);
+    if (technicalSheetFromUpdate) {
+      const updatedSheet = await productAPI.updateTechnicalSheet(id, technicalSheetFromUpdate);
       updated.technicalSheet = updatedSheet;
       updated.technicalSheetVersions = updatedSheet?.version ?? updated.technicalSheetVersions ?? 1;
       updated.lastVersionDate = updatedSheet?.date ?? updated.lastVersionDate;
