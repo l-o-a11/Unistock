@@ -864,9 +864,9 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
       image: imagePreview
     };
 
-    // ✅ Fix: no crear una nueva versión de la ficha técnica si no hay
-    // cambios reales en ella (ni campos editados ni campos autocompletados
-    // desde el producto como ref, allImages o image).
+    // ✅ Fix: no crear una nueva versión de la ficha técnica si solo se
+    // actualiza el producto (stock, precio, etc.) y no se editó la ficha
+    // directamente. Las versiones solo se generan al modificar la ficha.
     const initialSheet = initialTechnicalSheetRef.current;
     const normalizedFinalTechnicalSheet = removeWhitespaceOnlyValues(finalTechnicalSheet);
     const hasTechSheetRealChanges = !initialSheet
