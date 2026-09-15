@@ -116,7 +116,9 @@ export const validators = {
 
   price: (value) => {
     if (!value) return "El precio es obligatorio";
-    if (isNaN(value) || Number(value) <= 0) return "Debe ser positivo";
+    if (!/^\d{4,50}$/.test(value.toString().trim())) {
+      return "El precio debe ser un número entero de entre 4 y 50 dígitos";
+    }
     return "";
   },
 

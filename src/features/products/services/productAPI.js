@@ -262,7 +262,7 @@ const buildProductPayloads = async (productData) => {
   const image = productData.image ? [productData.image] : [];
   const reference = productData.reference ?? productData.referencia;
   const name = productData.name ?? productData.nombre;
-  const price = Number(productData.price ?? productData.precio);
+  const price = String(productData.price ?? productData.precio ?? "").trim();
   const stock = Number(productData.stock);
   const sedeId = productData.sedeId ?? productData.sede ?? null;
 

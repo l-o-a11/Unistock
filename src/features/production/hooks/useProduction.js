@@ -221,7 +221,7 @@ export const useProductions = () => {
             id_producto: d.id_producto,
             cantidad: d.cantidad,
             color: d.color,
-          })            .catch((err) => { return null; })
+          })
         )
       );
 

@@ -17,6 +17,7 @@ import { blockInput } from '../../../shared/utils/blockInput';
 import TechnicalSheet from '../../../products/components/TechnicalSheet';
 import ThirdPartiesSection from './ThirdPartiesSection';
 import { clientAPI } from '../../../shared/services/clientAPI';
+import { ProductionAPIClient } from '../../services/ProductionAPIClient';
 import {
   getInputStyleBox,
   errorStyle as errMsg,
@@ -56,16 +57,25 @@ const getDefaultDeliveryDate = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, touched, error }) => {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filteredClients = clients.filter((client) => {
+    const searchText = normalizeText(query);
+    return !searchText
+      || normalizeText(client.nombre).includes(searchText)
+      || normalizeText(client.documento).includes(searchText);
+  });
 
   const handleSelect = (client) => {
     onChange(client);
+    setQuery("");
     setOpen(false);
   };
 
   return (
     <div style={{ position: "relative", width: "100%", minWidth: "220px" }}>
       <div
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -84,9 +94,22 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, touched
           transition: "background-color 0.15s",
         }}
       >
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {value || "Seleccionar cliente"}
-        </span>
+        <input
+          type="search"
+          value={open ? query : value || ""}
+          onFocus={() => {
+            if (!open) setQuery("");
+            setOpen(true);
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onClick={(event) => event.stopPropagation()}
+          placeholder="Seleccionar cliente"
+          aria-label="Buscar cliente"
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", padding: 0, fontSize: "14px", color: "#1f2937" }}
+        />
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -101,8 +124,27 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, touched
             >
               Seleccionar cliente
             </div>
-            {clients.length > 0 ? (
-              clients.map((client) => {
+            <div
+              onClick={() => {
+                setQuery("");
+                setOpen(false);
+                onCreateClient?.();
+              }}
+              style={{
+                padding: "12px 14px",
+                fontSize: "14px",
+                color: "#ff4fd6",
+                cursor: "pointer",
+                borderTop: "1px solid #f3f4f6",
+                borderBottom: "1px solid #f3f4f6",
+                backgroundColor: "#fff",
+                fontWeight: "700"
+              }}
+            >
+              + Crear nuevo cliente
+            </div>
+            {filteredClients.length > 0 ? (
+              filteredClients.map((client) => {
                 const clientKey = client.id ?? client._id ?? client.documento;
                 const isSelected = normalizeText(value) === normalizeText(client.nombre);
                 return (
@@ -126,26 +168,9 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, touched
               })
             ) : (
               <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
-                Sin clientes disponibles
+                {query ? "No se encontraron clientes" : "Sin clientes disponibles"}
               </div>
             )}
-            <div
-              onClick={() => {
-                setOpen(false);
-                onCreateClient?.();
-              }}
-              style={{
-                padding: "12px 14px",
-                fontSize: "14px",
-                color: "#ff4fd6",
-                cursor: "pointer",
-                borderTop: "1px solid #f3f4f6",
-                backgroundColor: "#fff",
-                fontWeight: "700"
-              }}
-            >
-              + Crear nuevo cliente
-            </div>
           </div>
         </>
       )}
@@ -395,14 +420,26 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
 
   // Load saved colors from localStorage
   useEffect(() => {
-    const savedColors = localStorage.getItem('productionColors');
-    if (savedColors) {
+    const loadSavedColors = async () => {
+      let localColors = [];
       try {
-        setSavedColors(JSON.parse(savedColors));
+        const stored = localStorage.getItem('productionColors');
+        localColors = stored ? JSON.parse(stored) : [];
       } catch (e) {
         console.error('Error parsing saved colors', e);
       }
-    }
+
+      try {
+        const databaseColors = await ProductionAPIClient.getProductionColors();
+        const merged = [...databaseColors, ...localColors.filter((color) => !databaseColors.includes(color))];
+        setSavedColors(merged);
+        localStorage.setItem('productionColors', JSON.stringify(merged));
+      } catch (e) {
+        setSavedColors(localColors);
+      }
+    };
+
+    loadSavedColors();
   }, []);
 
   const loadClients = useCallback(async () => {
@@ -545,7 +582,23 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
     if (modalRef.current && !modalRef.current.contains(e.target)) handleCancelClick();
   };
 
-  const saveColor = (c) => { if (c && !savedColors.includes(c)) { const u = [c, ...savedColors].slice(0, 10); setSavedColors(u); localStorage.setItem('productionColors', JSON.stringify(u)); } };
+  const saveColor = async (c) => {
+    const color = String(c || '').trim();
+    if (!color) return;
+
+    try {
+      await ProductionAPIClient.createProductionColor(color);
+    } catch (error) {
+      console.error('No se pudo guardar el color en la base de datos:', error);
+    }
+
+    setSavedColors((current) => {
+      const colors = current.includes(color) ? current : [color, ...current];
+      const limited = colors.slice(0, 10);
+      localStorage.setItem('productionColors', JSON.stringify(limited));
+      return limited;
+    });
+  };
 
   // ✅ Cliente actualmente seleccionado (o null si no hay match) — mismo patrón que ProductForm
   const getSelectedClientObject = () => {
@@ -763,10 +816,10 @@ const ProductionForm = ({ onSubmit, onCancel, initialData = null, damageNotice =
   const handleConfirm = async () => {
     setIsCreating(true);
     try {
-      saveColor(formData.color);
+      await saveColor(formData.color);
       // ✅ Fix: el color de los artículos adicionales nunca se guardaba en
       // localStorage — solo se guardaba el del artículo principal.
-      extraRefs.forEach((r) => { if (r.color) saveColor(r.color); });
+      await Promise.all(extraRefs.filter((r) => r.color).map((r) => saveColor(r.color)));
       let referenciaFinal = formData.referencia;
       let productoFinal = formData.producto;
       const shouldCreateReference = type === 'diseno' && nuevaRefOpen && nuevaRef.reference.trim();
