@@ -1,20 +1,27 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
-const HoverCard = ({ children, content, position = 'center' }) => {
+const HoverCard = ({ children, content }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState(null);
+  const triggerRef = useRef(null);
 
-  const positionStyles = {
-    right: { left: '100%', marginLeft: '8px', top: '50%', transform: 'translateY(-50%)' },
-    left:  { right: '100%', marginRight: '8px', top: '50%', transform: 'translateY(-50%)' },
-    top:   { bottom: '100%', marginBottom: '8px', left: '50%', transform: 'translateX(-50%)' },
-    bottom:{ top: '100%', marginTop: '8px', left: '50%', transform: 'translateX(-50%)' },
+  const showTooltip = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    setTooltipPosition({
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - 228)),
+      bottom: window.innerHeight - rect.top + 8,
+    });
+    setIsVisible(true);
   };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ display: 'inline-block' }}>
       {/* Trigger */}
       <span
-        onMouseEnter={() => setIsVisible(true)}
+        ref={triggerRef}
+        onMouseEnter={showTooltip}
         onMouseLeave={() => setIsVisible(false)}
         style={{ cursor: 'help', display: 'inline-block' }}
       >
@@ -24,10 +31,10 @@ const HoverCard = ({ children, content, position = 'center' }) => {
       {isVisible && (
         <div
           style={{
-            position: 'absolute',
+            position: 'fixed',
             zIndex: 9999,
             width: '220px',
-            ...positionStyles[position],
+            ...tooltipPosition,
           }}
         >
           <div
@@ -42,7 +49,8 @@ const HoverCard = ({ children, content, position = 'center' }) => {
             {/* Header */}
             <div
               style={{
-                background: 'linear-gradient(90deg, #331525, #c2187a)',
+                background: '#f5f5f5',
+                borderBottom: '1px solid #e5e7eb',
                 padding: '8px 16px',
               }}
             >
@@ -51,7 +59,7 @@ const HoverCard = ({ children, content, position = 'center' }) => {
                   margin: 0,
                   fontSize: '11px',
                   fontWeight: '600',
-                  color: '#ffffff',
+                  color: '#6b7280',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
                 }}
