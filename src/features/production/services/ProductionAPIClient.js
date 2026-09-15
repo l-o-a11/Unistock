@@ -168,6 +168,21 @@ export const ProductionAPIClient = {
     return toFrontendFormat(data);
   },
 
+  getProductionColors: async () => {
+    const res = await httpRequest("/produccion/colores", { method: "GET" });
+    const data = res?.data || res;
+    return Array.isArray(data) ? data.map((color) => color.nombre || color.name).filter(Boolean) : [];
+  },
+
+  createProductionColor: async (nombre) => {
+    const res = await httpRequest("/produccion/colores", {
+      method: "POST",
+      body: { nombre: String(nombre || "").trim() },
+    });
+    const data = res?.data || res;
+    return data?.nombre || data?.name || String(nombre || "").trim();
+  },
+
   createOrder: async (data) => {
     const backendData = toBackendFormat(data);
     const res = await httpRequest("/produccion/ordenes", { method: "POST", body: backendData });

@@ -27,8 +27,9 @@ const BACKEND_URL = configuredBackendUrl
 
 const CategoryDropdown = ({ value, onChange, touched, error, categories = [], onCreateCategory, isMobile = false }) => {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
-  const filteredCategories = categories.filter((cat) => {
+  const availableCategories = categories.filter((cat) => {
     return Boolean(
       cat?.id ??
       cat?._id ??
@@ -37,16 +38,20 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
       cat?.id_categoria
     );
   });
+  const filteredCategories = availableCategories.filter((cat) =>
+    normalizeText(cat.name ?? cat.nombre).includes(normalizeText(query))
+  );
 
   const handleSelect = (category) => {
     onChange(category);
+    setQuery("");
     setOpen(false);
   };
 
   return (
     <div style={{ position: "relative", width: "100%", minWidth: isMobile ? '140px' : "220px" }}>
       <div
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -65,7 +70,22 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
           transition: "background-color 0.15s",
         }}
       >
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value || "Seleccionar categoria"}</span>
+        <input
+          type="search"
+          value={open ? query : value || ""}
+          onFocus={() => {
+            if (!open) setQuery("");
+            setOpen(true);
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onClick={(event) => event.stopPropagation()}
+          placeholder="Seleccionar categoria"
+          aria-label="Buscar categoria"
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", padding: 0, fontSize: "14px", color: "#1f2937" }}
+        />
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -79,6 +99,24 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
               onClick={() => handleSelect("")}
             >
               Seleccionar categoria
+            </div>
+            <div
+              onClick={() => {
+                setOpen(false);
+                onCreateCategory?.();
+              }}
+              style={{
+                padding: "12px 14px",
+                fontSize: "14px",
+                color: "#ff4fd6",
+                cursor: "pointer",
+                borderTop: "1px solid #f3f4f6",
+                borderBottom: "1px solid #f3f4f6",
+                backgroundColor: "#fff",
+                fontWeight: "700"
+              }}
+            >
+              + Crear nueva categoria
             </div>
             {filteredCategories.length > 0 ? (
               filteredCategories.map((cat) => (
@@ -100,26 +138,9 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
               ))
             ) : (
               <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
-                Sin categorías disponibles
+                {query ? "No se encontraron categorías" : "Sin categorías disponibles"}
               </div>
             )}
-            <div
-              onClick={() => {
-                setOpen(false);
-                onCreateCategory?.();
-              }}
-              style={{
-                padding: "12px 14px",
-                fontSize: "14px",
-                color: "#ff4fd6",
-                cursor: "pointer",
-                borderTop: "1px solid #f3f4f6",
-                backgroundColor: "#fff",
-                fontWeight: "700"
-              }}
-            >
-              + Crear nueva categoria
-            </div>
           </div>
         </>
       )}
@@ -135,16 +156,25 @@ const CategoryDropdown = ({ value, onChange, touched, error, categories = [], on
 // ✅ Mismo diseño/estilo que CategoryDropdown, adaptado para clientes
 const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, isMobile = false }) => {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filteredClients = clients.filter((client) => {
+    const searchText = normalizeText(query);
+    return !searchText
+      || normalizeText(client.nombre).includes(searchText)
+      || normalizeText(client.documento).includes(searchText);
+  });
 
   const handleSelect = (client) => {
     onChange(client);
+    setQuery("");
     setOpen(false);
   };
 
   return (
     <div style={{ position: "relative", width: "100%", minWidth: isMobile ? '140px' : "220px" }}>
       <div
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -163,9 +193,22 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, isMobil
           transition: "background-color 0.15s",
         }}
       >
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {value || "Seleccionar cliente"}
-        </span>
+        <input
+          type="search"
+          value={open ? query : value || ""}
+          onFocus={() => {
+            if (!open) setQuery("");
+            setOpen(true);
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onClick={(event) => event.stopPropagation()}
+          placeholder="Seleccionar cliente"
+          aria-label="Buscar cliente"
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", padding: 0, fontSize: "14px", color: "#1f2937" }}
+        />
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" style={{ flexShrink: 0, marginLeft: "10px" }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -180,8 +223,26 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, isMobil
             >
               Seleccionar cliente
             </div>
-            {clients.length > 0 ? (
-              clients.map((client) => {
+            <div
+              onClick={() => {
+                setOpen(false);
+                onCreateClient?.();
+              }}
+              style={{
+                padding: "12px 14px",
+                fontSize: "14px",
+                color: "#ff4fd6",
+                cursor: "pointer",
+                borderTop: "1px solid #f3f4f6",
+                borderBottom: "1px solid #f3f4f6",
+                backgroundColor: "#fff",
+                fontWeight: "700"
+              }}
+            >
+              + Crear nuevo cliente
+            </div>
+            {filteredClients.length > 0 ? (
+              filteredClients.map((client) => {
                 const clientKey = client.id ?? client._id ?? client.documento;
                 const isSelected = normalizeText(value) === normalizeText(client.nombre);
                 return (
@@ -205,26 +266,9 @@ const ClientDropdown = ({ value, onChange, clients = [], onCreateClient, isMobil
               })
             ) : (
               <div style={{ padding: "10px 14px", fontSize: "13px", color: "#9ca3af", textAlign: "center" }}>
-                Sin clientes disponibles
+                {query ? "No se encontraron clientes" : "Sin clientes disponibles"}
               </div>
             )}
-            <div
-              onClick={() => {
-                setOpen(false);
-                onCreateClient?.();
-              }}
-              style={{
-                padding: "12px 14px",
-                fontSize: "14px",
-                color: "#ff4fd6",
-                cursor: "pointer",
-                borderTop: "1px solid #f3f4f6",
-                backgroundColor: "#fff",
-                fontWeight: "700"
-              }}
-            >
-              + Crear nuevo cliente
-            </div>
           </div>
         </>
       )}
@@ -642,38 +686,32 @@ const ProductForm = ({ product, onSubmit, onCancel, onShowAlert, onShowConfirm, 
 
   const validatePrice = (value) => {
     if (!value) return "El precio es obligatorio";
-    if (isNaN(value) || Number(value) <= 0) return "El precio debe ser un número positivo";
+    if (!/^\d{4,50}$/.test(String(value).trim())) {
+      return "El precio debe ser un número entero de entre 4 y 50 dígitos";
+    }
     return "";
   };
 
-  // Evitar letras en el campo precio (incluida la 'e') y normalizar comas a punto
+  // Permitir únicamente dígitos y limitar la longitud del precio.
   const handlePriceInputChange = (e) => {
     const raw = String(e.target.value || "");
-    let v = raw.replace(/,/g, '.');
-    v = v.replace(/[^0-9.]/g, '');
-    const parts = v.split('.');
-    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+    const v = raw.replace(/\D/g, '').slice(0, 50);
     setFormData(prev => ({ ...prev, price: v }));
     validateField('price', v);
   };
 
   const handlePriceKeyDown = (e) => {
-    // Bloquear 'e', 'E', '+', '-' y otros caracteres no numéricos relevantes
-    if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+    if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
       e.preventDefault();
     }
   };
 
   const handlePricePaste = (e) => {
     const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
-    const sanitized = paste.replace(/,/g, '.').replace(/[^0-9.]/g, '');
-    const parts = sanitized.split('.');
-    const cleaned = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitized;
-    if (cleaned !== paste) {
-      e.preventDefault();
-      setFormData(prev => ({ ...prev, price: cleaned }));
-      validateField('price', cleaned);
-    }
+    const cleaned = paste.replace(/\D/g, '').slice(0, 50);
+    e.preventDefault();
+    setFormData(prev => ({ ...prev, price: cleaned }));
+    validateField('price', cleaned);
   };
 
   const validateStock = (value) => {
@@ -1470,7 +1508,7 @@ if ((touched[field] || formData[field]) && errors[field]) {
                         <input
                           style={getInputStyle("price")}
                           type="text"
-                          inputMode="decimal"
+                          inputMode="numeric"
                           value={formData.price}
                           onChange={handlePriceInputChange}
                           onKeyDown={handlePriceKeyDown}
