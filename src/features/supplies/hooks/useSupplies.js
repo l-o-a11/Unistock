@@ -109,9 +109,11 @@ export const useSupplies = (initialFilters = {}) => {
     try {
       setLoading(true);
       const updated = await supplyAPI.update(id, supplyData);
-      setSupplies((prev) => prev.map((supply) => (
-        supply.id === String(id) ? updated : supply
-      )));
+      setSupplies((prev) =>
+        [...prev.map((supply) => (supply.id === String(id) ? updated : supply))].sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        )
+      );
       return updated;
     } catch (err) {
       const msg = err.data?.error || err.message || "Error al actualizar el insumo";

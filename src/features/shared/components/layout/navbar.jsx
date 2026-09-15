@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, LogOut, Settings, ChevronUp, ChevronDown } from "lucide-react";
 import { AuthAPI } from "../../../auth/services/AuthAPI";
+import { useAuthContext } from "../../AuthContext";
 import Alert from "../Alert";
 
 const Navbar = () => {
@@ -9,6 +10,7 @@ const Navbar = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { logout } = useAuthContext();
 
   const session = AuthAPI.getSession();
 
@@ -33,7 +35,7 @@ const Navbar = () => {
   }, []);
 
   const cerrarSesion     = () => { setOpen(false); setShowLogoutConfirm(true); };
-  const confirmarCerrar  = () => { setShowLogoutConfirm(false); AuthAPI.logout(); navigate("/"); };
+  const confirmarCerrar  = () => { setShowLogoutConfirm(false); logout(); navigate("/", { replace: true }); };
   const editarPerfil     = () => { navigate("/layout/perfil"); setOpen(false); };
 
   // Dispara el evento global que escucha el Sidebar

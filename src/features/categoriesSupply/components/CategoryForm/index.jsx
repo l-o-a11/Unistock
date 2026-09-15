@@ -6,6 +6,7 @@ import Button from '../../../shared/components/Button';
 // Tokens de estilo — alineados con ProductionForm / RolForm
 // ─────────────────────────────────────────────────
 const PINK = '#ff4fd6';
+const MAX_CATEGORY_NAME_LENGTH = 50;
 
 const fieldStyle = (hasError) => ({
   width: '100%',
@@ -28,6 +29,14 @@ const labelStyle = {
   fontWeight: '500',
   color: '#374151',
   marginBottom: '5px',
+};
+
+const errorStyle = {
+  color: PINK,
+  fontSize: '11px',
+  marginTop: '4px',
+  display: 'block',
+  fontWeight: '500',
 };
 
 const sectionTitle = (text) => (
@@ -78,12 +87,24 @@ const CategoryForm = ({ category, onSubmit, onCancel, standalone = false }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (name === 'nombre' && value.trim()) setError('');
+    const nextValue = name === 'nombre'
+      ? value.slice(0, MAX_CATEGORY_NAME_LENGTH)
+      : value;
+
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    if (name === 'nombre') {
+      setError(value.length >= MAX_CATEGORY_NAME_LENGTH
+        ? `Máximo ${MAX_CATEGORY_NAME_LENGTH} caracteres`
+        : value.trim() ? '' : error);
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.nombre.length >= MAX_CATEGORY_NAME_LENGTH) {
+      setError(`Máximo ${MAX_CATEGORY_NAME_LENGTH} caracteres`);
+      return;
+    }
     if (!formData.nombre.trim()) { setError('El nombre es obligatorio'); return; }
     const normalizado = {
       ...formData,
@@ -172,13 +193,15 @@ const CategoryForm = ({ category, onSubmit, onCancel, standalone = false }) => {
           id="nombre"
           name="nombre"
           value={formData.nombre}
+          maxLength={MAX_CATEGORY_NAME_LENGTH}
           onChange={handleChange}
           placeholder="Ej: Tela"
-          style={fieldStyle(false)}
+          style={fieldStyle(!!error)}
           onFocus={onFocusField}
           onBlur={onBlurField}
           required
         />
+        {error && <span style={errorStyle}>⚠ {error}</span>}
       </div>
 
       {/* BOTONES */}
