@@ -6,6 +6,8 @@ import Button from "../../../shared/components/Button";
 // Tokens de estilo — alineados con ProductionForm / RolForm / CategoryForm
 // ─────────────────────────────────────────────────
 const PINK = "#ff4fd6";
+const MAX_SEDE_TEXT_LENGTH = 50;
+const MAX_SEDE_PHONE_LENGTH = 15;
 
 const fieldStyle = (hasError) => ({
   width: "100%",
@@ -91,6 +93,12 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
   const validators = {
     required: (v) => (!v?.trim() ? "Este campo es obligatorio" : ""),
     minLength: (v) => (v && v.trim().length < 3 ? "Mínimo 3 caracteres" : ""),
+    maxTextLength: (v) => v && v.length >= MAX_SEDE_TEXT_LENGTH
+      ? `Máximo ${MAX_SEDE_TEXT_LENGTH} caracteres`
+      : "",
+    maxPhoneLength: (v) => v && v.length >= MAX_SEDE_PHONE_LENGTH
+      ? `Máximo ${MAX_SEDE_PHONE_LENGTH} dígitos`
+      : "",
     telefono: (v) =>
       v && !/^\d{7,15}$/.test(v.trim())
         ? "Solo números, entre 7 y 15 dígitos"
@@ -101,19 +109,19 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
     let error = "";
     switch (name) {
       case "nombre":
-        error = validators.required(value) || validators.minLength(value);
+        error = validators.maxTextLength(value) || validators.required(value) || validators.minLength(value);
         break;
       case "ciudad":
-        error = validators.required(value);
+        error = validators.maxTextLength(value) || validators.required(value);
         break;
       case "barrio":
-        error = validators.required(value);
+        error = validators.maxTextLength(value) || validators.required(value);
         break;
       case "direccion":
-        error = validators.required(value);
+        error = validators.maxTextLength(value) || validators.required(value);
         break;
       case "telefono":
-        error = validators.required(value) || validators.telefono(value);
+        error = validators.maxPhoneLength(value) || validators.required(value) || validators.telefono(value);
         break;
       default:
         break;
@@ -124,8 +132,11 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const maxLength = name === "telefono" ? MAX_SEDE_PHONE_LENGTH : MAX_SEDE_TEXT_LENGTH;
+    const nextValue = value.slice(0, maxLength);
+
     validateField(name, value);
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
   const handleBlur = (e) => {
@@ -236,6 +247,7 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
             id="nombre"
             name="nombre"
             value={formData.nombre}
+            maxLength={MAX_SEDE_TEXT_LENGTH}
             onChange={handleChange}
             onBlur={handleBlur}
             onFocus={onFocusField}
@@ -262,6 +274,7 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
               id="ciudad"
               name="ciudad"
               value={formData.ciudad}
+              maxLength={MAX_SEDE_TEXT_LENGTH}
               onChange={handleChange}
               onBlur={handleBlur}
               onFocus={onFocusField}
@@ -278,6 +291,7 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
               id="barrio"
               name="barrio"
               value={formData.barrio}
+              maxLength={MAX_SEDE_TEXT_LENGTH}
               onChange={handleChange}
               onBlur={handleBlur}
               onFocus={onFocusField}
@@ -305,6 +319,7 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
               id="direccion"
               name="direccion"
               value={formData.direccion}
+              maxLength={MAX_SEDE_TEXT_LENGTH}
               onChange={handleChange}
               onBlur={handleBlur}
               onFocus={onFocusField}
@@ -321,6 +336,8 @@ const SedeForm = ({ sede, onSubmit, onCancel }) => {
               id="telefono"
               name="telefono"
               value={formData.telefono}
+              maxLength={MAX_SEDE_PHONE_LENGTH}
+              inputMode="numeric"
               onChange={handleChange}
               onBlur={handleBlur}
               onFocus={onFocusField}

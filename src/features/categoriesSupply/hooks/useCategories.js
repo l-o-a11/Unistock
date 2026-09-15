@@ -19,6 +19,8 @@ export const useCategories = (initialFilters = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ limit: 50, sortBy: "createdAt", order: "desc", ...initialFilters });
+  const sortCategoriesByNewest = (items) =>
+    [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   // ── Carga paginada ─────────────────────────────────────────────────────────
   const loadCategories = useCallback(async (overrideFilters = {}) => {
@@ -27,7 +29,7 @@ export const useCategories = (initialFilters = {}) => {
       setError(null);
       const merged = { ...filters, ...overrideFilters };
       const result = await categoryAPI.getAll(merged);
-      setCategories([...result.data].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+      setCategories(sortCategoriesByNewest(result.data));
       setPagination({
         total: result.total,
         page: result.page,
@@ -55,7 +57,7 @@ export const useCategories = (initialFilters = {}) => {
   const createCategory = async (categoryData) => {
     try {
       const newCategory = await categoryAPI.create(categoryData);
-      setCategories((prev) => [newCategory, ...prev].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+      setCategories((prev) => sortCategoriesByNewest([newCategory, ...prev]));
       await loadCategories();
       return newCategory;
     } catch (err) {
@@ -68,7 +70,9 @@ export const useCategories = (initialFilters = {}) => {
   const updateCategory = async (id, categoryData) => {
     try {
       const updated = await categoryAPI.update(id, categoryData);
-      setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      setCategories((prev) => sortCategoriesByNewest(
+        prev.map((category) => (String(category.id) === String(id) ? updated : category)),
+      ));
       return updated;
     } catch (err) {
       const msg = err.data?.error || err.message || "Error al actualizar la categoría";

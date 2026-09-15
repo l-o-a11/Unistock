@@ -99,6 +99,7 @@ const CategoriesSupplyPage = () => {
   const handleCreateSubmit = async (categoryData) => {
     try {
       await createCategory(categoryData);
+      setCurrentPage(1);
       handleCloseForm();
       showAlert(
         "success",

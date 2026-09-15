@@ -67,7 +67,9 @@ export const useRoles = () => {
       setError(null);
       const updated = await RolesAPI.update(id, rolData);
       setRoles((prev) =>
-        prev.map((r) => (String(r.id) === String(id) ? updated : r))
+        [...prev.map((r) => (String(r.id) === String(id) ? updated : r))].sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        )
       );
       return updated;
     } catch (err) {

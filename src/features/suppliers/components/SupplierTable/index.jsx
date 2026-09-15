@@ -1,30 +1,11 @@
 import React from "react";
-import HoverCard from "../HoverCard";
+import HoverCard from "../../../shared/components/HoverCart";
 
 const truncate = (text, max = 18) => {
   if (!text) return { text: "", truncated: false };
   const truncated = text.length > max;
   return { text: truncated ? text.slice(0, max) + "..." : text, truncated };
 };
-
-// Convierte los "fields" (label/value) en el JSX que HoverCard espera en `content`
-const buildHoverContent = (fields) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-    {fields.map(({ label, value, highlight }) => (
-      <div key={label}>
-        <span style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          {label}
-        </span>
-        <p style={{
-          margin: "2px 0 0", fontSize: 13, wordBreak: "break-word",
-          color: highlight ? "#FF4FD6" : "#333", fontWeight: highlight ? 700 : 500,
-        }}>
-          {value}
-        </p>
-      </div>
-    ))}
-  </div>
-);
 
 const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) => {
 
@@ -84,7 +65,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                         );
                       })()}
                       {(() => { const { text, truncated } = truncate(supplier.nit); return truncated ? (
-                        <HoverCard content={buildHoverContent([{ label: "NIT", value: supplier.nit, highlight: true }])}>
+                        <HoverCard title="Información proveedor" position="right" fields={[{ label: "NIT", value: supplier.nit, highlight: true }]}>
                           <span style={{ display: "inline-block", whiteSpace: "nowrap", fontSize: 14, color: "#333" }}>{text}</span>
                         </HoverCard>
                       ) : (
@@ -94,7 +75,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                   </td>
                   <td style={tdStyle}>
                     {(() => { const { text, truncated } = truncate(supplier.nombreEmpresa); return truncated ? (
-                      <HoverCard content={buildHoverContent([{ label: "Empresa", value: supplier.nombreEmpresa, highlight: true }])}>
+                        <HoverCard title="Información proveedor" position="right" fields={[{ label: "Empresa", value: supplier.nombreEmpresa, highlight: true }]}>
                         <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
                       </HoverCard>
                     ) : (
@@ -103,7 +84,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                   </td>
                   <td style={tdStyle}>
                     {(() => { const { text, truncated } = truncate(supplier.nombreContacto); return truncated ? (
-                      <HoverCard content={buildHoverContent([{ label: "Contacto", value: supplier.nombreContacto }])}>
+                        <HoverCard title="Información proveedor" position="right" fields={[{ label: "Contacto", value: supplier.nombreContacto }]}>
                         <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
                       </HoverCard>
                     ) : (
@@ -112,7 +93,7 @@ const SupplierTable = ({ suppliers = [], onView, onEdit, onDelete, onToggle }) =
                   </td>
                   <td style={tdStyle}>
                     {(() => { const { text, truncated } = truncate(supplier.direccion); return truncated ? (
-                      <HoverCard content={buildHoverContent([{ label: "Dirección", value: supplier.direccion }])}>
+                        <HoverCard title="Información proveedor" position="right" fields={[{ label: "Dirección", value: supplier.direccion }]}>
                         <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{text}</span>
                       </HoverCard>
                     ) : (

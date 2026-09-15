@@ -41,9 +41,9 @@ export const authService = {
           sedeNombre: user?.sedeNombre ?? sedeNombreFromToken ?? null,
           token,
         };
-        localStorage.setItem("session_user", JSON.stringify(session));
+        sessionStorage.setItem("session_user", JSON.stringify(session));
       } else if (user) {
-        localStorage.setItem(
+        sessionStorage.setItem(
           "session_user",
           JSON.stringify({ id: user?.id ?? user?._id, nombre: user?.nombreCompleto ?? user?.nombre, correo: user?.correo, token: null })
         );
@@ -63,7 +63,8 @@ export const authService = {
   // kept for compatibility with older code
   getCurrentUser: () => {
     try {
-      const raw = localStorage.getItem("session_user") || sessionStorage.getItem("session_user");
+      localStorage.removeItem("session_user");
+      const raw = sessionStorage.getItem("session_user");
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
